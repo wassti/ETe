@@ -1241,7 +1241,7 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, imgFlags_t flags )
 //#endif // _DEBUG
 
 #ifdef CHECKPOWEROF2
-	if ( ( ( width - 1 ) & width ) || ( ( height - 1 ) & height ) ) {
+	if ( !r_allowNonPo2->integer && (( ( width - 1 ) & width ) || ( ( height - 1 ) & height )) ) {
 		Com_Printf( "^1Image not power of 2 scaled: %s\n", name );
 		return NULL;
 	}

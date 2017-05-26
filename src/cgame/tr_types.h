@@ -32,7 +32,18 @@ If you have questions concerning this license or the applicable additional terms
 
 #define MAX_CORONAS     32          //----(SA)	not really a reason to limit this other than trying to keep a reasonable count
 #define MAX_DLIGHTS     32          // can't be increased, because bit flags are used on surfaces
-#define MAX_ENTITIES    1023        // can't be increased without changing drawsurf bit packing
+
+#ifdef USE_RENDERER2
+#define	REFENTITYNUM_BITS	11	// can't be increased without changing drawsurf bit packing
+#else
+#define	REFENTITYNUM_BITS	12	// as we actually using only 1 bit for dlight mask in opengl1 renderer
+#endif
+
+#define	REFENTITYNUM_MASK	((1<<REFENTITYNUM_BITS) - 1)
+// the last N-bit number (2^REFENTITYNUM_BITS - 1) is reserved for the special world refentity,
+//  and this is reflected by the value of MAX_REFENTITIES (which therefore is not a power-of-2)
+#define	MAX_REFENTITIES		((1<<REFENTITYNUM_BITS) - 1)
+#define	REFENTITYNUM_WORLD	((1<<REFENTITYNUM_BITS) - 1)
 
 // renderfx flags
 #define RF_MINLIGHT         0x000001        // allways have some light (viewmodel, some items)
@@ -51,6 +62,11 @@ If you have questions concerning this license or the applicable additional terms
 #define RF_HILIGHT          0x000100        // more than RF_MINLIGHT.  For when an object is "Highlighted" (looked at/training identification/etc)
 #define RF_BLINK            0x000200        // eyes in 'blink' state
 #define RF_FORCENOLOD       0x000400
+
+#define RF_CROSSHAIR		0x000800		// This item is a cross hair and will draw over everything similar to
+						// DEPTHHACK in stereo rendering mode, with the difference that the
+						// projection matrix won't be hacked to reduce the stereo separation as
+						// is done for the gun.
 
 // refdef flags
 #define RDF_NOWORLDMODEL    1       // used for player configuration screen
@@ -246,8 +262,8 @@ typedef enum {
 */
 typedef enum {
 	TC_NONE,
-	TC_S3TC,
-	TC_EXT_COMP_S3TC
+	TC_S3TC,  // this is for the GL_S3_s3tc extension.
+	TC_S3TC_ARB  // this is for the GL_EXT_texture_compression_s3tc extension.
 } textureCompression_t;
 
 typedef enum {

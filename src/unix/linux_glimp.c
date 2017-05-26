@@ -78,9 +78,22 @@ If you have questions concerning this license or the applicable additional terms
 
 #include <X11/keysym.h>
 #include <X11/cursorfont.h>
+#include <X11/Xatom.h>
 
-#include <X11/extensions/xf86dga.h>
+#include <X11/XKBlib.h>
+
+#if !defined(__sun)
+#include <X11/extensions/Xxf86dga.h>
 #include <X11/extensions/xf86vmode.h>
+#endif
+
+#if defined(__sun)
+#include <X11/Sunkeysym.h>
+#endif
+
+#ifdef _XF86DGA_H_
+#define HAVE_XF86DGA
+#endif
 
 #define WINDOW_CLASS_NAME   "Enemy Territory"
 
@@ -127,31 +140,36 @@ static int mouseResetTime = 0;
 
 static cvar_t *in_mouse;
 static cvar_t *in_dgamouse; // user pref for dga mouse
+static cvar_t *in_shiftedKeys; // obey modifiers for certain keys in non-console (comma, numbers, etc)
 cvar_t *in_subframe;
 cvar_t *in_nograb; // handy for developers
 
+cvar_t *in_forceCharset;
+
 // bk001130 - from cvs1.17 (mkv), but not static
+#ifdef USE_JOYSTICK
 cvar_t   *in_joystick      = NULL;
 cvar_t   *in_joystickDebug = NULL;
 cvar_t   *joy_threshold    = NULL;
+#endif
 
 cvar_t  *r_allowSoftwareGL;   // don't abort out if the pixelformat claims software
 cvar_t  *r_previousglDriver;
 
-cvar_t  *in_shiftedkeys    = NULL;
+static qboolean vidmode_ext = qfalse;
+static qboolean vidmode_active = qfalse;
 
-qboolean vidmode_ext = qfalse;
+#ifdef HAVE_XF86DGA
 static int vidmode_MajorVersion = 0, vidmode_MinorVersion = 0; // major and minor of XF86VidExtensions
 
 // gamma value of the X display before we start playing with it
 static XF86VidModeGamma vidmode_InitialGamma;
 
-static int win_x, win_y;
+static XF86VidModeModeInfo **vidmodes = NULL;
+#endif /* HAVE_XF86DGA */
 
-static XF86VidModeModeInfo **vidmodes;
-//static int default_dotclock_vidmode; // bk001204 - unused
-static int num_vidmodes;
-static qboolean vidmode_active = qfalse;
+
+static int win_x, win_y;
 
 static int mouse_accel_numerator;
 static int mouse_accel_denominator;
@@ -200,301 +218,342 @@ static const char *Q_stristr( const char *s, const char *find ) {
 ******************************************************************************/
 
 //#define KBD_DBG
+static const char s_keytochar[ 128 ] =
+{
+//0     1     2     3     4     5     6     7     8     9     A     B     C     D     E     F 
+ 0x0,  0x0,  0x0,  0x0,  0x0,  0x0,  0x0,  0x0,  0x0,  0x0,  '1',  '2',  '3',  '4',  '5',  '6',  // 0
+ '7',  '8',  '9',  '0',  '-',  '=',  0x8,  0x9,  'q',  'w',  'e',  'r',  't',  'y',  'u',  'i',  // 1
+ 'o',  'p',  '[',  ']',  0x0,  0x0,  'a',  's',  'd',  'f',  'g',  'h',  'j',  'k',  'l',  ';',  // 2
+ '\'', 0x0,  0x0,  '\\', 'z',  'x',  'c',  'v',  'b',  'n',  'm',  ',',  '.',  '/',  0x0,  '*',  // 3
 
-static char *XLateKey( XKeyEvent *ev, int *key ) {
-	static char buf[64];
-	static char shiftlessbuf[2];
-	KeySym keysym;
-	int XLookupRet;
+//0     1     2     3     4     5     6     7     8     9     A     B     C     D     E     F 
+ 0x0,  0x0,  0x0,  0x0,  0x0,  0x0,  0x0,  0x0,  0x0,  0x0,  '!',  '@',  '#',  '$',  '%',  '^',  // 4
+ '&',  '*',  '(',  ')',  '_',  '+',  0x8,  0x9,  'Q',  'W',  'E',  'R',  'T',  'Y',  'U',  'I',  // 5
+ 'O',  'P',  '{',  '}',  0x0,  0x0,  'A',  'S',  'D',  'F',  'G',  'H',  'J',  'K',  'L',  ':',  // 6
+ '"',  0x0,  0x0,  '|',  'Z',  'X',  'C',  'V',  'B',  'N',  'M',  '<',  '>',  '?',  0x0,  '*',  // 7
+};
 
-	*key = 0;
+static char *XLateKey( XKeyEvent *ev, int *key )
+{
+  static unsigned char buf[64];
+  static unsigned char bufnomod[2];
+  KeySym keysym;
+  int XLookupRet;
 
-	// get the buffer without messing with shifts, for SE_CHAR
+  *key = 0;
 
-	XLookupRet = XLookupString( ev, buf, sizeof buf, &keysym, 0 );
-
+  XLookupRet = XLookupString(ev, (char*)buf, sizeof(buf), &keysym, 0);
 #ifdef KBD_DBG
-	ri.Printf( PRINT_ALL, "XLookupString ret: %d buf: %s keysym: %x\n", XLookupRet, buf, keysym );
+  ri.Printf(PRINT_ALL, "XLookupString ret: %d buf: %s keysym: %x\n", XLookupRet, buf, (int)keysym);
 #endif
 
-	if ( !in_shiftedkeys->integer ) {
-		// get the keysym and a buffer with no shifts at all, for SE_KEY
-		ev->state = 0;
-		XLookupRet = XLookupString( ev, shiftlessbuf, sizeof shiftlessbuf, &keysym, 0 );
-
+  if (!in_shiftedKeys->integer) {
+    // also get a buffer without modifiers held
+    ev->state = 0;
+    XLookupRet = XLookupString(ev, (char*)bufnomod, sizeof(bufnomod), &keysym, 0);
 #ifdef KBD_DBG
-		ri.Printf( PRINT_ALL, "XLookupString ret (shiftless): %d buf: %s keysym: %x\n", XLookupRet, shiftlessbuf, keysym );
+    ri.Printf(PRINT_ALL, "XLookupString (minus modifiers) ret: %d buf: %s keysym: %x\n", XLookupRet, buf, (int)keysym);
 #endif
-	}
+  } else {
+    bufnomod[0] = '\0';
+  }
 
-	switch ( keysym )
-	{
-	case XK_KP_Page_Up:
-	case XK_KP_9:  *key = K_KP_PGUP; break;
-	case XK_Page_Up:   *key = K_PGUP; break;
+  switch (keysym)
+  {
+  case XK_grave:
+  case XK_twosuperior:
+    *key = K_CONSOLE;
+    buf[0] = '\0';
+    return (char*)buf;
 
-	case XK_KP_Page_Down:
-	case XK_KP_3: *key = K_KP_PGDN; break;
-	case XK_Page_Down:   *key = K_PGDN; break;
+  case XK_KP_Page_Up:
+  case XK_KP_9:  *key = K_KP_PGUP; break;
+  case XK_Page_Up:   *key = K_PGUP; break;
 
-	case XK_KP_Home: *key = K_KP_HOME; break;
-	case XK_KP_7: *key = K_KP_HOME; break;
-	case XK_Home:  *key = K_HOME; break;
+  case XK_KP_Page_Down:
+  case XK_KP_3: *key = K_KP_PGDN; break;
+  case XK_Page_Down:   *key = K_PGDN; break;
 
-	case XK_KP_End:
-	case XK_KP_1:   *key = K_KP_END; break;
-	case XK_End:   *key = K_END; break;
+  case XK_KP_Home: *key = K_KP_HOME; break;
+  case XK_KP_7: *key = K_KP_HOME; break;
+  case XK_Home:  *key = K_HOME; break;
 
-	case XK_KP_Left: *key = K_KP_LEFTARROW; break;
-	case XK_KP_4: *key = K_KP_LEFTARROW; break;
-	case XK_Left:  *key = K_LEFTARROW; break;
+  case XK_KP_End:
+  case XK_KP_1:   *key = K_KP_END; break;
+  case XK_End:   *key = K_END; break;
 
-	case XK_KP_Right: *key = K_KP_RIGHTARROW; break;
-	case XK_KP_6: *key = K_KP_RIGHTARROW; break;
-	case XK_Right:  *key = K_RIGHTARROW;    break;
+  case XK_KP_Left: *key = K_KP_LEFTARROW; break;
+  case XK_KP_4: *key = K_KP_LEFTARROW; break;
+  case XK_Left:  *key = K_LEFTARROW; break;
 
-	case XK_KP_Down:
-	case XK_KP_2:    *key = K_KP_DOWNARROW; break;
-	case XK_Down:  *key = K_DOWNARROW; break;
+  case XK_KP_Right: *key = K_KP_RIGHTARROW; break;
+  case XK_KP_6: *key = K_KP_RIGHTARROW; break;
+  case XK_Right:  *key = K_RIGHTARROW;    break;
 
-	case XK_KP_Up:
-	case XK_KP_8:    *key = K_KP_UPARROW; break;
-	case XK_Up:    *key = K_UPARROW;   break;
+  case XK_KP_Down:
+  case XK_KP_2:  if ( Key_GetCatcher() && (buf[0] || bufnomod[0]) )
+                   *key = 0;
+                 else
+                   *key = K_KP_DOWNARROW;
+                 break;
 
-	case XK_Escape: *key = K_ESCAPE;    break;
+  case XK_Down:  *key = K_DOWNARROW; break;
 
-	case XK_KP_Enter: *key = K_KP_ENTER;  break;
-	case XK_Return: *key = K_ENTER;    break;
+  case XK_KP_Up:
+  case XK_KP_8:  if ( Key_GetCatcher() && (buf[0] || bufnomod[0]) )
+                   *key = 0;
+                 else
+                   *key = K_KP_UPARROW;
+                 break;
 
-	case XK_Tab:    *key = K_TAB;      break;
+  case XK_Up:    *key = K_UPARROW;   break;
 
-	case XK_F1:    *key = K_F1;       break;
+  case XK_Escape: *key = K_ESCAPE;    break;
 
-	case XK_F2:    *key = K_F2;       break;
+  case XK_KP_Enter: *key = K_KP_ENTER;  break;
+  case XK_Return: *key = K_ENTER;    break;
 
-	case XK_F3:    *key = K_F3;       break;
+  case XK_Tab:    *key = K_TAB;      break;
 
-	case XK_F4:    *key = K_F4;       break;
+  case XK_F1:    *key = K_F1;       break;
 
-	case XK_F5:    *key = K_F5;       break;
+  case XK_F2:    *key = K_F2;       break;
 
-	case XK_F6:    *key = K_F6;       break;
+  case XK_F3:    *key = K_F3;       break;
 
-	case XK_F7:    *key = K_F7;       break;
+  case XK_F4:    *key = K_F4;       break;
 
-	case XK_F8:    *key = K_F8;       break;
+  case XK_F5:    *key = K_F5;       break;
 
-	case XK_F9:    *key = K_F9;       break;
+  case XK_F6:    *key = K_F6;       break;
 
-	case XK_F10:    *key = K_F10;      break;
+  case XK_F7:    *key = K_F7;       break;
 
-	case XK_F11:    *key = K_F11;      break;
+  case XK_F8:    *key = K_F8;       break;
 
-	case XK_F12:    *key = K_F12;      break;
+  case XK_F9:    *key = K_F9;       break;
 
-		// bk001206 - from Ryan's Fakk2
-		//case XK_BackSpace: *key = 8; break; // ctrl-h
-	case XK_BackSpace: *key = K_BACKSPACE; break; // ctrl-h
+  case XK_F10:    *key = K_F10;      break;
 
-	case XK_KP_Delete:
-	case XK_KP_Decimal: *key = K_KP_DEL; break;
-	case XK_Delete: *key = K_DEL; break;
+  case XK_F11:    *key = K_F11;      break;
 
-	case XK_Pause:  *key = K_PAUSE;    break;
+  case XK_F12:    *key = K_F12;      break;
 
-	case XK_Shift_L:
-	case XK_Shift_R:  *key = K_SHIFT;   break;
+    // bk001206 - from Ryan's Fakk2
+    //case XK_BackSpace: *key = 8; break; // ctrl-h
+  case XK_BackSpace: *key = K_BACKSPACE; break; // ctrl-h
 
-	case XK_Execute:
-	case XK_Control_L:
-	case XK_Control_R:  *key = K_CTRL;  break;
+  case XK_KP_Delete:
+  case XK_KP_Decimal: *key = K_KP_DEL; break;
+  case XK_Delete: *key = K_DEL; break;
 
-	case XK_Alt_L:
-	case XK_Meta_L:
-	case XK_Alt_R:
-	case XK_Meta_R: *key = K_ALT;     break;
+  case XK_Pause:  *key = K_PAUSE;    break;
 
-	case XK_KP_Begin: *key = K_KP_5;  break;
+  case XK_Shift_L:
+  case XK_Shift_R:  *key = K_SHIFT;   break;
 
-	case XK_Insert:   *key = K_INS; break;
-	case XK_KP_Insert:
-	case XK_KP_0: *key = K_KP_INS; break;
+  case XK_Execute:
+  case XK_Control_L:
+  case XK_Control_R:  *key = K_CTRL;  break;
 
-	case XK_KP_Multiply: *key = '*'; break;
-	case XK_KP_Add:  *key = K_KP_PLUS; break;
-	case XK_KP_Subtract: *key = K_KP_MINUS; break;
-	case XK_KP_Divide: *key = K_KP_SLASH; break;
+  case XK_Alt_L:
+  case XK_Meta_L:
+  case XK_Alt_R:
+  case XK_Meta_R: *key = K_ALT;     break;
 
-		// bk001130 - from cvs1.17 (mkv)
-	case XK_exclam: *key = '1'; break;
-	case XK_at: *key = '2'; break;
-	case XK_numbersign: *key = '3'; break;
-	case XK_dollar: *key = '4'; break;
-	case XK_percent: *key = '5'; break;
-	case XK_asciicircum: *key = '6'; break;
-	case XK_ampersand: *key = '7'; break;
-	case XK_asterisk: *key = '8'; break;
-	case XK_parenleft: *key = '9'; break;
-	case XK_parenright: *key = '0'; break;
+  case XK_KP_Begin: *key = K_KP_5;  break;
 
-		// rain - handle some previously unhandled keys...
-	case XK_Caps_Lock:      *key = K_CAPSLOCK; break;
-	case XK_Num_Lock:       *key = K_KP_NUMLOCK; break;
-	case XK_KP_Equal:       *key = K_KP_EQUALS; break;
+  case XK_Insert:   *key = K_INS; break;
+  case XK_KP_Insert:
+  case XK_KP_0: *key = K_KP_INS; break;
 
-		// these are unlikely, but we have keys for them from the mac port,
-		// so we might as well...
-	case XK_F13:            *key = K_F13; break;
-	case XK_F14:            *key = K_F14; break;
-	case XK_F15:            *key = K_F15; break;
+  case XK_KP_Multiply: *key = '*'; break;
+  case XK_KP_Add:  *key = K_KP_PLUS; break;
+  case XK_KP_Subtract: *key = K_KP_MINUS; break;
+  case XK_KP_Divide: *key = K_KP_SLASH; break;
 
-		// this is to fix Ctrl-`, which is otherwise picked up by the default
-		// case as a NUL, which kept the mini-console from working.
-	case XK_grave:          *key = '~'; break;
+    // bk001130 - from cvs1.17 (mkv)
+  case XK_exclam: *key = '1'; break;
+  case XK_at: *key = '2'; break;
+  case XK_numbersign: *key = '3'; break;
+  case XK_dollar: *key = '4'; break;
+  case XK_percent: *key = '5'; break;
+  case XK_asciicircum: *key = '6'; break;
+  case XK_ampersand: *key = '7'; break;
+  case XK_asterisk: *key = '8'; break;
+  case XK_parenleft: *key = '9'; break;
+  case XK_parenright: *key = '0'; break;
+  
+  case XK_F13: *key = K_F13; break;
+  case XK_F14: *key = K_F14; break;
+  case XK_F15: *key = K_F15; break;
 
-		// weird french keyboards ..
-		// NOTE: console toggle is hardcoded in cl_keys.c, can't be unbound
-		//   cleaner would be .. using hardware key codes instead of the key syms
-		//   could also add a new K_KP_CONSOLE
-	case XK_twosuperior: *key = '~'; break;
+  // weird french keyboards ..
+  // NOTE: console toggle is hardcoded in cl_keys.c, can't be unbound
+  //   cleaner would be .. using hardware key codes instead of the key syms
+  //   could also add a new K_KP_CONSOLE
+  //case XK_twosuperior: *key = '~'; break;
 
-		// show_bug.cgi?id=472
-	case XK_space:
-	case XK_KP_Space: *key = K_SPACE; break;
+  // https://zerowing.idsoftware.com/bugzilla/show_bug.cgi?id=472
+  case XK_space:
+  case XK_KP_Space: *key = K_SPACE; break;
 
-	default:
-		if ( XLookupRet == 0 ) {
-			if ( com_developer->value ) {
-				ri.Printf( PRINT_ALL, "Warning: XLookupString failed on KeySym %d\n", keysym );
-			}
-			return NULL;
-		} else
-		{
-			// XK_* tests failed, but XLookupString got a buffer, so let's try it
-			if ( in_shiftedkeys->integer ) {
-				// old hackish style, for some keyboards that are absolutely strange.
-				// (no shiftless numbers...)
-				*key = buf[0];
-				if ( *key >= 'A' && *key <= 'Z' ) {
-					*key = *key - 'A' + 'a';
-				}
-				// if ctrl is pressed, the keys are not between 'A' and 'Z', for instance ctrl-z == 26 ^Z ^C etc.
-				// see show_bug.cgi?id=19
-				else if ( *key >= 1 && *key <= 26 ) {
-					*key = *key + 'a' - 1;
-				}
-			} else {
-				*key = shiftlessbuf[0];
-			}
-		}
-		break;
-	}
+  case XK_Menu:	*key = K_MENU; break;
+  case XK_Print: *key = K_PRINT; break;
+  case XK_Super_L:
+  case XK_Super_R: *key = K_SUPER; break;
+  case XK_Num_Lock: *key = K_KP_NUMLOCK; break;
+  case XK_Caps_Lock: *key = K_CAPSLOCK; break;
+  case XK_Scroll_Lock: *key = K_SCROLLOCK; break;
+  case XK_backslash: *key = '\\'; break;
 
-	return buf;
+  default:
+    //ri.Printf( PRINT_ALL, "unknown keysym: %08X\n", keysym );
+    if (XLookupRet == 0)
+    {
+      if (com_developer->value)
+      {
+        ri.Printf( PRINT_ALL, "Warning: XLookupString failed on KeySym %d\n", (int)keysym );
+      }
+      buf[0] = '\0';
+      return (char*)buf;
+    }
+    else
+    {
+      // XK_* tests failed, but XLookupString got a buffer, so let's try it
+      if (in_shiftedKeys->integer) {
+        *key = *(unsigned char *)buf;
+        if (*key >= 'A' && *key <= 'Z')
+          *key = *key - 'A' + 'a';
+        // if ctrl is pressed, the keys are not between 'A' and 'Z', for instance ctrl-z == 26 ^Z ^C etc.
+        // see https://zerowing.idsoftware.com/bugzilla/show_bug.cgi?id=19
+        else if (*key >= 1 && *key <= 26)
+          *key = *key + 'a' - 1;
+      } else {
+        *key = bufnomod[0];
+      }
+    }
+    break;
+  }
+
+  return (char*)buf;
 }
 
 // ========================================================================
 // makes a null cursor
 // ========================================================================
 
-static Cursor CreateNullCursor( Display *display, Window root ) {
+static Cursor CreateNullCursor( Display *display, Window root )
+{
 	Pixmap cursormask;
 	XGCValues xgc;
 	GC gc;
 	XColor dummycolour;
 	Cursor cursor;
 
-	cursormask = XCreatePixmap( display, root, 1, 1, 1 /*depth*/ );
+	cursormask = XCreatePixmap( display, root, 1, 1, 1/*depth*/ );
 	xgc.function = GXclear;
-	gc =  XCreateGC( display, cursormask, GCFunction, &xgc );
+	gc = XCreateGC( display, cursormask, GCFunction, &xgc );
 	XFillRectangle( display, cursormask, gc, 0, 0, 1, 1 );
 	dummycolour.pixel = 0;
 	dummycolour.red = 0;
 	dummycolour.flags = 04;
-	cursor = XCreatePixmapCursor( display, cursormask, cursormask,
-								  &dummycolour,&dummycolour, 0,0 );
-	XFreePixmap( display,cursormask );
-	XFreeGC( display,gc );
+	cursor = XCreatePixmapCursor( display, cursormask, cursormask, &dummycolour, &dummycolour, 0, 0 );
+	XFreePixmap( display, cursormask );
+	XFreeGC( display, gc );
 	return cursor;
 }
 
-static void install_grabs( void ) {
-	// inviso cursor
-	XWarpPointer( dpy, None, win,
-				  0, 0, 0, 0,
-				  glConfig.vidWidth / 2, glConfig.vidHeight / 2 );
+
+static void install_grabs( void )
+{
+	int res;
+
+	// move pointer to destination window area
+	XWarpPointer( dpy, None, win, 0, 0, 0, 0, glConfig.vidWidth / 2, glConfig.vidHeight / 2 );
+
 	XSync( dpy, False );
 
+	// hide cursor
 	XDefineCursor( dpy, win, CreateNullCursor( dpy, win ) );
 
-	XGrabPointer( dpy, win, // bk010108 - do this earlier?
-				  False,
-				  MOUSE_MASK,
-				  GrabModeAsync, GrabModeAsync,
-				  win,
-				  None,
-				  CurrentTime );
+	// save old mouse settings
+	XGetPointerControl( dpy, &mouse_accel_numerator, &mouse_accel_denominator, &mouse_threshold );
 
-	XGetPointerControl( dpy, &mouse_accel_numerator, &mouse_accel_denominator,
-						&mouse_threshold );
-
-	XChangePointerControl( dpy, True, True, 1, 1, 0 );
+	// do this earlier?
+	res = XGrabPointer( dpy, win, False, MOUSE_MASK, GrabModeAsync, GrabModeAsync, win, None, CurrentTime );
+	if ( res != GrabSuccess )
+	{
+		//ri.Printf( PRINT_ALL, S_COLOR_YELLOW "Warning: XGrabPointer() failed\n" );
+	}
+	else
+	{
+		// set new mouse settings
+		XChangePointerControl( dpy, True, True, 1, 1, 1 );
+	}
 
 	XSync( dpy, False );
 
 	mouseResetTime = Sys_Milliseconds();
 
-	if ( in_dgamouse->value ) {
+#ifdef HAVE_XF86DGA
+	if ( in_dgamouse->value )
+	{
 		int MajorVersion, MinorVersion;
 
-		if ( !XF86DGAQueryVersion( dpy, &MajorVersion, &MinorVersion ) ) {
+		if ( !XF86DGAQueryVersion( dpy, &MajorVersion, &MinorVersion ) )
+		{
 			// unable to query, probalby not supported, force the setting to 0
 			ri.Printf( PRINT_ALL, "Failed to detect XF86DGA Mouse\n" );
 			ri.Cvar_Set( "in_dgamouse", "0" );
-		} else {
-			if ( !XF86DGADirectVideo( dpy, DefaultScreen( dpy ), XF86DGADirectMouse ) ) {
-				ri.Printf( PRINT_ALL, "XF86DGADirectVideo failed despite advertised XF86DGAQueryVersion - broken drivers?" );
-				ri.Cvar_Set( "in_dgamouse", "0" );
-			} else {
-				XWarpPointer( dpy, None, win, 0, 0, 0, 0, 0, 0 );
-			}
+		} 
+		else
+		{
+			XF86DGADirectVideo( dpy, DefaultScreen( dpy ), XF86DGADirectMouse );
+			XWarpPointer( dpy, None, win, 0, 0, 0, 0, 0, 0 );
 		}
-	}
-
-	// don't else, it may have been canceled
-	if ( !in_dgamouse->value ) {
+	} 
+	else
+#endif /* HAVE_XF86DGA */
+	{
 		mwx = glConfig.vidWidth / 2;
 		mwy = glConfig.vidHeight / 2;
 		mx = my = 0;
 	}
 
-	XGrabKeyboard( dpy, win,
-				   False,
-				   GrabModeAsync, GrabModeAsync,
-				   CurrentTime );
+	res = XGrabKeyboard( dpy, win, False, GrabModeAsync, GrabModeAsync, CurrentTime );
+	if ( res != GrabSuccess )
+	{
+		//ri.Printf( PRINT_ALL, S_COLOR_YELLOW "Warning: XGrabKeyboard() failed\n" );
+	}
 
 	XSync( dpy, False );
 }
 
-static void uninstall_grabs( void ) {
-	if ( in_dgamouse->value ) {
-		if ( com_developer->value ) {
+
+static void uninstall_grabs( void )
+{
+#ifdef HAVE_XF86DGA
+	if ( in_dgamouse->integer )
+	{
+		if ( com_developer->integer ) 
+		{
 			ri.Printf( PRINT_ALL, "DGA Mouse - Disabling DGA DirectVideo\n" );
 		}
 		XF86DGADirectVideo( dpy, DefaultScreen( dpy ), 0 );
 	}
+#endif /* HAVE_XF86DGA */
 
-	XChangePointerControl( dpy, qtrue, qtrue, mouse_accel_numerator,
-						   mouse_accel_denominator, mouse_threshold );
+	// restore mouse settings
+	XChangePointerControl( dpy, qtrue, qtrue, mouse_accel_numerator, 
+		mouse_accel_denominator, mouse_threshold );
+
+	XWarpPointer( dpy, None, win, 0, 0, 0, 0, glConfig.vidWidth / 2, glConfig.vidHeight / 2 );
 
 	XUngrabPointer( dpy, CurrentTime );
 	XUngrabKeyboard( dpy, CurrentTime );
 
-	XWarpPointer( dpy, None, win,
-				  0, 0, 0, 0,
-				  glConfig.vidWidth / 2, glConfig.vidHeight / 2 );
-
-	// inviso cursor
+	// show cursor
 	XUndefineCursor( dpy, win );
 }
 
@@ -511,14 +570,15 @@ static void uninstall_grabs( void ) {
  *  same timestamp on press/release event pairs
  *  for key repeats.
  */
-static qboolean X11_PendingInput( void ) {
+static qboolean X11_PendingInput( void )
+{
+	assert(dpy != NULL);
 
-	assert( dpy != NULL );
-
-	// Flush the display connection
-	//  and look to see if events are queued
+	// Flush the display connection and look to see if events are queued
 	XFlush( dpy );
-	if ( XEventsQueued( dpy, QueuedAlready ) ) {
+
+	if ( XEventsQueued( dpy, QueuedAlready ) )
+	{
 		return qtrue;
 	}
 
@@ -531,7 +591,8 @@ static qboolean X11_PendingInput( void ) {
 		x11_fd = ConnectionNumber( dpy );
 		FD_ZERO( &fdset );
 		FD_SET( x11_fd, &fdset );
-		if ( select( x11_fd + 1, &fdset, NULL, NULL, &zero_time ) == 1 ) {
+		if ( select( x11_fd+1, &fdset, NULL, NULL, &zero_time ) == 1 )
+		{
 			return( XPending( dpy ) );
 		}
 	}
@@ -540,184 +601,257 @@ static qboolean X11_PendingInput( void ) {
 	return qfalse;
 }
 
-// bk001206 - from Ryan's Fakk2. See above.
-static qboolean repeated_press( XEvent *event ) {
-	XEvent peekevent;
-	qboolean repeated = qfalse;
+
+static qboolean repeated_press( XEvent *event )
+{
+	XEvent        peek;
 
 	assert( dpy != NULL );
 
-	if ( X11_PendingInput() ) {
-		XPeekEvent( dpy, &peekevent );
+	if ( X11_PendingInput() )
+	{
+		XPeekEvent( dpy, &peek );
 
-		if ( ( peekevent.type == KeyPress ) &&
-			 ( peekevent.xkey.keycode == event->xkey.keycode ) &&
-			 ( peekevent.xkey.time == event->xkey.time ) ) {
-			repeated = qtrue;
-			XNextEvent( dpy, &peekevent ); // skip event.
-		} // if
-	} // if
+		if ( ( peek.type == KeyPress ) &&
+			 ( peek.xkey.keycode == event->xkey.keycode ) &&
+			 ( peek.xkey.time == event->xkey.time ) )
+		{
+			return qtrue;
+		}
+	}
 
-	return( repeated );
-} // repeated_press
+	return qfalse;
+}
+
 
 int Sys_XTimeToSysTime( Time xtime );
-static void HandleEvents( void ) {
+
+
+static qboolean WindowMinimized( Display *dpy, Window win )
+{
+	unsigned long i, num_items, bytes_after;
+	Atom actual_type, *atoms, nws, nwsh;
+	int actual_format;
+
+	nws = XInternAtom( dpy, "_NET_WM_STATE", True );
+	if ( nws == BadValue || nws == None )
+		return qfalse;
+
+	nwsh = XInternAtom( dpy, "_NET_WM_STATE_HIDDEN", True );
+	if ( nwsh == BadValue || nwsh == None )
+		return qfalse;
+
+	atoms = NULL;
+
+	XGetWindowProperty( dpy, win, nws, 0, 0x7FFFFFFF, False, XA_ATOM,
+		&actual_type, &actual_format, &num_items,
+		&bytes_after, (unsigned char**)&atoms );
+
+    for ( i = 0; i < num_items; i++ )
+    {
+        if ( atoms[i] == nwsh )
+        {
+            XFree( atoms );
+            return qtrue;
+        }
+    }
+
+    XFree( atoms );
+    return qfalse;
+}
+
+
+static qboolean directMap( const byte chr ) 
+{
+	if ( !in_forceCharset->integer )
+		return qtrue;
+
+	switch ( chr ) // edit control sequences
+	{
+		case 'c'-'a'+1:
+		case 'v'-'a'+1:
+		case 'h'-'a'+1:
+		case 'a'-'a'+1:
+		case 'e'-'a'+1:
+		case 0xC: // CTRL+L
+			return qtrue;
+	}
+	if ( chr < ' ' || chr > 127 )
+		return qfalse;
+	else
+		return qtrue;
+}
+
+
+void HandleX11Events( void )
+{
+	XEvent event;
 	int b;
 	int key;
-	XEvent event;
 	qboolean dowarp = qfalse;
 	char *p;
 	int dx, dy;
 	int t = 0; // default to 0 in case we don't set
+	qboolean btn_press;
+	char buf[2];
 
-	if ( !dpy ) {
+	if ( !dpy )
 		return;
-	}
 
-	while ( XPending( dpy ) )
+	while( XPending( dpy ) )
 	{
 		XNextEvent( dpy, &event );
-		switch ( event.type )
+
+		switch( event.type )
 		{
+
+		case ClientMessage:
+
+			if ( event.xclient.data.l[0] == wmDeleteEvent )
+				Com_Quit_f();
+			break;
+
 		case KeyPress:
+			// ri.Printf( PRINT_ALL,"^2K+^7 %08X\n", event.xkey.keycode );
 			t = Sys_XTimeToSysTime( event.xkey.time );
-			p = XLateKey( &event.xkey, &key );
-			if ( key ) {
+			if ( event.xkey.keycode == 0x31 )
+			{
+				key = K_CONSOLE;
+				p = "";
+			}
+			else
+			{
+				int shift = (event.xkey.state & 1);
+				p = XLateKey( &event.xkey, &key );
+				if ( *p && event.xkey.keycode == 0x5B )
+				{
+					p = ".";
+				}
+				else
+				if ( !directMap( *p ) && event.xkey.keycode < 0x3F )
+				{
+					char ch;
+					ch = s_keytochar[ event.xkey.keycode ];
+					if ( ch >= 'a' && ch <= 'z' )
+					{
+						unsigned int capital;
+						XkbGetIndicatorState( dpy, XkbUseCoreKbd, &capital );
+						capital &= 1;
+						if ( capital ^ shift )
+						{
+							ch = ch - 'a' + 'A';
+						}
+					}
+					else
+					{
+						ch = s_keytochar[ event.xkey.keycode | (shift<<6) ];
+					}
+					buf[0] = ch;
+					buf[1] = '\0';
+					p = buf;
+				}
+			}
+			if (key)
+			{
 				Sys_QueEvent( t, SE_KEY, key, qtrue, 0, NULL );
 			}
-			if ( p ) {
-				while ( *p )
-				{
-					Sys_QueEvent( t, SE_CHAR, *p++, 0, 0, NULL );
-				}
+			while (*p)
+			{
+				Sys_QueEvent( t, SE_CHAR, *p++, 0, 0, NULL );
 			}
-			break;
+			break; // case KeyPress
 
 		case KeyRelease:
-			t = Sys_XTimeToSysTime( event.xkey.time );
-			// bk001206 - handle key repeat w/o XAutRepatOn/Off
-			//            also: not done if console/menu is active.
-			// From Ryan's Fakk2.
-			// see game/q_shared.h, KEYCATCH_* . 0 == in 3d game.
-			if ( cls.keyCatchers == 0 ) { // FIXME: KEYCATCH_NONE
-				if ( repeated_press( &event ) == qtrue ) {
-					continue;
-				}
-			} // if
-			XLateKey( &event.xkey, &key );
 
+			if ( repeated_press( &event ) ) 
+				break; // XNextEvent( dpy, &event )
+
+			t = Sys_XTimeToSysTime( event.xkey.time );
+#if 0
+			ri.Printf( PRINT_ALL,"^5K-^7 %08X %s\n",
+				event.xkey.keycode,
+				X11_PendingInput()?"pending":"");
+#endif
+			XLateKey( &event.xkey, &key );
 			Sys_QueEvent( t, SE_KEY, key, qfalse, 0, NULL );
-			break;
+
+			break; // case KeyRelease
 
 		case MotionNotify:
 			t = Sys_XTimeToSysTime( event.xkey.time );
-			if ( mouse_active ) {
-				if ( in_dgamouse->value ) {
-					if ( in_dgamouse->value >= 2 ) {
-						mx += event.xmotion.x_root;
-						my += event.xmotion.y_root;
-					} else {
-						if ( abs( event.xmotion.x_root ) > 1 ) {
-							mx += event.xmotion.x_root * 2;
-						} else {
-							mx += event.xmotion.x_root;
-						}
-						if ( abs( event.xmotion.y_root ) > 1 ) {
-							my += event.xmotion.y_root * 2;
-						} else {
-							my += event.xmotion.y_root;
-						}
-					}
-					if ( t - mouseResetTime > MOUSE_RESET_DELAY ) {
+			if ( mouse_active )
+			{
+#ifdef HAVE_XF86DGA
+				if ( in_dgamouse->value )
+				{
+					mx += event.xmotion.x_root;
+					my += event.xmotion.y_root;
+					if (t - mouseResetTime > MOUSE_RESET_DELAY )
+					{
 						Sys_QueEvent( t, SE_MOUSE, mx, my, 0, NULL );
 					}
 					mx = my = 0;
-				} else
+				} 
+				else
+#endif // HAVE_XF86DGA
 				{
 					// If it's a center motion, we've just returned from our warp
-					if ( event.xmotion.x == glConfig.vidWidth / 2 &&
-						 event.xmotion.y == glConfig.vidHeight / 2 ) {
-						mwx = glConfig.vidWidth / 2;
-						mwy = glConfig.vidHeight / 2;
-						if ( t - mouseResetTime > MOUSE_RESET_DELAY ) {
+					if (event.xmotion.x == glConfig.vidWidth/2 &&
+						event.xmotion.y == glConfig.vidHeight/2)
+					{
+						mwx = glConfig.vidWidth/2;
+						mwy = glConfig.vidHeight/2;
+						if (t - mouseResetTime > MOUSE_RESET_DELAY )
+						{
 							Sys_QueEvent( t, SE_MOUSE, mx, my, 0, NULL );
 						}
 						mx = my = 0;
 						break;
 					}
 
-					dx = ( (int)event.xmotion.x - mwx );
-					dy = ( (int)event.xmotion.y - mwy );
-					if ( abs( dx ) > 1 ) {
-						mx += dx * 2;
-					} else {
-						mx += dx;
-					}
-					if ( abs( dy ) > 1 ) {
-						my += dy * 2;
-					} else {
-						my += dy;
-					}
-
+					dx = ((int)event.xmotion.x - mwx);
+					dy = ((int)event.xmotion.y - mwy);
+					mx += dx;
+					my += dy;
 					mwx = event.xmotion.x;
 					mwy = event.xmotion.y;
 					dowarp = qtrue;
-				}
-			}
+				} // if ( !in_dgamouse->value )
+			} // if ( mouse_active )
 			break;
 
 		case ButtonPress:
-			t = Sys_XTimeToSysTime( event.xkey.time );
-			if ( event.xbutton.button == 4 ) {
-				Sys_QueEvent( t, SE_KEY, K_MWHEELUP, qtrue, 0, NULL );
-			} else if ( event.xbutton.button == 5 ) {
-				Sys_QueEvent( t, SE_KEY, K_MWHEELDOWN, qtrue, 0, NULL );
-			} else
-			{
-				// NOTE TTimo there seems to be a weird mapping for K_MOUSE1 K_MOUSE2 K_MOUSE3 ..
-				b = -1;
-				if ( event.xbutton.button == 1 ) {
-					b = 0; // K_MOUSE1
-				} else if ( event.xbutton.button == 2 ) {
-					b = 2; // K_MOUSE3
-				} else if ( event.xbutton.button == 3 ) {
-					b = 1; // K_MOUSE2
-				} else if ( event.xbutton.button == 6 ) {
-					b = 3; // K_MOUSE4
-				} else if ( event.xbutton.button == 7 ) {
-					b = 4; // K_MOUSE5
-				}
-				;
-
-				Sys_QueEvent( t, SE_KEY, K_MOUSE1 + b, qtrue, 0, NULL );
-			}
-			break;
-
 		case ButtonRelease:
+
+			if ( event.type == ButtonPress )
+				btn_press = qtrue;
+			else
+				btn_press = qfalse;
+
 			t = Sys_XTimeToSysTime( event.xkey.time );
-			if ( event.xbutton.button == 4 ) {
-				Sys_QueEvent( t, SE_KEY, K_MWHEELUP, qfalse, 0, NULL );
-			} else if ( event.xbutton.button == 5 ) {
-				Sys_QueEvent( t, SE_KEY, K_MWHEELDOWN, qfalse, 0, NULL );
-			} else
+			// NOTE TTimo there seems to be a weird mapping for K_MOUSE1 K_MOUSE2 K_MOUSE3 ..
+			b = -1;
+			switch ( event.xbutton.button ) 
 			{
-				b = -1;
-				if ( event.xbutton.button == 1 ) {
-					b = 0;
-				} else if ( event.xbutton.button == 2 ) {
-					b = 2;
-				} else if ( event.xbutton.button == 3 ) {
-					b = 1;
-				} else if ( event.xbutton.button == 6 ) {
-					b = 3; // K_MOUSE4
-				} else if ( event.xbutton.button == 7 ) {
-					b = 4; // K_MOUSE5
-				}
-				;
-				Sys_QueEvent( t, SE_KEY, K_MOUSE1 + b, qfalse, 0, NULL );
+				case 1: b = 0; break; // K_MOUSE1
+				case 2: b = 2; break; // K_MOUSE3
+				case 3: b = 1; break; // K_MOUSE2
+				case 4: Sys_QueEvent( t, SE_KEY, K_MWHEELUP, btn_press, 0, NULL ); break;
+				case 5:	Sys_QueEvent( t, SE_KEY, K_MWHEELDOWN, btn_press, 0, NULL ); break;
+				case 6: b = 3; break; // K_MOUSE4
+				case 7: b = 4; break; // K_MOUSE5
+				case 8:	case 9:       // K_AUX1..K_AUX8
+				case 10: case 11:
+				case 12: case 13:
+				case 14: case 15:
+						Sys_QueEvent( t, SE_KEY, event.xbutton.button - 8 + K_AUX1, 
+							btn_press, 0, NULL ); break;
 			}
-			break;
+			if ( b != -1 ) // K_MOUSE1..K_MOUSE5
+			{
+				Sys_QueEvent( t, SE_KEY, K_MOUSE1 + b, btn_press, 0, NULL );
+			}
+			break; // case ButtonPress/ButtonRelease
 
 		case CreateNotify:
 			win_x = event.xcreatewindow.x;
@@ -725,63 +859,77 @@ static void HandleEvents( void ) {
 			break;
 
 		case ConfigureNotify:
+			gw_minimized = WindowMinimized( dpy, win );
+//			Com_Printf( "ConfigureNotify minimized: %i\n", cls.soundMuted );
 			win_x = event.xconfigure.x;
 			win_y = event.xconfigure.y;
 			break;
-
-		case ClientMessage:
-			if ( event.xclient.message_type == wm_protocols &&
-				 event.xclient.data.l[0] == wm_delete_window ) {
-				Com_Quit_f();
-			}
-			break;
-
 		}
 	}
 
-	if ( dowarp ) {
-		XWarpPointer( dpy,None,win,0,0,0,0,
-					  ( glConfig.vidWidth / 2 ),( glConfig.vidHeight / 2 ) );
+	if ( dowarp )
+	{
+		XWarpPointer( dpy, None, win, 0, 0, 0, 0, 
+		    (glConfig.vidWidth/2), (glConfig.vidHeight/2) );
 	}
 }
 
-// NOTE TTimo for the tty console input, we didn't rely on those ..
+// NOTE TTimo for the tty console input, we didn't rely on those .. 
 //   it's not very surprising actually cause they are not used otherwise
-void KBD_Init( void ) {
+void KBD_Init( void )
+{
+
 }
 
-void KBD_Close( void ) {
+
+void KBD_Close( void )
+{
+
 }
 
-void IN_ActivateMouse( void ) {
-	if ( !mouse_avail || !dpy || !win ) {
+
+void IN_ActivateMouse( void )
+{
+	if ( !mouse_avail || !dpy || !win ) 
+	{
 		return;
 	}
 
-	if ( !mouse_active ) {
-		if ( !in_nograb->value ) {
+	if ( !mouse_active )
+	{
+		if ( !in_nograb->integer ) 
+		{
 			install_grabs();
-		} else if ( in_dgamouse->value ) { // force dga mouse to 0 if using nograb
-			ri.Cvar_Set( "in_dgamouse", "0" );
 		}
+		else if ( in_dgamouse->integer ) // force dga mouse to 0 if using nograb
+		{
+		    ri.Cvar_Set( "in_dgamouse", "0" );
+		}	
 		mouse_active = qtrue;
 	}
 }
 
-void IN_DeactivateMouse( void ) {
-	if ( !mouse_avail || !dpy || !win ) {
+void IN_DeactivateMouse( void )
+{
+	if ( !mouse_avail || !dpy || !win ) 
+	{
 		return;
 	}
 
-	if ( mouse_active ) {
-		if ( !in_nograb->value ) {
-			uninstall_grabs();
-		} else if ( in_dgamouse->value ) { // force dga mouse to 0 if using nograb
+	if ( mouse_active )
+	{
+		if ( !in_nograb->integer ) 
+		{
+			 uninstall_grabs();
+		}
+		else if ( in_dgamouse->integer ) // force dga mouse to 0 if using nograb
+		{
 			ri.Cvar_Set( "in_dgamouse", "0" );
 		}
 		mouse_active = qfalse;
 	}
 }
+
 /*****************************************************************************/
 
 /*
@@ -862,19 +1010,53 @@ static void GLW_DeleteDefaultLists( void ) {
 **
 ** This routine should only be called if glConfig.deviceSupportsGamma is TRUE
 */
-void GLimp_SetGamma( unsigned char red[256], unsigned char green[256], unsigned char blue[256] ) {
-	// NOTE TTimo we get the gamma value from cvar, because we can't work with the s_gammatable
-	//   the API wasn't changed to avoid breaking other OSes
-	float g = Cvar_Get( "r_gamma", "1.0", 0 )->value;
-	XF86VidModeGamma gamma;
-	if ( g == -1 ) {
+void GLimp_SetGamma( unsigned char red[256], unsigned char green[256], unsigned char blue[256] )
+{
+#ifdef HAVE_XF86DGA
+	unsigned short table[3][4096];
+	int i, j;
+	int size;
+	int m, m1;
+	int shift;
+
+	if ( !glConfig.deviceSupportsGamma || r_ignorehwgamma->integer )
 		return;
+
+	XF86VidModeGetGammaRampSize( dpy, scrnum, &size );
+
+	switch ( size ) {
+		case 256: shift = 0; break;
+		case 512: shift = 1; break;
+		case 1024: shift = 2; break;
+		case 2048: shift = 3; break;
+		case 4096: shift = 4; break;
+		default: 
+			ri.Printf( PRINT_ALL, "Unsupported gamma ramp size: %d\n", size );
+		return;
+	};
+
+	m = size / 256;
+	m1 = 256 / m;
+
+	for ( i = 0; i < 256; i++ ) {
+		for ( j = 0; j < m; j++ ) {
+			table[0][i*m+j] = (unsigned short)(red[i] << 8)   | (m1 * j) | ( red[i] >> shift );
+			table[1][i*m+j] = (unsigned short)(green[i] << 8) | (m1 * j) | ( green[i] >> shift );
+			table[2][i*m+j] = (unsigned short)(blue[i] << 8)  | (m1 * j) | ( blue[i] >> shift );
+		}
 	}
-	assert( glConfig.deviceSupportsGamma );
-	gamma.red = g;
-	gamma.green = g;
-	gamma.blue = g;
-	XF86VidModeSetGamma( dpy, scrnum, &gamma );
+
+	// enforce constantly increasing
+	for ( j = 0 ; j < 3 ; j++ ) {
+		for ( i = 1 ; i < size ; i++ ) {
+			if ( table[j][i] < table[j][i-1] ) {
+				table[j][i] = table[j][i-1];
+			}
+		}
+	}
+
+    XF86VidModeSetGammaRamp( dpy, scrnum, size, table[0], table[1], table[2] );
+#endif /* HAVE_XF86DGA */
 }
 
 /*
@@ -886,33 +1068,49 @@ void GLimp_SetGamma( unsigned char red[256], unsigned char green[256], unsigned 
 ** for the window.  The state structure is also nulled out.
 **
 */
-void GLimp_Shutdown( void ) {
-	if ( !ctx || !dpy ) {
+void GLimp_Shutdown( void )
+{
+	if ( !ctx || !dpy )
 		return;
-	}
+
+#if defined(USE_PMLIGHT) && !defined(USE_RENDERER2)
+	QGL_DoneARB();
+#endif
+
 	IN_DeactivateMouse();
-	// bk001206 - replaced with H2/Fakk2 solution
-	// XAutoRepeatOn(dpy);
-	// autorepeaton = qfalse; // bk001130 - from cvs1.17 (mkv)
-	if ( dpy ) {
-		if ( ctx ) {
+  // bk001206 - replaced with H2/Fakk2 solution
+  // XAutoRepeatOn(dpy);
+  // autorepeaton = qfalse; // bk001130 - from cvs1.17 (mkv)
+	if ( dpy )
+	{
+		if ( ctx )
 			qglXDestroyContext( dpy, ctx );
-		}
-		if ( win ) {
+		if ( win )
 			XDestroyWindow( dpy, win );
+#ifdef HAVE_XF86DGA
+		if ( vidmode_active )
+		{
+			if ( vidmodes )
+			{
+				XF86VidModeSwitchToMode( dpy, scrnum, vidmodes[ 0 ] );
+				// don't forget to release memory:
+				free( vidmodes );
+				vidmodes = NULL;
+			}
 		}
-		if ( vidmode_active ) {
-			XF86VidModeSwitchToMode( dpy, scrnum, vidmodes[0] );
-		}
-		if ( glConfig.deviceSupportsGamma ) {
+
+		if ( glConfig.deviceSupportsGamma )
+		{
 			XF86VidModeSetGamma( dpy, scrnum, &vidmode_InitialGamma );
 		}
+#endif /* HAVE_XF86DGA */
 		// NOTE TTimo opening/closing the display should be necessary only once per run
 		//   but it seems QGL_Shutdown gets called in a lot of occasion
 		//   in some cases, this XCloseDisplay is known to raise some X errors
-		//   ( show_bug.cgi?id=33 )
+		//   ( https://zerowing.idsoftware.com/bugzilla/show_bug.cgi?id=33 )
 		XCloseDisplay( dpy );
 	}
+	
 	vidmode_active = qfalse;
 	dpy = NULL;
 	win = 0;
@@ -920,6 +1118,8 @@ void GLimp_Shutdown( void ) {
 
 	memset( &glConfig, 0, sizeof( glConfig ) );
 	memset( &glState, 0, sizeof( glState ) );
+
+	unsetenv( "vblank_mode" );
 
 	GLW_DeleteDefaultLists();
 
@@ -939,66 +1139,92 @@ void GLimp_LogComment( char *comment ) {
 ** GLW_StartDriverAndSetMode
 */
 // bk001204 - prototype needed
-int GLW_SetMode( const char *drivername, int mode, qboolean fullscreen );
-static qboolean GLW_StartDriverAndSetMode( const char *drivername,
-										   int mode,
-										   qboolean fullscreen ) {
+int GLW_SetMode( const char *drivername, int mode, const char *modeFS, qboolean fullscreen );
+
+static qboolean GLW_StartDriverAndSetMode( const char *drivername, int mode, const char *modeFS, qboolean fullscreen )
+{
 	rserr_t err;
-
-	// don't ever bother going into fullscreen with a voodoo card
-#if 1   // JDC: I reenabled this
-	if ( Q_stristr( drivername, "Voodoo" ) ) {
-		ri.Cvar_Set( "r_fullscreen", "0" );
-		r_fullscreen->modified = qfalse;
-		fullscreen = qfalse;
-	}
-#endif
-
-	if ( fullscreen && in_nograb->value ) {
-		ri.Printf( PRINT_ALL, "Fullscreen not allowed with in_nograb 1\n" );
+	
+	if ( fullscreen && in_nograb->integer )
+	{
+		ri.Printf( PRINT_ALL, "Fullscreen not allowed with in_nograb 1\n");
 		ri.Cvar_Set( "r_fullscreen", "0" );
 		r_fullscreen->modified = qfalse;
 		fullscreen = qfalse;
 	}
 
-	err = GLW_SetMode( drivername, mode, fullscreen );
+	err = GLW_SetMode( drivername, mode, modeFS, fullscreen );
 
 	switch ( err )
 	{
 	case RSERR_INVALID_FULLSCREEN:
 		ri.Printf( PRINT_ALL, "...WARNING: fullscreen unavailable in this mode\n" );
 		return qfalse;
+
 	case RSERR_INVALID_MODE:
 		ri.Printf( PRINT_ALL, "...WARNING: could not set the given mode (%d)\n", mode );
 		return qfalse;
+
 	default:
-		break;
+	    break;
 	}
+
+	glConfig.isFullscreen = fullscreen;
+
 	return qtrue;
 }
 
 /*
 ** GLW_SetMode
 */
-int GLW_SetMode( const char *drivername, int mode, qboolean fullscreen ) {
-	int attrib[] = {
-		GLX_RGBA,     // 0
-		GLX_RED_SIZE, 4,  // 1, 2
-		GLX_GREEN_SIZE, 4,  // 3, 4
-		GLX_BLUE_SIZE, 4, // 5, 6
-		GLX_DOUBLEBUFFER, // 7
-		GLX_DEPTH_SIZE, 1,  // 8, 9
-		GLX_STENCIL_SIZE, 1, // 10, 11
+int GLW_SetMode( const char *drivername, int mode, const char *modeFS, qboolean fullscreen )
+{
+	PFNGLXCHOOSEFBCONFIGPROC		qglXChooseFBConfig;
+	PFNGLXGETFBCONFIGATTRIBPROC		qglXGetFBConfigAttrib;
+	PFNGLXGETVISUALFROMFBCONFIGPROC	qglXGetVisualFromFBConfig;
+	
+	// these match in the array
+	#define ATTR_RED_IDX 2
+	#define ATTR_GREEN_IDX 4
+	#define ATTR_BLUE_IDX 6
+	#define ATTR_DEPTH_IDX 9
+	#define ATTR_STENCIL_IDX 11
+
+	static int attrib[] = 
+	{
+		GLX_RGBA,         // 0
+		GLX_RED_SIZE, 4,      // 1, 2
+		GLX_GREEN_SIZE, 4,      // 3, 4
+		GLX_BLUE_SIZE, 4,     // 5, 6
+		GLX_DOUBLEBUFFER,     // 7
+		GLX_DEPTH_SIZE, 1,      // 8, 9
+		GLX_STENCIL_SIZE, 1,    // 10, 11
 		None
 	};
-	// these match in the array
-#define ATTR_RED_IDX 2
-#define ATTR_GREEN_IDX 4
-#define ATTR_BLUE_IDX 6
-#define ATTR_DEPTH_IDX 9
-#define ATTR_STENCIL_IDX 11
+
+	#define MSAA_DEPTH_INDEX   15
+	#define MSAA_STENCIL_INDEX 17
+	#define MSAA_SAMPLES_INDEX 23
+
+	static int MSAAattrib[] = {
+		GLX_X_RENDERABLE    , True,
+		GLX_DRAWABLE_TYPE   , GLX_WINDOW_BIT,
+		GLX_RENDER_TYPE     , GLX_RGBA_BIT,
+		GLX_X_VISUAL_TYPE   , GLX_TRUE_COLOR,
+		GLX_RED_SIZE        , 8,
+		GLX_GREEN_SIZE      , 8,
+		GLX_BLUE_SIZE       , 8,
+		GLX_DEPTH_SIZE      , 24, // 15
+		GLX_STENCIL_SIZE    , 8,  // 17
+		GLX_DOUBLEBUFFER    , True,
+     	GLX_SAMPLE_BUFFERS  , 1,
+		GLX_SAMPLES         , 1,  // 23
+		None		
+	};
+
 	Window root;
 	XVisualInfo *visinfo;
+
 	XSetWindowAttributes attr;
 	XSizeHints sizehints;
 	unsigned long mask;
@@ -1009,119 +1235,194 @@ int GLW_SetMode( const char *drivername, int mode, qboolean fullscreen ) {
 	int i;
 	const char*   glstring; // bk001130 - from cvs1.17 (mkv)
 
-	ri.Printf( PRINT_ALL, "Initializing OpenGL display\n" );
+	dpy = XOpenDisplay( NULL );
 
-	ri.Printf( PRINT_ALL, "...setting mode %d:", mode );
-
-	if ( !R_GetModeInfo( &glConfig.vidWidth, &glConfig.vidHeight, &glConfig.windowAspect, mode ) ) {
-		ri.Printf( PRINT_ALL, " invalid mode\n" );
-		return RSERR_INVALID_MODE;
-	}
-	ri.Printf( PRINT_ALL, " %d %d\n", glConfig.vidWidth, glConfig.vidHeight );
-
-	if ( !( dpy = XOpenDisplay( NULL ) ) ) {
-		fprintf( stderr, "Error couldn't open the X display\n" );
+	if ( dpy == NULL )
+	{
+		fprintf( stderr, "Error: couldn't open the X display\n" );
 		return RSERR_INVALID_MODE;
 	}
 
 	scrnum = DefaultScreen( dpy );
 	root = RootWindow( dpy, scrnum );
 
+/* - moved down
+  ri.Printf( PRINT_ALL, "Initializing OpenGL display\n");
+
+  ri.Printf (PRINT_ALL, "...setting mode %d:", mode );
+
+  if ( !R_GetModeInfo( &glConfig.vidWidth, &glConfig.vidHeight, &glConfig.windowAspect, mode, 0, 0 ) )
+  {
+    ri.Printf( PRINT_ALL, " invalid mode\n" );
+    return RSERR_INVALID_MODE;
+  }
+  ri.Printf( PRINT_ALL, " %d %d\n", glConfig.vidWidth, glConfig.vidHeight);
+*/
+
+/* - moved up
+  if (!(dpy = XOpenDisplay(NULL)))
+  {
+    fprintf(stderr, "Error couldn't open the X display\n");
+    return RSERR_INVALID_MODE;
+  }
+  
+  scrnum = DefaultScreen(dpy);
+  root = RootWindow(dpy, scrnum);
+*/
+/*
+  actualWidth = glConfig.vidWidth;
+  actualHeight = glConfig.vidHeight;
+*/
+
+  // Get video mode list
+#ifdef HAVE_XF86DGA
+	if ( !XF86VidModeQueryVersion( dpy, &vidmode_MajorVersion, &vidmode_MinorVersion ) )
+	{
+#endif
+		vidmode_ext = qfalse;
+#ifdef HAVE_XF86DGA
+	} 
+	else
+	{
+		ri.Printf( PRINT_ALL, "Using XFree86-VidModeExtension Version %d.%d\n",
+			vidmode_MajorVersion, vidmode_MinorVersion );
+		vidmode_ext = qtrue;
+	}
+#endif
+
+  // Check for DGA
+#ifdef HAVE_XF86DGA
+	dga_MajorVersion = 0;
+	dga_MinorVersion = 0;
+	if ( in_dgamouse && in_dgamouse->integer )
+	{
+		if ( !XF86DGAQueryVersion( dpy, &dga_MajorVersion, &dga_MinorVersion ) )
+		{
+			// unable to query, probably not supported
+			ri.Printf( PRINT_ALL, "Failed to detect XF86DGA Mouse\n" );
+			ri.Cvar_Set( "in_dgamouse", "0" );
+		} 
+		else
+		{
+			ri.Printf( PRINT_ALL, "XF86DGA Mouse (Version %d.%d) initialized\n",
+				dga_MajorVersion, dga_MinorVersion );
+		}
+	}
+#endif /* HAVE_XF86DGA */
+
+#ifdef HAVE_XF86DGA
+	if ( vidmode_ext )
+	{
+		if ( desktop_ok == qfalse )
+		{
+			XF86VidModeModeLine c;
+			int n;
+			if ( XF86VidModeGetModeLine( dpy, scrnum, &n, &c ) )
+			{
+				desktop_width = c.hdisplay;
+				desktop_height = c.vdisplay;
+				desktop_ok = qtrue;
+			}
+			else
+			{
+				ri.Printf( PRINT_ALL, "XF86VidModeGetModeLine failed.\n" );
+			}
+		}
+		ri.Printf( PRINT_ALL, "desktop width:%i height:%i\n", desktop_width, desktop_height );
+  }
+#endif
+
+	ri.Printf( PRINT_ALL, "Initializing OpenGL display\n");
+
+	ri.Printf (PRINT_ALL, "...setting mode %d:", mode );
+
+	if ( !R_GetModeInfo( &glConfig.vidWidth, &glConfig.vidHeight, &glConfig.windowAspect,
+		mode, modeFS, desktop_width, desktop_height, fullscreen ) )
+	{
+		ri.Printf( PRINT_ALL, " invalid mode\n" );
+		return RSERR_INVALID_MODE;
+	}
+
+	ri.Printf( PRINT_ALL, " %d %d\n", glConfig.vidWidth, glConfig.vidHeight );
+
 	actualWidth = glConfig.vidWidth;
 	actualHeight = glConfig.vidHeight;
 
-	// Get video mode list
-	if ( !XF86VidModeQueryVersion( dpy, &vidmode_MajorVersion, &vidmode_MinorVersion ) ) {
-		vidmode_ext = qfalse;
-	} else
+#ifdef HAVE_XF86DGA
+	if ( vidmode_ext )
 	{
-		ri.Printf( PRINT_ALL, "Using XFree86-VidModeExtension Version %d.%d\n",
-				   vidmode_MajorVersion, vidmode_MinorVersion );
-		vidmode_ext = qtrue;
-	}
-
-	// Check for DGA
-	dga_MajorVersion = 0, dga_MinorVersion = 0;
-	if ( in_dgamouse->value ) {
-		if ( !XF86DGAQueryVersion( dpy, &dga_MajorVersion, &dga_MinorVersion ) ) {
-			// unable to query, probalby not supported
-			ri.Printf( PRINT_ALL, "Failed to detect XF86DGA Mouse\n" );
-			ri.Cvar_Set( "in_dgamouse", "0" );
-		} else
-		{
-			ri.Printf( PRINT_ALL, "XF86DGA Mouse (Version %d.%d) initialized\n",
-					   dga_MajorVersion, dga_MinorVersion );
-		}
-	}
-
-	if ( vidmode_ext ) {
 		int best_fit, best_dist, dist, x, y;
+		int num_vidmodes;
 
 		XF86VidModeGetAllModeLines( dpy, scrnum, &num_vidmodes, &vidmodes );
 
 		// Are we going fullscreen?  If so, let's change video mode
-		if ( fullscreen ) {
+		if ( fullscreen )
+		{
 			best_dist = 9999999;
 			best_fit = -1;
 
 			for ( i = 0; i < num_vidmodes; i++ )
 			{
-				if ( glConfig.vidWidth > vidmodes[i]->hdisplay ||
-					 glConfig.vidHeight > vidmodes[i]->vdisplay ) {
+				if (glConfig.vidWidth > vidmodes[i]->hdisplay ||
+					glConfig.vidHeight > vidmodes[i]->vdisplay)
 					continue;
-				}
 
 				x = glConfig.vidWidth - vidmodes[i]->hdisplay;
 				y = glConfig.vidHeight - vidmodes[i]->vdisplay;
-				dist = ( x * x ) + ( y * y );
-				if ( dist < best_dist ) {
+				dist = (x * x) + (y * y);
+				if (dist < best_dist)
+				{
 					best_dist = dist;
 					best_fit = i;
 				}
 			}
 
-			if ( best_fit != -1 ) {
-				actualWidth = vidmodes[best_fit]->hdisplay;
-				actualHeight = vidmodes[best_fit]->vdisplay;
+			if ( best_fit != -1 )
+			{
+				actualWidth = vidmodes[ best_fit ]->hdisplay;
+				actualHeight = vidmodes[ best_fit ]->vdisplay;
 
 				// change to the mode
-				XF86VidModeSwitchToMode( dpy, scrnum, vidmodes[best_fit] );
+				XF86VidModeSwitchToMode( dpy, scrnum, vidmodes[ best_fit ] );
+				XFlush( dpy );  // drakkar - man 3 XF86VidModeSwitchToMode
 				vidmode_active = qtrue;
+
+				// drakkar - XF86VidModeSetViewPort problems
+				// if windows is placed out of screen
+				// if ( win )
+				//	XMoveWindow( dpy, win, 0, 0 );
 
 				// Move the viewport to top left
 				XF86VidModeSetViewPort( dpy, scrnum, 0, 0 );
 
 				ri.Printf( PRINT_ALL, "XFree86-VidModeExtension Activated at %dx%d\n",
-						   actualWidth, actualHeight );
-
-			} else
+					actualWidth, actualHeight );
+			}
+			else
 			{
-				fullscreen = 0;
+				//fullscreen = 0;
 				ri.Printf( PRINT_ALL, "XFree86-VidModeExtension: No acceptable modes found\n" );
 			}
-		} else
+		}
+		else
 		{
-			ri.Printf( PRINT_ALL, "XFree86-VidModeExtension:  Ignored on non-fullscreen/Voodoo\n" );
+			ri.Printf(PRINT_ALL, "XFree86-VidModeExtension:  Ignored on non-fullscreen/Voodoo\n");
 		}
 	}
+#endif /* HAVE_XF86DGA */
 
-
-	if ( !r_colorbits->value ) {
+	if ( !r_colorbits->integer )
 		colorbits = 24;
-	} else {
-		colorbits = r_colorbits->value;
-	}
+	else
+		colorbits = r_colorbits->integer;
 
-	if ( !Q_stricmp( r_glDriver->string, _3DFX_DRIVER_NAME ) ) {
-		colorbits = 16;
-	}
-
-	if ( !r_depthbits->value ) {
+	if ( !r_depthbits->integer )
 		depthbits = 24;
-	} else {
-		depthbits = r_depthbits->value;
-	}
-	stencilbits = r_stencilbits->value;
+	else
+		depthbits = r_depthbits->integer;
+
+	stencilbits = r_stencilbits->integer;
 
 	for ( i = 0; i < 16; i++ )
 	{
@@ -1129,27 +1430,25 @@ int GLW_SetMode( const char *drivername, int mode, qboolean fullscreen ) {
 		// 1 - minus colorbits
 		// 2 - minus depthbits
 		// 3 - minus stencil
-		if ( ( i % 4 ) == 0 && i ) {
+		if ( (i % 4) == 0 && i )
+		{
 			// one pass, reduce
-			switch ( i / 4 )
+			switch (i / 4)
 			{
-			case 2:
-				if ( colorbits == 24 ) {
+			case 2 :
+				if ( colorbits == 24 )
 					colorbits = 16;
-				}
 				break;
-			case 1:
-				if ( depthbits == 24 ) {
+			case 1 :
+				if ( depthbits == 24 )
 					depthbits = 16;
-				} else if ( depthbits == 16 ) {
+				else if ( depthbits == 16 )
 					depthbits = 8;
-				}
-			case 3:
-				if ( stencilbits == 24 ) {
+			case 3 :
+				if ( stencilbits == 24 )
 					stencilbits = 16;
-				} else if ( stencilbits == 16 ) {
+				else if ( stencilbits == 16 )
 					stencilbits = 8;
-				}
 			}
 		}
 
@@ -1157,35 +1456,37 @@ int GLW_SetMode( const char *drivername, int mode, qboolean fullscreen ) {
 		tdepthbits = depthbits;
 		tstencilbits = stencilbits;
 
-		if ( ( i % 4 ) == 3 ) { // reduce colorbits
-			if ( tcolorbits == 24 ) {
+		if ( (i % 4) == 3 )
+		{ // reduce colorbits
+			if ( tcolorbits == 24 )
 				tcolorbits = 16;
-			}
 		}
 
-		if ( ( i % 4 ) == 2 ) { // reduce depthbits
-			if ( tdepthbits == 24 ) {
+		if ( (i % 4) == 2 )
+		{ // reduce depthbits
+			if ( tdepthbits == 24 )
 				tdepthbits = 16;
-			} else if ( tdepthbits == 16 ) {
+			else if ( tdepthbits == 16 )
 				tdepthbits = 8;
-			}
 		}
 
-		if ( ( i % 4 ) == 1 ) { // reduce stencilbits
-			if ( tstencilbits == 24 ) {
+		if ((i % 4) == 1)
+		{ // reduce stencilbits
+			if ( tstencilbits == 24 )
 				tstencilbits = 16;
-			} else if ( tstencilbits == 16 ) {
+			else if ( tstencilbits == 16 )
 				tstencilbits = 8;
-			} else {
+			else
 				tstencilbits = 0;
-			}
 		}
 
-		if ( tcolorbits == 24 ) {
+		if (tcolorbits == 24)
+		{
 			attrib[ATTR_RED_IDX] = 8;
 			attrib[ATTR_GREEN_IDX] = 8;
 			attrib[ATTR_BLUE_IDX] = 8;
-		} else
+		}
+		else
 		{
 			// must be 16 bit
 			attrib[ATTR_RED_IDX] = 4;
@@ -1197,13 +1498,14 @@ int GLW_SetMode( const char *drivername, int mode, qboolean fullscreen ) {
 		attrib[ATTR_STENCIL_IDX] = tstencilbits;
 
 		visinfo = qglXChooseVisual( dpy, scrnum, attrib );
-		if ( !visinfo ) {
+		if ( !visinfo )
+		{
 			continue;
 		}
 
-		ri.Printf( PRINT_ALL, "Using %d/%d/%d Color bits, %d depth, %d stencil display.\n",
-				   attrib[ATTR_RED_IDX], attrib[ATTR_GREEN_IDX], attrib[ATTR_BLUE_IDX],
-				   attrib[ATTR_DEPTH_IDX], attrib[ATTR_STENCIL_IDX] );
+		ri.Printf( PRINT_ALL, "Using %d/%d/%d Color bits, %d depth, %d stencil display.\n", 
+			attrib[ATTR_RED_IDX], attrib[ATTR_GREEN_IDX], attrib[ATTR_BLUE_IDX],
+			attrib[ATTR_DEPTH_IDX], attrib[ATTR_STENCIL_IDX]);
 
 		glConfig.colorBits = tcolorbits;
 		glConfig.depthBits = tdepthbits;
@@ -1211,9 +1513,73 @@ int GLW_SetMode( const char *drivername, int mode, qboolean fullscreen ) {
 		break;
 	}
 
-	if ( !visinfo ) {
+	if ( !visinfo )
+	{
 		ri.Printf( PRINT_ALL, "Couldn't get a visual\n" );
 		return RSERR_INVALID_MODE;
+	}
+
+	qglXChooseFBConfig = qwglGetProcAddress( "glXChooseFBConfig" );
+	qglXGetFBConfigAttrib = qwglGetProcAddress( "glXGetFBConfigAttrib" );
+	qglXGetVisualFromFBConfig = qwglGetProcAddress( "glXGetVisualFromFBConfig" );
+	
+	if ( r_ext_multisample->integer > 0 && colorbits == 24 && qglXChooseFBConfig && qglXGetFBConfigAttrib && qglXGetVisualFromFBConfig )
+	{
+		GLXFBConfig *fbconfig;
+		int numfbconfig;
+		int maxval;
+		int bestfbi;
+		int value;
+		
+		value = 0;
+		maxval = 0;
+		bestfbi = 0;
+
+		MSAAattrib[ MSAA_DEPTH_INDEX ] = glConfig.depthBits;
+		MSAAattrib[ MSAA_STENCIL_INDEX ] = glConfig.stencilBits;
+		
+		fbconfig = qglXChooseFBConfig( dpy, scrnum, MSAAattrib, &numfbconfig );
+		if ( fbconfig )
+		{
+			for( i = 0; i < numfbconfig; i++ )
+			{
+				qglXGetFBConfigAttrib( dpy, fbconfig[ i ], GLX_SAMPLES, &value );
+				if ( value > maxval )
+				{
+					bestfbi = i;
+					maxval = value;
+					if ( maxval >= r_ext_multisample->integer )
+					{
+						break;
+					}
+				}
+			}
+			if ( value )
+			{
+				visinfo = qglXGetVisualFromFBConfig( dpy, fbconfig[ bestfbi ] );
+				ri.Printf( PRINT_ALL, "...using %ix MSAA visual\n", value );
+			}
+			else
+			{
+				ri.Printf( PRINT_ALL, "...no MSAA visuals available\n" );
+			}
+			//
+		}
+		else
+		{
+			ri.Printf( PRINT_ALL, "...no MSAA visuals available\n" );
+		}// if ( fbconfig )
+	}
+	else // verbose errors
+	{
+		if ( !qglXChooseFBConfig || !qglXGetFBConfigAttrib || !qglXGetVisualFromFBConfig )
+		{
+			ri.Printf( PRINT_ALL, "...MSAA functions resolve error\n" );
+		}
+		else if ( colorbits != 24 )
+		{
+			ri.Printf( PRINT_ALL, "...MSAA requires 24 bit color depth\n" );
+		}
 	}
 
 	/* window attributes */
@@ -1221,22 +1587,25 @@ int GLW_SetMode( const char *drivername, int mode, qboolean fullscreen ) {
 	attr.border_pixel = 0;
 	attr.colormap = XCreateColormap( dpy, root, visinfo->visual, AllocNone );
 	attr.event_mask = X_MASK;
-	if ( vidmode_active ) {
+	if ( vidmode_active )
+	{
 		mask = CWBackPixel | CWColormap | CWSaveUnder | CWBackingStore |
-			   CWEventMask | CWOverrideRedirect;
+			CWEventMask | CWOverrideRedirect;
 		attr.override_redirect = True;
 		attr.backing_store = NotUseful;
 		attr.save_under = False;
-	} else {
+	}
+	else
+	{
 		mask = CWBackPixel | CWBorderPixel | CWColormap | CWEventMask;
 	}
 
 	win = XCreateWindow( dpy, root, 0, 0,
-						 actualWidth, actualHeight,
-						 0, visinfo->depth, InputOutput,
-						 visinfo->visual, mask, &attr );
+		actualWidth, actualHeight,
+		0, visinfo->depth, InputOutput,
+		visinfo->visual, mask, &attr );
 
-	XStoreName( dpy, win, WINDOW_CLASS_NAME );
+	XStoreName( dpy, win, CLIENT_WINDOW_TITLE ); //Ensi: OLD was WINDOW_CLASS_NAME
 
 	/* GH: Don't let the window be resized */
 	sizehints.flags = PMinSize | PMaxSize;
@@ -1247,19 +1616,19 @@ int GLW_SetMode( const char *drivername, int mode, qboolean fullscreen ) {
 
 	XMapWindow( dpy, win );
 
-	if ( vidmode_active ) {
-		XMoveWindow( dpy, win, 0, 0 );
-	}
+	wmDeleteEvent = XInternAtom( dpy, "WM_DELETE_WINDOW", True );
+	if ( wmDeleteEvent == BadValue )
+		wmDeleteEvent = None;
+	if ( wmDeleteEvent != None )
+		XSetWMProtocols( dpy, win, &wmDeleteEvent, 1 );
 
-	/* hook to window close */
-	wm_protocols = XInternAtom( dpy, "WM_PROTOCOLS", False );
-	wm_delete_window = XInternAtom( dpy, "WM_DELETE_WINDOW", False );
-	XSetWMProtocols( dpy, win, &wm_delete_window, 1 );
+	if ( vidmode_active )
+		XMoveWindow( dpy, win, 0, 0 );
 
 	XFlush( dpy );
-	XSync( dpy,False ); // bk001130 - from cvs1.17 (mkv)
+	XSync( dpy, False );
 	ctx = qglXCreateContext( dpy, visinfo, NULL, True );
-	XSync( dpy,False ); // bk001130 - from cvs1.17 (mkv)
+	XSync( dpy, False );
 
 	/* GH: Free the visinfo after we're done with it */
 	XFree( visinfo );
@@ -1268,24 +1637,24 @@ int GLW_SetMode( const char *drivername, int mode, qboolean fullscreen ) {
 
 	GLW_GenDefaultLists();
 
-	// bk001130 - from cvs1.17 (mkv)
-	glstring = qglGetString( GL_RENDERER );
-	ri.Printf( PRINT_ALL, "GL_RENDERER: %s\n", glstring );
+	glstring = (char *)qglGetString( GL_RENDERER );
 
-	// bk010122 - new software token (Indirect)
-	if ( !Q_stricmp( glstring, "Mesa X11" )
-		 || !Q_stricmp( glstring, "Mesa GLX Indirect" ) ) {
-		if ( !r_allowSoftwareGL->integer ) {
+	if ( !Q_stricmp( glstring, "Mesa X11") || !Q_stricmp( glstring, "Mesa GLX Indirect") )
+	{
+		if ( !r_allowSoftwareGL->integer )
+		{
+			ri.Printf( PRINT_ALL, "GL_RENDERER: %s\n", glstring );
 			ri.Printf( PRINT_ALL, "\n\n***********************************************************\n" );
 			ri.Printf( PRINT_ALL, " You are using software Mesa (no hardware acceleration)!   \n" );
-			ri.Printf( PRINT_ALL, " Driver DLL used: %s\n", drivername );
+			ri.Printf( PRINT_ALL, " Driver DLL used: %s\n", drivername ); 
 			ri.Printf( PRINT_ALL, " If this is intentional, add\n" );
 			ri.Printf( PRINT_ALL, "       \"+set r_allowSoftwareGL 1\"\n" );
 			ri.Printf( PRINT_ALL, " to the command line when starting the game.\n" );
-			ri.Printf( PRINT_ALL, "***********************************************************\n" );
+			ri.Printf( PRINT_ALL, "***********************************************************\n");
 			GLimp_Shutdown();
 			return RSERR_INVALID_MODE;
-		} else
+		}
+		else
 		{
 			ri.Printf( PRINT_ALL, "...using software Mesa (r_allowSoftwareGL==1).\n" );
 		}
@@ -1294,37 +1663,73 @@ int GLW_SetMode( const char *drivername, int mode, qboolean fullscreen ) {
 	return RSERR_OK;
 }
 
+
+/*
+** GLimp_HaveExtension
+*/
+qboolean GLimp_HaveExtension( const char *ext )
+{
+	const char *ptr = Q_stristr( glw_state.gl_extensions, ext );
+	if (ptr == NULL)
+		return qfalse;
+	ptr += strlen(ext);
+	return ((*ptr == ' ') || (*ptr == '\0'));  // verify it's complete string.
+}
+
 /*
 ** GLW_InitExtensions
 */
-static void GLW_InitExtensions( void ) {
-	if ( !r_allowExtensions->integer ) {
+static void GLW_InitExtensions( void )
+{
+	if ( !r_allowExtensions->integer )
+	{
 		ri.Printf( PRINT_ALL, "*** IGNORING OPENGL EXTENSIONS ***\n" );
 		return;
 	}
 
 	ri.Printf( PRINT_ALL, "Initializing OpenGL extensions\n" );
 
+	// GL_EXT_texture_compression_s3tc
+	glConfig.textureCompression = TC_NONE;
+	if ( GLimp_HaveExtension("GL_ARB_texture_compression") &&
+		GLimp_HaveExtension("GL_EXT_texture_compression_s3tc") )
+	{
+	    if ( r_ext_compressed_textures->value ) { 
+        	glConfig.textureCompression = TC_S3TC_ARB;
+    	    ri.Printf( PRINT_ALL, "...using GL_EXT_texture_compression_s3tc\n" );
+	    } else {
+        	ri.Printf( PRINT_ALL, "...ignoring GL_EXT_texture_compression_s3tc\n" );
+    	}
+	} else {
+		ri.Printf( PRINT_ALL, "...GL_EXT_texture_compression_s3tc not found\n" );
+	}
+
 	// GL_S3_s3tc
-	if ( Q_stristr( glConfig.extensions_string, "GL_S3_s3tc" ) ) {
-		if ( r_ext_compressed_textures->value ) {
-			glConfig.textureCompression = TC_S3TC;
-			ri.Printf( PRINT_ALL, "...using GL_S3_s3tc\n" );
+	if (glConfig.textureCompression == TC_NONE) {
+		if ( GLimp_HaveExtension("GL_S3_s3tc") )
+		{
+			if ( r_ext_compressed_textures->value )
+			{
+				glConfig.textureCompression = TC_S3TC;
+				ri.Printf( PRINT_ALL, "...using GL_S3_s3tc\n" );
+			} else
+			{
+				glConfig.textureCompression = TC_NONE;
+				ri.Printf( PRINT_ALL, "...ignoring GL_S3_s3tc\n" );
+			}
 		} else
 		{
 			glConfig.textureCompression = TC_NONE;
-			ri.Printf( PRINT_ALL, "...ignoring GL_S3_s3tc\n" );
+			ri.Printf( PRINT_ALL, "...GL_S3_s3tc not found\n" );
 		}
-	} else
-	{
-		glConfig.textureCompression = TC_NONE;
-		ri.Printf( PRINT_ALL, "...GL_S3_s3tc not found\n" );
 	}
 
 	// GL_EXT_texture_env_add
 	glConfig.textureEnvAddAvailable = qfalse;
-	if ( Q_stristr( glConfig.extensions_string, "EXT_texture_env_add" ) ) {
-		if ( r_ext_texture_env_add->integer ) {
+	if ( GLimp_HaveExtension("EXT_texture_env_add") )
+	{
+		if ( r_ext_texture_env_add->integer )
+		{
 			glConfig.textureEnvAddAvailable = qtrue;
 			ri.Printf( PRINT_ALL, "...using GL_EXT_texture_env_add\n" );
 		} else
@@ -1341,16 +1746,22 @@ static void GLW_InitExtensions( void ) {
 	qglMultiTexCoord2fARB = NULL;
 	qglActiveTextureARB = NULL;
 	qglClientActiveTextureARB = NULL;
-	if ( Q_stristr( glConfig.extensions_string, "GL_ARB_multitexture" ) ) {
-		if ( r_ext_multitexture->value ) {
+	if ( GLimp_HaveExtension("GL_ARB_multitexture") )
+	{
+		if ( r_ext_multitexture->value )
+		{
 			qglMultiTexCoord2fARB = ( PFNGLMULTITEXCOORD2FARBPROC ) dlsym( glw_state.OpenGLLib, "glMultiTexCoord2fARB" );
 			qglActiveTextureARB = ( PFNGLACTIVETEXTUREARBPROC ) dlsym( glw_state.OpenGLLib, "glActiveTextureARB" );
 			qglClientActiveTextureARB = ( PFNGLCLIENTACTIVETEXTUREARBPROC ) dlsym( glw_state.OpenGLLib, "glClientActiveTextureARB" );
 
-			if ( qglActiveTextureARB ) {
-				qglGetIntegerv( GL_MAX_ACTIVE_TEXTURES_ARB, &glConfig.maxActiveTextures );
+			if ( qglActiveTextureARB )
+			{
+				GLint glint = 0;
+				qglGetIntegerv( GL_MAX_ACTIVE_TEXTURES_ARB, &glint );
+				glConfig.maxActiveTextures = (int) glint;
 
-				if ( glConfig.maxActiveTextures > 1 ) {
+				if ( glConfig.maxActiveTextures > 1 )
+				{
 					ri.Printf( PRINT_ALL, "...using GL_ARB_multitexture\n" );
 				} else
 				{
@@ -1370,14 +1781,17 @@ static void GLW_InitExtensions( void ) {
 	}
 
 	// GL_EXT_compiled_vertex_array
-	if ( Q_stristr( glConfig.extensions_string, "GL_EXT_compiled_vertex_array" ) ) {
-		if ( r_ext_compiled_vertex_array->value ) {
+	if ( GLimp_HaveExtension("GL_EXT_compiled_vertex_array") )
+	{
+		if ( r_ext_compiled_vertex_array->value )
+		{
 			ri.Printf( PRINT_ALL, "...using GL_EXT_compiled_vertex_array\n" );
-			qglLockArraysEXT = ( void ( APIENTRY * )( int, int ) )dlsym( glw_state.OpenGLLib, "glLockArraysEXT" );
-			qglUnlockArraysEXT = ( void ( APIENTRY * )( void ) )dlsym( glw_state.OpenGLLib, "glUnlockArraysEXT" );
-			if ( !qglLockArraysEXT || !qglUnlockArraysEXT ) {
-				ri.Error( ERR_FATAL, "bad getprocaddress" );
-			}
+			qglLockArraysEXT = ( void ( APIENTRY * )( int, int ) ) dlsym( glw_state.OpenGLLib, "glLockArraysEXT" );
+			qglUnlockArraysEXT = ( void ( APIENTRY * )( void ) ) dlsym( glw_state.OpenGLLib, "glUnlockArraysEXT" );
+		if ( !qglLockArraysEXT || !qglUnlockArraysEXT )
+		{
+			ri.Error (ERR_FATAL, "bad getprocaddress");
+		}
 		} else
 		{
 			ri.Printf( PRINT_ALL, "...ignoring GL_EXT_compiled_vertex_array\n" );
@@ -1387,6 +1801,32 @@ static void GLW_InitExtensions( void ) {
 		ri.Printf( PRINT_ALL, "...GL_EXT_compiled_vertex_array not found\n" );
 	}
 
+	textureFilterAnisotropic = qfalse;
+	if ( GLimp_HaveExtension("GL_EXT_texture_filter_anisotropic") )
+	{
+		if ( r_ext_texture_filter_anisotropic->integer ) {
+			qglGetIntegerv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxAnisotropy );
+			if ( maxAnisotropy <= 0 ) {
+				ri.Printf( PRINT_ALL, "...GL_EXT_texture_filter_anisotropic not properly supported!\n" );
+				maxAnisotropy = 0;
+			}
+			else
+			{
+				ri.Printf( PRINT_ALL, "...using GL_EXT_texture_filter_anisotropic (max: %i)\n", maxAnisotropy );
+				textureFilterAnisotropic = qtrue;
+			}
+		}
+		else
+		{
+			ri.Printf( PRINT_ALL, "...ignoring GL_EXT_texture_filter_anisotropic\n" );
+		}
+	}
+	else
+	{
+		ri.Printf( PRINT_ALL, "...GL_EXT_texture_filter_anisotropic not found\n" );
+	}
+
+	// ENSI : FIXME
 	// GL_NV_fog_distance
 	if ( Q_stristr( glConfig.extensions_string, "GL_NV_fog_distance" ) ) {
 		if ( r_ext_NV_fog_dist->integer ) {

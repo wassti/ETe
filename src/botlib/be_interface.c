@@ -35,7 +35,7 @@ If you have questions concerning this license or the applicable additional terms
  *
  *****************************************************************************/
 
-#include "../game/q_shared.h"
+#include "../qcommon/q_shared.h"
 #include "l_memory.h"
 #include "l_log.h"
 #include "l_libvar.h"
@@ -162,7 +162,7 @@ int Export_BotLibSetup( qboolean singleplayer ) {
 
 	bot_developer = LibVarGetValue( "bot_developer" );
 	//initialize byte swapping (litte endian etc.)
-	Swap_Init();
+	//Swap_Init();
 	Log_Open( "botlib.log" );
 	//
 	botimport.Print( PRT_MESSAGE, "------- BotLib Initialization -------\n" );

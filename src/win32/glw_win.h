@@ -35,22 +35,33 @@ If you have questions concerning this license or the applicable additional terms
 
 typedef struct
 {
-	WNDPROC wndproc;
+	WNDPROC		wndproc;
 
-	HDC hDC;                // handle to device context
-	HGLRC hGLRC;            // handle to GL rendering context
+	HDC     hDC;			// handle to device context
+	HGLRC   hGLRC;			// handle to GL rendering context
 
-	HINSTANCE hinstOpenGL;  // HINSTANCE for the OpenGL library
+	HINSTANCE   OpenGLLib;  // HINSTANCE for the OpenGL library
+	char		gl_extensions[ 16384 ]; // to store full extension string
+	// Ensiform ^ fixme? wtf?
 
-	qboolean allowdisplaydepthchange;
-	qboolean pixelFormatSet;
+	qboolean	allowdisplaydepthchange;
+	qboolean	pixelFormatSet;
+	int			nPendingPF;
 
-	int desktopBitsPixel;
-	int desktopWidth, desktopHeight;
+	int			desktopBitsPixel;
+	int			desktopWidth; 
+	int			desktopHeight;
+	int			desktopX;		// can be negative
+	int			desktopY;		// can be negative
+	HMONITOR	hMonitor;		// current monitor
+	TCHAR		displayName[CCHDEVICENAME];
+	qboolean	gammaSet;
 
-	qboolean cdsFullscreen;
+	qboolean	cdsFullscreen;
+	int			monitorCount;
 
-	FILE *log_fp;
+	FILE		*log_fp; // TODO: implement?
+
 } glwstate_t;
 
 extern glwstate_t glw_state;

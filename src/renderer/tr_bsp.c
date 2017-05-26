@@ -40,17 +40,18 @@ void RE_LoadWorldMap( const char *name );
 
 */
 
-static world_t s_worldData;
-static byte        *fileBase;
+static	world_t		s_worldData;
+static	byte		*fileBase;
 
-int c_subdivisions;
-int c_gridVerts;
+int			c_subdivisions;
+int			c_gridVerts;
 
 surfaceType_t skipData = SF_SKIP;
 
 //===============================================================================
 
-static void HSVtoRGB( float h, float s, float v, float rgb[3] ) {
+static void HSVtoRGB( float h, float s, float v, float rgb[3] )
+{
 	int i;
 	float f;
 	float p, q, t;
@@ -105,8 +106,8 @@ R_ColorShiftLightingBytes
 
 ===============
 */
-static void R_ColorShiftLightingBytes( byte in[4], byte out[4] ) {
-	int shift, r, g, b;
+static	void R_ColorShiftLightingBytes( byte in[4], byte out[4] ) {
+	int		shift, r, g, b;
 
 	// shift the color data based on overbright range
 	shift = r_mapOverBrightBits->integer - tr.overbrightBits;
@@ -115,10 +116,10 @@ static void R_ColorShiftLightingBytes( byte in[4], byte out[4] ) {
 	r = in[0] << shift;
 	g = in[1] << shift;
 	b = in[2] << shift;
-
+	
 	// normalize by color instead of saturating to white
 	if ( ( r | g | b ) > 255 ) {
-		int max;
+		int		max;
 
 		max = r > g ? r : g;
 		max = max > b ? max : b;
@@ -127,9 +128,21 @@ static void R_ColorShiftLightingBytes( byte in[4], byte out[4] ) {
 		b = b * 255 / max;
 	}
 
-	out[0] = r;
-	out[1] = g;
-	out[2] = b;
+	if ( r_mapGrayScale->integer ) {
+		byte luma = LUMA( r, g, b );
+		out[0] = luma;
+		out[1] = luma;
+		out[2] = luma;
+	} else if( r_mapGrayScale->value ) {
+		float luma = LUMA( r, g, b );
+		out[0] = LERP( r, luma, r_mapGrayScale->value );
+		out[1] = LERP( g, luma, r_mapGrayScale->value );
+		out[2] = LERP( b, luma, r_mapGrayScale->value );
+	} else {
+		out[0] = r;
+		out[1] = g;
+		out[2] = b;
+	}
 	out[3] = in[3];
 }
 
@@ -202,7 +215,7 @@ R_LoadLightmaps
 static void R_LoadLightmaps( lump_t *l ) {
 	byte        *buf, *buf_p, *image_p;
 	int len;
-	MAC_STATIC byte image[LIGHTMAP_SIZE * LIGHTMAP_SIZE * 4];
+	byte image[LIGHTMAP_SIZE * LIGHTMAP_SIZE * 4];
 	int i /*, j*/;
 	float intensity, maxIntensity = 0;
 //	double sumIntensity = 0;
@@ -219,10 +232,10 @@ static void R_LoadLightmaps( lump_t *l ) {
 	buf = fileBase + l->fileofs;
 
 	// we are about to upload textures
-	R_SyncRenderThread();
+	R_IssuePendingRenderCommands();
 
 	// create all the lightmaps
-	tr.numLightmaps = len / ( LIGHTMAP_SIZE * LIGHTMAP_SIZE * 3 );
+	tr.numLightmaps = len / (LIGHTMAP_SIZE * LIGHTMAP_SIZE * 3);
 	if ( tr.numLightmaps == 1 ) {
 		//FIXME: HACK: maps with only one lightmap turn up fullbright for some reason.
 		//this avoids this, but isn't the correct solution.
@@ -262,7 +275,7 @@ This is called by the clipmodel subsystem so we can share the 1.8 megs of
 space in big maps...
 =================
 */
-void        RE_SetWorldVisData( const byte *vis ) {
+void		RE_SetWorldVisData( const byte *vis ) {
 	tr.externalVisData = vis;
 }
 
@@ -272,32 +285,32 @@ void        RE_SetWorldVisData( const byte *vis ) {
 R_LoadVisibility
 =================
 */
-static void R_LoadVisibility( lump_t *l ) {
-	int len;
-	byte    *buf;
+static	void R_LoadVisibility( lump_t *l ) {
+	int		len;
+	byte	*buf;
 
 	len = ( s_worldData.numClusters + 63 ) & ~63;
 	s_worldData.novis = ri.Hunk_Alloc( len, h_low );
-	memset( s_worldData.novis, 0xff, len );
+	Com_Memset( s_worldData.novis, 0xff, len );
 
-	len = l->filelen;
+    len = l->filelen;
 	if ( !len ) {
 		return;
 	}
 	buf = fileBase + l->fileofs;
 
-	s_worldData.numClusters = LittleLong( ( (int *)buf )[0] );
-	s_worldData.clusterBytes = LittleLong( ( (int *)buf )[1] );
+	s_worldData.numClusters = LittleLong( ((int *)buf)[0] );
+	s_worldData.clusterBytes = LittleLong( ((int *)buf)[1] );
 
 	// CM_Load should have given us the vis data to share, so
 	// we don't need to allocate another copy
 	if ( tr.externalVisData ) {
 		s_worldData.vis = tr.externalVisData;
 	} else {
-		byte    *dest;
+		byte	*dest;
 
 		dest = ri.Hunk_Alloc( len - 8, h_low );
-		memcpy( dest, buf + 8, len - 8 );
+		Com_Memcpy( dest, buf + 8, len - 8 );
 		s_worldData.vis = dest;
 	}
 }
@@ -311,14 +324,14 @@ ShaderForShaderNum
 ===============
 */
 static shader_t *ShaderForShaderNum( int shaderNum, int lightmapNum ) {
-	shader_t    *shader;
-	dshader_t   *dsh;
+	shader_t	*shader;
+	dshader_t	*dsh;
 
-	shaderNum = LittleLong( shaderNum );
-	if ( shaderNum < 0 || shaderNum >= s_worldData.numShaders ) {
-		ri.Error( ERR_DROP, "ShaderForShaderNum: bad num %i", shaderNum );
+	int _shaderNum = LittleLong( shaderNum );
+	if ( _shaderNum < 0 || _shaderNum >= s_worldData.numShaders ) {
+		ri.Error( ERR_DROP, "ShaderForShaderNum: bad num %i", _shaderNum );
 	}
-	dsh = &s_worldData.shaders[ shaderNum ];
+	dsh = &s_worldData.shaders[ _shaderNum ];
 
 	if ( glConfig.hardwareType == GLHW_PERMEDIA2 ) {
 		lightmapNum = LIGHTMAP_BY_VERTEX;
@@ -422,7 +435,7 @@ static void ParseMesh( dsurface_t *ds, drawVert_t *verts, msurface_t *surf ) {
 	srfGridMesh_t   *grid;
 	int i, j;
 	int width, height, numPoints;
-	MAC_STATIC drawVert_t points[MAX_PATCH_SIZE * MAX_PATCH_SIZE];
+	drawVert_t points[MAX_PATCH_SIZE * MAX_PATCH_SIZE];
 	int lightmapNum;
 	vec3_t bounds[2];
 	vec3_t tmpVec;
@@ -2533,22 +2546,25 @@ Called directly from cgame
 =================
 */
 void RE_LoadWorldMap( const char *name ) {
-	int i;
-	dheader_t   *header;
-	byte        *buffer;
-	byte        *startMarker;
+	int			i;
+	dheader_t	*header;
+	union {
+		byte *b;
+		void *v;
+	} buffer;
+	byte		*startMarker;
 
 	skyboxportal = 0;
 
 	if ( tr.worldMapLoaded ) {
-		ri.Error( ERR_DROP, "ERROR: attempted to redundantly load world map\n" );
+		ri.Error( ERR_DROP, "ERROR: attempted to redundantly load world map" );
 	}
 
 	// set default sun direction to be used if it isn't
 	// overridden by a shader
-	tr.sunDirection[0] = 0.45;
-	tr.sunDirection[1] = 0.3;
-	tr.sunDirection[2] = 0.9;
+	tr.sunDirection[0] = 0.45f;
+	tr.sunDirection[1] = 0.3f;
+	tr.sunDirection[2] = 0.9f;
 
 	tr.sunShader = 0;   // clear sunshader so it's not there if the level doesn't specify it
 
@@ -2568,43 +2584,45 @@ void RE_LoadWorldMap( const char *name ) {
 	VectorNormalize( tr.sunDirection );
 
 	tr.worldMapLoaded = qtrue;
-	tr.worldDir = NULL;
+	tr.worldRawName[0] = '\0';
 
 	// load it
-	ri.FS_ReadFile( name, (void **)&buffer );
-	if ( !buffer ) {
-		ri.Error( ERR_DROP, "RE_LoadWorldMap: %s not found", name );
+	ri.FS_ReadFile( name, &buffer.v );
+	if ( !buffer.b ) {
+		ri.Error (ERR_DROP, "RE_LoadWorldMap: %s not found", name);
 	}
 
+	tr.mapLoading = qtrue;
+
 	// ydnar: set map meta dir
-	tr.worldDir = CopyString( name );
-	COM_StripExtension( tr.worldDir, tr.worldDir );
+	Q_strncpyz( tr.worldRawName, name, sizeof( tr.worldRawName ) );
+	COM_StripExtension( tr.worldRawName, tr.worldRawName, sizeof( tr.worldRawName ) );
 
 	// clear tr.world so if the level fails to load, the next
 	// try will not look at the partially loaded version
 	tr.world = NULL;
 
-	memset( &s_worldData, 0, sizeof( s_worldData ) );
+	Com_Memset( &s_worldData, 0, sizeof( s_worldData ) );
 	Q_strncpyz( s_worldData.name, name, sizeof( s_worldData.name ) );
 
 	Q_strncpyz( s_worldData.baseName, COM_SkipPath( s_worldData.name ), sizeof( s_worldData.name ) );
-	COM_StripExtension( s_worldData.baseName, s_worldData.baseName );
+	COM_StripExtension(s_worldData.baseName, s_worldData.baseName, sizeof(s_worldData.baseName));
 
-	startMarker = ri.Hunk_Alloc( 0, h_low );
+	startMarker = ri.Hunk_Alloc(0, h_low);
 	c_gridVerts = 0;
 
-	header = (dheader_t *)buffer;
+	header = (dheader_t *)buffer.b;
 	fileBase = (byte *)header;
 
-	i = LittleLong( header->version );
+	i = LittleLong (header->version);
 	if ( i != BSP_VERSION ) {
-		ri.Error( ERR_DROP, "RE_LoadWorldMap: %s has wrong version number (%i should be %i)",
-				  name, i, BSP_VERSION );
+		ri.Error (ERR_DROP, "RE_LoadWorldMap: %s has wrong version number (%i should be %i)", 
+			name, i, BSP_VERSION);
 	}
 
 	// swap all the lumps
-	for ( i = 0 ; i < sizeof( dheader_t ) / 4 ; i++ ) {
-		( (int *)header )[i] = LittleLong( ( (int *)header )[i] );
+	for (i=0 ; i<sizeof(dheader_t)/4 ; i++) {
+		((int *)header)[i] = LittleLong ( ((int *)header)[i]);
 	}
 
 	// load into heap
@@ -2636,6 +2654,7 @@ void RE_LoadWorldMap( const char *name ) {
 	ri.Cmd_ExecuteText( EXEC_NOW, "updatescreen\n" );
 	R_LoadLightGrid( &header->lumps[LUMP_LIGHTGRID] );
 	ri.Cmd_ExecuteText( EXEC_NOW, "updatescreen\n" );
+	tr.mapLoading = qfalse;
 
 	s_worldData.dataSize = (byte *)ri.Hunk_Alloc( 0, h_low ) - startMarker;
 
@@ -2651,6 +2670,6 @@ void RE_LoadWorldMap( const char *name ) {
 	}
 
 //----(SA)	end
-	ri.FS_FreeFile( buffer );
+	ri.FS_FreeFile( buffer.v );
 }
 

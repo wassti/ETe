@@ -28,17 +28,11 @@ If you have questions concerning this license or the applicable additional terms
 
 // server.h
 
-#include "../game/q_shared.h"
+#include "../qcommon/q_shared.h"
 #include "../qcommon/qcommon.h"
+#include "../qcommon/vm_local.h"
 #include "../game/g_public.h"
 #include "../game/bg_public.h"
-
-//bani
-#ifdef __GNUC__
-#define _attribute( x ) __attribute__( x )
-#else
-#define _attribute( x )
-#endif
 
 //=============================================================================
 
@@ -68,6 +62,19 @@ typedef enum {
 	SS_GAME             // actively running
 } serverState_t;
 
+#define USE_CSS			// common snapshot storage system
+
+// we might not use all MAX_GENTITIES every frame
+// so leave more room for slow-snaps clients etc.
+#define NUM_SNAPSHOT_FRAMES (PACKET_BACKUP*4)
+
+typedef struct snapshotFrame_s {
+	entityState_t *ents[ MAX_GENTITIES ];
+	int	frameNum;
+	int start;
+	int count;
+} snapshotFrame_t;
+
 typedef struct {
 	serverState_t state;
 	qboolean restarting;                // if true, send configstring changes during SS_LOADING
@@ -96,6 +103,7 @@ typedef struct {
 	int gameClientSize;                 // will be > sizeof(playerState_t) due to game private data
 
 	int restartTime;
+	int				time;
 
 	// NERVE - SMF - net debugging
 	int bpsWindow[MAX_BPS_WINDOW];
@@ -116,6 +124,8 @@ typedef struct {
 
 	int num_tagheaders;
 	int num_tags;
+
+	byte			baselineUsed[ MAX_GENTITIES ];
 } server_t;
 
 
@@ -123,30 +133,37 @@ typedef struct {
 
 
 typedef struct {
-	int areabytes;
-	byte areabits[MAX_MAP_AREA_BYTES];                  // portalarea visibility bits
-	playerState_t ps;
-	int num_entities;
-	int first_entity;                   // into the circular sv_packet_entities[]
+	int				areabytes;
+	byte			areabits[MAX_MAP_AREA_BYTES];		// portalarea visibility bits
+	playerState_t	ps;
+	int				num_entities;
+#if 0
+	int				first_entity;		// into the circular sv_packet_entities[]
 										// the entities MUST be in increasing state number
 										// order, otherwise the delta compression will fail
-	int messageSent;                    // time the message was transmitted
-	int messageAcked;                   // time the message was acked
-	int messageSize;                    // used to rate drop packets
+#endif
+	int				messageSent;		// time the message was transmitted
+	int				messageAcked;		// time the message was acked
+	int				messageSize;		// used to rate drop packets
+
+	int				frameNum;			// from snapshot storage to compare with last valid
+	entityState_t	*ents[ MAX_SNAPSHOT_ENTITIES ];
+
 } clientSnapshot_t;
 
 typedef enum {
-	CS_FREE,        // can be reused for a new connection
-	CS_ZOMBIE,      // client has been disconnected, but don't reuse connection for a couple seconds
-	CS_CONNECTED,   // has been assigned to a client_t, but no gamestate yet
-	CS_PRIMED,      // gamestate has been sent, but client hasn't sent a usercmd
-	CS_ACTIVE       // client is fully in game
+	CS_FREE = 0,	// can be reused for a new connection
+	CS_ZOMBIE,		// client has been disconnected, but don't reuse
+					// connection for a couple seconds
+	CS_CONNECTED,	// has been assigned to a client_t, but no gamestate yet
+	CS_PRIMED,		// gamestate has been sent, but client hasn't sent a usercmd
+	CS_ACTIVE		// client is fully in game
 } clientState_t;
 
 typedef struct netchan_buffer_s {
-	msg_t msg;
-	byte msgBuffer[MAX_MSGLEN];
-	char lastClientCommandString[MAX_STRING_CHARS];
+	msg_t           msg;
+	byte            msgBuffer[MAX_MSGLEN];
+	char		clientCommandString[MAX_STRING_CHARS];	// valid command string for SV_Netchan_Encode
 	struct netchan_buffer_s *next;
 } netchan_buffer_t;
 
@@ -199,7 +216,7 @@ typedef struct client_s {
 	int nextReliableTime;               // svs.time when another reliable command will be allowed
 	int lastPacketTime;                 // svs.time when packet was last received
 	int lastConnectTime;                // svs.time when connection started
-	int nextSnapshotTime;               // send another snapshot when svs.time >= nextSnapshotTime
+	int				lastSnapshotTime;	// svs.time of last sent snapshot
 	qboolean rateDelayed;               // true if nextSnapshotTime was set based on rate instead of snapshotMsec
 	int timeoutCount;                   // must timeout a few frames in a row so debugging doesn't break
 	clientSnapshot_t frames[PACKET_BACKUP];     // updates can be delta'd from here
@@ -214,8 +231,12 @@ typedef struct client_s {
 	// in case large fragmented messages are stacking up
 	// buffer them into this queue, and hand them out to netchan as needed
 	netchan_buffer_t *netchan_start_queue;
-	//%	netchan_buffer_t **netchan_end_queue;
-	netchan_buffer_t *netchan_end_queue;
+	netchan_buffer_t **netchan_end_queue;
+
+	int				oldServerTime;
+	qboolean		csUpdated[MAX_CONFIGSTRINGS];	
+	qboolean		compat;
+
 
 	//bani
 	int downloadnotify;
@@ -227,18 +248,23 @@ typedef struct client_s {
 // MAX_CHALLENGES is made large to prevent a denial
 // of service attack that could cycle all of them
 // out before legitimate users connected
-#define MAX_CHALLENGES  1024
+#define	MAX_CHALLENGES	2048
+// Allow a certain amount of challenges to have the same IP address
+// to make it a bit harder to DOS one single IP address from connecting
+// while not allowing a single ip to grab all challenge resources
+#define MAX_CHALLENGES_MULTI (MAX_CHALLENGES / 2)
 
-#define AUTHORIZE_TIMEOUT   5000
+#define	AUTHORIZE_TIMEOUT	5000
 
 typedef struct {
-	netadr_t adr;
-	int challenge;
-	int time;                       // time the last packet was sent to the autherize server
-	int pingTime;                   // time the challenge response was sent to client
-	int firstTime;                  // time the adr was first used, for authorize timeout checks
-	int firstPing;                  // Used for min and max ping checks
-	qboolean connected;
+	netadr_t	adr;
+	int			challenge;
+	int			clientChallenge;		// challenge number coming from the client
+	int			time;				// time the last packet was sent to the autherize server
+	int			pingTime;			// time the challenge response was sent to client
+	int			firstTime;			// time the adr was first used, for authorize timeout checks
+	qboolean	wasrefused;
+	qboolean	connected;
 } challenge_t;
 
 typedef struct tempBan_s {
@@ -263,7 +289,7 @@ typedef struct {
 
 	client_t    *clients;                   // [sv_maxclients->integer];
 	int numSnapshotEntities;                // sv_maxclients->integer*PACKET_BACKUP*MAX_PACKET_ENTITIES
-	int nextSnapshotEntities;               // next snapshotEntities to use
+	//int nextSnapshotEntities;               // next snapshotEntities to use
 	entityState_t   *snapshotEntities;      // [numSnapshotEntities]
 	int nextHeartbeatTime;
 	challenge_t challenges[MAX_CHALLENGES]; // to prevent invalid IPs from connecting
@@ -279,17 +305,33 @@ typedef struct {
 	int totalFrameTime;
 	int currentFrameIndex;
 	int serverLoad;
+	
+	// common snapshot storage
+	int			freeStorageEntities;
+	int			currentStoragePosition;	// next snapshotEntities to use
+	int			snapshotFrame;			// incremented with each common snapshot built
+	int			currentSnapshotFrame;	// for initializing empty frames
+	int			lastValidFrame;			// updated with each snapshot built
+	snapshotFrame_t	snapFrames[ NUM_SNAPSHOT_FRAMES ];
+	snapshotFrame_t	*currFrame; // current frame that clients can refer
 } serverStatic_t;
 
+#define SERVER_MAXBANS	1024
+// Structure for managing bans
+typedef struct
+{
+	netadr_t ip;
+	// For a CIDR-Notation type suffix
+	int subnet;
+	
+	qboolean isexception;
+} serverBan_t;
 
 //=============================================================================
 
 extern serverStatic_t svs;                  // persistant server info across maps
 extern server_t sv;                         // cleared each map
 extern vm_t            *gvm;                // game virtual machine
-
-
-#define MAX_MASTER_SERVERS  5
 
 extern cvar_t  *sv_fps;
 extern cvar_t  *sv_timeout;
@@ -313,6 +355,7 @@ extern cvar_t  *sv_killserver;
 extern cvar_t  *sv_mapname;
 extern cvar_t  *sv_mapChecksum;
 extern cvar_t  *sv_serverid;
+extern	cvar_t	*sv_minRate;
 extern cvar_t  *sv_maxRate;
 extern cvar_t  *sv_minPing;
 extern cvar_t  *sv_maxPing;
@@ -333,6 +376,9 @@ extern cvar_t* g_gameType;
 
 extern cvar_t  *sv_reloading;
 
+
+extern	cvar_t *sv_levelTimeReset;
+
 // TTimo - autodl
 extern cvar_t *sv_dl_maxRate;
 
@@ -352,13 +398,38 @@ extern cvar_t *sv_packetdelay;
 //fretn
 extern cvar_t *sv_fullmsg;
 
+extern	serverBan_t serverBans[SERVER_MAXBANS];
+extern	int serverBansCount;
+
 //===========================================================
 
 //
 // sv_main.c
 //
-void SV_FinalCommand( char *cmd, qboolean disconnect ); // ydnar: added disconnect flag so map changes can use this function as well
-void QDECL SV_SendServerCommand( client_t *cl, const char *fmt, ... );
+typedef struct leakyBucket_s leakyBucket_t;
+struct leakyBucket_s {
+	netadrtype_t	type;
+
+	union {
+		byte	_4[4];
+		byte	_6[16];
+	} ipv;
+
+	int			lastTime;
+	signed char	burst;
+
+	long		hash;
+
+	leakyBucket_t *prev, *next;
+};
+
+extern leakyBucket_t outboundLeakyBucket;
+
+qboolean SVC_RateLimit( leakyBucket_t *bucket, int burst, int period );
+qboolean SVC_RateLimitAddress( const netadr_t *from, int burst, int period );
+
+void SV_FinalCommand( const char *message, qboolean disconnect ); // ydnar: added disconnect flag so map changes can use this function as well
+void QDECL SV_SendServerCommand( client_t *cl, const char *fmt, ... ); __attribute__ ((format (printf, 2, 3)));
 
 
 void SV_AddOperatorCommands( void );
@@ -367,10 +438,10 @@ void SV_RemoveOperatorCommands( void );
 
 void SV_MasterHeartbeat( const char *hbname );
 void SV_MasterShutdown( void );
-
+int SV_RateMsec(client_t *client);
 void SV_MasterGameCompleteStatus();     // NERVE - SMF
 //bani - bugtraq 12534
-qboolean SV_VerifyChallenge( char *challenge );
+qboolean SV_VerifyChallenge( const char *challenge );
 
 
 //
@@ -378,46 +449,47 @@ qboolean SV_VerifyChallenge( char *challenge );
 //
 void SV_SetConfigstringNoUpdate( int index, const char *val );
 void SV_SetConfigstring( int index, const char *val );
-void SV_UpdateConfigStrings( void );
+//void SV_UpdateConfigStrings( void );
 void SV_GetConfigstring( int index, char *buffer, int bufferSize );
+void SV_UpdateConfigstrings( client_t *client );
 
 void SV_SetUserinfo( int index, const char *val );
 void SV_GetUserinfo( int index, char *buffer, int bufferSize );
 
-void SV_CreateBaseline( void );
-
 void SV_ChangeMaxClients( void );
-void SV_SpawnServer( char *server, qboolean killBots );
+void SV_SpawnServer( const char *mapname, qboolean killBots );
 
 
 
 //
 // sv_client.c
 //
-void SV_GetChallenge( netadr_t from );
+void SV_GetChallenge( const netadr_t *from );
 
-void SV_DirectConnect( netadr_t from );
+void SV_DirectConnect( const netadr_t *from );
 
-void SV_AuthorizeIpPacket( netadr_t from );
+void SV_AuthorizeIpPacket( const netadr_t *from );
 
 void SV_ExecuteClientMessage( client_t *cl, msg_t *msg );
 void SV_UserinfoChanged( client_t *cl );
 
 void SV_ClientEnterWorld( client_t *client, usercmd_t *cmd );
-void SV_FreeClientNetChan( client_t* client );
+void SV_FreeClient(client_t *client);
 void SV_DropClient( client_t *drop, const char *reason );
 
 void SV_ExecuteClientCommand( client_t *cl, const char *s, qboolean clientOK, qboolean premaprestart );
 void SV_ClientThink( client_t *cl, usercmd_t *cmd );
 
-void SV_WriteDownloadToClient( client_t *cl, msg_t *msg );
+int SV_WriteDownloadToClient(client_t *cl , msg_t *msg);
+int SV_SendDownloadMessages(void);
+int SV_SendQueuedMessages(void);
 
 //
 // sv_ccmds.c
 //
 void SV_Heartbeat_f( void );
 
-qboolean SV_TempBanIsBanned( netadr_t address );
+qboolean SV_TempBanIsBanned( const netadr_t *address );
 void SV_TempBanNetAddress( netadr_t address, int length );
 
 //
@@ -431,6 +503,9 @@ void SV_SendClientMessages( void );
 void SV_SendClientSnapshot( client_t *client );
 //bani
 void SV_SendClientIdle( client_t *client );
+
+void SV_InitSnapshotStorage( void );
+void SV_IssueNewSnapshot( void );
 
 //
 // sv_game.c
@@ -529,8 +604,9 @@ void SV_ClipToEntity( trace_t *trace, const vec3_t start, const vec3_t mins, con
 // sv_net_chan.c
 //
 void SV_Netchan_Transmit( client_t *client, msg_t *msg );
-void SV_Netchan_TransmitNextFragment( client_t *client );
+int SV_Netchan_TransmitNextFragment( client_t *client );
 qboolean SV_Netchan_Process( client_t *client, msg_t *msg );
+void SV_Netchan_FreeQueue( client_t *client );
 
 //bani - cl->downloadnotify
 #define DLNOTIFY_REDIRECT   0x00000001  // "Redirecting client ..."

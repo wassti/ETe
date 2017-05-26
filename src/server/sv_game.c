@@ -349,13 +349,41 @@ void SV_GameBinaryMessageReceived( int cno, const char *buf, int buflen, int com
 
 //==============================================
 
-static int  FloatAsInt( float f ) {
-	int temp;
-
-	*(float *)&temp = f;
-
-	return temp;
+static int	FloatAsInt( float f ) {
+	floatint_t fi;
+	fi.f = f;
+	return fi.i;
 }
+
+
+/*
+====================
+VM_ArgPtr
+====================
+*/
+static void *VM_ArgPtr( intptr_t intValue ) {
+
+	if ( !intValue || gvm == NULL )
+	  return NULL;
+
+	if ( gvm->entryPoint )
+		return (void *)(gvm->dataBase + intValue);
+	else
+		return (void *)(gvm->dataBase + (intValue & gvm->dataMask));
+}
+
+/*
+====================
+GVM_ArgPtr
+
+exported version
+====================
+*/
+void *GVM_ArgPtr( intptr_t intValue ) 
+{
+	return VM_ArgPtr( intValue );
+}
+
 
 /*
 ====================
@@ -364,26 +392,17 @@ SV_GameSystemCalls
 The module is making a system call
 ====================
 */
-//rcg010207 - see my comments in VM_DllSyscall(), in qcommon/vm.c ...
-#if ( ( defined __linux__ ) && ( defined __powerpc__ ) ) || ( defined MACOS_X )
-#define VMA( x ) ( (void *) args[x] )
-#else
-#define VMA( x ) VM_ArgPtr( args[x] )
-#endif
-
-#define VMF( x )  ( (float *)args )[x]
-
 // show_bug.cgi?id=574
 extern int S_RegisterSound( const char *name, qboolean compressed );
 extern int S_GetSoundLength( sfxHandle_t sfxHandle );
 
-int SV_GameSystemCalls( int *args ) {
+intptr_t SV_GameSystemCalls( intptr_t *args ) {
 	switch ( args[0] ) {
 	case G_PRINT:
-		Com_Printf( "%s", (char *)VMA( 1 ) );
+		Com_Printf( "%s", (const char *)VMA( 1 ) );
 		return 0;
 	case G_ERROR:
-		Com_Error( ERR_DROP, "%s", (char *)VMA( 1 ) );
+		Com_Error( ERR_DROP, "%s", (const char *)VMA( 1 ) );
 		return 0;
 	case G_MILLISECONDS:
 		return Sys_Milliseconds();
@@ -394,7 +413,7 @@ int SV_GameSystemCalls( int *args ) {
 		Cvar_Update( VMA( 1 ) );
 		return 0;
 	case G_CVAR_SET:
-		Cvar_Set( (const char *)VMA( 1 ), (const char *)VMA( 2 ) );
+		Cvar_SetSafe( (const char *)VMA( 1 ), (const char *)VMA( 2 ) );
 		return 0;
 	case G_CVAR_VARIABLE_INTEGER_VALUE:
 		return Cvar_VariableIntegerValue( (const char *)VMA( 1 ) );
@@ -414,17 +433,18 @@ int SV_GameSystemCalls( int *args ) {
 		return 0;
 
 	case G_FS_FOPEN_FILE:
-		return FS_FOpenFileByMode( VMA( 1 ), VMA( 2 ), args[3] );
+		return FS_VM_OpenFile( VMA( 1 ), VMA( 2 ), args[3], H_QAGAME );
 	case G_FS_READ:
-		FS_Read( VMA( 1 ), args[2], args[3] );
-		return 0;
+		return FS_VM_ReadFile( VMA( 1 ), args[2], args[3], H_QAGAME );
 	case G_FS_WRITE:
-		return FS_Write( VMA( 1 ), args[2], args[3] );
+		//return FS_Write( VMA( 1 ), args[2], args[3] );
+		FS_VM_WriteFile( VMA(1), args[2], args[3], H_QAGAME );
+		return 0;
 	case G_FS_RENAME:
 		FS_Rename( VMA( 1 ), VMA( 2 ) );
 		return 0;
 	case G_FS_FCLOSE_FILE:
-		FS_FCloseFile( args[1] );
+		FS_VM_CloseFile( args[1], H_QAGAME );
 		return 0;
 	case G_FS_GETFILELIST:
 		return FS_GetFileList( VMA( 1 ), VMA( 2 ), VMA( 3 ), args[4] );
@@ -959,15 +979,16 @@ int SV_GameSystemCalls( int *args ) {
 		return botlib_export->ai.GeneticParentsAndChildSelection( args[1], VMA( 2 ), VMA( 3 ), VMA( 4 ), VMA( 5 ) );
 
 	case TRAP_MEMSET:
-		memset( VMA( 1 ), args[2], args[3] );
-		return 0;
+		Com_Memset( VMA(1), args[2], args[3] );
+		return args[1];
 
 	case TRAP_MEMCPY:
-		memcpy( VMA( 1 ), VMA( 2 ), args[3] );
-		return 0;
+		Com_Memcpy( VMA(1), VMA(2), args[3] );
+		return args[1];
 
 	case TRAP_STRNCPY:
-		return (int)strncpy( VMA( 1 ), VMA( 2 ), args[3] );
+		strncpy( VMA(1), VMA(2), args[3] );
+		return args[1];
 
 	case TRAP_SIN:
 		return FloatAsInt( sin( VMF( 1 ) ) );
@@ -1003,16 +1024,59 @@ int SV_GameSystemCalls( int *args ) {
 		return 0 ;
 
 	case G_SENDMESSAGE:
-		SV_SendBinaryMessage( args[1], VMA( 2 ), args[3] );
+		SV_SendBinaryMessage( args[1], (char *)VMA( 2 ), args[3] );
 		return 0;
 	case G_MESSAGESTATUS:
 		return SV_BinaryMessageStatus( args[1] );
 
 	default:
-		Com_Error( ERR_DROP, "Bad game system trap: %i", args[0] );
+		Com_Error( ERR_DROP, "Bad game system trap: %ld", (long int) args[0] );
 	}
-	return -1;
+	return 0;
 }
+
+
+/*
+====================
+SV_DllSyscall
+====================
+*/
+static intptr_t QDECL SV_DllSyscall( intptr_t arg, ... ) {
+#if !id386 || defined __clang__
+	intptr_t	args[14]; // max.count for qagame
+	va_list	ap;
+	int i;
+  
+	args[0] = arg;
+	va_start( ap, arg );
+	for (i = 1; i < ARRAY_LEN( args ); i++ )
+		args[ i ] = va_arg( ap, intptr_t );
+	va_end( ap );
+  
+	return SV_GameSystemCalls( args );
+#else
+	return SV_GameSystemCalls( &arg );
+#endif
+}
+
+static const int g_vmMainArgs[ GAME_EXPORT_LAST ] = {
+	4, // GAME_INIT, ( int levelTime, int randomSeed, int restart );
+	2, // GAME_SHUTDOWN, ( int restart );
+	4, // GAME_CLIENT_CONNECT, ( int clientNum, qboolean firstTime, qboolean isBot );
+	2, // GAME_CLIENT_BEGIN, ( int clientNum );
+	2, // GAME_CLIENT_USERINFO_CHANGED,	( int clientNum );
+	2, // GAME_CLIENT_DISCONNECT, ( int clientNum );
+	2, // GAME_CLIENT_COMMAND, ( int clientNum );
+	2, // GAME_CLIENT_THINK, ( int clientNum );
+	2, // GAME_RUN_FRAME, ( int levelTime );
+	1, // GAME_CONSOLE_COMMAND, ( void );
+	3, // GAME_SNAPSHOT_CALLBACK, ( int entityNum, int clientNum );
+	2, // BOTAI_START_FRAME, ( int time );
+	1, // BOT_VISIBLEFROMPOS,
+	1, // BOT_CHECKATTACKATPOS,
+	5 // GAME_MESSAGERECEIVED ( int cno, const char *buf, int buflen, int commandTime );
+};
+
 
 /*
 ===============
@@ -1028,6 +1092,7 @@ void SV_ShutdownGameProgs( void ) {
 	VM_Call( gvm, GAME_SHUTDOWN, qfalse );
 	VM_Free( gvm );
 	gvm = NULL;
+	FS_VM_CloseFiles( H_QAGAME );
 }
 
 /*
@@ -1038,17 +1103,19 @@ Called for both a full init and a restart
 ==================
 */
 static void SV_InitGameVM( qboolean restart ) {
-	int i;
+	int		i;
 
 	// start the entity parsing at the beginning
 	sv.entityParsePoint = CM_EntityString();
 
 	// clear all gentity pointers that might still be set from
 	// a previous level
+	// https://zerowing.idsoftware.com/bugzilla/show_bug.cgi?id=522
+	//   now done before GAME_INIT call
 	for ( i = 0 ; i < sv_maxclients->integer ; i++ ) {
 		svs.clients[i].gentity = NULL;
 	}
-
+	
 	// use the current msec count for a random seed
 	// init for this gamestate
 	VM_Call( gvm, GAME_INIT, svs.time, Com_Milliseconds(), restart );
@@ -1071,7 +1138,7 @@ void SV_RestartGameProgs( void ) {
 
 	// do a restart instead of a free
 	gvm = VM_Restart( gvm );
-	if ( !gvm ) { // bk001212 - as done below
+	if ( !gvm ) {
 		Com_Error( ERR_FATAL, "VM_Restart on game failed" );
 	}
 
@@ -1091,7 +1158,7 @@ void SV_InitGameProgs( void ) {
 	sv.num_tags = 0;
 
 	// load the dll
-	gvm = VM_Create( "qagame", SV_GameSystemCalls, VMI_NATIVE );
+	gvm = VM_Create( VM_GAME, SV_GameSystemCalls, SV_DllSyscall, g_vmMainArgs, VMI_NATIVE );
 	if ( !gvm ) {
 		Com_Error( ERR_FATAL, "VM_Create on game failed" );
 	}

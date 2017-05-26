@@ -29,11 +29,11 @@ If you have questions concerning this license or the applicable additional terms
 // tr_shade_calc.c
 
 #include "tr_local.h"
+// -EC-: avoid using ri.ftol
+#define	WAVEVALUE( table, base, amplitude, phase, freq )  ((base) + table[ (int64_t)( ( ( (phase) + tess.shaderTime * (freq) ) * FUNCTABLE_SIZE ) ) & FUNCTABLE_MASK ] * (amplitude))
 
-
-#define WAVEVALUE( table, base, amplitude, phase, freq )  ( ( base ) + table[ myftol( ( ( ( phase ) + tess.shaderTime * ( freq ) ) * FUNCTABLE_SIZE ) ) & FUNCTABLE_MASK ] * ( amplitude ) )
-
-static float *TableForFunc( genFunc_t func ) {
+static float *TableForFunc( genFunc_t func ) 
+{
 	switch ( func )
 	{
 	case GF_SIN:
@@ -51,7 +51,7 @@ static float *TableForFunc( genFunc_t func ) {
 		break;
 	}
 
-	ri.Error( ERR_DROP, "TableForFunc called with invalid function '%d' in shader '%s'\n", func, tess.shader->name );
+	ri.Error( ERR_DROP, "TableForFunc called with invalid function '%d' in shader '%s'", func, tess.shader->name );
 	return NULL;
 }
 
@@ -60,22 +60,26 @@ static float *TableForFunc( genFunc_t func ) {
 **
 ** Evaluates a given waveForm_t, referencing backEnd.refdef.time directly
 */
-static float EvalWaveForm( const waveForm_t *wf ) {
-	float   *table;
+static float EvalWaveForm( const waveForm_t *wf ) 
+{
+	float	*table;
 
 	table = TableForFunc( wf->func );
 
 	return WAVEVALUE( table, wf->base, wf->amplitude, wf->phase, wf->frequency );
 }
 
-static float EvalWaveFormClamped( const waveForm_t *wf ) {
+static float EvalWaveFormClamped( const waveForm_t *wf )
+{
 	float glow  = EvalWaveForm( wf );
 
-	if ( glow < 0 ) {
+	if ( glow < 0 )
+	{
 		return 0;
 	}
 
-	if ( glow > 1 ) {
+	if ( glow > 1 )
+	{
 		return 1;
 	}
 
@@ -85,7 +89,8 @@ static float EvalWaveFormClamped( const waveForm_t *wf ) {
 /*
 ** RB_CalcStretchTexCoords
 */
-void RB_CalcStretchTexCoords( const waveForm_t *wf, float *st ) {
+void RB_CalcStretchTexCoords( const waveForm_t *wf, float *st )
+{
 	float p;
 	texModInfo_t tmi;
 
@@ -251,7 +256,7 @@ RB_CalcBulgeVertexes
 */
 void RB_CalcBulgeVertexes( deformStage_t *ds ) {
 	int i;
-	const float *st = ( const float * ) tess.texCoords0;
+	const float *st = ( const float * ) tess.texCoords[0];
 	float       *xyz = ( float * ) tess.xyz;
 	float       *normal = ( float * ) tess.normal;
 	float now;
@@ -322,19 +327,19 @@ void DeformText( const char *text ) {
 	height[0] = 0;
 	height[1] = 0;
 	height[2] = -1;
-	CrossProduct( tess.normal[0].v, height, width );
+	CrossProduct( tess.normal[0], height, width );
 
 	// find the midpoint of the box
 	VectorClear( mid );
 	bottom = 999999;
 	top = -999999;
 	for ( i = 0 ; i < 4 ; i++ ) {
-		VectorAdd( tess.xyz[i].v, mid, mid );
-		if ( tess.xyz[i].v[2] < bottom ) {
-			bottom = tess.xyz[i].v[2];
+		VectorAdd( tess.xyz[i], mid, mid );
+		if ( tess.xyz[i][2] < bottom ) {
+			bottom = tess.xyz[i][2];
 		}
-		if ( tess.xyz[i].v[2] > top ) {
-			top = tess.xyz[i].v[2];
+		if ( tess.xyz[i][2] > top ) {
+			top = tess.xyz[i][2];
 		}
 	}
 	VectorScale( mid, 0.25f, origin );
@@ -407,10 +412,10 @@ static void AutospriteDeform( void ) {
 	vec3_t leftDir, upDir;
 
 	if ( tess.numVertexes & 3 ) {
-		ri.Printf( PRINT_WARNING, "Autosprite shader %s had odd vertex count", tess.shader->name );
+		ri.Printf( PRINT_WARNING, "Autosprite shader %s had odd vertex count\n", tess.shader->name );
 	}
 	if ( tess.numIndexes != ( tess.numVertexes >> 2 ) * 6 ) {
-		ri.Printf( PRINT_WARNING, "Autosprite shader %s had odd index count", tess.shader->name );
+		ri.Printf( PRINT_WARNING, "Autosprite shader %s had odd index count\n", tess.shader->name );
 	}
 
 	oldVerts = tess.numVertexes;
@@ -427,7 +432,7 @@ static void AutospriteDeform( void ) {
 
 	for ( i = 0 ; i < oldVerts ; i += 4 ) {
 		// find the midpoint
-		xyz = tess.xyz[i].v;
+		xyz = tess.xyz[i];
 
 		mid[0] = 0.25f * ( xyz[0] + xyz[4] + xyz[8] + xyz[12] );
 		mid[1] = 0.25f * ( xyz[1] + xyz[5] + xyz[9] + xyz[13] );
@@ -456,7 +461,7 @@ static void AutospriteDeform( void ) {
 			VectorScale( up, axisLength, up );
 		}
 
-		RB_AddQuadStamp( mid, left, up, tess.vertexColors[i].v );
+		RB_AddQuadStamp( mid, left, up, tess.vertexColors[i] );
 	}
 }
 
@@ -507,7 +512,7 @@ static void Autosprite2Deform( void ) {
 		float   *v1, *v2;
 
 		// find the midpoint
-		xyz = tess.xyz[i].v;
+		xyz = tess.xyz[i];
 
 		// identify the two shortest edges
 		nums[0] = nums[1] = 0;
@@ -666,7 +671,7 @@ void RB_CalcColorFromEntity( unsigned char *dstColors ) {
 void RB_CalcColorFromOneMinusEntity( unsigned char *dstColors ) {
 	int i;
 	int *pColors = ( int * ) dstColors;
-	unsigned char invModulate[3];
+	unsigned char invModulate[4];
 	int c;
 
 	if ( !backEnd.currentEntity ) {
@@ -682,7 +687,7 @@ void RB_CalcColorFromOneMinusEntity( unsigned char *dstColors ) {
 
 	for ( i = 0; i < tess.numVertexes; i++, pColors++ )
 	{
-		*pColors = *( int * ) invModulate;
+		*pColors = c;
 	}
 }
 
@@ -956,7 +961,7 @@ void RB_CalcFogTexCoords( float *st ) {
 
 	// offset fog surface
 	VectorCopy( fog->surface, fogSurface );
-	fogSurface[ 3 ] = fog->surface[ 3 ] + DotProduct( fogSurface, bmodel->orientation[ backEnd.smpFrame ].origin );
+	fogSurface[ 3 ] = fog->surface[ 3 ] + DotProduct( fogSurface, bmodel->orientation.origin );
 
 	// ydnar: general fog case
 	if ( fog->originalBrushNumber >= 0 ) {
@@ -985,7 +990,7 @@ void RB_CalcFogTexCoords( float *st ) {
 		eyeInside = eyeT < 0 ? qfalse : qtrue;
 
 		// calculate density for each point
-		for ( i = 0, v = tess.xyz[ 0 ].v ; i < tess.numVertexes; i++, v += 4 )
+		for ( i = 0, v = tess.xyz[ 0 ] ; i < tess.numVertexes; i++, v += 4 )
 		{
 			// calculate the length in fog
 			s = DotProduct( v, fogDistanceVector ) + fogDistanceVector[ 3 ];
@@ -1006,7 +1011,7 @@ void RB_CalcFogTexCoords( float *st ) {
 	else
 	{
 		// calculate density for each point
-		for ( i = 0, v = tess.xyz[ 0 ].v; i < tess.numVertexes; i++, v += 4 )
+		for ( i = 0, v = tess.xyz[ 0 ]; i < tess.numVertexes; i++, v += 4 )
 		{
 			// calculate the length in fog (t is always 0 if eye is in fog)
 			st[ 0 ] = DotProduct( v, fogDistanceVector ) + fogDistanceVector[ 3 ];
@@ -1031,8 +1036,8 @@ void RB_CalcEnvironmentTexCoords( float *st ) {
 
 
 	// setup
-	v = tess.xyz[ 0 ].v;
-	normal = tess.normal[ 0 ].v;
+	v = tess.xyz[ 0 ];
+	normal = tess.normal[ 0 ];
 	VectorCopy( backEnd.orientation.viewOrigin, viewOrigin );
 
 	// ydnar: origin of entity affects its environment map (every 256 units)
@@ -1147,8 +1152,8 @@ void RB_CalcFireRiseEnvTexCoords( float *st ) {
 	vec3_t viewer, reflected;
 	float d;
 
-	v = tess.xyz[0].v;
-	normal = tess.normal[0].v;
+	v = tess.xyz[0];
+	normal = tess.normal[0];
 	VectorNegate( backEnd.currentEntity->e.fireRiseDir, viewer );
 
 	for ( i = 0 ; i < tess.numVertexes ; i++, v += 4, normal += 4, st += 2 )
@@ -1188,7 +1193,7 @@ void RB_CalcSwapTexCoords( float *st ) {
 */
 void RB_CalcTurbulentTexCoords( const waveForm_t *wf, float *st ) {
 	int i;
-	float now;
+	double now; // -EC- set to double
 
 	now = ( wf->phase + tess.shaderTime * wf->frequency );
 
@@ -1197,8 +1202,8 @@ void RB_CalcTurbulentTexCoords( const waveForm_t *wf, float *st ) {
 		float s = st[0];
 		float t = st[1];
 
-		st[0] = s + tr.sinTable[ ( ( int ) ( ( ( tess.xyz[i].v[0] + tess.xyz[i].v[2] ) * 1.0 / 128 * 0.125 + now ) * FUNCTABLE_SIZE ) ) & ( FUNCTABLE_MASK ) ] * wf->amplitude;
-		st[1] = t + tr.sinTable[ ( ( int ) ( ( tess.xyz[i].v[1] * 1.0 / 128 * 0.125 + now ) * FUNCTABLE_SIZE ) ) & ( FUNCTABLE_MASK ) ] * wf->amplitude;
+		st[0] = s + tr.sinTable[ ( ( int ) ( ( ( tess.xyz[i][0] + tess.xyz[i][2] ) * 1.0 / 128 * 0.125 + now ) * FUNCTABLE_SIZE ) ) & ( FUNCTABLE_MASK ) ] * wf->amplitude;
+		st[1] = t + tr.sinTable[ ( ( int ) ( ( tess.xyz[i][1] * 1.0 / 128 * 0.125 + now ) * FUNCTABLE_SIZE ) ) & ( FUNCTABLE_MASK ) ] * wf->amplitude;
 	}
 }
 
@@ -1218,13 +1223,16 @@ void RB_CalcScaleTexCoords( const float scale[2], float *st ) {
 /*
 ** RB_CalcScrollTexCoords
 */
-void RB_CalcScrollTexCoords( const float scrollSpeed[2], float *st ) {
+void RB_CalcScrollTexCoords( const float scrollSpeed[2], float *st )
+{
 	int i;
-	float timeScale = tess.shaderTime;
-	float adjustedScrollS, adjustedScrollT;
+	double	timeScale; // -EC-: set to double
+	double	adjustedScrollS, adjustedScrollT; // -EC-: set to double
 
-	adjustedScrollS = scrollSpeed[0] * timeScale;
-	adjustedScrollT = scrollSpeed[1] * timeScale;
+	timeScale = tess.shaderTime;
+
+	adjustedScrollS = (double)scrollSpeed[0] * timeScale;
+	adjustedScrollT = (double)scrollSpeed[1] * timeScale;
 
 	// clamp so coordinates don't continuously get larger, causing problems
 	// with hardware limits
@@ -1257,9 +1265,10 @@ void RB_CalcTransformTexCoords( const texModInfo_t *tmi, float *st  ) {
 /*
 ** RB_CalcRotateTexCoords
 */
-void RB_CalcRotateTexCoords( float degsPerSecond, float *st ) {
-	float timeScale = tess.shaderTime;
-	float degs;
+void RB_CalcRotateTexCoords( float degsPerSecond, float *st )
+{
+	double timeScale = tess.shaderTime; // -EC- set to double
+	double degs; // -EC- set to double
 	int index;
 	float sinValue, cosValue;
 	texModInfo_t tmi;
@@ -1297,8 +1306,8 @@ void RB_CalcSpecularAlpha( unsigned char *alphas ) {
 	vec3_t lightDir;
 	int numVertexes;
 
-	v = tess.xyz[0].v;
-	normal = tess.normal[0].v;
+	v = tess.xyz[0];
+	normal = tess.normal[0];
 
 	alphas += 3;
 
@@ -1361,7 +1370,7 @@ void RB_CalcDiffuseColor( unsigned char *colors ) {
 	ent = backEnd.currentEntity;
 	VectorCopy( ent->lightDir, lightDir );
 
-	normal = tess.normal[ 0 ].v;
+	normal = tess.normal[ 0 ];
 	colorsInt = (int*) colors;
 
 	numVertexes = tess.numVertexes;
@@ -1407,8 +1416,8 @@ void RB_CalcDiffuseColor( unsigned char *colors ) {
 	VectorCopy( ent->directedLight, directedLight );
 	VectorCopy( ent->lightDir, lightDir );
 
-	v = tess.xyz[0].v;
-	normal = tess.normal[0].v;
+	v = tess.xyz[0];
+	normal = tess.normal[0];
 
 	numVertexes = tess.numVertexes;
 	for ( i = 0 ; i < numVertexes ; i++, v += 4, normal += 4 ) {

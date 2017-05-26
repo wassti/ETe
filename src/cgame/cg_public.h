@@ -278,7 +278,7 @@ functions exported to the main executable
 
 typedef enum {
 	CG_INIT,
-//	void CG_Init( int serverMessageNum, int serverCommandSequence )
+//	void CG_Init( int serverMessageNum, int serverCommandSequence, int clientNum, qboolean demoPlayback )
 	// called when the level loads or when the renderer is restarted
 	// all media should be registered at this time
 	// cgame will display loading status by calling SCR_Update, which
@@ -328,6 +328,7 @@ typedef enum {
 //	void (*CG_MessageReceived)( const char *buf, int buflen, int serverTime );
 	// -zinx
 
+	CG_EXPORT_LAST,
 } cgameExport_t;
 
 //----------------------------------------------

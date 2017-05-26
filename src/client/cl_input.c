@@ -79,49 +79,49 @@ void IN_MLookUp( void ) {
 }
 
 void IN_KeyDown( kbutton_t *b ) {
-	int k;
-	char    *c;
-
-	c = Cmd_Argv( 1 );
+	int		k;
+	char	*c;
+	
+	c = Cmd_Argv(1);
 	if ( c[0] ) {
-		k = atoi( c );
+		k = atoi(c);
 	} else {
-		k = -1;     // typed manually at the console for continuous down
+		k = -1;		// typed manually at the console for continuous down
 	}
 
 	if ( k == b->down[0] || k == b->down[1] ) {
-		return;     // repeating key
+		return;		// repeating key
 	}
-
+	
 	if ( !b->down[0] ) {
 		b->down[0] = k;
 	} else if ( !b->down[1] ) {
 		b->down[1] = k;
 	} else {
-		Com_Printf( "Three keys down for a button!\n" );
+		Com_Printf ("Three keys down for a button!\n");
 		return;
 	}
-
+	
 	if ( b->active ) {
-		return;     // still down
+		return;		// still down
 	}
 
 	// save timestamp for partial frame summing
-	c = Cmd_Argv( 2 );
-	b->downtime = atoi( c );
+	c = Cmd_Argv(2);
+	b->downtime = atoi(c);
 
 	b->active = qtrue;
 	b->wasPressed = qtrue;
 }
 
 void IN_KeyUp( kbutton_t *b ) {
-	int k;
-	char    *c;
-	unsigned uptime;
+	int		k;
+	char	*c;
+	unsigned	uptime;
 
-	c = Cmd_Argv( 1 );
+	c = Cmd_Argv(1);
 	if ( c[0] ) {
-		k = atoi( c );
+		k = atoi(c);
 	} else {
 		// typed manually at the console, assume for unsticking, so clear all
 		b->down[0] = b->down[1] = 0;
@@ -134,17 +134,17 @@ void IN_KeyUp( kbutton_t *b ) {
 	} else if ( b->down[1] == k ) {
 		b->down[1] = 0;
 	} else {
-		return;     // key up without coresponding down (menu pass through)
+		return;		// key up without coresponding down (menu pass through)
 	}
 	if ( b->down[0] || b->down[1] ) {
-		return;     // some other key is still holding it down
+		return;		// some other key is still holding it down
 	}
 
 	b->active = qfalse;
 
 	// save timestamp for partial frame summing
-	c = Cmd_Argv( 2 );
-	uptime = atoi( c );
+	c = Cmd_Argv(2);
+	uptime = atoi(c);
 	if ( uptime ) {
 		b->msec += uptime - b->downtime;
 	} else {
@@ -164,8 +164,8 @@ Returns the fraction of the frame that the key was down
 ===============
 */
 float CL_KeyState( kbutton_t *key ) {
-	float val;
-	int msec;
+	float		val;
+	int			msec;
 
 	msec = key->msec;
 	key->msec = 0;
@@ -181,8 +181,8 @@ float CL_KeyState( kbutton_t *key ) {
 	}
 
 #if 0
-	if ( msec ) {
-		Com_Printf( "%i ", msec );
+	if (msec) {
+		Com_Printf ("%i ", msec);
 	}
 #endif
 
@@ -433,7 +433,7 @@ CL_MouseEvent
 =================
 */
 void CL_MouseEvent( int dx, int dy, int time ) {
-	if ( cls.keyCatchers & KEYCATCH_UI ) {
+	if ( Key_GetCatcher( ) & KEYCATCH_UI ) {
 
 		// NERVE - SMF - if we just want to pass it along to game
 		if ( cl_bypassMouseInput->integer == 1 ) {
@@ -443,7 +443,7 @@ void CL_MouseEvent( int dx, int dy, int time ) {
 			VM_Call( uivm, UI_MOUSE_EVENT, dx, dy );
 		}
 
-	} else if ( cls.keyCatchers & KEYCATCH_CGAME ) {
+	} else if ( Key_GetCatcher( ) & KEYCATCH_CGAME ) {
 		if ( cl_bypassMouseInput->integer == 1 ) {
 			cl.mouseDx[cl.mouseIndex] += dx;
 			cl.mouseDy[cl.mouseIndex] += dy;
@@ -515,71 +515,107 @@ void CL_JoystickMove( usercmd_t *cmd ) {
 CL_MouseMove
 =================
 */
-void CL_MouseMove( usercmd_t *cmd ) {
+
+void CL_MouseMove(usercmd_t *cmd)
+{
 	float mx, my;
-	float accelSensitivity;
-	float rate;
 
 	// allow mouse smoothing
-	if ( m_filter->integer ) {
-		mx = ( cl.mouseDx[0] + cl.mouseDx[1] ) * 0.5;
-		my = ( cl.mouseDy[0] + cl.mouseDy[1] ) * 0.5;
-	} else {
+	if (m_filter->integer)
+	{
+		mx = (cl.mouseDx[0] + cl.mouseDx[1]) * 0.5f;
+		my = (cl.mouseDy[0] + cl.mouseDy[1]) * 0.5f;
+	}
+	else
+	{
 		mx = cl.mouseDx[cl.mouseIndex];
 		my = cl.mouseDy[cl.mouseIndex];
 	}
+	
 	cl.mouseIndex ^= 1;
 	cl.mouseDx[cl.mouseIndex] = 0;
 	cl.mouseDy[cl.mouseIndex] = 0;
 
-	rate = sqrt( mx * mx + my * my ) / (float)frame_msec;
-	accelSensitivity = cl_sensitivity->value + rate * cl_mouseAccel->value;
-
-	// scale by FOV
-	accelSensitivity *= cl.cgameSensitivity;
-
-/*	NERVE - SMF - this has moved to CG_CalcFov to fix zoomed-in/out transition movement bug
-	if ( cl.snap.ps.stats[STAT_ZOOMED_VIEW] ) {
-		if(cl.snap.ps.weapon == WP_SNIPERRIFLE) {
-			accelSensitivity *= 0.1;
-		}
-		else if(cl.snap.ps.weapon == WP_SNOOPERSCOPE) {
-			accelSensitivity *= 0.2;
-		}
-	}
-*/
-	if ( rate && cl_showMouseRate->integer ) {
-		Com_Printf( "%f : %f\n", rate, accelSensitivity );
-	}
-
-// Ridah, experimenting with a slow tracking gun
-
-	// Rafael - mg42
-	if ( cl.snap.ps.persistant[PERS_HWEAPON_USE] ) {
-		mx *= 2.5; //(accelSensitivity * 0.1);
-		my *= 2; //(accelSensitivity * 0.075);
-	} else
-	{
-		mx *= accelSensitivity;
-		my *= accelSensitivity;
-	}
-
-	if ( !mx && !my ) {
+	if (mx == 0.0f && my == 0.0f)
 		return;
+	
+	if (cl_mouseAccel->value != 0.0f)
+	{
+		if(cl_mouseAccelStyle->integer == 0)
+		{
+			float accelSensitivity;
+			float rate;
+			
+			rate = sqrt(mx * mx + my * my) / (float) frame_msec;
+
+			accelSensitivity = cl_sensitivity->value + rate * cl_mouseAccel->value;
+			mx *= accelSensitivity;
+			my *= accelSensitivity;
+			
+			// Rafael - mg42
+			if (cl.snap.ps.persistant[PERS_HWEAPON_USE])
+			{
+				mx *= 2.5; //(accelSensitivity * 0.1);
+				my *= 2; //(accelSensitivity * 0.075);
+			}
+			else
+			{
+				mx *= accelSensitivity;
+				my *= accelSensitivity;
+			}
+			
+			if(cl_showMouseRate->integer)
+				Com_Printf("rate: %f, accelSensitivity: %f\n", rate, accelSensitivity);
+		}
+		else
+		{
+			float rate[2];
+			float power[2];
+			float offset = cl_mouseAccelOffset->value;
+
+			// clip at a small positive number to avoid division
+			// by zero (or indeed going backwards!)
+			if (offset < 0.001) {
+				offset = 0.001f;
+			}
+
+			// sensitivity remains pretty much unchanged at low speeds
+			// cl_mouseAccel is a power value to how the acceleration is shaped
+			// cl_mouseAccelOffset is the rate for which the acceleration will have doubled the non accelerated amplification
+			// NOTE: decouple the config cvars for independent acceleration setup along X and Y?
+
+			rate[0] = fabs(mx) / (float) frame_msec;
+			rate[1] = fabs(my) / (float) frame_msec;
+			power[0] = powf( rate[0] / offset, cl_mouseAccel->value );
+			power[1] = powf( rate[1] / offset, cl_mouseAccel->value );
+
+			mx = cl_sensitivity->value * (mx + ((mx < 0) ? -power[0] : power[0]) * offset);
+			my = cl_sensitivity->value * (my + ((my < 0) ? -power[1] : power[1]) * offset);
+
+			if(cl_showMouseRate->integer)
+				Com_Printf("ratex: %f, ratey: %f, powx: %f, powy: %f\n", rate[0], rate[1], power[0], power[1]);
+		}
 	}
+	else
+	{
+		mx *= cl_sensitivity->value;
+		my *= cl_sensitivity->value;
+	}
+
+	// ingame FOV
+	mx *= cl.cgameSensitivity;
+	my *= cl.cgameSensitivity;
 
 	// add mouse X/Y movement to cmd
-	if ( kb[KB_STRAFE].active ) {
+	if(kb[KB_STRAFE].active)
 		cmd->rightmove = ClampChar( cmd->rightmove + m_side->value * mx );
-	} else {
+	else
 		cl.viewangles[YAW] -= m_yaw->value * mx;
-	}
 
-	if ( ( kb[KB_MLOOK].active || cl_freelook->integer ) && !kb[KB_STRAFE].active ) {
+	if ((kb[KB_MLOOK].active || cl_freelook->integer) && !kb[KB_STRAFE].active) 
 		cl.viewangles[PITCH] += m_pitch->value * my;
-	} else {
+	else
 		cmd->forwardmove = ClampChar( cmd->forwardmove - m_forward->value * my );
-	}
 }
 
 
@@ -589,7 +625,7 @@ CL_CmdButtons
 ==============
 */
 void CL_CmdButtons( usercmd_t *cmd ) {
-	int i;
+	int		i;
 
 	//
 	// figure button bits
@@ -610,13 +646,13 @@ void CL_CmdButtons( usercmd_t *cmd ) {
 		kb[KB_WBUTTONS0 + i].wasPressed = qfalse;
 	}
 
-	if ( cls.keyCatchers && !cl_bypassMouseInput->integer ) {
+	if ( Key_GetCatcher( ) && !cl_bypassMouseInput->integer ) {
 		cmd->buttons |= BUTTON_TALK;
 	}
 
 	// allow the game to know if any key at all is
 	// currently pressed, even if it isn't bound to anything
-	if ( anykeydown && ( !cls.keyCatchers || cl_bypassMouseInput->integer ) ) {
+	if ( anykeydown && ( Key_GetCatcher( ) == 0 || cl_bypassMouseInput->integer ) ) {
 		cmd->buttons |= BUTTON_ANY;
 	}
 
@@ -665,9 +701,9 @@ usercmd_t CL_CreateCmd( void ) {
 	VectorCopy( cl.viewangles, oldAngles );
 
 	// keyboard angle adjustment
-	CL_AdjustAngles();
-
-	memset( &cmd, 0, sizeof( cmd ) );
+	CL_AdjustAngles ();
+	
+	Com_Memset( &cmd, 0, sizeof( cmd ) );
 
 	CL_CmdButtons( &cmd );
 
@@ -720,8 +756,7 @@ Create a new usercmd_t structure for this frame
 =================
 */
 void CL_CreateNewCommands( void ) {
-	usercmd_t   *cmd;
-	int cmdNum;
+	int			cmdNum;
 
 	// no need to create usercmds until we have a gamestate
 	if ( cls.state < CA_PRIMED ) {
@@ -729,6 +764,12 @@ void CL_CreateNewCommands( void ) {
 	}
 
 	frame_msec = com_frameTime - old_com_frameTime;
+
+	// if running over 1000fps, act as if each frame is 1ms
+	// prevents divisions by zero
+	if ( frame_msec < 1 ) {
+		frame_msec = 1;
+	}
 
 	// if running less than 5fps, truncate the extra time to prevent
 	// unexpected moves after a hitch
@@ -741,9 +782,9 @@ void CL_CreateNewCommands( void ) {
 	// generate a command for this frame
 	cl.cmdNumber++;
 	cmdNum = cl.cmdNumber & CMD_MASK;
-	cl.cmds[cmdNum] = CL_CreateCmd();
-	cmd = &cl.cmds[cmdNum];
+	cl.cmds[cmdNum] = CL_CreateCmd ();
 }
+
 
 /*
 =================
@@ -757,8 +798,8 @@ getting more delta compression will reduce total bandwidth.
 =================
 */
 qboolean CL_ReadyToSendPacket( void ) {
-	int oldPacketNum;
-	int delta;
+	int		oldPacketNum;
+	int		delta;
 
 	// don't send anything if playing back a demo
 	if ( clc.demoplaying || cls.state == CA_CINEMATIC ) {
@@ -766,17 +807,17 @@ qboolean CL_ReadyToSendPacket( void ) {
 	}
 
 	// If we are downloading, we send no less than 50ms between packets
-	if ( *cls.downloadTempName &&
-		 cls.realtime - clc.lastPacketSentTime < 50 ) {
+	if ( *clc.downloadTempName &&
+		cls.realtime - clc.lastPacketSentTime < 50 ) {
 		return qfalse;
 	}
 
 	// if we don't have a valid gamestate yet, only send
 	// one packet a second
-	if ( cls.state != CA_ACTIVE &&
-		 cls.state != CA_PRIMED &&
-		 !*cls.downloadTempName &&
-		 cls.realtime - clc.lastPacketSentTime < 1000 ) {
+	if ( cls.state != CA_ACTIVE && 
+		cls.state != CA_PRIMED && 
+		!*clc.downloadTempName &&
+		cls.realtime - clc.lastPacketSentTime < 1000 ) {
 		return qfalse;
 	}
 
@@ -786,17 +827,11 @@ qboolean CL_ReadyToSendPacket( void ) {
 	}
 
 	// send every frame for LAN
-	if ( Sys_IsLANAddress( clc.netchan.remoteAddress ) ) {
+	if ( cl_lanForcePackets->integer && clc.netchan.isLANAddress ) {
 		return qtrue;
 	}
 
-	// check for exceeding cl_maxpackets
-	if ( cl_maxpackets->integer < 15 ) {
-		Cvar_Set( "cl_maxpackets", "15" );
-	} else if ( cl_maxpackets->integer > 100 ) {
-		Cvar_Set( "cl_maxpackets", "100" );
-	}
-	oldPacketNum = ( clc.netchan.outgoingSequence - 1 ) & PACKET_MASK;
+	oldPacketNum = (clc.netchan.outgoingSequence - 1) & PACKET_MASK;
 	delta = cls.realtime -  cl.outPackets[ oldPacketNum ].p_realtime;
 	if ( delta < 1000 / cl_maxpackets->integer ) {
 		// the accumulated commands will go out in the next packet
@@ -828,24 +863,24 @@ During normal gameplay, a client packet will contain something like:
 ===================
 */
 void CL_WritePacket( void ) {
-	msg_t buf;
-	byte data[MAX_MSGLEN];
-	int i, j;
-	usercmd_t   *cmd, *oldcmd;
-	usercmd_t nullcmd;
-	int packetNum;
-	int oldPacketNum;
-	int count, key;
+	msg_t		buf;
+	byte		data[MAX_MSGLEN];
+	int			i, j;
+	usercmd_t	*cmd, *oldcmd;
+	usercmd_t	nullcmd;
+	int			packetNum;
+	int			oldPacketNum;
+	int			count, key;
 
 	// don't send anything if playing back a demo
 	if ( clc.demoplaying || cls.state == CA_CINEMATIC ) {
 		return;
 	}
 
-	memset( &nullcmd, 0, sizeof( nullcmd ) );
+	Com_Memset( &nullcmd, 0, sizeof(nullcmd) );
 	oldcmd = &nullcmd;
 
-	MSG_Init( &buf, data, sizeof( data ) );
+	MSG_Init( &buf, data, sizeof(data) );
 
 	MSG_Bitstream( &buf );
 	// write the current serverId so the server
@@ -866,7 +901,7 @@ void CL_WritePacket( void ) {
 	for ( i = clc.reliableAcknowledge + 1 ; i <= clc.reliableSequence ; i++ ) {
 		MSG_WriteByte( &buf, clc_clientCommand );
 		MSG_WriteLong( &buf, i );
-		MSG_WriteString( &buf, clc.reliableCommands[ i & ( MAX_RELIABLE_COMMANDS - 1 ) ] );
+		MSG_WriteString( &buf, clc.reliableCommands[ i & (MAX_RELIABLE_COMMANDS-1) ] );
 	}
 
 	// we want to send all the usercmds that were generated in the last
@@ -877,11 +912,11 @@ void CL_WritePacket( void ) {
 	} else if ( cl_packetdup->integer > 5 ) {
 		Cvar_Set( "cl_packetdup", "5" );
 	}
-	oldPacketNum = ( clc.netchan.outgoingSequence - 1 - cl_packetdup->integer ) & PACKET_MASK;
+	oldPacketNum = (clc.netchan.outgoingSequence - 1 - cl_packetdup->integer) & PACKET_MASK;
 	count = cl.cmdNumber - cl.outPackets[ oldPacketNum ].p_cmdNumber;
 	if ( count > MAX_PACKET_USERCMDS ) {
 		count = MAX_PACKET_USERCMDS;
-		Com_Printf( "MAX_PACKET_USERCMDS\n" );
+		Com_Printf("MAX_PACKET_USERCMDS\n");
 	}
 	if ( count >= 1 ) {
 		if ( cl_showSend->integer ) {
@@ -890,10 +925,10 @@ void CL_WritePacket( void ) {
 
 		// begin a client move command
 		if ( cl_nodelta->integer || !cl.snap.valid || clc.demowaiting
-			 || clc.serverMessageSequence != cl.snap.messageNum ) {
-			MSG_WriteByte( &buf, clc_moveNoDelta );
+			|| clc.serverMessageSequence != cl.snap.messageNum ) {
+			MSG_WriteByte (&buf, clc_moveNoDelta);
 		} else {
-			MSG_WriteByte( &buf, clc_move );
+			MSG_WriteByte (&buf, clc_move);
 		}
 
 		// write the command count
@@ -904,13 +939,13 @@ void CL_WritePacket( void ) {
 		// also use the message acknowledge
 		key ^= clc.serverMessageSequence;
 		// also use the last acknowledged server command in the key
-		key ^= Com_HashKey( clc.serverCommands[ clc.serverCommandSequence & ( MAX_RELIABLE_COMMANDS - 1 ) ], 32 );
+		key ^= MSG_HashKey(clc.serverCommands[ clc.serverCommandSequence & (MAX_RELIABLE_COMMANDS-1) ], 32);
 
 		// write all the commands, including the predicted command
 		for ( i = 0 ; i < count ; i++ ) {
-			j = ( cl.cmdNumber - count + i + 1 ) & CMD_MASK;
+			j = (cl.cmdNumber - count + i + 1) & CMD_MASK;
 			cmd = &cl.cmds[j];
-			MSG_WriteDeltaUsercmdKey( &buf, key, oldcmd, cmd );
+			MSG_WriteDeltaUsercmdKey (&buf, key, oldcmd, cmd);
 			oldcmd = cmd;
 		}
 	}
@@ -927,19 +962,8 @@ void CL_WritePacket( void ) {
 	if ( cl_showSend->integer ) {
 		Com_Printf( "%i ", buf.cursize );
 	}
-	CL_Netchan_Transmit( &clc.netchan, &buf );
 
-	// clients never really should have messages large enough
-	// to fragment, but in case they do, fire them all off
-	// at once
-	// TTimo: this causes a packet burst, which is bad karma for winsock
-	// added a WARNING message, we'll see if there are legit situations where this happens
-	while ( clc.netchan.unsentFragments ) {
-		if ( cl_showSend->integer ) {
-			Com_Printf( "WARNING: unsent fragments (not supposed to happen!)\n" );
-		}
-		CL_Netchan_TransmitNextFragment( &clc.netchan );
-	}
+	CL_Netchan_Transmit (&clc.netchan, &buf);	
 }
 
 /*
@@ -1077,4 +1101,69 @@ CL_ClearKeys
 */
 void CL_ClearKeys( void ) {
 	memset( kb, 0, sizeof( kb ) );
+}
+
+void CL_ClearInput( void ) {
+	// ENSI TODO ET commands
+
+	Cmd_RemoveCommand ("centerview");
+
+	Cmd_RemoveCommand ("+moveup");
+	Cmd_RemoveCommand ("-moveup");
+	Cmd_RemoveCommand ("+movedown");
+	Cmd_RemoveCommand ("-movedown");
+	Cmd_RemoveCommand ("+left");
+	Cmd_RemoveCommand ("-left");
+	Cmd_RemoveCommand ("+right");
+	Cmd_RemoveCommand ("-right");
+	Cmd_RemoveCommand ("+forward");
+	Cmd_RemoveCommand ("-forward");
+	Cmd_RemoveCommand ("+back");
+	Cmd_RemoveCommand ("-back");
+	Cmd_RemoveCommand ("+lookup");
+	Cmd_RemoveCommand ("-lookup");
+	Cmd_RemoveCommand ("+lookdown");
+	Cmd_RemoveCommand ("-lookdown");
+	Cmd_RemoveCommand ("+strafe");
+	Cmd_RemoveCommand ("-strafe");
+	Cmd_RemoveCommand ("+moveleft");
+	Cmd_RemoveCommand ("-moveleft");
+	Cmd_RemoveCommand ("+moveright");
+	Cmd_RemoveCommand ("-moveright");
+	Cmd_RemoveCommand ("+speed");
+	Cmd_RemoveCommand ("-speed");
+	Cmd_RemoveCommand ("+attack");
+	Cmd_RemoveCommand ("-attack");
+	Cmd_RemoveCommand ("+button0");
+	Cmd_RemoveCommand ("-button0");
+	Cmd_RemoveCommand ("+button1");
+	Cmd_RemoveCommand ("-button1");
+	Cmd_RemoveCommand ("+button2");
+	Cmd_RemoveCommand ("-button2");
+	Cmd_RemoveCommand ("+button3");
+	Cmd_RemoveCommand ("-button3");
+	Cmd_RemoveCommand ("+button4");
+	Cmd_RemoveCommand ("-button4");
+	Cmd_RemoveCommand ("+button5");
+	Cmd_RemoveCommand ("-button5");
+	Cmd_RemoveCommand ("+button6");
+	Cmd_RemoveCommand ("-button6");
+	Cmd_RemoveCommand ("+button7");
+	Cmd_RemoveCommand ("-button7");
+	Cmd_RemoveCommand ("+button8");
+	Cmd_RemoveCommand ("-button8");
+	Cmd_RemoveCommand ("+button9");
+	Cmd_RemoveCommand ("-button9");
+	Cmd_RemoveCommand ("+button10");
+	Cmd_RemoveCommand ("-button10");
+	Cmd_RemoveCommand ("+button11");
+	Cmd_RemoveCommand ("-button11");
+	Cmd_RemoveCommand ("+button12");
+	Cmd_RemoveCommand ("-button12");
+	Cmd_RemoveCommand ("+button13");
+	Cmd_RemoveCommand ("-button13");
+	Cmd_RemoveCommand ("+button14");
+	Cmd_RemoveCommand ("-button14");
+	Cmd_RemoveCommand ("+mlook");
+	Cmd_RemoveCommand ("-mlook");
 }

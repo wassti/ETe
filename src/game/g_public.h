@@ -503,5 +503,7 @@ typedef enum {
 	// zinx
 	GAME_MESSAGERECEIVED,           // ( int cno, const char *buf, int buflen, int commandTime );
 	// -zinx
+
+	GAME_EXPORT_LAST
 } gameExport_t;
 

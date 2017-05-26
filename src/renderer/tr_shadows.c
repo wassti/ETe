@@ -48,9 +48,10 @@ typedef struct {
 
 #define MAX_EDGE_DEFS   32
 
-static edgeDef_t edgeDefs[SHADER_MAX_VERTEXES][MAX_EDGE_DEFS];
-static int numEdgeDefs[SHADER_MAX_VERTEXES];
-static int facing[SHADER_MAX_INDEXES / 3];
+static	edgeDef_t	edgeDefs[SHADER_MAX_VERTEXES][MAX_EDGE_DEFS];
+static	int			numEdgeDefs[SHADER_MAX_VERTEXES];
+static	int			facing[SHADER_MAX_INDEXES/3];
+static	vec3_t		shadowXyz[SHADER_MAX_VERTEXES];
 
 void R_AddEdgeDef( int i1, int i2, int facing ) {
 	int c;
@@ -86,14 +87,14 @@ void R_RenderShadowEdges( void ) {
 		i3 = tess.indexes[ i * 3 + 2 ];
 
 		qglBegin( GL_TRIANGLE_STRIP );
-		qglVertex3fv( tess.xyz[ i1 ].v );
-		qglVertex3fv( tess.xyz[ i1 + tess.numVertexes ].v );
-		qglVertex3fv( tess.xyz[ i2 ].v );
-		qglVertex3fv( tess.xyz[ i2 + tess.numVertexes ].v );
-		qglVertex3fv( tess.xyz[ i3 ].v );
-		qglVertex3fv( tess.xyz[ i3 + tess.numVertexes ].v );
-		qglVertex3fv( tess.xyz[ i1 ].v );
-		qglVertex3fv( tess.xyz[ i1 + tess.numVertexes ].v );
+		qglVertex3fv( tess.xyz[ i1 ] );
+		qglVertex3fv( shadowXyz[ i1 ] );
+		qglVertex3fv( tess.xyz[ i2 ] );
+		qglVertex3fv( shadowXyz[ i2 ] );
+		qglVertex3fv( tess.xyz[ i3 ] );
+		qglVertex3fv( shadowXyz[ i3 ] );
+		qglVertex3fv( tess.xyz[ i1 ] );
+		qglVertex3fv( shadowXyz[ i1 ] );
 		qglEnd();
 	}
 #else
@@ -132,10 +133,10 @@ void R_RenderShadowEdges( void ) {
 			// triangle, it is a sil edge
 			if ( hit[ 1 ] == 0 ) {
 				qglBegin( GL_TRIANGLE_STRIP );
-				qglVertex3fv( tess.xyz[ i ].v );
-				qglVertex3fv( tess.xyz[ i + tess.numVertexes ].v );
-				qglVertex3fv( tess.xyz[ i2 ].v );
-				qglVertex3fv( tess.xyz[ i2 + tess.numVertexes ].v );
+				qglVertex3fv( tess.xyz[ i ] );
+				qglVertex3fv( shadowXyz[ i ] );
+				qglVertex3fv( tess.xyz[ i2 ] );
+				qglVertex3fv( shadowXyz[ i2 ] );
 				qglEnd();
 				c_edges++;
 			} else {
@@ -159,14 +160,10 @@ triangleFromEdge[ v1 ][ v2 ]
 =================
 */
 void RB_ShadowTessEnd( void ) {
-	int i;
-	int numTris;
-	vec3_t lightDir;
-
-	// we can only do this if we have enough space in the vertex buffers
-	if ( tess.numVertexes >= tess.maxShaderVerts / 2 ) {
-		return;
-	}
+	int		i;
+	int		numTris;
+	vec3_t	lightDir;
+	GLboolean rgba[4];
 
 	if ( glConfig.stencilBits < 4 ) {
 		return;
@@ -176,7 +173,7 @@ void RB_ShadowTessEnd( void ) {
 
 	// project vertexes away from light direction
 	for ( i = 0 ; i < tess.numVertexes ; i++ ) {
-		VectorMA( tess.xyz[i].v, -512, lightDir, tess.xyz[i + tess.numVertexes].v );
+		VectorMA( tess.xyz[i], -512, lightDir, shadowXyz[i] );
 	}
 
 	// decide which triangles face the light
@@ -193,9 +190,9 @@ void RB_ShadowTessEnd( void ) {
 		i2 = tess.indexes[ i * 3 + 1 ];
 		i3 = tess.indexes[ i * 3 + 2 ];
 
-		v1 = tess.xyz[ i1 ].v;
-		v2 = tess.xyz[ i2 ].v;
-		v3 = tess.xyz[ i3 ].v;
+		v1 = tess.xyz[ i1 ];
+		v2 = tess.xyz[ i2 ];
+		v3 = tess.xyz[ i3 ];
 
 		VectorSubtract( v2, v1, d1 );
 		VectorSubtract( v3, v1, d2 );
@@ -222,6 +219,7 @@ void RB_ShadowTessEnd( void ) {
 	qglColor3f( 0.2f, 0.2f, 0.2f );
 
 	// don't write to the color buffer
+	qglGetBooleanv(GL_COLOR_WRITEMASK, rgba);
 	qglColorMask( GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE );
 
 	qglEnable( GL_STENCIL_TEST );
@@ -252,7 +250,7 @@ void RB_ShadowTessEnd( void ) {
 
 
 	// reenable writing to the color buffer
-	qglColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
+	qglColorMask(rgba[0], rgba[1], rgba[2], rgba[3]);
 }
 
 

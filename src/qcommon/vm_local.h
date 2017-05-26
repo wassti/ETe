@@ -26,8 +26,11 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "../game/q_shared.h"
+#include "../qcommon/q_shared.h"
 #include "qcommon.h"
+
+// we don't need more than 5 arguments (counting callnum) for vmMain, at least in ET
+#define MAX_VMMAIN_CALL_ARGS 5
 
 typedef enum {
 	OP_UNDEF,
@@ -134,18 +137,24 @@ struct vm_s {
 	// DO NOT MOVE OR CHANGE THESE WITHOUT CHANGING THE VM_OFFSET_* DEFINES
 	// USED BY THE ASM CODE
 	int programStack;               // the vm may be recursively entered
-	int ( *systemCall )( int *parms );
+	syscall_t	systemCall;
 
 	//------------------------------------
+   
+	const char	*name;
 
-	char name[MAX_QPATH];
+	// fqpath member added 2/15/02 by T.Ray
+	char fqpath[MAX_QPATH + 1];
 
-// fqpath member added 2/15/02 by T.Ray
-	char fqpath[MAX_QPATH + 1] ;
+	vmIndex_t	index;
+
+	const int	*vmMainArgs;
 
 	// for dynamic linked modules
-	void        *dllHandle;
-	int ( QDECL *entryPoint )( int callNum, ... );
+	void		*dllHandle;
+	dllSyscall_t entryPoint;
+	dllSyscall_t dllSyscall;
+	void (*destroy)(vm_t* self);
 
 	// for interpreted modules
 	qboolean currentlyInterpreting;
@@ -170,9 +179,7 @@ struct vm_s {
 	int breakCount;
 };
 
-
-extern vm_t    *currentVM;
-extern int vm_debugLevel;
+extern	int		vm_debugLevel;
 
 void VM_Compile( vm_t *vm, vmHeader_t *header );
 int VM_CallCompiled( vm_t *vm, int *args );

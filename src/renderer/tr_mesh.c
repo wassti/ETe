@@ -366,8 +366,8 @@ void R_AddMD3Surfaces( trRefEntity_t *ent ) {
 
 //----(SA)	added blink
 			if ( ent->e.renderfx & RF_BLINK ) {
-				char *s = va( "%s_b", surface->name ); // append '_b' for 'blink'
-				hash = Com_HashKey( s, strlen( s ) );
+				const char *s = va( "%s_b", surface->name ); // append '_b' for 'blink'
+				hash = MSG_HashKey( s, strlen( s ) );
 				for ( j = 0 ; j < skin->numSurfaces ; j++ ) {
 					if ( hash != skin->surfaces[j]->hash ) {
 						continue;
@@ -380,7 +380,7 @@ void R_AddMD3Surfaces( trRefEntity_t *ent ) {
 			}
 
 			if ( shader == tr.defaultShader ) {    // blink reference in skin was not found
-				hash = Com_HashKey( surface->name, sizeof( surface->name ) );
+				hash = MSG_HashKey( surface->name, sizeof( surface->name ) );
 				for ( j = 0 ; j < skin->numSurfaces ; j++ ) {
 					// the names have both been lowercased
 					if ( hash != skin->surfaces[j]->hash ) {
@@ -416,7 +416,7 @@ void R_AddMD3Surfaces( trRefEntity_t *ent ) {
 			 && fogNum == 0
 			 && !( ent->e.renderfx & ( RF_NOSHADOW | RF_DEPTHHACK ) )
 			 && shader->sort == SS_OPAQUE ) {
-			R_AddDrawSurf( (void *)surface, tr.shadowShader, 0, 0, 0 );
+			R_AddDrawSurf( (void *)surface, tr.shadowShader, 0, 0 );
 		}
 
 		// projection shadows work fine with personal models
@@ -424,19 +424,19 @@ void R_AddMD3Surfaces( trRefEntity_t *ent ) {
 			 && fogNum == 0
 			 && ( ent->e.renderfx & RF_SHADOW_PLANE )
 			 && shader->sort == SS_OPAQUE ) {
-			R_AddDrawSurf( (void *)surface, tr.projectionShadowShader, 0, 0, 0 );
+			R_AddDrawSurf( (void *)surface, tr.projectionShadowShader, 0, 0 );
 		}
 
 
 		// for testing polygon shadows (on /all/ models)
 		if ( r_shadows->integer == 4 ) {
-			R_AddDrawSurf( (void *)surface, tr.projectionShadowShader, 0, 0, 0 );
+			R_AddDrawSurf( (void *)surface, tr.projectionShadowShader, 0, 0 );
 		}
 
 
 		// don't add third_person objects if not viewing through a portal
 		if ( !personalModel ) {
-			R_AddDrawSurf( (void *)surface, shader, fogNum, 0, 0 );
+			R_AddDrawSurf( (void *)surface, shader, fogNum, 0 );
 		}
 
 		surface = ( md3Surface_t * )( (byte *)surface + surface->ofsEnd );

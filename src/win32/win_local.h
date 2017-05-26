@@ -28,111 +28,138 @@ If you have questions concerning this license or the applicable additional terms
 
 // win_local.h: Win32-specific Quake3 header file
 
-#if defined ( _MSC_VER ) && ( _MSC_VER >= 1200 )
+#define RAW_INPUT
+
+#ifdef RAW_INPUT
+
+#ifndef HID_USAGE_GENERIC_MOUSE
+#define HID_USAGE_GENERIC_MOUSE        ((USHORT) 0x02)
+#endif
+
+#ifndef HID_USAGE_PAGE_GENERIC
+#define HID_USAGE_PAGE_GENERIC         ((USHORT) 0x01)
+#endif
+
+#endif
+
+#if defined (_MSC_VER) && (_MSC_VER >= 1200)
 #pragma warning(disable : 4201)
 #pragma warning( push )
 #endif
 #include <windows.h>
-#if defined ( _MSC_VER ) && ( _MSC_VER >= 1200 )
+#if defined (_MSC_VER) && (_MSC_VER >= 1200)
 #pragma warning( pop )
 #endif
 
-#ifdef DOOMSOUND    ///// (SA) DOOMSOUND
-#include "../mssdk/include/dinput.h"
-#include "../mssdk/include/dsound.h"
-#else
-#ifndef __GNUC__
+#define HK_MOD_ALT		0x00100
+#define HK_MOD_CONTROL  0x00200
+#define HK_MOD_SHIFT	0x00400
+#define HK_MOD_WIN		0x00800
+#define HK_MOD_MASK		0x00F00
+#define HK_MOD_LALT		0x01000
+#define HK_MOD_RALT		0x02000
+#define HK_MOD_LCONTROL	0x04000
+#define HK_MOD_RCONTROL	0x08000
+#define HK_MOD_LSHIFT	0x10000
+#define HK_MOD_RSHIFT	0x20000
+#define HK_MOD_LWIN		0x40000
+#define HK_MOD_RWIN		0x80000
+#define HK_MOD_XMASK	0xFF000
+
+#define	DIRECTSOUND_VERSION	0x0300
+#define	DIRECTINPUT_VERSION	0x0300
+
 #include <dinput.h>
 #include <dsound.h>
-#else
-#include <directx.h>
-#endif
-#endif  ///// (SA) DOOMSOUND
+#include <shlobj.h>
 
-#include <winsock.h>
-#include <wsipx.h>
+#undef open
+#define open _open
+#undef close
+#define close _close
+#undef write
+#define write _write
 
-#ifdef DOOMSOUND    ///// (SA)DOOMSOUND
-#ifdef __cplusplus
-extern "C" {
-#endif
-#endif  ///// (SA) DOOMSOUND
-
-void    IN_MouseEvent( int mstate );
-
-void Sys_QueEvent( int time, sysEventType_t type, int value, int value2, int ptrLength, void *ptr );
-
-void    Sys_CreateConsole( void );
-void    Sys_DestroyConsole( void );
-
-char    *Sys_ConsoleInput( void );
-
-qboolean    Sys_GetPacket( netadr_t *net_from, msg_t *net_message );
-
-// Input subsystem
-
-void    IN_Init( void );
-void    IN_Shutdown( void );
-void    IN_JoystickCommands( void );
-
-void    IN_Move( usercmd_t *cmd );
-// add additional non keyboard / non mouse movement on top of the keyboard move cmd
-
-void    IN_DeactivateWin32Mouse( void );
-
-void    IN_Activate( qboolean active );
-void    IN_Frame( void );
-
-// window procedure
-LONG WINAPI MainWndProc(
-	HWND hWnd,
-	UINT uMsg,
-	WPARAM wParam,
-	LPARAM lParam );
-
-void Conbuf_AppendText( const char *msg );
-
-void SNDDMA_Activate( void );
-int  SNDDMA_InitDS();
-
-typedef struct
-{
-
-	HINSTANCE reflib_library;           // Handle to refresh DLL
-	qboolean reflib_active;
-
-	HWND hWnd;
-	HINSTANCE hInstance;
-	qboolean activeApp;
-	qboolean isMinimized;
-	OSVERSIONINFO osversion;
-
-	// when we get a windows message, we store the time off so keyboard processing
-	// can know the exact time of an event
-	unsigned sysMsgTime;
-} WinVars_t;
-
-extern WinVars_t g_wv;
-
-#ifdef DOOMSOUND    ///// (SA) DOOMSOUND
-#ifdef __cplusplus
-}
-#endif
-#endif  ///// (SA) DOOMSOUND
-
-// ydnar: mousewheel stuff
-#ifndef WM_MOUSEWHEEL
-#define WM_MOUSEWHEEL       ( WM_MOUSELAST + 1 )  // message that will be supported by the OS
-#endif
-
-#ifndef WM_XBUTTONDOWN
-#define WM_XBUTTONDOWN      ( WM_MOUSELAST + 2 )
-#define WM_XBUTTONUP        ( WM_MOUSELAST + 3 )
+#ifndef MK_XBUTTON1
 #define MK_XBUTTON1         0x0020
+#endif
+#ifndef MK_XBUTTON2
 #define MK_XBUTTON2         0x0040
 #endif
 
-// Gordon: exception handling
-void WinSetExceptionWnd( HWND wnd );
-void WinSetExceptionVersion( const char* version );
-void Com_FrameExt( void );
+#define	WINDOW_STYLE_NORMAL          (WS_VISIBLE|WS_CLIPCHILDREN|WS_SYSMENU|WS_CAPTION|WS_MINIMIZEBOX|WS_OVERLAPPED|WS_BORDER)
+#define	WINDOW_ESTYLE_NORMAL         (0)
+#define	WINDOW_STYLE_FULLSCREEN      (WS_VISIBLE|WS_CLIPCHILDREN|WS_POPUP)
+#define	WINDOW_ESTYLE_FULLSCREEN     (WS_EX_TOPMOST)
+#define	WINDOW_STYLE_FULLSCREEN_MIN  (WS_VISIBLE|WS_CLIPCHILDREN)
+#define	WINDOW_ESTYLE_FULLSCREEN_MIN (0)
+
+#define T TEXT
+#ifdef UNICODE
+LPWSTR AtoW( const char *s );
+const char *WtoA( const LPWSTR s ); 
+#else
+#define AtoW(S) (S)
+#define WtoA(S) (S)
+#endif
+
+
+void	IN_Win32MouseEvent( int x, int y, int mstate );
+void	IN_RawMouseEvent( LPARAM lParam );
+
+void	Sys_CreateConsole( char *title );
+void	Sys_DestroyConsole( void );
+
+// Input subsystem
+
+void	IN_Init (void);
+void	IN_Shutdown (void);
+void	IN_JoystickCommands (void);
+
+void	IN_Activate( qboolean active );
+void	IN_Frame( void );
+
+void	IN_UpdateWindow( RECT *window_rect, qboolean updateClipRegion );
+void	UpdateMonitorInfo( void ); 
+
+qboolean IN_MouseActive( void );
+
+// window procedure
+LRESULT WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM  wParam, LPARAM  lParam );
+
+void Conbuf_AppendText( const char *msg );
+void Conbuf_BeginPrint( void );
+void Conbuf_EndPrint( void );
+
+void SNDDMA_Activate( void );
+int  SNDDMA_InitDS (void);
+
+typedef struct
+{
+	HWND			hWnd;
+	HINSTANCE		hInstance;
+	OSVERSIONINFO	osversion;
+
+	// when we get a windows message, we store the time off so keyboard processing
+	// can know the exact time of an event
+	unsigned		sysMsgTime;
+
+	// Multi-monitor tracking
+	RECT			conRect;
+	RECT			winRect;
+	qboolean		winRectValid;
+
+	int	raw_mx;
+	int raw_my;
+
+	POINT mouse;
+	
+} WinVars_t;
+
+extern WinVars_t	g_wv;
+
+void WIN_DisableHook( void  );
+void WIN_EnableHook( void  );
+
+void WIN_DisableAltTab( void );
+void WIN_EnableAltTab( void );

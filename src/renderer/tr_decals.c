@@ -876,13 +876,13 @@ void R_AddDecalSurface( decal_t *decal ) {
 	/* dynamic lights? */
 	if ( decal->parent != NULL ) {
 		gen = (srfGeneric_t*) decal->parent->data;
-		dlightMap = ( gen->dlightBits[ tr.smpFrame ] != 0 );
+		dlightMap = ( gen->dlightBits != 0 );
 	} else {
 		dlightMap = 0;
 	}
 
 	/* add surface to scene */
-	R_AddDrawSurf( (void *) srf, decal->shader, decal->fogIndex, 0, dlightMap );
+	R_AddDrawSurf( (void *) srf, decal->shader, decal->fogIndex, dlightMap );
 	tr.pc.c_decalSurfaces++;
 
 	/* free temporary decal */

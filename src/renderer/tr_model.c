@@ -96,7 +96,7 @@ void R_LoadModelShadow( model_t *mod ) {
 	mod->shadowShader = 0;
 
 	// build name
-	COM_StripExtension2( mod->name, filename, sizeof( filename ) );
+	COM_StripExtension( mod->name, filename, sizeof( filename ) );
 	COM_DefaultExtension( filename, 1024, ".shadow" );
 
 	// load file
@@ -160,7 +160,7 @@ qhandle_t RE_RegisterModel( const char *name ) {
 	}
 
 	if ( strlen( name ) >= MAX_QPATH ) {
-		Com_Printf( "Model name exceeds MAX_QPATH\n" );
+		ri.Printf( PRINT_ALL, "Model name exceeds MAX_QPATH\n" );
 		return 0;
 	}
 
@@ -193,8 +193,7 @@ qhandle_t RE_RegisterModel( const char *name ) {
 	Q_strncpyz( mod->name, name, sizeof( mod->name ) );
 
 
-	// make sure the render thread is stopped
-	R_SyncRenderThread();
+	R_IssuePendingRenderCommands();
 
 	// Ridah, look for it cached
 	if ( R_FindCachedModel( name, mod ) ) {
@@ -851,13 +850,17 @@ static qboolean R_LoadMDC( model_t *mod, int lod, void *buffer, const char *mod_
 		LL( surf->ofsFrameCompFrames );
 		LL( surf->ofsEnd );
 
-		if ( surf->numVerts > tess.maxShaderVerts ) {
-			ri.Error( ERR_DROP, "R_LoadMDC: %s has more than %i verts on a surface (%i)",
-					  mod_name, tess.maxShaderVerts, surf->numVerts );
+		if ( surf->numVerts >= SHADER_MAX_VERTEXES ) {
+			ri.Printf(PRINT_WARNING, "R_LoadMDC: %s has more than %i verts on %s (%i).\n",
+				mod_name, SHADER_MAX_VERTEXES - 1, surf->name[0] ? surf->name : "a surface",
+				surf->numVerts );
+			return qfalse;
 		}
-		if ( surf->numTriangles * 3 > tess.maxShaderIndicies ) {
-			ri.Error( ERR_DROP, "R_LoadMDC: %s has more than %i triangles on a surface (%i)",
-					  mod_name, tess.maxShaderIndicies / 3, surf->numTriangles );
+		if ( surf->numTriangles*3 >= SHADER_MAX_INDEXES ) {
+			ri.Printf(PRINT_WARNING, "R_LoadMDC: %s has more than %i triangles on %s (%i).\n",
+				mod_name, ( SHADER_MAX_INDEXES / 3 ) - 1, surf->name[0] ? surf->name : "a surface",
+				surf->numTriangles );
+			return qfalse;
 		}
 
 		// change to surface identifier
@@ -1059,15 +1062,19 @@ static qboolean R_LoadMD3( model_t *mod, int lod, void *buffer, const char *mod_
 		LL( surf->ofsXyzNormals );
 		LL( surf->ofsEnd );
 
-		if ( surf->numVerts > tess.maxShaderVerts ) {
-			ri.Error( ERR_DROP, "R_LoadMD3: %s has more than %i verts on a surface (%i)",
-					  mod_name, tess.maxShaderVerts, surf->numVerts );
+		if ( surf->numVerts >= SHADER_MAX_VERTEXES ) {
+			ri.Printf(PRINT_WARNING, "R_LoadMD3: %s has more than %i verts on %s (%i).\n",
+				mod_name, SHADER_MAX_VERTEXES - 1, surf->name[0] ? surf->name : "a surface",
+				surf->numVerts );
+			return qfalse;
 		}
-		if ( surf->numTriangles * 3 > tess.maxShaderIndicies ) {
-			ri.Error( ERR_DROP, "R_LoadMD3: %s has more than %i triangles on a surface (%i)",
-					  mod_name, tess.maxShaderIndicies / 3, surf->numTriangles );
+		if ( surf->numTriangles*3 >= SHADER_MAX_INDEXES ) {
+			ri.Printf(PRINT_WARNING, "R_LoadMD3: %s has more than %i triangles on %s (%i).\n",
+				mod_name, ( SHADER_MAX_INDEXES / 3 ) - 1, surf->name[0] ? surf->name : "a surface",
+				surf->numTriangles );
+			return qfalse;
 		}
-
+	
 		// change to surface identifier
 		surf->ident = SF_MD3;
 
@@ -1246,13 +1253,17 @@ static qboolean R_LoadMDS( model_t *mod, void *buffer, const char *mod_name ) {
 		// change to surface identifier
 		surf->ident = SF_MDS;
 
-		if ( surf->numVerts > tess.maxShaderVerts ) {
-			ri.Error( ERR_DROP, "R_LoadMDS: %s has more than %i verts on a surface (%i)",
-					  mod_name, tess.maxShaderVerts, surf->numVerts );
+		if ( surf->numVerts >= SHADER_MAX_VERTEXES ) {
+			ri.Printf(PRINT_WARNING, "R_LoadMDS: %s has more than %i verts on %s (%i).\n",
+				mod_name, SHADER_MAX_VERTEXES - 1, surf->name[0] ? surf->name : "a surface",
+				surf->numVerts );
+			return qfalse;
 		}
-		if ( surf->numTriangles * 3 > tess.maxShaderIndicies ) {
-			ri.Error( ERR_DROP, "R_LoadMDS: %s has more than %i triangles on a surface (%i)",
-					  mod_name, tess.maxShaderIndicies / 3, surf->numTriangles );
+		if ( surf->numTriangles*3 >= SHADER_MAX_INDEXES ) {
+			ri.Printf(PRINT_WARNING, "R_LoadMDS: %s has more than %i triangles on %s (%i).\n",
+				mod_name, ( SHADER_MAX_INDEXES / 3 ) - 1, surf->name[0] ? surf->name : "a surface",
+				surf->numTriangles );
+			return qfalse;
 		}
 
 		// register the shaders
@@ -1454,13 +1465,17 @@ static qboolean R_LoadMDM( model_t *mod, void *buffer, const char *mod_name ) {
 		// change to surface identifier
 		surf->ident = SF_MDM;
 
-		if ( surf->numVerts > tess.maxShaderVerts ) {
-			ri.Error( ERR_DROP, "R_LoadMDM: %s has more than %i verts on a surface (%i)",
-					  mod_name, tess.maxShaderVerts, surf->numVerts );
+		if ( surf->numVerts >= SHADER_MAX_VERTEXES ) {
+			ri.Printf( PRINT_WARNING, "R_LoadMDM: %s has more than %i verts on %s (%i).\n",
+				mod_name, SHADER_MAX_VERTEXES - 1, surf->name[0] ? surf->name : "a surface",
+				surf->numVerts );
+			return qfalse;
 		}
-		if ( surf->numTriangles * 3 > tess.maxShaderIndicies ) {
-			ri.Error( ERR_DROP, "R_LoadMDM: %s has more than %i triangles on a surface (%i)",
-					  mod_name, tess.maxShaderIndicies / 3, surf->numTriangles );
+		if ( surf->numTriangles * 3 >= SHADER_MAX_INDEXES ) {
+			ri.Printf( PRINT_WARNING, "R_LoadMDM: %s has more than %i triangles on %s (%i).\n",
+				mod_name, ( SHADER_MAX_INDEXES / 3 ) - 1, surf->name[0] ? surf->name : "a surface",
+				surf->numTriangles );
+			return qfalse;
 		}
 
 		// register the shaders
@@ -1609,20 +1624,16 @@ void RE_BeginRegistration( glconfig_t *glconfigOut ) {
 	ri.Hunk_Clear();    // (SA) MEM NOTE: not in missionpack
 
 	R_Init();
+
 	*glconfigOut = glConfig;
 
-	R_SyncRenderThread();
+	R_IssuePendingRenderCommands();
 
-	tr.viewCluster = -1;        // force markleafs to regenerate
+	tr.viewCluster = -1;		// force markleafs to regenerate
 	R_ClearFlares();
 	RE_ClearScene();
 
 	tr.registered = qtrue;
-
-	// NOTE: this sucks, for some reason the first stretch pic is never drawn
-	// without this we'd see a white flash on a level load because the very
-	// first time the level shot would not be drawn
-	RE_StretchPic( 0, 0, 0, 0, 0, 0, 1, 1, 0 );
 }
 
 /*

@@ -47,19 +47,20 @@ vm_t    *currentVM = NULL; // bk001212
 vm_t    *lastVM    = NULL; // bk001212
 int vm_debugLevel;
 
-#define MAX_VM      3
-vm_t vmTable[MAX_VM];
+// used by Com_Error to get rid of running vm's before longjmp
+static int forced_unload;
 
+struct vm_s	vmTable[ VM_COUNT ];
+
+static const char *vmName[ VM_COUNT ] = {
+	"qagame",
+	"cgame",
+	"ui"
+};
 
 void VM_VmInfo_f( void );
 void VM_VmProfile_f( void );
 
-
-// converts a VM pointer to a C pointer and
-// checks to make sure that the range is acceptable
-void    *VM_VM2C( vmptr_t p, int length ) {
-	return (void *)p;
-}
 
 void VM_Debug( int level ) {
 	vm_debugLevel = level;
@@ -158,13 +159,14 @@ int VM_SymbolToValue( vm_t *vm, const char *symbol ) {
 VM_SymbolForCompiledPointer
 =====================
 */
+#if 0 // 64bit!
 const char *VM_SymbolForCompiledPointer( vm_t *vm, void *code ) {
-	int i;
+	int			i;
 
-	if ( code < (void *)vm->codeBase ) {
+	if ( code < (void *)vm->codeBase.ptr ) {
 		return "Before code block";
 	}
-	if ( code >= ( void * )( vm->codeBase + vm->codeLength ) ) {
+	if ( code >= (void *)(vm->codeBase.ptr + vm->codeLength) ) {
 		return "After code block";
 	}
 
@@ -179,6 +181,7 @@ const char *VM_SymbolForCompiledPointer( vm_t *vm, void *code ) {
 	// now look up the bytecode instruction pointer
 	return VM_ValueToSymbol( vm, i );
 }
+#endif
 
 
 
@@ -232,7 +235,7 @@ void VM_LoadSymbols( vm_t *vm ) {
 		return;
 	}
 
-	COM_StripExtension2( vm->name, name, sizeof( name ) );
+	COM_StripExtension(vm->name, name, sizeof(name));
 	Com_sprintf( symbols, sizeof( symbols ), "vm/%s.map", name );
 	len = FS_ReadFile( symbols, (void **)&mapfile );
 	if ( !mapfile ) {
@@ -331,25 +334,27 @@ Dlls will call this directly
 
 ============
 */
-int QDECL VM_DllSyscall( int arg, ... ) {
-#if ( ( defined __linux__ ) && ( defined __powerpc__ ) ) //|| (defined MACOS_X)
-	// rcg010206 - see commentary above
-	int args[16];
-	int i;
-	va_list ap;
-
-	args[0] = arg;
-
-	va_start( ap, arg );
-	for ( i = 1; i < sizeof( args ) / sizeof( args[i] ); i++ )
-		args[i] = va_arg( ap, int );
-	va_end( ap );
-
-	return currentVM->systemCall( args );
+#if 0 // - disabled because now is different for each module
+intptr_t QDECL VM_DllSyscall( intptr_t arg, ... ) {
+#if !id386 || defined __clang__
+  // rcg010206 - see commentary above
+  intptr_t	args[16];
+  va_list	ap;
+  int i;
+  
+  args[0] = arg;
+  
+  va_start( ap, arg );
+  for (i = 1; i < ARRAY_LEN( args ); i++ )
+    args[ i ] = va_arg( ap, intptr_t );
+  va_end( ap );
+  
+  return currentVM->systemCall( args );
 #else // original id code
 	return currentVM->systemCall( &arg );
 #endif
 }
+#endif
 
 /*
 =================
@@ -368,15 +373,19 @@ vm_t *VM_Restart( vm_t *vm ) {
 
 	// DLL's can't be restarted in place
 	if ( vm->dllHandle ) {
-		char name[MAX_QPATH];
-		int ( *systemCall )( int *parms );
-
+		syscall_t		systemCall;
+		dllSyscall_t	dllSyscall;
+		const int*		vmMainArgs;
+		vmIndex_t		index;
+				
+		index = vm->index;
 		systemCall = vm->systemCall;
-		Q_strncpyz( name, vm->name, sizeof( name ) );
+		dllSyscall = vm->dllSyscall;
+		vmMainArgs = vm->vmMainArgs;
 
 		VM_Free( vm );
 
-		vm = VM_Create( name, systemCall, VMI_NATIVE );
+		vm = VM_Create( index, systemCall, dllSyscall, vmMainArgs, VMI_NATIVE );
 		return vm;
 	}
 
@@ -436,57 +445,55 @@ If image ends in .qvm it will be interpreted, otherwise
 it will attempt to load as a system dll
 ================
 */
-
-#define STACK_SIZE  0x20000
-
-vm_t *VM_Create( const char *module, int ( *systemCalls )(int *),
-				 vmInterpret_t interpret ) {
+vm_t *VM_Create( vmIndex_t index, syscall_t systemCalls, dllSyscall_t dllSyscalls, const int *vmMainArgs, vmInterpret_t interpret ) {
+	const char	*name;
+//	vmHeader_t  *header;
 	vm_t        *vm;
-	vmHeader_t  *header;
-	int length;
-	int dataLength;
-	int i, remaining;
-	char filename[MAX_QPATH];
 
-	if ( !module || !module[0] || !systemCalls ) {
+	if ( !systemCalls ) {
 		Com_Error( ERR_FATAL, "VM_Create: bad parms" );
 	}
 
-	remaining = Hunk_MemoryRemaining();
+	if ( (unsigned)index >= VM_COUNT ) {
+		Com_Error( ERR_FATAL, "VM_Create: bad vm index %i", index );	
+	}
+
+	//remaining = Hunk_MemoryRemaining();
+
+	vm = &vmTable[ index ];
 
 	// see if we already have the VM
-	for ( i = 0 ; i < MAX_VM ; i++ ) {
-		if ( !Q_stricmp( vmTable[i].name, module ) ) {
-			vm = &vmTable[i];
-			return vm;
+	if ( vm->name ) {
+		if ( vm->index != index ) {
+			Com_Error( ERR_FATAL, "VM_Create: bad allocated vm index %i", vm->index );
+			return NULL;
 		}
+		return vm;
 	}
 
-	// find a free vm
-	for ( i = 0 ; i < MAX_VM ; i++ ) {
-		if ( !vmTable[i].name[0] ) {
-			break;
-		}
-	}
+	name = vmName[ index ];
 
-	if ( i == MAX_VM ) {
-		Com_Error( ERR_FATAL, "VM_Create: no free vm_t" );
-	}
-
-	vm = &vmTable[i];
-
-	Q_strncpyz( vm->name, module, sizeof( vm->name ) );
+	vm->name = name;
+	vm->index = index;
 	vm->systemCall = systemCalls;
+	vm->dllSyscall = dllSyscalls;
+	vm->vmMainArgs = vmMainArgs;
+
 
 	if ( interpret == VMI_NATIVE ) {
 		// try to load as a system dll
-		vm->dllHandle = Sys_LoadDll( module, vm->fqpath, &vm->entryPoint, VM_DllSyscall );
+		Com_Printf( "Loading dll file %s.\n", name );
+		vm->dllHandle = Sys_LoadDll( name, vm->fqpath, &vm->entryPoint, dllSyscalls );
 		// TTimo - never try qvm
 		if ( vm->dllHandle ) {
 			return vm;
 		}
 		return NULL;
 	}
+	
+	return NULL;
+	
+#if 0
 
 	// load the image
 	Com_sprintf( filename, sizeof( filename ), "vm/%s.qvm", vm->name );
@@ -560,6 +567,7 @@ vm_t *VM_Create( const char *module, int ( *systemCalls )(int *),
 	Com_Printf( "%s loaded in %d bytes on the hunk\n", module, remaining - Hunk_MemoryRemaining() );
 
 	return vm;
+#endif
 }
 
 /*
@@ -569,13 +577,28 @@ VM_Free
 */
 void VM_Free( vm_t *vm ) {
 
-	if ( vm->dllHandle ) {
-		Sys_UnloadDll( vm->dllHandle );
-		Com_Memset( vm, 0, sizeof( *vm ) );
+	if( !vm ) {
+		return;
 	}
-#if 0   // now automatically freed by hunk
-	if ( vm->codeBase ) {
-		Z_Free( vm->codeBase );
+
+	if ( vm->callLevel ) {
+		if ( !forced_unload ) {
+			Com_Error( ERR_FATAL, "VM_Free(%s) on running vm", vm->name );
+			return;
+		} else {
+			Com_Printf( "forcefully unloading %s vm\n", vm->name );
+		}
+	}
+
+	if ( vm->destroy )
+		vm->destroy( vm );
+
+	if ( vm->dllHandle )
+		Sys_UnloadDll( vm->dllHandle );
+
+#if 0	// now automatically freed by hunk
+	if ( vm->codeBase.ptr ) {
+		Z_Free( vm->codeBase.ptr );
 	}
 	if ( vm->dataBase ) {
 		Z_Free( vm->dataBase );
@@ -585,55 +608,24 @@ void VM_Free( vm_t *vm ) {
 	}
 #endif
 	Com_Memset( vm, 0, sizeof( *vm ) );
-
-	currentVM = NULL;
-	lastVM = NULL;
 }
+
 
 void VM_Clear( void ) {
 	int i;
-	for ( i = 0; i < MAX_VM; i++ ) {
-		if ( vmTable[i].dllHandle ) {
-			Sys_UnloadDll( vmTable[i].dllHandle );
-		}
-		Com_Memset( &vmTable[i], 0, sizeof( vm_t ) );
-	}
-	currentVM = NULL;
-	lastVM = NULL;
-}
-
-void *VM_ArgPtr( int intValue ) {
-	if ( !intValue ) {
-		return NULL;
-	}
-	// bk001220 - currentVM is missing on reconnect
-	if ( currentVM == NULL ) {
-		return NULL;
-	}
-
-	if ( currentVM->entryPoint ) {
-		return ( void * )( currentVM->dataBase + intValue );
-	} else {
-		return ( void * )( currentVM->dataBase + ( intValue & currentVM->dataMask ) );
+	for ( i = 0; i < VM_COUNT; i++ ) {
+		VM_Free( &vmTable[ i ] );
 	}
 }
 
-void *VM_ExplicitArgPtr( vm_t *vm, int intValue ) {
-	if ( !intValue ) {
-		return NULL;
-	}
 
-	// bk010124 - currentVM is missing on reconnect here as well?
-	if ( currentVM == NULL ) {
-		return NULL;
-	}
+void VM_Forced_Unload_Start(void) {
+	forced_unload = 1;
+}
 
-	//
-	if ( vm->entryPoint ) {
-		return ( void * )( vm->dataBase + intValue );
-	} else {
-		return ( void * )( vm->dataBase + ( intValue & vm->dataMask ) );
-	}
+
+void VM_Forced_Unload_Done(void) {
+	forced_unload = 0;
 }
 
 
@@ -660,65 +652,75 @@ an OP_ENTER instruction, which will subtract space for
 locals from sp
 ==============
 */
-#define MAX_STACK   256
-#define STACK_MASK  ( MAX_STACK - 1 )
 
-int QDECL VM_Call( vm_t *vm, int callnum, ... ) {
-	vm_t    *oldVM;
-	int r;
-	//rcg010207 see dissertation at top of VM_DllSyscall() in this file.
-#if ( ( defined __linux__ ) && ( defined __powerpc__ ) ) || ( defined MACOS_X )
+intptr_t QDECL VM_Call( vm_t *vm, int callnum, ... )
+{
+	//vm_t	*oldVM;
+	intptr_t r;
+	int	nargs;
 	int i;
-	int args[16];
-	va_list ap;
-#endif
 
 	if ( !vm ) {
 		Com_Error( ERR_FATAL, "VM_Call with NULL vm" );
 	}
 
-	oldVM = currentVM;
-	currentVM = vm;
-	lastVM = vm;
-
 	if ( vm_debugLevel ) {
-		Com_Printf( "VM_Call( %i )\n", callnum );
+	  Com_Printf( "VM_Call( %d )\n", callnum );
 	}
 
+	nargs = vm->vmMainArgs[ callnum ]; // counting callnum
+
+	++vm->callLevel;
 	// if we have a dll loaded, call it directly
-	if ( vm->entryPoint ) {
+	if ( vm->entryPoint ) 
+	{
 		//rcg010207 -  see dissertation at top of VM_DllSyscall() in this file.
-#if ( ( defined __linux__ ) && ( defined __powerpc__ ) ) || ( defined MACOS_X )
+		int args[MAX_VMMAIN_CALL_ARGS-1];
+		va_list ap;
 		va_start( ap, callnum );
-		for ( i = 0; i < sizeof( args ) / sizeof( args[i] ); i++ )
+		for ( i = 0; i < nargs-1; i++ ) {
 			args[i] = va_arg( ap, int );
-		va_end( ap );
+		}
+		va_end(ap);
 
-		r = vm->entryPoint( callnum,  args[0],  args[1],  args[2], args[3],
-							args[4],  args[5],  args[6], args[7],
-							args[8],  args[9], args[10], args[11],
-							args[12], args[13], args[14], args[15] );
-#else // PPC above, original id code below
-		r = vm->entryPoint( ( &callnum )[0], ( &callnum )[1], ( &callnum )[2], ( &callnum )[3],
-							( &callnum )[4], ( &callnum )[5], ( &callnum )[6], ( &callnum )[7],
-							( &callnum )[8],  ( &callnum )[9],  ( &callnum )[10],  ( &callnum )[11],  ( &callnum )[12] );
+		// add more agruments if you're changed MAX_VMMAIN_CALL_ARGS:
+		r = vm->entryPoint( callnum, args[0], args[1], args[2] );
+	}/* else {
+#if id386 && !defined __clang__ // calling convention doesn't need conversion in some cases
+#ifndef NO_VM_COMPILED
+		if ( vm->compiled )
+			r = VM_CallCompiled( vm, nargs, (int*)&callnum );
+		else
 #endif
-	} else if ( vm->compiled ) {
-		r = VM_CallCompiled( vm, &callnum );
-	} else {
-		r = VM_CallInterpreted( vm, &callnum );
-	}
+			r = VM_CallInterpreted2( vm, nargs, (int*)&callnum );
+#else
+		int args[MAX_VMMAIN_CALL_ARGS];
+		va_list ap;
 
-	if ( oldVM != NULL ) { // bk001220 - assert(currentVM!=NULL) for oldVM==NULL
-		currentVM = oldVM;
-	}
+		args[0] = callnum;
+		va_start( ap, callnum );
+		for ( i = 1; i < nargs; i++ ) {
+			args[i] = va_arg( ap, int );
+		}
+		va_end(ap);
+#ifndef NO_VM_COMPILED
+		if ( vm->compiled )
+			r = VM_CallCompiled( vm, nargs, &args[0] );
+		else
+#endif
+			r = VM_CallInterpreted2( vm, nargs, &args[0] );
+#endif
+	}*/
+	--vm->callLevel;
+
 	return r;
 }
+
 
 //=================================================================
 
 static int QDECL VM_ProfileSort( const void *a, const void *b ) {
-	vmSymbol_t  *sa, *sb;
+	vmSymbol_t	*sa, *sb;
 
 	sa = *(vmSymbol_t **)a;
 	sb = *(vmSymbol_t **)b;
@@ -732,6 +734,36 @@ static int QDECL VM_ProfileSort( const void *a, const void *b ) {
 	return 0;
 }
 
+
+/*
+==============
+VM_NameToVM
+==============
+*/
+vm_t *VM_NameToVM( const char *name ) 
+{
+	vmIndex_t index;
+
+	if ( !Q_stricmp( name, "game" ) )
+		index = VM_GAME;
+	else if ( !Q_stricmp( name, "cgame" ) )
+		index = VM_CGAME;
+	else if ( !Q_stricmp( name, "ui" ) )
+		index = VM_UI;
+	else {
+		Com_Printf( " unknown VM name '%s'\n", name );
+		return NULL;
+	}
+
+	if ( !vmTable[ index ].name ) {
+		Com_Printf( " %s is not running.\n", name );
+		return NULL;
+	}
+
+	return &vmTable[ index ];
+}
+
+
 /*
 ==============
 VM_VmProfile_f
@@ -739,16 +771,20 @@ VM_VmProfile_f
 ==============
 */
 void VM_VmProfile_f( void ) {
-	vm_t        *vm;
-	vmSymbol_t  **sorted, *sym;
-	int i;
-	double total;
+	vm_t		*vm;
+	vmSymbol_t	**sorted, *sym;
+	int			i;
+	double		total;
 
-	if ( !lastVM ) {
+	if ( Cmd_Argc() < 2 ) {
+		Com_Printf( "usage: %s <game|cgame|ui>\n", Cmd_Argv( 0 ) );
 		return;
 	}
 
-	vm = lastVM;
+	vm = VM_NameToVM( Cmd_Argv( 1 ) );
+	if ( vm == NULL ) {
+		return;
+	}
 
 	if ( !vm->numSymbols ) {
 		return;
@@ -758,14 +794,14 @@ void VM_VmProfile_f( void ) {
 	sorted[0] = vm->symbols;
 	total = sorted[0]->profileCount;
 	for ( i = 1 ; i < vm->numSymbols ; i++ ) {
-		sorted[i] = sorted[i - 1]->next;
+		sorted[i] = sorted[i-1]->next;
 		total += sorted[i]->profileCount;
 	}
 
 	qsort( sorted, vm->numSymbols, sizeof( *sorted ), VM_ProfileSort );
 
 	for ( i = 0 ; i < vm->numSymbols ; i++ ) {
-		int perc;
+		int		perc;
 
 		sym = sorted[i];
 
@@ -774,42 +810,43 @@ void VM_VmProfile_f( void ) {
 		sym->profileCount = 0;
 	}
 
-	Com_Printf( "    %9.0f total\n", total );
+	Com_Printf("    %9.0f total\n", total );
 
 	Z_Free( sorted );
 }
 
+
 /*
 ==============
 VM_VmInfo_f
-
 ==============
 */
 void VM_VmInfo_f( void ) {
-	vm_t    *vm;
-	int i;
+	vm_t	*vm;
+	int		i;
 
 	Com_Printf( "Registered virtual machines:\n" );
-	for ( i = 0 ; i < MAX_VM ; i++ ) {
+	for ( i = 0 ; i < VM_COUNT ; i++ ) {
 		vm = &vmTable[i];
-		if ( !vm->name[0] ) {
-			break;
+		if ( !vm->name ) {
+			continue;
 		}
 		Com_Printf( "%s : ", vm->name );
 		if ( vm->dllHandle ) {
 			Com_Printf( "native\n" );
 			continue;
 		}
-		if ( vm->compiled ) {
+		/*if ( vm->compiled ) {
 			Com_Printf( "compiled on load\n" );
 		} else {
 			Com_Printf( "interpreted\n" );
 		}
 		Com_Printf( "    code length : %7i\n", vm->codeLength );
-		Com_Printf( "    table length: %7i\n", vm->instructionPointersLength );
-		Com_Printf( "    data length : %7i\n", vm->dataMask + 1 );
+		Com_Printf( "    table length: %7i\n", vm->instructionCount*4 );
+		Com_Printf( "    data length : %7i\n", vm->dataMask + 1 );*/
 	}
 }
+
 
 /*
 ===============
@@ -819,25 +856,18 @@ Insert calls to this while debugging the vm compiler
 ===============
 */
 void VM_LogSyscalls( int *args ) {
-	static int callnum;
-	static FILE    *f;
+#if 0
+	static	int		callnum;
+	static	FILE	*f;
 
 	if ( !f ) {
-		f = fopen( "syscalls.log", "w" );
+		f = Sys_FOpen( "syscalls.log", "w" );
+		if ( !f ) {
+			return;
+		}
 	}
 	callnum++;
-	fprintf( f, "%i: %i (%i) = %i %i %i %i\n", callnum, args - (int *)currentVM->dataBase,
-			 args[0], args[1], args[2], args[3], args[4] );
-}
-
-#if defined( __MACOS__ )
-#define DLL_ONLY    //DAJ
+	fprintf( f, "%i: %p (%i) = %i %i %i %i\n", callnum, (void*)(args - (int *)currentVM->dataBase),
+		args[0], args[1], args[2], args[3], args[4] );
 #endif
-
-#ifdef DLL_ONLY // bk010215 - for DLL_ONLY dedicated servers/builds w/o VM
-int VM_CallCompiled( vm_t *vm, int *args ) {
-	return( 0 );
 }
-
-void VM_Compile( vm_t *vm, vmHeader_t *header ) {}
-#endif // DLL_ONLY

@@ -27,560 +27,236 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 
-#include "../game/q_shared.h"
+#include "../qcommon/q_shared.h"
 #include "../qcommon/qcommon.h"
 #include "win_local.h"
-#include <lmerr.h>
-#include <lmcons.h>
-#include <lmwksta.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <direct.h>
 #include <io.h>
 #include <conio.h>
-#include <math.h>
+#include <intrin.h>
 
 /*
 ================
 Sys_Milliseconds
 ================
 */
-int sys_timeBase;
-int Sys_Milliseconds( void ) {
-	int sys_curtime;
-	static qboolean initialized = qfalse;
+int Sys_Milliseconds( void )
+{
+	static qboolean	initialized = qfalse;
+	static DWORD sys_timeBase;
+	int	sys_curtime;
 
 	if ( !initialized ) {
 		sys_timeBase = timeGetTime();
 		initialized = qtrue;
 	}
+
 	sys_curtime = timeGetTime() - sys_timeBase;
 
 	return sys_curtime;
 }
+
+
+/*
+================
+Sys_RandomBytes
+================
+*/
+qboolean Sys_RandomBytes( byte *string, int len )
+{
+	HCRYPTPROV  prov;
+
+	if( !CryptAcquireContext( &prov, NULL, NULL,
+		PROV_RSA_FULL, CRYPT_VERIFYCONTEXT ) )  {
+
+		return qfalse;
+	}
+
+	if( !CryptGenRandom( prov, len, (BYTE *)string ) )  {
+		CryptReleaseContext( prov, 0 );
+		return qfalse;
+	}
+	CryptReleaseContext( prov, 0 );
+	return qtrue;
+}
+
+
+#ifdef UNICODE
+LPWSTR AtoW( const char *s ) 
+{
+	static WCHAR buffer[MAXPRINTMSG*2];
+	MultiByteToWideChar( CP_ACP, 0, s, strlen( s ) + 1, (LPWSTR) buffer, ARRAYSIZE( buffer ) );
+	return buffer;
+}
+
+const char *WtoA( const LPWSTR s ) 
+{
+	static char buffer[MAXPRINTMSG*2];
+	WideCharToMultiByte( CP_ACP, 0, s, -1, buffer, ARRAYSIZE( buffer ), NULL, NULL );
+	return buffer;
+}
+#endif
+
+
+/*
+================
+Sys_GetCurrentUser
+================
+*/
+char *Sys_GetCurrentUser( void )
+{
+	static char s_userName[256];
+
+	TCHAR buffer[256];
+	DWORD size = ARRAYSIZE( buffer );
+
+	if ( !GetUserName( buffer, &size ) || !s_userName[0] ) {
+		strcpy( s_userName, "player" );
+	} else {
+		strcpy( s_userName, WtoA( buffer ) );
+	}
+
+	return s_userName;
+}
+
+
+/*
+================
+Sys_DefaultHomePath
+================
+*/
+const char *Sys_DefaultHomePath( void ) 
+{
+#ifdef USE_PROFILES
+	TCHAR szPath[MAX_PATH];
+	static char path[MAX_OSPATH];
+	FARPROC qSHGetFolderPath;
+	HMODULE shfolder = LoadLibrary("shfolder.dll");
+	
+	if(shfolder == NULL) {
+		Com_Printf("Unable to load SHFolder.dll\n");
+		return NULL;
+	}
+
+	qSHGetFolderPath = GetProcAddress(shfolder, "SHGetFolderPathA");
+	if(qSHGetFolderPath == NULL)
+	{
+		Com_Printf("Unable to find SHGetFolderPath in SHFolder.dll\n");
+		FreeLibrary(shfolder);
+		return NULL;
+	}
+
+	if( !SUCCEEDED( qSHGetFolderPath( NULL, CSIDL_APPDATA,
+		NULL, 0, szPath ) ) )
+	{
+		Com_Printf("Unable to detect CSIDL_APPDATA\n");
+		FreeLibrary(shfolder);
+		return NULL;
+	}
+	Q_strncpyz( path, szPath, sizeof(path) );
+	Q_strcat( path, sizeof(path), "\\Quake3" );
+	FreeLibrary(shfolder);
+	if( !CreateDirectory( path, NULL ) )
+	{
+		if( GetLastError() != ERROR_ALREADY_EXISTS )
+		{
+			Com_Printf("Unable to create directory \"%s\"\n", path);
+			return NULL;
+		}
+	}
+	return path;
+#else
+    return NULL;
+#endif
+}
+
 
 /*
 ================
 Sys_SnapVector
 ================
 */
-long fastftol( float f ) {
-#ifndef __GNUC__
-	static int tmp;
+#if idx64
+void Sys_SnapVector( float *vector ) 
+{
+	__m128 vf0, vf1, vf2;
+	__m128i vi;
 
-	__asm fld f
-	__asm fistp tmp
-	// rain - WTF - why do they set the return this way?
-	__asm mov eax, tmp
-#else
-	// rain - gcc-style inline asm
-	// zinx - meh, gcc's lrint is sane, so use that. fixed inline asm too, though.
-	/*
-	asm(
-		"fld %1\n\t"
-		"fistp %0\n"
-		: "=m" (tmp) // outputs
-		: "f" (f) // inputs
-	);
-	return tmp;
-	*/
-	return lrint( f );
-#endif
+	vf0 = _mm_setr_ps( vector[0], vector[1], vector[2], 0.0 );
+
+	vi = _mm_cvtps_epi32( vf0 );
+	vf0 = _mm_cvtepi32_ps( vi );
+
+	vf1 = _mm_shuffle_ps(vf0, vf0, _MM_SHUFFLE(1,1,1,1));
+	vf2 = _mm_shuffle_ps(vf0, vf0, _MM_SHUFFLE(2,2,2,2));
+
+	_mm_store_ss( &vector[0], vf0 );
+	_mm_store_ss( &vector[1], vf1 );
+	_mm_store_ss( &vector[2], vf2 );
 }
-
-void Sys_SnapVector( float *v ) {
-#ifndef __GNUC__
-	int i;
-	float f;
-
-	f = *v;
-	__asm fld f;
-	__asm fistp i;
-	*v = i;
-	v++;
-	f = *v;
-	__asm fld f;
-	__asm fistp i;
-	*v = i;
-	v++;
-	f = *v;
-	__asm fld f;
-	__asm fistp i;
-	*v = i;
-	/*
-	*v = fastftol(*v);
-	v++;
-	*v = fastftol(*v);
-	v++;
-	*v = fastftol(*v);
-	*/
 #else
-	// rain - gcc has different inline asm, but I'm not going to emulate
-	// that here for now...
-	*v = (float)fastftol( *v );
-	v++;
-	*v = (float)fastftol( *v );
-	v++;
-	*v = (float)fastftol( *v );
-#endif
+void Sys_SnapVector( float *vector ) 
+{
+	static const DWORD cw037F = 0x037F;
+	DWORD cwCurr;
+__asm {
+	fnstcw word ptr [cwCurr]
+	mov ecx, vector
+	fldcw word ptr [cw037F]
+
+	fld   dword ptr[ecx+8]
+	fistp dword ptr[ecx+8]
+	fild  dword ptr[ecx+8]
+	fstp  dword ptr[ecx+8]
+
+	fld   dword ptr[ecx+4]
+	fistp dword ptr[ecx+4]
+	fild  dword ptr[ecx+4]
+	fstp  dword ptr[ecx+4]
+
+	fld   dword ptr[ecx+0]
+	fistp dword ptr[ecx+0]
+	fild  dword ptr[ecx+0]
+	fstp  dword ptr[ecx+0]
+
+	fldcw word ptr cwCurr
+	}; // __asm
 }
+#endif
+
 
 /*
-**
-** Disable all optimizations temporarily so this code works correctly!
-**
+================
+Sys_SetAffinityMask
+================
 */
-#ifdef MSVC // rain - MSVC pragma
-#pragma optimize( "", off )
-#endif
+void Sys_SetAffinityMask( int mask ) 
+{
+	static DWORD_PTR dwOldProcessMask;
+	static DWORD_PTR dwSystemMask;
 
-/*
-** --------------------------------------------------------------------------------
-**
-** PROCESSOR STUFF
-**
-** --------------------------------------------------------------------------------
-*/
-static void CPUID( int func, unsigned regs[4] ) {
-#ifndef __GNUC__
-	unsigned regEAX, regEBX, regECX, regEDX;
-
-	__asm mov eax, func
-	__asm cpuid
-	__asm mov regEAX, eax
-	__asm mov regEBX, ebx
-	__asm mov regECX, ecx
-	__asm mov regEDX, edx
-
-	regs[0] = regEAX;
-	regs[1] = regEBX;
-	regs[2] = regECX;
-	regs[3] = regEDX;
-#else
-	// rain - gcc style inline asm
-	asm (
-		"cpuid\n"
-		: "=a" ( regs[0] ), "=b" ( regs[1] ), "=c" ( regs[2] ), "=d" ( regs[3] ) // outputs
-		: "a" ( func ) // inputs
-		);
-#endif
-
-}
-
-static int IsPentium( void ) {
-#ifndef __GNUC__
-	__asm
-	{
-		pushfd                      // save eflags
-		pop eax
-		test eax, 0x00200000        // check ID bit
-		jz set21                    // bit 21 is not set, so jump to set_21
-		and     eax, 0xffdfffff     // clear bit 21
-		push eax                    // save new value in register
-		popfd                       // store new value in flags
-		pushfd
-		pop eax
-		test eax, 0x00200000        // check ID bit
-		jz good
-		jmp err                     // cpuid not supported
-set21:
-		or      eax, 0x00200000     // set ID bit
-		push eax                    // store new value
-		popfd                       // store new value in EFLAGS
-		pushfd
-		pop eax
-		test eax, 0x00200000        // if bit 21 is on
-		jnz good
-		jmp err
+	// initialize
+	if ( !dwOldProcessMask ) {
+		dwSystemMask = 0x1;
+		dwOldProcessMask = 0x1;
+		GetProcessAffinityMask( GetCurrentProcess(), &dwOldProcessMask, &dwSystemMask );
 	}
 
-err:
-	return qfalse;
-good:
-	return qtrue;
-#else
-	// rain - gcc-style inline asm
-	// rain - FIXME: I'm too tired to do this one right now
-	return qtrue;
-#endif
-}
-
-static int Is3DNOW( void ) {
-	unsigned regs[4];
-	char pstring[16];
-	char processorString[13];
-
-	// get name of processor
-	CPUID( 0, ( unsigned int * ) pstring );
-	processorString[0] = pstring[4];
-	processorString[1] = pstring[5];
-	processorString[2] = pstring[6];
-	processorString[3] = pstring[7];
-	processorString[4] = pstring[12];
-	processorString[5] = pstring[13];
-	processorString[6] = pstring[14];
-	processorString[7] = pstring[15];
-	processorString[8] = pstring[8];
-	processorString[9] = pstring[9];
-	processorString[10] = pstring[10];
-	processorString[11] = pstring[11];
-	processorString[12] = 0;
-
-//  REMOVED because you can have 3DNow! on non-AMD systems
-//	if ( strcmp( processorString, "AuthenticAMD" ) )
-//		return qfalse;
-
-	// check AMD-specific functions
-	CPUID( 0x80000000, regs );
-	if ( regs[0] < 0x80000000 ) {
-		return qfalse;
+	 // set default mask
+	if ( !mask ) {
+		if ( dwOldProcessMask )
+			mask = dwOldProcessMask;
+		else
+			mask = dwSystemMask;
 	}
 
-	// bit 31 of EDX denotes 3DNOW! support
-	CPUID( 0x80000001, regs );
-	if ( regs[3] & ( 1 << 31 ) ) {
-		return qtrue;
+	if ( SetProcessAffinityMask( GetCurrentProcess(), mask ) ) {
+		Sleep( 0 );
+		Com_Printf( "setting CPU affinity mask to %i\n", mask );
+	} else {
+		Com_Printf( S_COLOR_YELLOW "error setting CPU affinity mask %i\n", mask );
 	}
-
-	return qfalse;
-}
-
-static int IsKNI( void ) {
-	unsigned regs[4];
-
-	// get CPU feature bits
-	CPUID( 1, regs );
-
-	// bit 25 of EDX denotes KNI existence
-	if ( regs[3] & ( 1 << 25 ) ) {
-		return qtrue;
-	}
-
-	return qfalse;
-}
-
-static int IsMMX( void ) {
-	unsigned regs[4];
-
-	// get CPU feature bits
-	CPUID( 1, regs );
-
-	// bit 23 of EDX denotes MMX existence
-	if ( regs[3] & ( 1 << 23 ) ) {
-		return qtrue;
-	}
-	return qfalse;
-}
-
-static int IsP3() {
-	unsigned regs[4];
-
-	// get CPU feature bits
-	CPUID( 1, regs );
-	if ( regs[0] < 6 ) {
-		return qfalse;
-	}
-
-	if ( !( regs[3] & 0x1 ) ) {
-		return qfalse;    // fp
-	}
-
-	if ( !( regs[3] & 0x8000 ) ) { // cmov
-		return qfalse;
-	}
-
-	if ( !( regs[3] & 0x800000 ) ) { // mmx
-		return qfalse;
-	}
-
-	if ( !( regs[3] & 0x2000000 ) ) { // simd
-		return qfalse;
-	}
-
-	return qtrue;
-}
-
-static int IsAthlon() {
-	unsigned regs[4];
-	char pstring[16];
-	char processorString[13];
-
-	// get name of processor
-	CPUID( 0, ( unsigned int * ) pstring );
-	processorString[0] = pstring[4];
-	processorString[1] = pstring[5];
-	processorString[2] = pstring[6];
-	processorString[3] = pstring[7];
-	processorString[4] = pstring[12];
-	processorString[5] = pstring[13];
-	processorString[6] = pstring[14];
-	processorString[7] = pstring[15];
-	processorString[8] = pstring[8];
-	processorString[9] = pstring[9];
-	processorString[10] = pstring[10];
-	processorString[11] = pstring[11];
-	processorString[12] = 0;
-
-	if ( strcmp( processorString, "AuthenticAMD" ) ) {
-		return qfalse;
-	}
-
-	CPUID( 0x80000000, regs );
-
-	if ( regs[0] < 0x80000001 ) {
-		return qfalse;
-	}
-
-	// get CPU feature bits
-	CPUID( 1, regs );
-	if ( regs[0] < 6 ) {
-		return qfalse;
-	}
-
-	CPUID( 0x80000001, regs );
-
-	if ( !( regs[3] & 0x1 ) ) {
-		return qfalse;    // fp
-	}
-
-	if ( !( regs[3] & 0x8000 ) ) { // cmov
-		return qfalse;
-	}
-
-	if ( !( regs[3] & 0x800000 ) ) { // mmx
-		return qfalse;
-	}
-
-	if ( !( regs[3] & 0x400000 ) ) { // k7 mmx
-		return qfalse;
-	}
-
-	if ( !( regs[3] & 0x80000000 ) ) { // 3dnow
-		return qfalse;
-	}
-
-	if ( !( regs[3] & 0x40000000 ) ) { // advanced 3dnow
-		return qfalse;
-	}
-
-	return qtrue;
-}
-
-int Sys_GetProcessorId( void ) {
-#if defined _M_ALPHA
-	return CPUID_AXP;
-#elif !defined _M_IX86
-	return CPUID_GENERIC;
-#else
-
-	// verify we're at least a Pentium or 486 w/ CPUID support
-	if ( !IsPentium() ) {
-		return CPUID_INTEL_UNSUPPORTED;
-	}
-
-	// check for MMX
-	if ( !IsMMX() ) {
-		// Pentium or PPro
-		return CPUID_INTEL_PENTIUM;
-	}
-
-	// see if we're an AMD 3DNOW! processor
-	if ( Is3DNOW() ) {
-		return CPUID_AMD_3DNOW;
-	}
-
-	// see if we're an Intel Katmai
-	if ( IsKNI() ) {
-		return CPUID_INTEL_KATMAI;
-	}
-
-	// by default we're functionally a vanilla Pentium/MMX or P2/MMX
-	return CPUID_INTEL_MMX;
-
-#endif
-}
-
-int Sys_GetHighQualityCPU() {
-	return ( !IsP3() && !IsAthlon() ) ? 0 : 1;
-}
-
-//bani - defined but not used
-#if 0
-static void GetClockTicks( double *t ) {
-	unsigned long lo, hi;
-
-#ifndef __GNUC__
-	_asm
-	{
-		rdtsc
-		mov lo, eax
-		mov hi, edx
-	}
-#else
-	// rain - gcc-style inline asm
-	asm (
-		"rdtsc\n"
-		: "=a" ( lo ), "=d" ( hi ) // outputs
-		);
-#endif
-
-//	*t = (double) lo + (double) 0xFFFFFFFF * hi ;
-// zinx - 0x100000000
-	*t = (double) lo + (double) 4294967296.0 * hi ;
-}
-#endif
-
-float Sys_RealGetCPUSpeed( void ) {
-	LARGE_INTEGER c0, c1, freq;
-	unsigned int stamp0, stamp1, cycles, ticks, tries;
-	unsigned int freq1, freq2, freq3, total;
-	unsigned int priorityClass;
-	int threadPriority;
-
-	freq1 = freq2 = freq3 = tries = 0;
-
-	if ( !QueryPerformanceFrequency( &freq ) ) {
-		return .0f;
-	}
-
-	priorityClass = GetPriorityClass( GetCurrentProcess() );
-	threadPriority = GetThreadPriority( GetCurrentThread() );
-
-	SetPriorityClass( GetCurrentProcess(), REALTIME_PRIORITY_CLASS );
-	SetThreadPriority( GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL );
-
-	do {
-		tries++;
-
-		freq3 = freq2;
-		freq2 = freq1;
-
-		QueryPerformanceCounter( &c0 );
-
-		c1.LowPart = c0.LowPart;
-		c1.HighPart = c0.HighPart;
-
-		while ( (int)c1.LowPart - (int)c0.LowPart < 50 ) {
-			QueryPerformanceCounter( &c1 );
-		}
-
-#ifndef __GNUC__
-		_asm
-		{
-			rdtsc
-			mov stamp0, eax
-		}
-#else
-		// rain - gcc-style inline asm
-		asm (
-			"rdtsc\n"
-			: "=a" ( stamp0 ) // outputs
-			:
-			: "edx"
-			);
-#endif
-
-		c0.LowPart = c1.LowPart;
-		c0.HighPart = c1.HighPart;
-
-		while ( (int)c1.LowPart - (int)c0.LowPart < 1000 ) {
-			QueryPerformanceCounter( &c1 );
-		}
-
-#ifndef __GNUC__
-		_asm
-		{
-			rdtsc
-			mov stamp1, eax
-		}
-#else
-		// rain - gcc-style inline asm
-		asm (
-			"rdtsc\n"
-			: "=a" ( stamp1 ) // outputs
-			:
-			: "edx"
-			);
-#endif
-
-		cycles = stamp1 - stamp0;
-		ticks = (int)c1.LowPart - (int)c0.LowPart;
-
-		ticks *= 100000;
-		ticks /= ( freq.LowPart / 10 );
-
-		if ( ticks % freq.LowPart > freq.LowPart * .5f ) {
-			ticks++;
-		}
-
-		freq1 = cycles / ticks;
-
-		if ( cycles % ticks > ticks * .5f ) {
-			freq1++;
-		}
-
-		total = freq1 + freq2 + freq3;
-
-	} while ( ( tries < 3 || tries < 20 ) &&
-			  ( ( abs( 3 * freq1 - total ) > 3 ) || ( abs( 3 * freq2 - total ) > 3 ) || ( abs( 3 * freq3 - total ) > 3 ) ) );
-
-	if ( total / 3 != ( total + 1 ) / 3 ) {
-		total++;
-	}
-
-	SetPriorityClass( GetCurrentProcess(), priorityClass );
-	SetThreadPriority( GetCurrentThread(), threadPriority );
-
-	return( (float)total / 3.f );
-}
-
-float Sys_GetCPUSpeed( void ) {
-	float cpuSpeed;
-
-#ifndef __GNUC__
-	__try
-#else
-	if ( 1 )
-#endif
-	{
-		cpuSpeed = Sys_RealGetCPUSpeed();
-	}
-#ifndef __GNUC__
-	__except( EXCEPTION_EXECUTE_HANDLER )
-#else
-	if ( 0 )
-#endif
-	{
-		cpuSpeed = 100.f;
-	}
-
-	return cpuSpeed;
-}
-
-/*
-**
-** Re-enable optimizations back to what they were
-**
-*/
-#ifdef MSVC // rain - MSVC pragma
-#pragma optimize( "", on )
-#endif
-
-//============================================
-
-char *Sys_GetCurrentUser( void ) {
-	static char s_userName[1024];
-	unsigned long size = sizeof( s_userName );
-
-
-	if ( !GetUserName( s_userName, &size ) ) {
-		strcpy( s_userName, "player" );
-	}
-
-	if ( !s_userName[0] ) {
-		strcpy( s_userName, "player" );
-	}
-
-	return s_userName;
 }

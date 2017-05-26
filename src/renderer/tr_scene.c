@@ -58,20 +58,13 @@ int r_numDecals;
 int skyboxportal;
 /*
 ====================
-R_ToggleSmpFrame
+R_InitNextFrame
 
 ====================
 */
-void R_ToggleSmpFrame( void ) {
-	if ( r_smp->integer ) {
-		// use the other buffers next frame, because another CPU
-		// may still be rendering into the current ones
-		tr.smpFrame ^= 1;
-	} else {
-		tr.smpFrame = 0;
-	}
+void R_InitNextFrame( void ) {
 
-	backEndData[tr.smpFrame]->commands.used = 0;
+	backEndData->commands.used = 0;
 
 	r_firstSceneDrawSurf = 0;
 
@@ -114,7 +107,7 @@ void RE_ClearScene( void ) {
 	// ydnar: clear model stuff for dynamic fog
 	if ( tr.world != NULL ) {
 		for ( i = 0; i < tr.world->numBModels; i++ )
-			tr.world->bmodels[ i ].visible[ tr.smpFrame ] = qfalse;
+			tr.world->bmodels[ i ].visible = qfalse;
 	}
 
 	// everything else
@@ -140,17 +133,16 @@ Adds all the scene's polys into this view's drawsurf list
 =====================
 */
 void R_AddPolygonSurfaces( void ) {
-	int i;
-	shader_t    *sh;
-	srfPoly_t   *poly;
+	int			i;
+	shader_t	*sh;
+	srfPoly_t	*poly;
 
-	tr.currentEntityNum = ENTITYNUM_WORLD;
-	tr.shiftedEntityNum = tr.currentEntityNum << QSORT_ENTITYNUM_SHIFT;
+	tr.currentEntityNum = REFENTITYNUM_WORLD;
+	tr.shiftedEntityNum = tr.currentEntityNum << QSORT_REFENTITYNUM_SHIFT;
 
 	for ( i = 0, poly = tr.refdef.polys; i < tr.refdef.numPolys ; i++, poly++ ) {
 		sh = R_GetShaderByHandle( poly->hShader );
-
-		R_AddDrawSurf( ( void * )poly, sh, poly->fogIndex, 0, 0 );
+		R_AddDrawSurf( ( void * )poly, sh, poly->fogIndex, 0 );
 	}
 }
 
@@ -180,11 +172,11 @@ void RE_AddPolyToScene( qhandle_t hShader, int numVerts, const polyVert_t *verts
 		return;
 	}
 
-	poly = &backEndData[tr.smpFrame]->polys[r_numpolys];
+	poly = &backEndData->polys[r_numpolys];
 	poly->surfaceType = SF_POLY;
 	poly->hShader = hShader;
 	poly->numVerts = numVerts;
-	poly->verts = &backEndData[tr.smpFrame]->polyVerts[r_numpolyverts];
+	poly->verts = &backEndData->polyVerts[r_numpolyverts];
 
 	memcpy( poly->verts, verts, numVerts * sizeof( *verts ) );
 	// Ridah
@@ -256,11 +248,11 @@ void RE_AddPolysToScene( qhandle_t hShader, int numVerts, const polyVert_t *vert
 			return;
 		}
 
-		poly = &backEndData[tr.smpFrame]->polys[r_numpolys];
+		poly = &backEndData->polys[r_numpolys];
 		poly->surfaceType = SF_POLY;
 		poly->hShader = hShader;
 		poly->numVerts = numVerts;
-		poly->verts = &backEndData[tr.smpFrame]->polyVerts[r_numpolyverts];
+		poly->verts = &backEndData->polyVerts[r_numpolyverts];
 
 		memcpy( poly->verts, &verts[numVerts * j], numVerts * sizeof( *verts ) );
 		// Ridah
@@ -321,13 +313,13 @@ void R_AddPolygonBufferSurfaces( void ) {
 	shader_t        *sh;
 	srfPolyBuffer_t *polybuffer;
 
-	tr.currentEntityNum = ENTITYNUM_WORLD;
-	tr.shiftedEntityNum = tr.currentEntityNum << QSORT_ENTITYNUM_SHIFT;
+	tr.currentEntityNum = REFENTITYNUM_WORLD;
+	tr.shiftedEntityNum = tr.currentEntityNum << QSORT_REFENTITYNUM_SHIFT;
 
 	for ( i = 0, polybuffer = tr.refdef.polybuffers; i < tr.refdef.numPolyBuffers ; i++, polybuffer++ ) {
 		sh = R_GetShaderByHandle( polybuffer->pPolyBuffer->shader );
 
-		R_AddDrawSurf( ( void * )polybuffer, sh, polybuffer->fogIndex, 0, 0 );
+		R_AddDrawSurf( ( void * )polybuffer, sh, polybuffer->fogIndex, 0 );
 	}
 }
 
@@ -348,7 +340,7 @@ void RE_AddPolyBufferToScene( polyBuffer_t* pPolyBuffer ) {
 		return;
 	}
 
-	pPolySurf = &backEndData[tr.smpFrame]->polybuffers[r_numpolybuffers];
+	pPolySurf = &backEndData->polybuffers[r_numpolybuffers];
 	r_numpolybuffers++;
 
 	pPolySurf->surfaceType = SF_POLYBUFFER;
@@ -391,16 +383,26 @@ void RE_AddRefEntityToScene( const refEntity_t *ent ) {
 	if ( !tr.registered ) {
 		return;
 	}
-	// show_bug.cgi?id=402
-	if ( r_numentities >= ENTITYNUM_WORLD ) {
+	if ( r_numentities >= MAX_REFENTITIES ) {
+		ri.Printf(PRINT_DEVELOPER, "RE_AddRefEntityToScene: Dropping refEntity, reached MAX_REFENTITIES\n");
 		return;
 	}
-	if ( ent->reType < 0 || ent->reType >= RT_MAX_REF_ENTITY_TYPE ) {
+#ifdef DEBUG
+	if ( Q_isnan(ent->origin[0]) || Q_isnan(ent->origin[1]) || Q_isnan(ent->origin[2]) ) {
+		static qboolean first_time = qtrue;
+		if (first_time) {
+			first_time = qfalse;
+			Com_Printf(S_COLOR_YELLOW "WARNING: You might have built ioquake3 with a buggy compiler!\n");
+		}
+		return;
+	}
+#endif
+	if ( (unsigned)ent->reType >= RT_MAX_REF_ENTITY_TYPE ) {
 		ri.Error( ERR_DROP, "RE_AddRefEntityToScene: bad reType %i", ent->reType );
 	}
 
-	backEndData[tr.smpFrame]->entities[r_numentities].e = *ent;
-	backEndData[tr.smpFrame]->entities[r_numentities].lightingCalculated = qfalse;
+	backEndData->entities[r_numentities].e = *ent;
+	backEndData->entities[r_numentities].lightingCalculated = qfalse;
 
 	r_numentities++;
 
@@ -438,7 +440,7 @@ void RE_AddLightToScene( const vec3_t org, float radius, float intensity, float 
 	}
 
 	// set up a new dlight
-	dl = &backEndData[ tr.smpFrame ]->dlights[ r_numdlights++ ];
+	dl = &backEndData->dlights[ r_numdlights++ ];
 	VectorCopy( org, dl->origin );
 	VectorCopy( org, dl->transformed );
 	dl->radius = radius;
@@ -472,7 +474,7 @@ void RE_AddCoronaToScene( const vec3_t org, float r, float g, float b, float sca
 		return;
 	}
 
-	cor = &backEndData[tr.smpFrame]->coronas[r_numcoronas++];
+	cor = &backEndData->coronas[r_numcoronas++];
 	VectorCopy( org, cor->origin );
 	cor->color[0] = r;
 	cor->color[1] = g;
@@ -500,7 +502,6 @@ void RE_RenderScene( const refdef_t *fd ) {
 	if ( !tr.registered ) {
 		return;
 	}
-	GLimp_LogComment( "====== RE_RenderScene =====\n" );
 
 	if ( r_norefresh->integer ) {
 		return;
@@ -556,32 +557,32 @@ void RE_RenderScene( const refdef_t *fd ) {
 
 	// derived info
 
-	tr.refdef.floatTime = tr.refdef.time * 0.001f;
+	tr.refdef.floatTime = (double)tr.refdef.time * 0.001; // -EC-: cast to double
 
 	tr.refdef.numDrawSurfs = r_firstSceneDrawSurf;
-	tr.refdef.drawSurfs = backEndData[tr.smpFrame]->drawSurfs;
+	tr.refdef.drawSurfs = backEndData->drawSurfs;
 
 	tr.refdef.num_entities = r_numentities - r_firstSceneEntity;
-	tr.refdef.entities = &backEndData[tr.smpFrame]->entities[r_firstSceneEntity];
+	tr.refdef.entities = &backEndData->entities[r_firstSceneEntity];
 
 	tr.refdef.num_dlights = r_numdlights - r_firstSceneDlight;
-	tr.refdef.dlights = &backEndData[tr.smpFrame]->dlights[r_firstSceneDlight];
+	tr.refdef.dlights = &backEndData->dlights[r_firstSceneDlight];
 	tr.refdef.dlightBits = 0;
 
 	tr.refdef.num_coronas = r_numcoronas - r_firstSceneCorona;
-	tr.refdef.coronas = &backEndData[tr.smpFrame]->coronas[r_firstSceneCorona];
+	tr.refdef.coronas = &backEndData->coronas[r_firstSceneCorona];
 
 	tr.refdef.numPolys = r_numpolys - r_firstScenePoly;
-	tr.refdef.polys = &backEndData[tr.smpFrame]->polys[r_firstScenePoly];
+	tr.refdef.polys = &backEndData->polys[r_firstScenePoly];
 
 	tr.refdef.numPolyBuffers = r_numpolybuffers - r_firstScenePolybuffer;
-	tr.refdef.polybuffers = &backEndData[tr.smpFrame]->polybuffers[r_firstScenePolybuffer];
+	tr.refdef.polybuffers = &backEndData->polybuffers[r_firstScenePolybuffer];
 
 	tr.refdef.numDecalProjectors = r_numDecalProjectors - r_firstSceneDecalProjector;
-	tr.refdef.decalProjectors = &backEndData[ tr.smpFrame ]->decalProjectors[ r_firstSceneDecalProjector ];
+	tr.refdef.decalProjectors = &backEndData->decalProjectors[ r_firstSceneDecalProjector ];
 
 	tr.refdef.numDecals = r_numDecals - r_firstSceneDecal;
-	tr.refdef.decals = &backEndData[ tr.smpFrame ]->decals[ r_firstSceneDecal ];
+	tr.refdef.decals = &backEndData->decals[ r_firstSceneDecal ];
 
 	// turn off dynamic lighting globally by clearing all the
 	// dlights if using permedia hw
@@ -608,10 +609,18 @@ void RE_RenderScene( const refdef_t *fd ) {
 	parms.viewportY = glConfig.vidHeight - ( tr.refdef.y + tr.refdef.height );
 	parms.viewportWidth = tr.refdef.width;
 	parms.viewportHeight = tr.refdef.height;
+
+	parms.scissorX = parms.viewportX;
+	parms.scissorY = parms.viewportY;
+	parms.scissorWidth = parms.viewportWidth;
+	parms.scissorHeight = parms.viewportHeight;
+
 	parms.isPortal = qfalse;
 
 	parms.fovX = tr.refdef.fov_x;
 	parms.fovY = tr.refdef.fov_y;
+	
+	parms.stereoFrame = tr.refdef.stereoFrame;
 
 	VectorCopy( fd->vieworg, parms.orientation.origin );
 	VectorCopy( fd->viewaxis[0], parms.orientation.axis[0] );

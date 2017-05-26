@@ -80,8 +80,9 @@ int SV_BotAllocateClient( int clientNum ) {
 	cl->gentity->s.number = i;
 	cl->state = CS_ACTIVE;
 	cl->lastPacketTime = svs.time;
+	cl->snapshotMsec = 1000 / sv_fps->integer;
 	cl->netchan.remoteAddress.type = NA_BOT;
-	cl->rate = 16384;
+	cl->rate = 100000;
 
 	return i;
 }
@@ -187,7 +188,7 @@ void BotDrawDebugPolygons( BotPolyFunc drawPoly, int value ) {
 BotImport_Print
 ==================
 */
-void QDECL BotImport_Print( int type, char *fmt, ... ) {
+static void QDECL BotImport_Print( int type, char *fmt, ... ) {
 	char str[2048];
 	va_list ap;
 
@@ -228,7 +229,7 @@ void QDECL BotImport_Print( int type, char *fmt, ... ) {
 BotImport_Trace
 ==================
 */
-void BotImport_Trace( bsp_trace_t *bsptrace, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int passent, int contentmask ) {
+static void BotImport_Trace( bsp_trace_t *bsptrace, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int passent, int contentmask ) {
 	trace_t trace;
 
 	// always use bounding box for bot stuff ?
@@ -242,7 +243,9 @@ void BotImport_Trace( bsp_trace_t *bsptrace, vec3_t start, vec3_t mins, vec3_t m
 	VectorCopy( trace.plane.normal, bsptrace->plane.normal );
 	bsptrace->plane.signbits = trace.plane.signbits;
 	bsptrace->plane.type = trace.plane.type;
-	bsptrace->surface.value = trace.surfaceFlags;
+	bsptrace->surface.value = 0;
+	bsptrace->surface.flags = trace.surfaceFlags;
+	//bsptrace->surface.value = trace.surfaceFlags;
 	bsptrace->ent = trace.entityNum;
 	bsptrace->exp_dist = 0;
 	bsptrace->sidenum = 0;
@@ -254,7 +257,7 @@ void BotImport_Trace( bsp_trace_t *bsptrace, vec3_t start, vec3_t mins, vec3_t m
 BotImport_EntityTrace
 ==================
 */
-void BotImport_EntityTrace( bsp_trace_t *bsptrace, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int entnum, int contentmask ) {
+static void BotImport_EntityTrace( bsp_trace_t *bsptrace, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int entnum, int contentmask ) {
 	trace_t trace;
 
 	// always use bounding box for bot stuff ?
@@ -268,7 +271,9 @@ void BotImport_EntityTrace( bsp_trace_t *bsptrace, vec3_t start, vec3_t mins, ve
 	VectorCopy( trace.plane.normal, bsptrace->plane.normal );
 	bsptrace->plane.signbits = trace.plane.signbits;
 	bsptrace->plane.type = trace.plane.type;
-	bsptrace->surface.value = trace.surfaceFlags;
+	bsptrace->surface.value = 0;
+	bsptrace->surface.flags = trace.surfaceFlags;
+	//bsptrace->surface.value = trace.surfaceFlags;
 	bsptrace->ent = trace.entityNum;
 	bsptrace->exp_dist = 0;
 	bsptrace->sidenum = 0;
@@ -281,7 +286,7 @@ void BotImport_EntityTrace( bsp_trace_t *bsptrace, vec3_t start, vec3_t mins, ve
 BotImport_PointContents
 ==================
 */
-int BotImport_PointContents( vec3_t point ) {
+static int BotImport_PointContents( vec3_t point ) {
 	return SV_PointContents( point, -1 );
 }
 
@@ -290,7 +295,7 @@ int BotImport_PointContents( vec3_t point ) {
 BotImport_inPVS
 ==================
 */
-int BotImport_inPVS( vec3_t p1, vec3_t p2 ) {
+static int BotImport_inPVS( vec3_t p1, vec3_t p2 ) {
 	return SV_inPVS( p1, p2 );
 }
 
@@ -299,7 +304,7 @@ int BotImport_inPVS( vec3_t p1, vec3_t p2 ) {
 BotImport_BSPEntityData
 ==================
 */
-char *BotImport_BSPEntityData( void ) {
+static char *BotImport_BSPEntityData( void ) {
 	return CM_EntityString();
 }
 
@@ -308,7 +313,7 @@ char *BotImport_BSPEntityData( void ) {
 BotImport_BSPModelMinsMaxsOrigin
 ==================
 */
-void BotImport_BSPModelMinsMaxsOrigin( int modelnum, vec3_t angles, vec3_t outmins, vec3_t outmaxs, vec3_t origin ) {
+static void BotImport_BSPModelMinsMaxsOrigin( int modelnum, vec3_t angles, vec3_t outmins, vec3_t outmaxs, vec3_t origin ) {
 	clipHandle_t h;
 	vec3_t mins, maxs;
 	float max;
@@ -342,7 +347,7 @@ void BotImport_BSPModelMinsMaxsOrigin( int modelnum, vec3_t angles, vec3_t outmi
 BotImport_GetMemory
 ==================
 */
-void *BotImport_GetMemory( int size ) {
+static void *BotImport_GetMemory( int size ) {
 	void *ptr;
 
 	ptr = Z_TagMalloc( size, TAG_BOTLIB );
@@ -354,7 +359,7 @@ void *BotImport_GetMemory( int size ) {
 BotImport_FreeMemory
 ==================
 */
-void BotImport_FreeMemory( void *ptr ) {
+static void BotImport_FreeMemory( void *ptr ) {
 	Z_Free( ptr );
 }
 
@@ -372,7 +377,7 @@ void BotImport_FreeZoneMemory( void ) {
 BotImport_HunkAlloc
 =================
 */
-void *BotImport_HunkAlloc( int size ) {
+static void *BotImport_HunkAlloc( int size ) {
 	if ( Hunk_CheckMark() ) {
 		Com_Error( ERR_DROP, "SV_Bot_HunkAlloc: Alloc with marks already set\n" );
 	}
@@ -426,7 +431,7 @@ bot_debugpoly_t* BotImport_GetFreeDebugPolygon( void ) {
 BotImport_DebugPolygonShow
 ==================
 */
-void BotImport_DebugPolygonShow( int id, int color, int numPoints, vec3_t *points ) {
+static void BotImport_DebugPolygonShow( int id, int color, int numPoints, vec3_t *points ) {
 	bot_debugpoly_t *poly;
 
 	poly = &debugpolygons[id];
@@ -459,7 +464,7 @@ void BotImport_DebugPolygonDeletePointer( bot_debugpoly_t* pPoly ) {
 BotImport_DebugLineCreate
 ==================
 */
-int BotImport_DebugLineCreate( void ) {
+static int BotImport_DebugLineCreate( void ) {
 	vec3_t points[1];
 	return BotImport_DebugPolygonCreate( 0, 0, points );
 }
@@ -469,7 +474,7 @@ int BotImport_DebugLineCreate( void ) {
 BotImport_DebugLineDelete
 ==================
 */
-void BotImport_DebugLineDelete( int line ) {
+static void BotImport_DebugLineDelete( int line ) {
 	BotImport_DebugPolygonDelete( line );
 }
 
@@ -478,7 +483,7 @@ void BotImport_DebugLineDelete( int line ) {
 BotImport_DebugLineShow
 ==================
 */
-void BotImport_DebugLineShow( int line, vec3_t start, vec3_t end, int color ) {
+static void BotImport_DebugLineShow( int line, vec3_t start, vec3_t end, int color ) {
 	vec3_t points[4], dir, cross, up = {0, 0, 1};
 	float dot;
 
@@ -530,7 +535,7 @@ qboolean BotImport_BotCheckAttackAtPos( int entnum, int enemy, vec3_t pos, qbool
 SV_BotClientCommand
 ==================
 */
-void BotClientCommand( int client, char *command ) {
+static void BotClientCommand( int client, const char *command ) {
 	SV_ExecuteClientCommand( &svs.clients[client], command, qtrue, qfalse );
 }
 
@@ -780,5 +785,6 @@ int SV_BotGetSnapshotEntity( int client, int sequence ) {
 	if ( sequence < 0 || sequence >= frame->num_entities ) {
 		return -1;
 	}
-	return svs.snapshotEntities[( frame->first_entity + sequence ) % svs.numSnapshotEntities].number;
+	return frame->ents[ sequence ]->number;
+	//return svs.snapshotEntities[( frame->first_entity + sequence ) % svs.numSnapshotEntities].number;
 }

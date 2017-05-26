@@ -27,7 +27,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 
-#include "../game/q_shared.h"
+#include "../qcommon/q_shared.h"
 #include "../qcommon/qcommon.h"
 #include "client.h"
 
@@ -44,8 +44,9 @@ CL_Netchan_Encode
 */
 static void CL_Netchan_Encode( msg_t *msg ) {
 	int serverId, messageAcknowledge, reliableAcknowledge;
-	int i, index, srdc, sbit, soob;
+	int i, index, srdc, sbit;
 	byte key, *string;
+	qboolean soob;
 
 	if ( msg->cursize <= CL_ENCODE_START ) {
 		return;
@@ -57,11 +58,11 @@ static void CL_Netchan_Encode( msg_t *msg ) {
 
 	msg->bit = 0;
 	msg->readcount = 0;
-	msg->oob = 0;
+	msg->oob = qfalse;
 
-	serverId = MSG_ReadLong( msg );
-	messageAcknowledge = MSG_ReadLong( msg );
-	reliableAcknowledge = MSG_ReadLong( msg );
+	serverId = MSG_ReadLong(msg);
+	messageAcknowledge = MSG_ReadLong(msg);
+	reliableAcknowledge = MSG_ReadLong(msg);
 
 	msg->oob = soob;
 	msg->bit = sbit;
@@ -113,7 +114,7 @@ static void CL_Netchan_Decode( msg_t *msg ) {
 	msg->bit = sbit;
 	msg->readcount = srdc;
 
-	string = clc.reliableCommands[ reliableAcknowledge & ( MAX_RELIABLE_COMMANDS - 1 ) ];
+	string = (byte *) clc.reliableCommands[ reliableAcknowledge & (MAX_RELIABLE_COMMANDS-1) ];
 	index = 0;
 	// xor the client challenge with the netchan sequence number (need something that changes every message)
 	key = clc.challenge ^ LittleLong( *(unsigned *)msg->data );
@@ -138,9 +139,17 @@ static void CL_Netchan_Decode( msg_t *msg ) {
 CL_Netchan_TransmitNextFragment
 =================
 */
-void CL_Netchan_TransmitNextFragment( netchan_t *chan ) {
-	Netchan_TransmitNextFragment( chan );
+qboolean CL_Netchan_TransmitNextFragment(netchan_t *chan)
+{
+	if ( chan->unsentFragments )
+	{
+		Netchan_TransmitNextFragment( chan );
+			return qtrue;
+	}
+	
+	return qfalse;
 }
+
 
 extern qboolean SV_GameIsSinglePlayer( void );
 
@@ -175,14 +184,16 @@ void CL_Netchan_Transmit( netchan_t *chan, msg_t* msg ) {
 	MSG_WriteByte( msg, clc_EOF );
 	CL_WriteBinaryMessage( msg );
 
-	if ( !SV_GameIsSinglePlayer() ) {
+	if( chan->compat && !SV_GameIsSinglePlayer() )
 		CL_Netchan_Encode( msg );
-	}
 	Netchan_Transmit( chan, msg->cursize, msg->data );
-}
 
-extern int oldsize;
-int newsize = 0;
+	// Transmit all fragments without delay
+	while(CL_Netchan_TransmitNextFragment(chan))
+	{
+		Com_DPrintf("WARNING: #462 unsent fragments (not supposed to happen!)\n");
+	}
+}
 
 /*
 =================
@@ -193,12 +204,11 @@ qboolean CL_Netchan_Process( netchan_t *chan, msg_t *msg ) {
 	int ret;
 
 	ret = Netchan_Process( chan, msg );
-	if ( !ret ) {
+	if (!ret)
 		return qfalse;
-	}
-	if ( !SV_GameIsSinglePlayer() ) {
+
+	if( chan->compat && !SV_GameIsSinglePlayer() )
 		CL_Netchan_Decode( msg );
-	}
-	newsize += msg->cursize;
+
 	return qtrue;
 }

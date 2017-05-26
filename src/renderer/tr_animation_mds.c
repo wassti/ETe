@@ -348,8 +348,8 @@ void R_AddAnimSurfaces( trRefEntity_t *ent ) {
 			shader = tr.defaultShader;
 
 			if ( ent->e.renderfx & RF_BLINK ) {
-				char *s = va( "%s_b", surface->name ); // append '_b' for 'blink'
-				hash = Com_HashKey( s, strlen( s ) );
+				const char *s = va( "%s_b", surface->name ); // append '_b' for 'blink'
+				hash = MSG_HashKey( s, strlen( s ) ); // was Com_ probably shouldn't use MSG_
 				for ( j = 0 ; j < skin->numSurfaces ; j++ ) {
 					if ( hash != skin->surfaces[j]->hash ) {
 						continue;
@@ -362,7 +362,7 @@ void R_AddAnimSurfaces( trRefEntity_t *ent ) {
 			}
 
 			if ( shader == tr.defaultShader ) {    // blink reference in skin was not found
-				hash = Com_HashKey( surface->name, sizeof( surface->name ) );
+				hash = MSG_HashKey( surface->name, sizeof( surface->name ) );
 				for ( j = 0 ; j < skin->numSurfaces ; j++ ) {
 					// the names have both been lowercased
 					if ( hash != skin->surfaces[j]->hash ) {
@@ -386,7 +386,7 @@ void R_AddAnimSurfaces( trRefEntity_t *ent ) {
 
 		// don't add third_person objects if not viewing through a portal
 		if ( !personalModel ) {
-			R_AddDrawSurf( (void *)surface, shader, fogNum, 0, 0 );
+			R_AddDrawSurf( (void *)surface, shader, fogNum, 0 );
 		}
 
 		surface = ( mdsSurface_t * )( (byte *)surface + surface->ofsEnd );
@@ -1316,8 +1316,8 @@ void RB_SurfaceAnim( mdsSurface_t *surface ) {
 
 		LocalMatrixTransformVector( v->normal, bones[v->weights[0].boneIndex].matrix, tempNormal );
 
-		tess.texCoords0[baseVertex + j].v[0] = v->texCoords[0];
-		tess.texCoords0[baseVertex + j].v[1] = v->texCoords[1];
+		tess.texCoords[baseVertex + j][0][0] = v->texCoords[0];
+		tess.texCoords[baseVertex + j][0][1] = v->texCoords[1];
 
 		v = (mdsVertex_t *)&v->weights[v->numWeights];
 	}

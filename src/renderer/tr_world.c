@@ -148,14 +148,10 @@ added to the sorting list.
 This will also allow mirrors on both sides of a model without recursion.
 ================
 */
-static qboolean R_CullSurface( surfaceType_t *surface, shader_t *shader, int *frontFace ) {
+static qboolean R_CullSurface( surfaceType_t *surface, shader_t *shader ) {
 	srfGeneric_t    *gen;
 	int cull;
 	float d;
-
-
-	// force to non-front facing
-	*frontFace = 0;
 
 	// allow culling to be disabled
 	if ( r_nocull->integer ) {
@@ -189,9 +185,6 @@ static qboolean R_CullSurface( surfaceType_t *surface, shader_t *shader, int *fr
 	// plane cull
 	if ( gen->plane.type != PLANE_NON_PLANAR && r_facePlaneCull->integer ) {
 		d = DotProduct( tr.orientation.viewOrigin, gen->plane.normal ) - gen->plane.dist;
-		if ( d > 0.0f ) {
-			*frontFace = 1;
-		}
 
 		// don't cull exactly on the plane, because there are levels of rounding
 		// through the BSP, ICD, and hardware that may cause pixel gaps if an
@@ -391,7 +384,7 @@ static int R_DlightSurface( msurface_t *surface, int dlightBits ) {
 		break;
 
 	default:
-		gen->dlightBits[ tr.smpFrame ] = 0;
+		gen->dlightBits = 0;
 		return 0;
 	}
 
@@ -441,7 +434,7 @@ static int R_DlightSurface( msurface_t *surface, int dlightBits ) {
 	}
 
 	// set surface dlight bits and return
-	gen->dlightBits[ tr.smpFrame ] = dlightBits;
+	gen->dlightBits = dlightBits;
 	return dlightBits;
 }
 
@@ -455,7 +448,7 @@ R_AddWorldSurface
 ======================
 */
 static void R_AddWorldSurface( msurface_t *surf, shader_t *shader, int dlightMap, int decalBits ) {
-	int i, frontFace;
+	int i;
 
 
 	if ( surf->viewCount == tr.viewCount ) {
@@ -466,7 +459,7 @@ static void R_AddWorldSurface( msurface_t *surf, shader_t *shader, int dlightMap
 	// FIXME: bmodel fog?
 
 	// try to cull before dlighting or adding
-	if ( R_CullSurface( surf->data, shader, &frontFace ) ) {
+	if ( R_CullSurface( surf->data, shader ) ) {
 		return;
 	}
 
@@ -487,7 +480,7 @@ static void R_AddWorldSurface( msurface_t *surf, shader_t *shader, int dlightMap
 		}
 	}
 
-	R_AddDrawSurf( surf->data, shader, surf->fogIndex, frontFace, dlightMap );
+	R_AddDrawSurf( surf->data, shader, surf->fogIndex, dlightMap );
 }
 
 /*
@@ -606,12 +599,12 @@ void R_AddBrushModelSurfaces( trRefEntity_t *ent ) {
 	tr.currentBModel = bmodel;
 
 	// ydnar: set model state for decals and dynamic fog
-	VectorCopy( ent->e.origin, bmodel->orientation[ tr.smpFrame ].origin );
-	VectorCopy( ent->e.axis[ 0 ], bmodel->orientation[ tr.smpFrame ].axis[ 0 ] );
-	VectorCopy( ent->e.axis[ 1 ], bmodel->orientation[ tr.smpFrame ].axis[ 1 ] );
-	VectorCopy( ent->e.axis[ 2 ], bmodel->orientation[ tr.smpFrame ].axis[ 2 ] );
-	bmodel->visible[ tr.smpFrame ] = qtrue;
-	bmodel->entityNum[ tr.smpFrame ] = tr.currentEntityNum;
+	VectorCopy( ent->e.origin, bmodel->orientation.origin );
+	VectorCopy( ent->e.axis[ 0 ], bmodel->orientation.axis[ 0 ] );
+	VectorCopy( ent->e.axis[ 1 ], bmodel->orientation.axis[ 1 ] );
+	VectorCopy( ent->e.axis[ 2 ], bmodel->orientation.axis[ 2 ] );
+	bmodel->visible = qtrue;
+	bmodel->entityNum = tr.currentEntityNum;
 
 	R_DlightBmodel( bmodel );
 
@@ -866,28 +859,28 @@ R_PointInLeaf
 ===============
 */
 static mnode_t *R_PointInLeaf( const vec3_t p ) {
-	mnode_t     *node;
-	float d;
-	cplane_t    *plane;
-
+	mnode_t		*node;
+	float		d;
+	cplane_t	*plane;
+	
 	if ( !tr.world ) {
-		ri.Error( ERR_DROP, "R_PointInLeaf: bad model" );
+		ri.Error (ERR_DROP, "R_PointInLeaf: bad model");
 	}
 
 	node = tr.world->nodes;
-	while ( 1 ) {
-		if ( node->contents != -1 ) {
+	while( 1 ) {
+		if (node->contents != CONTENTS_NODE ) {
 			break;
 		}
 		plane = node->plane;
-		d = DotProduct( p,plane->normal ) - plane->dist;
-		if ( d > 0 ) {
+		d = DotProduct (p,plane->normal) - plane->dist;
+		if (d > 0) {
 			node = node->children[0];
 		} else {
 			node = node->children[1];
 		}
 	}
-
+	
 	return node;
 }
 
@@ -951,9 +944,9 @@ static void R_MarkLeaves( void ) {
 	// if the cluster is the same and the area visibility matrix
 	// hasn't changed, we don't need to mark everything again
 
-	// if r_showcluster was just turned on, remark everything
-	if ( tr.viewCluster == cluster && !tr.refdef.areamaskModified
-		 && !r_showcluster->modified ) {
+	// if r_showcluster was just turned on, remark everything 
+	if ( tr.viewCluster == cluster && !tr.refdef.areamaskModified 
+		&& !r_showcluster->modified ) {
 		return;
 	}
 
@@ -968,30 +961,30 @@ static void R_MarkLeaves( void ) {
 	tr.viewCluster = cluster;
 
 	if ( r_novis->integer || tr.viewCluster == -1 ) {
-		for ( i = 0 ; i < tr.world->numnodes ; i++ ) {
-			if ( tr.world->nodes[i].contents != CONTENTS_SOLID ) {
+		for (i=0 ; i<tr.world->numnodes ; i++) {
+			if (tr.world->nodes[i].contents != CONTENTS_SOLID) {
 				tr.world->nodes[i].visframe = tr.visCount;
 			}
 		}
 		return;
 	}
 
-	vis = R_ClusterPVS( tr.viewCluster );
-
-	for ( i = 0,leaf = tr.world->nodes ; i < tr.world->numnodes ; i++, leaf++ ) {
+	vis = R_ClusterPVS (tr.viewCluster);
+	
+	for (i=0,leaf=tr.world->nodes ; i<tr.world->numnodes ; i++, leaf++) {
 		cluster = leaf->cluster;
 		if ( cluster < 0 || cluster >= tr.world->numClusters ) {
 			continue;
 		}
 
 		// check general pvs
-		if ( !( vis[cluster >> 3] & ( 1 << ( cluster & 7 ) ) ) ) {
+		if ( !(vis[cluster>>3] & (1<<(cluster&7))) ) {
 			continue;
 		}
 
 		// check for door connection
-		if ( ( tr.refdef.areamask[leaf->area >> 3] & ( 1 << ( leaf->area & 7 ) ) ) ) {
-			continue;       // not visible
+		if ( (tr.refdef.areamask[leaf->area>>3] & (1<<(leaf->area&7)) ) ) {
+			continue;		// not visible
 		}
 
 		// ydnar: don't want to walk the entire bsp to add skybox surfaces
@@ -1007,12 +1000,11 @@ static void R_MarkLeaves( void ) {
 
 		parent = leaf;
 		do {
-			if ( parent->visframe == tr.visCount ) {
+			if (parent->visframe == tr.visCount)
 				break;
-			}
 			parent->visframe = tr.visCount;
 			parent = parent->parent;
-		} while ( parent );
+		} while (parent);
 	}
 }
 
@@ -1031,8 +1023,8 @@ void R_AddWorldSurfaces( void ) {
 		return;
 	}
 
-	tr.currentEntityNum = ENTITYNUM_WORLD;
-	tr.shiftedEntityNum = tr.currentEntityNum << QSORT_ENTITYNUM_SHIFT;
+	tr.currentEntityNum = REFENTITYNUM_WORLD;
+	tr.shiftedEntityNum = tr.currentEntityNum << QSORT_REFENTITYNUM_SHIFT;
 
 	// ydnar: set current brush model to world
 	tr.currentBModel = &tr.world->bmodels[ 0 ];

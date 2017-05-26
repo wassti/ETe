@@ -194,6 +194,37 @@ void SCR_DrawSmallChar( int x, int y, int ch ) {
 
 
 /*
+** SCR_DrawSmallString
+** small string are drawn at native screen resolution
+*/
+void SCR_DrawSmallString( int x, int y, const char *s, int len ) {
+	int row, col, ch, i;
+	float frow, fcol;
+	float size;
+
+	if ( y < -SMALLCHAR_HEIGHT ) {
+		return;
+	}
+
+	size = 0.0625;
+
+	for ( i = 0; i < len; i++ ) {
+		ch = *s++ & 255;
+		row = ch>>4;
+		col = ch&15;
+
+		frow = row*0.0625;
+		fcol = col*0.0625;
+
+		re.DrawStretchPic( x, y, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT,
+						   fcol, frow, fcol + size, frow + size, 
+						   cls.charSetShader );
+
+		x += SMALLCHAR_WIDTH;
+	}
+}
+
+/*
 ==================
 SCR_DrawBigString[Color]
 
@@ -203,10 +234,11 @@ to a fixed color.
 Coordinates are at 640 by 480 virtual resolution
 ==================
 */
-void SCR_DrawStringExt( int x, int y, float size, const char *string, float *setColor, qboolean forceColor ) {
-	vec4_t color;
-	const char  *s;
-	int xx;
+void SCR_DrawStringExt( int x, int y, float size, const char *string, const float *setColor, qboolean forceColor,
+		qboolean noColorEscape ) {
+	vec4_t		color;
+	const char	*s;
+	int			xx;
 
 	// draw the drop shadow
 	color[0] = color[1] = color[2] = 0;
@@ -215,7 +247,7 @@ void SCR_DrawStringExt( int x, int y, float size, const char *string, float *set
 	s = string;
 	xx = x;
 	while ( *s ) {
-		if ( Q_IsColorString( s ) ) {
+		if ( !noColorEscape && Q_IsColorString( s ) ) {
 			s += 2;
 			continue;
 		}
@@ -235,14 +267,16 @@ void SCR_DrawStringExt( int x, int y, float size, const char *string, float *set
 				if ( *( s + 1 ) == COLOR_NULL ) {
 					memcpy( color, setColor, sizeof( color ) );
 				} else {
-					memcpy( color, g_color_table[ColorIndex( *( s + 1 ) )], sizeof( color ) );
+					memcpy( color, g_color_table[ColorIndexFromChar( *( s + 1 ) )], sizeof( color ) );
 					color[3] = setColor[3];
 				}
 				color[3] = setColor[3];
 				re.SetColor( color );
 			}
-			s += 2;
-			continue;
+			if ( !noColorEscape ) {
+				s += 2;
+				continue;
+			}
 		}
 		SCR_DrawChar( xx, y, size, *s );
 		xx += size;
@@ -252,17 +286,14 @@ void SCR_DrawStringExt( int x, int y, float size, const char *string, float *set
 }
 
 
-void SCR_DrawBigString( int x, int y, const char *s, float alpha ) {
-	float color[4];
+void SCR_DrawBigString( int x, int y, const char *s, float alpha, qboolean noColorEscape ) {
+	float	color[4];
 
 	color[0] = color[1] = color[2] = 1.0;
 	color[3] = alpha;
-	SCR_DrawStringExt( x, y, BIGCHAR_WIDTH, s, color, qfalse );
+	SCR_DrawStringExt( x, y, BIGCHAR_WIDTH, s, color, qfalse, noColorEscape );
 }
 
-void SCR_DrawBigStringColor( int x, int y, const char *s, vec4_t color ) {
-	SCR_DrawStringExt( x, y, BIGCHAR_WIDTH, s, color, qtrue );
-}
 
 
 /*
@@ -271,14 +302,13 @@ SCR_DrawSmallString[Color]
 
 Draws a multi-colored string with a drop shadow, optionally forcing
 to a fixed color.
-
-Coordinates are at 640 by 480 virtual resolution
 ==================
 */
-void SCR_DrawSmallStringExt( int x, int y, const char *string, float *setColor, qboolean forceColor ) {
-	vec4_t color;
-	const char  *s;
-	int xx;
+void SCR_DrawSmallStringExt( int x, int y, const char *string, const float *setColor, qboolean forceColor,
+		qboolean noColorEscape ) {
+	vec4_t		color;
+	const char	*s;
+	int			xx;
 
 	// draw the colored text
 	s = string;
@@ -290,13 +320,15 @@ void SCR_DrawSmallStringExt( int x, int y, const char *string, float *setColor, 
 				if ( *( s + 1 ) == COLOR_NULL ) {
 					memcpy( color, setColor, sizeof( color ) );
 				} else {
-					memcpy( color, g_color_table[ColorIndex( *( s + 1 ) )], sizeof( color ) );
+					memcpy( color, g_color_table[ColorIndexFromChar( *( s + 1 ) )], sizeof( color ) );
 					color[3] = setColor[3];
 				}
 				re.SetColor( color );
 			}
-			s += 2;
-			continue;
+			if ( !noColorEscape ) {
+				s += 2;
+				continue;
+			}
 		}
 		SCR_DrawSmallChar( xx, y, *s );
 		xx += SMALLCHAR_WIDTH;
@@ -347,8 +379,50 @@ void SCR_DrawDemoRecording( void ) {
 	}
 
 	//bani
-	Cvar_Set( "cl_demooffset", va( "%d", FS_FTell( clc.demofile ) ) );
+	Cvar_Set( "cl_demooffset", va( "%d", FS_FTell( clc.recordfile ) ) );
 }
+
+
+#ifdef USE_VOIP
+/*
+=================
+SCR_DrawVoipMeter
+=================
+*/
+void SCR_DrawVoipMeter( void ) {
+	char	buffer[16];
+	char	string[256];
+	int limit, i;
+
+	if (!cl_voipShowMeter->integer)
+		return;  // player doesn't want to show meter at all.
+	else if (!cl_voipSend->integer)
+		return;  // not recording at the moment.
+	else if (clc.state != CA_ACTIVE)
+		return;  // not connected to a server.
+	else if (!clc.voipEnabled)
+		return;  // server doesn't support VoIP.
+	else if (clc.demoplaying)
+		return;  // playing back a demo.
+	else if (!cl_voip->integer)
+		return;  // client has VoIP support disabled.
+
+	limit = (int) (clc.voipPower * 10.0f);
+	if (limit > 10)
+		limit = 10;
+
+	for (i = 0; i < limit; i++)
+		buffer[i] = '*';
+	while (i < 10)
+		buffer[i++] = ' ';
+	buffer[i] = '\0';
+
+	sprintf( string, "VoIP: [%s]", buffer );
+	SCR_DrawStringExt( 320 - strlen( string ) * 4, 10, 8, string, g_color_table[ ColorIndex( COLOR_WHITE ) ], qtrue, qfalse );
+}
+#endif
+
+
 
 
 /*
@@ -443,7 +517,11 @@ This will be called twice if rendering in stereo mode
 ==================
 */
 void SCR_DrawScreenField( stereoFrame_t stereoFrame ) {
+	qboolean uiFullscreen;
+
 	re.BeginFrame( stereoFrame );
+
+	uiFullscreen = (uivm && VM_Call( uivm, UI_IS_FULLSCREEN ));
 
 	// wide aspect ratio screens need to have the sides cleared
 	// unless they are displaying game renderings
@@ -462,8 +540,8 @@ void SCR_DrawScreenField( stereoFrame_t stereoFrame ) {
 
 	// if the menu is going to cover the entire screen, we
 	// don't need to render anything under it
-	if ( !VM_Call( uivm, UI_IS_FULLSCREEN ) ) {
-		switch ( cls.state ) {
+	if ( uivm && !uiFullscreen ) {
+		switch( cls.state ) {
 		default:
 			Com_Error( ERR_FATAL, "SCR_DrawScreenField: bad cls.state" );
 			break;
@@ -501,23 +579,27 @@ void SCR_DrawScreenField( stereoFrame_t stereoFrame ) {
 			VM_Call( uivm, UI_DRAW_CONNECT_SCREEN, qtrue );
 			break;
 		case CA_ACTIVE:
+			// always supply STEREO_CENTER as vieworg offset is now done by the engine.
 			CL_CGameRendering( stereoFrame );
 			SCR_DrawDemoRecording();
+#ifdef USE_VOIP
+			SCR_DrawVoipMeter();
+#endif
 			break;
 		}
 	}
 
 	// the menu draws next
-	if ( cls.keyCatchers & KEYCATCH_UI && uivm ) {
+	if ( Key_GetCatcher( ) & KEYCATCH_UI && uivm ) {
 		VM_Call( uivm, UI_REFRESH, cls.realtime );
 	}
 
 	// console draws next
-	Con_DrawConsole();
+	Con_DrawConsole ();
 
 	// debug graph can be drawn on top of anything
 	if ( cl_debuggraph->integer || cl_timegraph->integer || cl_debugMove->integer ) {
-		SCR_DrawDebugGraph();
+		SCR_DrawDebugGraph ();
 	}
 }
 
@@ -544,18 +626,25 @@ void SCR_UpdateScreen( void ) {
 	}
 	recursive = 1;
 
-	// if running in stereo, we need to draw the frame twice
-	if ( cls.glconfig.stereoEnabled ) {
-		SCR_DrawScreenField( STEREO_LEFT );
-		SCR_DrawScreenField( STEREO_RIGHT );
-	} else {
-		SCR_DrawScreenField( STEREO_CENTER );
-	}
+	// If there is no VM, there are also no rendering commands issued. Stop the renderer in
+	// that case.
+	if ( uivm )
+	{
+		// XXX
+		int in_anaglyphMode = Cvar_VariableIntegerValue("r_anaglyphMode");
+		// if running in stereo, we need to draw the frame twice
+		if ( cls.glconfig.stereoEnabled || in_anaglyphMode) {
+			SCR_DrawScreenField( STEREO_LEFT );
+			SCR_DrawScreenField( STEREO_RIGHT );
+		} else {
+			SCR_DrawScreenField( STEREO_CENTER );
+		}
 
-	if ( com_speeds->integer ) {
-		re.EndFrame( &time_frontend, &time_backend );
-	} else {
-		re.EndFrame( NULL, NULL );
+		if ( com_speeds->integer ) {
+			re.EndFrame( &time_frontend, &time_backend );
+		} else {
+			re.EndFrame( NULL, NULL );
+		}
 	}
 
 	recursive = 0;

@@ -536,6 +536,7 @@ char	*Cmd_Argv (int arg);
 void	Cmd_ArgvBuffer( int arg, char *buffer, int bufferLength );
 char	*Cmd_Args (void);
 char	*Cmd_ArgsFrom( int arg );
+char	*Cmd_ArgsRange( int arg, int count );
 void	Cmd_ArgsBuffer( char *buffer, int bufferLength );
 char	*Cmd_Cmd (void);
 void	Cmd_Args_Sanitize( void );
@@ -980,17 +981,7 @@ typedef struct gameInfo_s {
 
 extern gameInfo_t com_gameInfo;
 
-// returnbed by Sys_GetProcessorId
-#define CPUID_GENERIC           0           // any unrecognized processor
-
-#define CPUID_AXP               0x10
-
-#define CPUID_INTEL_UNSUPPORTED 0x20            // Intel 386/486
-#define CPUID_INTEL_PENTIUM     0x21            // Intel Pentium or PPro
-#define CPUID_INTEL_MMX         0x22            // Intel Pentium/MMX or P2/MMX
-#define CPUID_INTEL_KATMAI      0x23            // Intel Katmai
-
-#define CPUID_AMD_3DNOW         0x30            // AMD K6 3DNOW!
+void Com_GetGameInfo( void );
 
 // TTimo
 // centralized and cleaned, that's the max string you can send to a Com_Printf / Com_DPrintf (above gets truncated)
@@ -1016,7 +1007,7 @@ unsigned	Com_BlockChecksum( const void *buffer, int length );
 char		*Com_MD5File(const char *filename, int length, const char *prefix, int prefix_len);
 char		*Com_MD5Buf( const char *data, int length, const char *data2, int length2 );
 qboolean    Com_CDKeyValidate( const char *key, const char *checksum );
-char		*Com_ConsoleTitle( char *commandline );
+qboolean	Com_EarlyParseCmdLine( char *commandLine, char *con_title, int title_size, int *vid_xpos, int *vid_ypos );
 int			Com_Split( char *in, char **out, int outsz, int delim );
 
 int			Com_Filter(char *filter, char *name, int casesensitive);

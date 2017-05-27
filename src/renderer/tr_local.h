@@ -1272,8 +1272,6 @@ extern cvar_t   *r_zfar;                // far Z clip plane
 extern cvar_t	*r_zproj;				// z distance of projection plane
 extern cvar_t	*r_stereoSeparation;			// separation of cameras for stereo rendering
 
-extern cvar_t   *r_measureOverdraw;     // enables stencil buffer overdraw measurement
-
 extern cvar_t   *r_lodbias;             // push/pull LOD transitions
 extern cvar_t   *r_lodscale;
 
@@ -1572,16 +1570,6 @@ typedef struct stageVars
 	color4ub_t colors[SHADER_MAX_VERTEXES];
 	vec2_t texcoords[NUM_TEXTURE_BUNDLES][SHADER_MAX_VERTEXES];
 } stageVars_t;
-
-/*extern glIndex_t tess_indexes[SHADER_MAX_INDEXES];
-extern vec4_t tess_xyz[SHADER_MAX_VERTEXES];
-extern vec4_t tess_normal[SHADER_MAX_VERTEXES];
-extern vec2_t tess_texCoords0[SHADER_MAX_VERTEXES];
-extern vec2_t tess_texCoords1[SHADER_MAX_VERTEXES];
-extern color4ub_t tess_vertexColors[SHADER_MAX_VERTEXES];
-#ifdef USE_LEGACY_DLIGHTS
-extern int tess_vertexDlightBits[SHADER_MAX_VERTEXES];
-#endif*/
 
 typedef struct shaderCommands_s 
 {
@@ -1963,8 +1951,6 @@ typedef enum {
 	RC_STRETCH_PIC_GRADIENT,    // (SA) added
 	RC_DRAW_SURFS,
 	RC_DRAW_BUFFER,
-	RC_SWAP_BUFFERS,
-	RC_SCREENSHOT,
 	RC_VIDEOFRAME,
 	RC_COLORMASK,
 	RC_CLEARDEPTH,

@@ -342,6 +342,7 @@ nmake /f Makefile.vc6 CFG=release
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug Dedicated|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release Dedicated|Win32'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="qcommon\gameinfo.c" />
     <ClCompile Include="qcommon\history.c" />
     <ClCompile Include="qcommon\huffman_static.c" />
     <ClCompile Include="qcommon\keys.c" />

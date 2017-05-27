@@ -43,7 +43,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 #include <assert.h>
 #include "../renderer/tr_local.h"
-//#include "../renderer/tr_common.h"
+#include "../renderer/tr_common.h"
 #include "../qcommon/qcommon.h"
 #include "resource.h"
 #include "glw_win.h"
@@ -194,7 +194,7 @@ __rescan:
 		{
 			if ( r_verbose->integer )
 			{
-				ri.Printf( PRINT_ALL, "...PFD %d rejected, improper flags (%x instead of %x)\n", i, pfds[i].dwFlags, pPFD->dwFlags );
+				ri.Printf( PRINT_ALL, "...PFD %d rejected, improper flags (%lx instead of %lx)\n", i, pfds[i].dwFlags, pPFD->dwFlags );
 			}
 			continue;
 		}
@@ -410,7 +410,7 @@ static int GLW_MakeContext( PIXELFORMATDESCRIPTOR *pPFD )
 
 		if ( SetPixelFormat( glw_state.hDC, pixelformat, pPFD ) == FALSE )
 		{
-			ri.Printf (PRINT_ALL, "...SetPixelFormat failed\n", glw_state.hDC );
+			ri.Printf (PRINT_ALL, "...SetPixelFormat failed\n" );
 			return TRY_PFD_FAIL_SOFT;
 		}
 
@@ -619,7 +619,7 @@ static qboolean GLW_CreateWindow( const char *drivername, int width, int height,
 		ri.Printf( PRINT_ALL, "...registered window class\n" );
 	}
 
-	UpdateMonitorInfo();
+	UpdateMonitorInfo( NULL );
 
 	//
 	// create the HWND if one does not already exist
@@ -649,6 +649,15 @@ static qboolean GLW_CreateWindow( const char *drivername, int width, int height,
 		w = r.right - r.left;
 		h = r.bottom - r.top;
 
+		// select monitor from window rect
+		vid_xpos = ri.Cvar_Get( "vid_xpos", "", 0 );
+		vid_ypos = ri.Cvar_Get( "vid_ypos", "", 0 );
+		r.left = vid_xpos->integer;
+		r.top = vid_ypos->integer;
+		r.right = r.left + w;
+		r.bottom = r.top + h;
+		UpdateMonitorInfo( &r );
+
 		if ( cdsFullscreen )
 		{
 			x = glw_state.desktopX;
@@ -656,18 +665,16 @@ static qboolean GLW_CreateWindow( const char *drivername, int width, int height,
 		}
 		else
 		{
-			vid_xpos = ri.Cvar_Get( "vid_xpos", "", 0 );
-			vid_ypos = ri.Cvar_Get( "vid_ypos", "", 0 );
 			x = vid_xpos->integer;
 			y = vid_ypos->integer;
 
 			// adjust window coordinates if necessary 
 			// so that the window is completely on screen
 
-			if ( w < glw_state.desktopWidth && (x + w) > glw_state.desktopWidth )
-				x = ( glw_state.desktopWidth - w );
-			if ( h < glw_state.desktopHeight && (y + h) > glw_state.desktopHeight )
-				y = ( glw_state.desktopHeight - h );
+			if ( w < glw_state.desktopWidth && (x + w) > glw_state.desktopWidth + glw_state.desktopX )
+				x = ( glw_state.desktopWidth + glw_state.desktopX - w );
+			if ( h < glw_state.desktopHeight && (y + h) > glw_state.desktopHeight + glw_state.desktopY )
+				y = ( glw_state.desktopHeight + glw_state.desktopY - h );
 
 			if ( x < glw_state.desktopX )
 				x = glw_state.desktopX;
@@ -825,17 +832,19 @@ void SetDesktopDisplaySettings( void )
 }
 
 
-void UpdateMonitorInfo( void ) 
+void UpdateMonitorInfo( const RECT *target ) 
 {
 	MONITORINFOEX mInfo;
 	DEVMODE	devMode;
 	HMONITOR hMon;
-	RECT *Rect;
+	const RECT *Rect;
 	int w, h, x ,y;
 
 	glw_state.monitorCount = GetSystemMetrics( SM_CMONITORS );
 
-	if ( g_wv.winRectValid )
+	if ( target )
+		Rect = target;
+	else if ( g_wv.winRectValid )
 		Rect = &g_wv.winRect;
 	else
 		Rect = &g_wv.conRect;
@@ -1006,7 +1015,7 @@ static rserr_t GLW_SetMode( const char *drivername, int mode, const char *modeFS
 	//glw_state.desktopY = 0;
 	//ReleaseDC( GetDesktopWindow(), hDC );
 	
-	UpdateMonitorInfo();
+	UpdateMonitorInfo( NULL );
 
 	//
 	// print out informational messages
@@ -1225,12 +1234,54 @@ qboolean GLimp_HaveExtension( const char *ext )
 	return ((*ptr == ' ') || (*ptr == '\0'));  // verify it's complete string.
 }
 
+// Truncates the GL extensions string by only allowing up to 'maxExtensions' extensions in the string.
+static const char *TruncateGLExtensionsString( const char *extensionsString, int maxExtensions ) {
+	const char *p = extensionsString;
+	const char *q;
+	int numExtensions = 0;
+	size_t extensionsLen = strlen( extensionsString );
+
+	char *truncatedExtensions;
+
+	while ( ( q = strchr( p, ' ' ) ) != NULL && numExtensions <= maxExtensions ) {
+		p = q + 1;
+		numExtensions++;
+	}
+
+	if ( q != NULL ) {
+		// We still have more extensions. We'll call this the end
+
+		extensionsLen = p - extensionsString - 1;
+	}
+
+	truncatedExtensions = (char *)Hunk_Alloc( extensionsLen + 1, h_low );
+	Q_strncpyz( truncatedExtensions, extensionsString, extensionsLen + 1 );
+
+	return truncatedExtensions;
+}
 
 /*
 ** GLW_InitExtensions
 */
 static void GLW_InitExtensions( void )
 {
+	size_t len;
+
+	if ( !qglGetString( GL_EXTENSIONS ) )
+		return;
+
+	// get our config strings
+	Q_strncpyz( glConfig.vendor_string, (char *)qglGetString (GL_VENDOR), sizeof( glConfig.vendor_string ) );
+	Q_strncpyz( glConfig.renderer_string, (char *)qglGetString (GL_RENDERER), sizeof( glConfig.renderer_string ) );
+	len = strlen( glConfig.renderer_string );
+	if ( len && glConfig.renderer_string[ len - 1 ] == '\n')
+		glConfig.renderer_string[ len - 1 ] = '\0';
+	Q_strncpyz( glConfig.version_string, (char *)qglGetString (GL_VERSION), sizeof( glConfig.version_string ) );
+
+	glConfigExt.originalExtensionString = (const char *)qglGetString( GL_EXTENSIONS );
+	Q_strncpyz( glw_state.gl_extensions, glConfigExt.originalExtensionString, sizeof( glw_state.gl_extensions ) );
+	Q_strncpyz( glConfig.extensions_string, TruncateGLExtensionsString( glConfigExt.originalExtensionString, 128 ), sizeof( glConfig.extensions_string ) );
+
 	if ( !r_allowExtensions->integer )
 	{
 		ri.Printf( PRINT_ALL, "*** IGNORING OPENGL EXTENSIONS ***\n" );
@@ -1637,31 +1688,6 @@ static qboolean GLW_StartOpenGL( void )
 	return qtrue;
 }
 
-// Truncates the GL extensions string by only allowing up to 'maxExtensions' extensions in the string.
-static const char *TruncateGLExtensionsString( const char *extensionsString, int maxExtensions ) {
-	const char *p = extensionsString;
-	const char *q;
-	int numExtensions = 0;
-	size_t extensionsLen = strlen( extensionsString );
-
-	char *truncatedExtensions;
-
-	while ( ( q = strchr( p, ' ' ) ) != NULL && numExtensions <= maxExtensions ) {
-		p = q + 1;
-		numExtensions++;
-	}
-
-	if ( q != NULL ) {
-		// We still have more extensions. We'll call this the end
-
-		extensionsLen = p - extensionsString - 1;
-	}
-
-	truncatedExtensions = (char *)Hunk_Alloc( extensionsLen + 1, h_low );
-	Q_strncpyz( truncatedExtensions, extensionsString, extensionsLen + 1 );
-
-	return truncatedExtensions;
-}
 
 /*
 ** GLimp_Init
@@ -1673,14 +1699,10 @@ static const char *TruncateGLExtensionsString( const char *extensionsString, int
 ** to make sure that a functional OpenGL subsystem is operating
 ** when it returns to the ref.
 */
-void GLimp_Init( void ) {
-	char buf[1024];
-	cvar_t *lastValidRenderer = ri.Cvar_Get( "r_lastValidRenderer", "(uninitialized)", CVAR_ARCHIVE );
-//	cvar_t  *cv;
-//	size_t len;
+void GLimp_Init( void )
+{
 	ri.Printf( PRINT_ALL, "Initializing OpenGL subsystem\n" );
 
-	// ENSI note, check this
 	//
 	// check OS version to see if we can do fullscreen display changes
 	//
@@ -1708,84 +1730,10 @@ void GLimp_Init( void ) {
 		Com_DPrintf( S_COLOR_YELLOW "WARNNING: GL extensions string too long (%d), truncated to %d\n", strlen( qglGetString( GL_EXTENSIONS ) ), sizeof( glConfig.extensions_string ) );
 	}*/
 
-	//
-	// chipset specific configuration
-	//
-	Q_strncpyz( buf, glConfig.renderer_string, sizeof( buf ) );
-	Q_strlwr( buf );
 
-	//
-	// NOTE: if changing cvars, do it within this block.  This allows them
-	// to be overridden when testing driver fixes, etc. but only sets
-	// them to their default state when the hardware is first installed/run.
-	//
-	if ( Q_stricmp( lastValidRenderer->string, glConfig.renderer_string ) ) {
-		glConfig.hardwareType = GLHW_GENERIC;
 
-		ri.Cvar_Set( "r_textureMode", "GL_LINEAR_MIPMAP_NEAREST" );
 
-		// VOODOO GRAPHICS w/ 2MB
-		if ( strstr( buf, "voodoo graphics/1 tmu/2 mb" ) ) {
-			ri.Cvar_Set( "r_picmip", "2" );
-			ri.Cvar_Get( "r_picmip", "1", CVAR_ARCHIVE | CVAR_LATCH );
-		} else
-		{
-
-//----(SA)	FIXME: RETURN TO DEFAULT  Another id build change for DK/DM
-			ri.Cvar_Set( "r_picmip", "1" );   //----(SA)	was "1" // JPW NERVE back to 1
-//----(SA)
-
-			if ( strstr( buf, "rage 128" ) || strstr( buf, "rage128" ) ) {
-				ri.Cvar_Set( "r_finish", "0" );
-			}
-			// Savage3D and Savage4 should always have trilinear enabled
-			else if ( strstr( buf, "savage3d" ) || strstr( buf, "s3 savage4" ) ) {
-				ri.Cvar_Set( "r_texturemode", "GL_LINEAR_MIPMAP_LINEAR" );
-			}
-		}
-	}
-
-	//
-	// this is where hardware specific workarounds that should be
-	// detected/initialized every startup should go.
-	//
-	if ( strstr( buf, "banshee" ) || strstr( buf, "voodoo3" ) ) {
-		glConfig.hardwareType = GLHW_3DFX_2D3D;
-	}
-	// VOODOO GRAPHICS w/ 2MB
-	else if ( strstr( buf, "voodoo graphics/1 tmu/2 mb" ) ) {
-	} else if ( strstr( buf, "glzicd" ) )    {
-	} else if ( strstr( buf, "rage pro" ) /*|| strstr( buf, "Rage Pro")*/ || strstr( buf, "ragepro" ) )     {
-		glConfig.hardwareType = GLHW_RAGEPRO;
-		ri.Printf( PRINT_WARNING, "WARNING: Rage Pro hardware is unsupported. Rendering errors may occur.\n" );
-	} else if ( strstr( buf, "rage 128" ) )    {
-	} else if ( strstr( buf, "permedia2" ) )    {
-		glConfig.hardwareType = GLHW_PERMEDIA2;
-		ri.Printf( PRINT_WARNING, "WARNING: Permedia hardware is unsupported. Rendering errors may occur.\n" );
-	} else if ( strstr( buf, "riva 128" ) )    {
-		glConfig.hardwareType = GLHW_RIVA128;
-		ri.Printf( PRINT_WARNING, "WARNING: Riva 128 hardware is unsupported. Rendering errors may occur.\n" );
-	} else if ( strstr( buf, "matrox" ) )     {
-	} else if ( strstr( buf, "riva tnt " ) )    {
-	}
-
-	if ( strstr( buf, "geforce3" ) ||
-		 strstr( buf, "geforce4 ti" ) ||
-		 strstr( buf, "geforce fx 5600" ) ||
-		 strstr( buf, "geforce fx 5800" ) ||
-		 strstr( buf, "radeon 8500" ) ||
-		 strstr( buf, "radeon 9000" ) ||
-		 strstr( buf, "radeon 9500" ) ||
-		 strstr( buf, "radeon 9600" ) ||
-		 strstr( buf, "radeon 9700" ) ||
-		 strstr( buf, "radeon 9800" ) ||
-		 strstr( buf, "nv20" ) ||
-		 strstr( buf, "nv30" ) ) {
-		ri.Cvar_Set( "r_highQualityVideo", "1" );
-	} else {
-		ri.Cvar_Set( "r_highQualityVideo", "0" );
-	}
-
+	ri.Cvar_Set( "r_highQualityVideo", "1" );
 	ri.Cvar_Set( "r_lastValidRenderer", glConfig.renderer_string );
 
 	GLW_InitExtensions();
@@ -1832,7 +1780,10 @@ void GLimp_Shutdown( void )
 	ri.Printf( PRINT_ALL, "Shutting down OpenGL subsystem\n" );
 
 	// restore gamma.  We do this first because 3Dfx's extension needs a valid OGL subsystem
-	WG_RestoreGamma();
+	if ( glw_state.gammaSet ) {
+		WG_RestoreGamma();
+		glw_state.gammaSet = qfalse;
+	}
 
 #if defined(USE_PMLIGHT) && !defined(USE_RENDERER2)
 	QGL_DoneARB();

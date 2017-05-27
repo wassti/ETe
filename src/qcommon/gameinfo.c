@@ -1,0 +1,106 @@
+/*
+===========================================================================
+
+Wolfenstein: Enemy Territory GPL Source Code
+Copyright (C) 1999-2010 id Software LLC, a ZeniMax Media company. 
+
+This file is part of the Wolfenstein: Enemy Territory GPL Source Code (Wolf ET Source Code).  
+
+Wolf ET Source Code is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Wolf ET Source Code is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Wolf ET Source Code.  If not, see <http://www.gnu.org/licenses/>.
+
+In addition, the Wolf: ET Source Code is also subject to certain additional terms. You should have received a copy of these additional terms immediately following the terms and conditions of the GNU General Public License which accompanied the Wolf ET Source Code.  If not, please request a copy in writing from id Software at the address below.
+
+If you have questions concerning this license or the applicable additional terms, you may contact in writing id Software LLC, c/o ZeniMax Media Inc., Suite 120, Rockville, Maryland 20850 USA.
+
+===========================================================================
+*/
+
+#include "q_shared.h"
+#include "qcommon.h"
+
+/*typedef struct gameInfo_s {
+	qboolean spEnabled;
+	int spGameTypes;
+	int defaultSPGameType;
+	int coopGameTypes;
+	int defaultCoopGameType;
+	int defaultGameType;
+	qboolean usesProfiles;
+} gameInfo_t;*/
+
+// Arnout: gameinfo, to let the engine know which gametypes are SP and if we should use profiles.
+// This can't be dependant on gamecode as we sometimes need to know about it when no game-modules
+// are loaded
+gameInfo_t com_gameInfo;
+
+void Com_GetGameInfo( void ) {
+	char    *f, *buf;
+	char    *token;
+
+	memset( &com_gameInfo, 0, sizeof( com_gameInfo ) );
+
+	if ( FS_ReadFile( "gameinfo.dat", (void **)&f ) > 0 ) {
+
+		buf = f;
+
+		while ( ( token = COM_Parse( &buf ) ) != NULL && token[0] ) {
+			if ( !Q_stricmp( token, "spEnabled" ) ) {
+				com_gameInfo.spEnabled = qtrue;
+			} else if ( !Q_stricmp( token, "spGameTypes" ) ) {
+				while ( ( token = COM_ParseExt( &buf, qfalse ) ) != NULL && token[0] ) {
+					com_gameInfo.spGameTypes |= ( 1 << atoi( token ) );
+				}
+			} else if ( !Q_stricmp( token, "defaultSPGameType" ) ) {
+				if ( ( token = COM_ParseExt( &buf, qfalse ) ) != NULL && token[0] ) {
+					com_gameInfo.defaultSPGameType = atoi( token );
+				} else {
+					FS_FreeFile( f );
+					Com_Error( ERR_FATAL, "Com_GetGameInfo: bad syntax." );
+				}
+			} else if ( !Q_stricmp( token, "coopGameTypes" ) ) {
+
+				while ( ( token = COM_ParseExt( &buf, qfalse ) ) != NULL && token[0] ) {
+					com_gameInfo.coopGameTypes |= ( 1 << atoi( token ) );
+				}
+			} else if ( !Q_stricmp( token, "defaultCoopGameType" ) ) {
+				if ( ( token = COM_ParseExt( &buf, qfalse ) ) != NULL && token[0] ) {
+					com_gameInfo.defaultCoopGameType = atoi( token );
+				} else {
+					FS_FreeFile( f );
+					Com_Error( ERR_FATAL, "Com_GetGameInfo: bad syntax." );
+				}
+			} else if ( !Q_stricmp( token, "defaultGameType" ) ) {
+				if ( ( token = COM_ParseExt( &buf, qfalse ) ) != NULL && token[0] ) {
+					com_gameInfo.defaultGameType = atoi( token );
+				} else {
+					FS_FreeFile( f );
+					Com_Error( ERR_FATAL, "Com_GetGameInfo: bad syntax." );
+				}
+			} else if ( !Q_stricmp( token, "usesProfiles" ) ) {
+				if ( ( token = COM_ParseExt( &buf, qfalse ) ) != NULL && token[0] ) {
+					com_gameInfo.usesProfiles = atoi( token );
+				} else {
+					FS_FreeFile( f );
+					Com_Error( ERR_FATAL, "Com_GetGameInfo: bad syntax." );
+				}
+			} else {
+				FS_FreeFile( f );
+				Com_Error( ERR_FATAL, "Com_GetGameInfo: bad syntax." );
+			}
+		}
+
+		// all is good
+		FS_FreeFile( f );
+	}
+}

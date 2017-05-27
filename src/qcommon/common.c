@@ -31,7 +31,10 @@ If you have questions concerning this license or the applicable additional terms
 #include "q_shared.h"
 #include "qcommon.h"
 #include <setjmp.h>
-
+#ifndef _WIN32
+#include <netinet/in.h>
+#include <sys/stat.h> // umask
+#endif
 // htons
 #ifdef __linux__
 #include <netinet/in.h>
@@ -121,9 +124,6 @@ cvar_t	*com_recommendedSet;
 
 cvar_t	*com_watchdog;
 cvar_t	*com_watchdog_cmd;
-
-// Rafael Notebook
-cvar_t	*cl_notebook;
 
 cvar_t	*com_hunkused;      // Ridah
 
@@ -217,7 +217,7 @@ int QDECL Com_VPrintf( const char *fmt, va_list argptr ) {
 
 #ifndef DEDICATED
 	// echo to console if we're not a dedicated server
-	if ( com_dedicated && !com_dedicated->integer ) {
+	if ( !com_dedicated || !com_dedicated->integer ) {
 		CL_ConsolePrint( msg );
 	}
 #endif
@@ -515,23 +515,49 @@ void Com_ParseCommandLine( char *commandLine ) {
 Com_ConsoleTitle
 ===================
 */
-char *Com_ConsoleTitle( char *commandLine ) {
+qboolean Com_EarlyParseCmdLine( char *commandLine, char *con_title, int title_size, int *vid_xpos, int *vid_ypos ) 
+{
+	int		flags = 0;
 	int		i;
 	
+	*con_title = '\0';
 	Com_ParseCommandLine( commandLine );
 
 	for ( i = 0 ; i < com_numConsoleLines ; i++ ) {
 		Cmd_TokenizeString( com_consoleLines[i] );
 		if ( !Q_stricmpn( Cmd_Argv(0), "set", 3 ) && !Q_stricmp( Cmd_Argv(1), "con_title" ) ) {
 			com_consoleLines[i][0] = '\0';
-			return Cmd_ArgsFrom( 2 );
+			Q_strncpyz( con_title, Cmd_ArgsFrom( 2 ), title_size );
+			continue;
 		}
 		if ( !Q_stricmp( Cmd_Argv(0), "con_title" ) ) {
 			com_consoleLines[i][0] = '\0';
-			return Cmd_ArgsFrom( 1 );
+			Q_strncpyz( con_title, Cmd_ArgsFrom( 1 ), title_size );
+			continue;
+		}
+		if ( !Q_stricmpn( Cmd_Argv(0), "set", 3 ) && !Q_stricmp( Cmd_Argv(1), "vid_xpos" ) ) {
+			*vid_xpos = atoi( Cmd_Argv( 2 ) );
+			flags |= 1;
+			continue;
+		}
+		if ( !Q_stricmp( Cmd_Argv(0), "vid_xpos" ) ) {
+			*vid_xpos = atoi( Cmd_Argv( 1 ) );
+			flags |= 1;
+			continue;
+		}
+		if ( !Q_stricmpn( Cmd_Argv(0), "set", 3 ) && !Q_stricmp( Cmd_Argv(1), "vid_ypos" ) ) {
+			*vid_ypos = atoi( Cmd_Argv( 2 ) );
+			flags |= 2;
+			continue;
+		}
+		if ( !Q_stricmp( Cmd_Argv(0), "vid_ypos" ) ) {
+			*vid_ypos = atoi( Cmd_Argv( 1 ) );
+			flags |= 2;
+			continue;
 		}
 	}
-	return NULL;
+
+	return (flags == 3) ? qtrue : qfalse ;
 }
 
 
@@ -2382,7 +2408,6 @@ Com_EventLoop
 Returns last event time
 =================
 */
-
 int Com_EventLoop( void ) {
 	sysEvent_t	ev;
 	netadr_t	evFrom;
@@ -2789,72 +2814,6 @@ void Com_SetRecommended() {
 //	Cvar_Set("ui_glCustom", "999");	// 'recommended'
 }
 
-// Arnout: gameinfo, to let the engine know which gametypes are SP and if we should use profiles.
-// This can't be dependant on gamecode as we sometimes need to know about it when no game-modules
-// are loaded
-gameInfo_t com_gameInfo;
-
-void Com_GetGameInfo() {
-	char    *f, *buf;
-	char    *token;
-
-	memset( &com_gameInfo, 0, sizeof( com_gameInfo ) );
-
-	if ( FS_ReadFile( "gameinfo.dat", (void **)&f ) > 0 ) {
-
-		buf = f;
-
-		while ( ( token = COM_Parse( &buf ) ) != NULL && token[0] ) {
-			if ( !Q_stricmp( token, "spEnabled" ) ) {
-				com_gameInfo.spEnabled = qtrue;
-			} else if ( !Q_stricmp( token, "spGameTypes" ) ) {
-				while ( ( token = COM_ParseExt( &buf, qfalse ) ) != NULL && token[0] ) {
-					com_gameInfo.spGameTypes |= ( 1 << atoi( token ) );
-				}
-			} else if ( !Q_stricmp( token, "defaultSPGameType" ) ) {
-				if ( ( token = COM_ParseExt( &buf, qfalse ) ) != NULL && token[0] ) {
-					com_gameInfo.defaultSPGameType = atoi( token );
-				} else {
-					FS_FreeFile( f );
-					Com_Error( ERR_FATAL, "Com_GetGameInfo: bad syntax." );
-				}
-			} else if ( !Q_stricmp( token, "coopGameTypes" ) ) {
-
-				while ( ( token = COM_ParseExt( &buf, qfalse ) ) != NULL && token[0] ) {
-					com_gameInfo.coopGameTypes |= ( 1 << atoi( token ) );
-				}
-			} else if ( !Q_stricmp( token, "defaultCoopGameType" ) ) {
-				if ( ( token = COM_ParseExt( &buf, qfalse ) ) != NULL && token[0] ) {
-					com_gameInfo.defaultCoopGameType = atoi( token );
-				} else {
-					FS_FreeFile( f );
-					Com_Error( ERR_FATAL, "Com_GetGameInfo: bad syntax." );
-				}
-			} else if ( !Q_stricmp( token, "defaultGameType" ) ) {
-				if ( ( token = COM_ParseExt( &buf, qfalse ) ) != NULL && token[0] ) {
-					com_gameInfo.defaultGameType = atoi( token );
-				} else {
-					FS_FreeFile( f );
-					Com_Error( ERR_FATAL, "Com_GetGameInfo: bad syntax." );
-				}
-			} else if ( !Q_stricmp( token, "usesProfiles" ) ) {
-				if ( ( token = COM_ParseExt( &buf, qfalse ) ) != NULL && token[0] ) {
-					com_gameInfo.usesProfiles = atoi( token );
-				} else {
-					FS_FreeFile( f );
-					Com_Error( ERR_FATAL, "Com_GetGameInfo: bad syntax." );
-				}
-			} else {
-				FS_FreeFile( f );
-				Com_Error( ERR_FATAL, "Com_GetGameInfo: bad syntax." );
-			}
-		}
-
-		// all is good
-		FS_FreeFile( f );
-	}
-}
-
 // bani - checks if profile.pid is valid
 // return qtrue if it is
 // return qfalse if it isn't(!)
@@ -3040,23 +2999,125 @@ int Sys_GetProcessorId( char *vendor )
 		vendor[12] = '\0'; vendor += 12;
 		if ( CPU_Flags ) {
 			// print features
-			strcat( vendor, " /w" );
-#if !idx64	// do not print default 64-bit features
+#if !idx64	// do not print default 64-bit features in 32-bit mode
+			strcat( vendor, " w/" );
 			if ( CPU_Flags & CPU_FCOM )
-				strcat( vendor, "CMOV " );
+				strcat( vendor, " CMOV" );
 			if ( CPU_Flags & CPU_MMX )
-				strcat( vendor, "MMX " );
+				strcat( vendor, " MMX" );
 			if ( CPU_Flags & CPU_SSE )
-				strcat( vendor, "SSE " );
+				strcat( vendor, " SSE" );
 			if ( CPU_Flags & CPU_SSE2 )
-				strcat( vendor, "SSE2 " );
+				strcat( vendor, " SSE2" );
 #endif
-			if ( CPU_Flags & CPU_SSE3 )
-				strcat( vendor, "SSE3 " );
+			//if ( CPU_Flags & CPU_SSE3 )
+			//	strcat( vendor, " SSE3" );
 		}
 	}
 	return 1;
 }
+
+
+/*
+================
+Sys_SnapVector
+================
+*/
+#ifdef _MSC_VER
+#include <intrin.h>
+#if idx64
+void Sys_SnapVector( float *vector ) 
+{
+	__m128 vf0, vf1, vf2;
+	__m128i vi;
+	DWORD mxcsr;
+
+	mxcsr = _mm_getcsr();
+	vf0 = _mm_setr_ps( vector[0], vector[1], vector[2], 0.0f );
+	
+	_mm_setcsr( mxcsr & ~0x6000 ); // enforce rounding mode to "round to nearest"
+
+	vi = _mm_cvtps_epi32( vf0 );
+	vf0 = _mm_cvtepi32_ps( vi );
+
+	vf1 = _mm_shuffle_ps(vf0, vf0, _MM_SHUFFLE(1,1,1,1));
+	vf2 = _mm_shuffle_ps(vf0, vf0, _MM_SHUFFLE(2,2,2,2));
+
+	_mm_setcsr( mxcsr ); // restore rounding mode
+
+	_mm_store_ss( &vector[0], vf0 );
+	_mm_store_ss( &vector[1], vf1 );
+	_mm_store_ss( &vector[2], vf2 );
+}
+#else // id386
+void Sys_SnapVector( float *vector ) 
+{
+	static const DWORD cw037F = 0x037F;
+	DWORD cwCurr;
+__asm {
+	fnstcw word ptr [cwCurr]
+	mov ecx, vector
+	fldcw word ptr [cw037F]
+
+	fld   dword ptr[ecx+8]
+	fistp dword ptr[ecx+8]
+	fild  dword ptr[ecx+8]
+	fstp  dword ptr[ecx+8]
+
+	fld   dword ptr[ecx+4]
+	fistp dword ptr[ecx+4]
+	fild  dword ptr[ecx+4]
+	fstp  dword ptr[ecx+4]
+
+	fld   dword ptr[ecx+0]
+	fistp dword ptr[ecx+0]
+	fild  dword ptr[ecx+0]
+	fstp  dword ptr[ecx+0]
+
+	fldcw word ptr cwCurr
+	}; // __asm
+}
+#endif // id386
+
+#else // linux/mingw
+
+#if idx64
+
+void Sys_SnapVector( vec3_t vec )
+{
+	vec[0] = round(vec[0]);
+	vec[1] = round(vec[1]);
+	vec[2] = round(vec[2]);
+}
+
+#else // id386
+
+#define QROUNDX87(src) \
+	"flds " src "\n" \
+	"fistpl " src "\n" \
+	"fildl " src "\n" \
+	"fstps " src "\n"
+
+void Sys_SnapVector( vec3_t vector )
+{
+	static const unsigned short cw037F = 0x037F;
+	unsigned short cwCurr;
+
+	__asm__ volatile
+	(
+		"fnstcw %1\n" \
+		"fldcw %2\n" \
+		QROUNDX87("0(%0)")
+		QROUNDX87("4(%0)")
+		QROUNDX87("8(%0)")
+		"fldcw %1\n" \
+		:
+		: "r" (vector), "m"(cwCurr), "m"(cw037F)
+		: "memory", "st"
+	);
+}
+#endif // id386
+#endif // linux/mingw
 
 
 /*
@@ -3279,7 +3340,6 @@ void Com_Init( char *commandLine ) {
 		Cmd_AddCommand ("error", Com_Error_f);
 		Cmd_AddCommand ("crash", Com_Crash_f );
 		Cmd_AddCommand ("freeze", Com_Freeze_f);
-		//Cmd_AddCommand ("cpuspeed", Com_CPUSpeed_f);
 	}
 	Cmd_AddCommand ("quit", Com_Quit_f);
 	Cmd_AddCommand ("changeVectors", MSG_ReportChangeVectors_f );

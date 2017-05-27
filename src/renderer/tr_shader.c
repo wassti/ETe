@@ -2356,12 +2356,6 @@ static void FixRenderCommandList( int newShader ) {
 				curCmd = (const void *)(db_cmd + 1);
 				break;
 				}
-			case RC_SWAP_BUFFERS:
-				{
-				const swapBuffersCommand_t *sb_cmd = (const swapBuffersCommand_t *)curCmd;
-				curCmd = (const void *)(sb_cmd + 1);
-				break;
-				}
 			case RC_END_OF_LIST:
 			default:
 				return;

@@ -1072,7 +1072,7 @@ void Cvar_Set_f( void ) {
 		}
 	}
 
-	v = Cvar_Set2 (Cmd_Argv(1), Cmd_ArgsFrom(2), qfalse);
+	v = Cvar_Set2 (Cmd_Argv(1), Cmd_ArgsRange(2, c), qfalse);
 	if( !v ) {
 		return;
 	}

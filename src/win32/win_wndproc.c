@@ -745,7 +745,7 @@ LRESULT WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM  wParam, LPARAM lParam 
 		{
 			GetWindowRect( hWnd, &g_wv.winRect );
 			g_wv.winRectValid = qtrue;
-			UpdateMonitorInfo();
+			UpdateMonitorInfo( NULL );
 			IN_UpdateWindow( NULL, qtrue );
 			IN_Activate( gw_active );
 			if ( !gw_active )
@@ -805,7 +805,12 @@ LRESULT WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM  wParam, LPARAM lParam 
 	case WM_SYSCOMMAND:
 		if ( wParam == SC_SCREENSAVE )
 			return 0;
+
+#ifdef USE_PMLIGHT
+		if ( wParam == SC_MINIMIZE && CL_VideoRecording() && !fboAvailable )
+#else
 		if ( wParam == SC_MINIMIZE && CL_VideoRecording() )
+#endif
 			return 0;
 
 		// simulate drag move to avoid ~500ms delay between DefWindowProc() and further WM_ENTERSIZEMOVE
@@ -820,7 +825,11 @@ LRESULT WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM  wParam, LPARAM lParam 
 		// check for left/right modifiers
 		if ( Win_CheckHotkeyMod() )
 		{
+#ifdef USE_PMLIGHT
+			if ( gw_active && !CL_VideoRecording() && !fboAvailable )
+#else
 			if ( gw_active && !CL_VideoRecording() )
+#endif
 			{
 				ShowWindow( hWnd, SW_MINIMIZE );
 			}
@@ -864,7 +873,7 @@ LRESULT WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM  wParam, LPARAM lParam 
 	case WM_SIZE:
 		GetWindowRect( hWnd, &g_wv.winRect );
 		g_wv.winRectValid = qtrue;
-		UpdateMonitorInfo();
+		UpdateMonitorInfo( NULL );
 		IN_UpdateWindow( NULL, qtrue );
 		break;
 

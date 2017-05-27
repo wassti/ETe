@@ -69,6 +69,7 @@ If you have questions concerning this license or the applicable additional terms
 #define	DIRECTSOUND_VERSION	0x0300
 #define	DIRECTINPUT_VERSION	0x0300
 
+#include <mmsystem.h>
 #include <dinput.h>
 #include <dsound.h>
 #include <shlobj.h>
@@ -107,7 +108,7 @@ const char *WtoA( const LPWSTR s );
 void	IN_Win32MouseEvent( int x, int y, int mstate );
 void	IN_RawMouseEvent( LPARAM lParam );
 
-void	Sys_CreateConsole( char *title );
+void	Sys_CreateConsole( const char *title, int xPos, int yPos, qboolean usePos );
 void	Sys_DestroyConsole( void );
 
 // Input subsystem
@@ -120,7 +121,7 @@ void	IN_Activate( qboolean active );
 void	IN_Frame( void );
 
 void	IN_UpdateWindow( RECT *window_rect, qboolean updateClipRegion );
-void	UpdateMonitorInfo( void ); 
+void	UpdateMonitorInfo( const RECT *target );
 
 qboolean IN_MouseActive( void );
 

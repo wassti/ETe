@@ -451,6 +451,32 @@ char *Cmd_ArgsFrom( int arg ) {
 
 /*
 ============
+Cmd_Args
+
+Returns a single string containing argv(arg) to argv(count-1)
+============
+*/
+char *Cmd_ArgsRange( int arg, int count ) {
+	static	char		cmd_args[BIG_INFO_STRING];
+	int		i;
+
+	cmd_args[0] = 0;
+	if (arg < 0)
+		arg = 0;
+	if (count > cmd_argc)
+		count = cmd_argc;
+	for ( i = arg ; i < count ; i++ ) {
+		strcat( cmd_args, cmd_argv[i] );
+		if ( i != count-1 ) {
+			strcat( cmd_args, " " );
+		}
+	}
+
+	return cmd_args;
+}
+
+/*
+============
 Cmd_ArgsBuffer
 
 The interpreted versions use this because

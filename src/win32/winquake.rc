@@ -7,7 +7,11 @@
 //
 // Generated from the TEXTINCLUDE 2 resource.
 //
+#ifndef __MINGW32__
 #include "winres.h"
+#else
+#include <winresrc.h>
+#endif
 
 /////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS
@@ -53,7 +57,11 @@ END
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
+#ifndef __MINGW32__
 IDI_ICON1               ICON    DISCARDABLE     "wolfet.ico"
+#else
+IDI_ICON1               ICON    DISCARDABLE     "code/win32/wolfet.ico"
+#endif
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -67,5 +75,11 @@ END
 
 #endif    // English (U.S.) resources
 /////////////////////////////////////////////////////////////////////////////
-
-
+//
+// Applicatioin manifest
+//
+#ifndef __MINGW32__
+2 RT_MANIFEST "wolfet.manifest"
+#else
+2 RT_MANIFEST "code/win32/wolfet.manifest"
+#endif

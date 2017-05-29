@@ -24,6 +24,9 @@
     <Filter Include="download">
       <UniqueIdentifier>{bd1b072a-4ca3-434d-a6c7-3585073bbc1c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{7baf5884-f59a-40f1-9941-47ef537e60a6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="client\cl_cgame.c">
@@ -653,5 +656,10 @@
     <Text Include="..\main\ui\menus.txt">
       <Filter>main\ui</Filter>
     </Text>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="win32\winquake.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>

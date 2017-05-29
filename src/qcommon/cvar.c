@@ -1149,7 +1149,7 @@ void Cvar_WriteVariables( fileHandle_t f )
 					continue;
 				}
 				if ( var->flags & CVAR_UNSAFE )
-					Com_sprintf( buffer, sizeof(buffer), "seta %s \"%s\"" "unsafe" Q_NEWLINE, var->name, var->latchedString );
+					Com_sprintf( buffer, sizeof(buffer), "seta %s \"%s\"" " unsafe" Q_NEWLINE, var->name, var->latchedString );
 				else
 					Com_sprintf( buffer, sizeof(buffer), "seta %s \"%s\"" Q_NEWLINE, var->name, var->latchedString );
 			} else {
@@ -1162,7 +1162,7 @@ void Cvar_WriteVariables( fileHandle_t f )
 					continue;
 				}
 				if ( var->flags & CVAR_UNSAFE )
-					Com_sprintf( buffer, sizeof(buffer), "seta %s \"%s\"" "unsafe" Q_NEWLINE, var->name, var->string );
+					Com_sprintf( buffer, sizeof(buffer), "seta %s \"%s\"" " unsafe" Q_NEWLINE, var->name, var->string );
 				else
 					Com_sprintf( buffer, sizeof(buffer), "seta %s \"%s\"" Q_NEWLINE, var->name, var->string );
 			}

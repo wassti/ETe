@@ -1090,7 +1090,7 @@ static const int cg_vmMainArgs[ CG_EXPORT_LAST ] = {
 	3, // CG_MOUSE_EVENT, void	(*CG_MouseEvent)( int dx, int dy );
 	3, // CG_EVENT_HANDLING, void (*CG_EventHandling)(int type);
 	4, // CG_GET_TAG, void (*CG_GetTag)(int clientNum, char *tagname, orientation_t *or);
-	1, // CG_CHECKEXECKEY,
+	2, // CG_CHECKEXECKEY,
 	1, // CG_WANTSBINDKEYS,
 	4, // CG_MESSAGERECEIVED, void (*CG_MessageReceived)( const char *buf, int buflen, int serverTime );
 };
@@ -1252,10 +1252,6 @@ void CL_InitCGame( void ) {
 
 	// do not allow vid_restart for first time
 	cls.lastVidRestart = Sys_Milliseconds();
-
-//	if( cl_autorecord->integer ) {
-//		Cvar_Set( "g_synchronousClients", "1" );
-//	}
 }
 
 

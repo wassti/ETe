@@ -320,8 +320,10 @@ typedef enum {
 //	qboolean CG_GetTag( int clientNum, char *tagname, orientation_t *or );
 
 	CG_CHECKEXECKEY,
+//	qboolean CG_CheckExecKey( int key );
 
 	CG_WANTSBINDKEYS,
+//	qboolean !!( g_waitingForKey && g_bindItem );
 
 	// zinx
 	CG_MESSAGERECEIVED,

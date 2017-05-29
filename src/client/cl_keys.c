@@ -682,11 +682,13 @@ void CL_KeyDownEvent( int key, unsigned time ) {
 
 	// NERVE - SMF - if we just want to pass it along to game
 	if ( cl_bypassMouseInput && cl_bypassMouseInput->integer && !( Key_GetCatcher() & KEYCATCH_CONSOLE ) ) {    //DAJ BUG in dedicated cl_missionStats don't exist
-		if ( ( key == K_MOUSE1 || key == K_MOUSE2 || key == K_MOUSE3 ) ) {
+		if ( ( key >= K_MOUSE1 && key <= K_MOUSE5 ) ) {
 			if ( cl_bypassMouseInput->integer == 1 ) {
 				bypassMenu = qtrue;
 			}
-		} else if ( !UI_checkKeyExec( key ) ) {
+		} else if ( ( Key_GetCatcher() & KEYCATCH_UI ) && !UI_checkKeyExec( key ) ) {
+			bypassMenu = qtrue;
+		} else if ( ( Key_GetCatcher() & KEYCATCH_CGAME ) && !CL_CGameCheckKeyExec( key ) ) {
 			bypassMenu = qtrue;
 		}
 	}
@@ -700,7 +702,7 @@ void CL_KeyDownEvent( int key, unsigned time ) {
 		if ( !onlybinds || VM_Call( uivm, UI_WANTSBINDKEYS ) ) {
 			VM_Call( uivm, UI_KEY_EVENT, key, qtrue );
 		}
-	} else if ( Key_GetCatcher() & KEYCATCH_CGAME ) {
+	} else if ( Key_GetCatcher() & KEYCATCH_CGAME && !bypassMenu ) {
 		if ( cgvm ) {
 			if ( !onlybinds || VM_Call( cgvm, CG_WANTSBINDKEYS ) ) {
 				VM_Call( cgvm, CG_KEY_EVENT, key, qtrue );
@@ -856,8 +858,8 @@ Key_SetCatcher
 */
 void Key_SetCatcher( int catcher ) {
 	// If the catcher state is changing, clear all key states
-	if( catcher != keyCatchers )
-		Key_ClearStates( );
+	//if( catcher != keyCatchers )
+	//	Key_ClearStates();
 
 	keyCatchers = catcher;
 }

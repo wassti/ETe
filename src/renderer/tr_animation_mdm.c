@@ -1409,6 +1409,8 @@ void RB_MDM_SurfaceAnim( mdmSurface_t *surface ) {
 		return;
 	}
 
+	tess.surfType = SF_MDM;
+
 
 	RB_CheckOverflow( render_count, surface->numTriangles * 3 );
 

@@ -30,6 +30,9 @@ If you have questions concerning this license or the applicable additional terms
 #include "tr_local.h"
 
 int r_firstSceneDrawSurf;
+#ifdef USE_PMLIGHT
+int			r_firstSceneLitSurf;
+#endif
 
 int r_numdlights;
 int r_firstSceneDlight;
@@ -67,6 +70,9 @@ void R_InitNextFrame( void ) {
 	backEndData->commands.used = 0;
 
 	r_firstSceneDrawSurf = 0;
+#ifdef USE_PMLIGHT
+	r_firstSceneLitSurf = 0;
+#endif
 
 	r_numdlights = 0;
 	r_firstSceneDlight = 0;
@@ -423,7 +429,7 @@ void RE_AddLightToScene( const vec3_t org, float radius, float intensity, float 
 
 
 	// early out
-	if ( !tr.registered || r_numdlights >= MAX_DLIGHTS || radius <= 0 || intensity <= 0 ) {
+	if ( !tr.registered || r_numdlights >= ARRAY_LEN( backEndData->dlights ) || radius <= 0 || intensity <= 0 ) {
 		return;
 	}
 
@@ -438,6 +444,13 @@ void RE_AddLightToScene( const vec3_t org, float radius, float intensity, float 
 			return;
 		}
 	}
+#ifdef USE_PMLIGHT
+	if ( r_dlightMode->integer ) {
+		r *= r_dlightIntensity->value;
+		g *= r_dlightIntensity->value;
+		b *= r_dlightIntensity->value;
+	}
+#endif
 
 	// set up a new dlight
 	dl = &backEndData->dlights[ r_numdlights++ ];
@@ -455,6 +468,13 @@ void RE_AddLightToScene( const vec3_t org, float radius, float intensity, float 
 		dl->shader = NULL;
 	}
 	dl->flags = flags;
+#ifdef USE_PMLIGHT
+#ifndef USE_LIGHT_COUNT
+	dl->mask = 1 << (r_numdlights - 1);
+	dl->head = NULL;
+	dl->tail = NULL;
+#endif
+#endif // USE_PMLIGHT
 }
 
 
@@ -569,6 +589,11 @@ void RE_RenderScene( const refdef_t *fd ) {
 	tr.refdef.dlights = &backEndData->dlights[r_firstSceneDlight];
 	tr.refdef.dlightBits = 0;
 
+#ifdef USE_PMLIGHT
+	tr.refdef.numLitSurfs = r_firstSceneLitSurf;
+	tr.refdef.litSurfs = backEndData->litSurfs;
+#endif
+
 	tr.refdef.num_coronas = r_numcoronas - r_firstSceneCorona;
 	tr.refdef.coronas = &backEndData->coronas[r_firstSceneCorona];
 
@@ -617,6 +642,11 @@ void RE_RenderScene( const refdef_t *fd ) {
 
 	parms.isPortal = qfalse;
 
+#ifdef USE_PMLIGHT
+	parms.dlights = tr.refdef.dlights;
+	parms.num_dlights = tr.refdef.num_dlights;
+#endif
+
 	parms.fovX = tr.refdef.fov_x;
 	parms.fovY = tr.refdef.fov_y;
 	
@@ -633,6 +663,10 @@ void RE_RenderScene( const refdef_t *fd ) {
 
 	// the next scene rendered in this frame will tack on after this one
 	r_firstSceneDrawSurf = tr.refdef.numDrawSurfs;
+#ifdef USE_PMLIGHT
+	r_firstSceneLitSurf = tr.refdef.numLitSurfs;
+#endif
+
 	r_firstSceneEntity = r_numentities;
 	r_firstSceneDlight = r_numdlights;
 	r_firstScenePoly = r_numpolys;

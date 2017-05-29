@@ -28,6 +28,7 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "q_shared.h"
 #include "qcommon.h"
+#include "../server/server.h"
 
 /*typedef struct gameInfo_s {
 	qboolean spEnabled;
@@ -43,6 +44,7 @@ If you have questions concerning this license or the applicable additional terms
 // This can't be dependant on gamecode as we sometimes need to know about it when no game-modules
 // are loaded
 gameInfo_t com_gameInfo;
+static qboolean firstLaunch = qtrue;
 
 void Com_GetGameInfo( void ) {
 	char    *f, *buf;
@@ -103,4 +105,18 @@ void Com_GetGameInfo( void ) {
 		// all is good
 		FS_FreeFile( f );
 	}
+
+	if ( !firstLaunch )
+		Com_UpdateDefaultGametype();
+
+	if ( firstLaunch == qtrue )
+		firstLaunch = qfalse;
+}
+
+void Com_UpdateDefaultGametype( void ) {
+	if ( g_gameType && g_gameType->resetString ) {
+		Z_Free( g_gameType->resetString );
+		g_gameType->resetString = NULL;
+	}
+	g_gameType = Cvar_Get( "g_gametype", va( "%i", com_gameInfo.defaultGameType ), CVAR_SERVERINFO | CVAR_LATCH );
 }

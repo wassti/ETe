@@ -93,7 +93,7 @@ void R_CullDlights( void ) {
 }
 
 
-
+#ifdef USE_LEGACY_DLIGHTS
 /*
 =============
 R_DlightBmodel
@@ -160,6 +160,7 @@ void R_DlightBmodel( bmodel_t *bmodel ) {
 		}
 	}
 }
+#endif // USE_LEGACY_DLIGHTS
 
 
 /*
@@ -350,7 +351,9 @@ void R_SetupEntityLighting( const trRefdef_t *refdef, trRefEntity_t *ent ) {
 	vec3_t lightOrigin;
 	vec3_t lightValue;
 	byte            *entityLight;
-
+#ifdef USE_PMLIGHT
+	vec3_t			shadowLightDir;
+#endif
 
 	// lighting calculations
 	if ( ent->lightingCalculated ) {
@@ -504,6 +507,15 @@ void R_SetupEntityLighting( const trRefdef_t *refdef, trRefEntity_t *ent ) {
 	if ( ent->e.nonNormalizedAxes ) {
 		VectorNormalize( ent->lightDir );
 	}
+
+#ifdef USE_PMLIGHT
+	if ( r_shadows->integer == 2 && r_dlightMode->integer == 2 ) {
+		VectorNormalize( shadowLightDir );
+		ent->shadowLightDir[0] = DotProduct( shadowLightDir, ent->e.axis[0] );
+		ent->shadowLightDir[1] = DotProduct( shadowLightDir, ent->e.axis[1] );
+		ent->shadowLightDir[2] = DotProduct( shadowLightDir, ent->e.axis[2] );
+	}
+#endif
 
 	// ydnar: test code
 	//%	if( strstr( tr.models[ ent->e.hModel ]->name, ".mdm" ) )

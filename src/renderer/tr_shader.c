@@ -1796,6 +1796,23 @@ static qboolean ParseShader( char **text )
 				return qfalse;
 			}
 
+			if ( r_greyscale->integer )
+			{
+				float luminance;
+
+				luminance = LUMA( shader.fogParms.color[0], shader.fogParms.color[1], shader.fogParms.color[2] );
+				VectorSet( shader.fogParms.color, luminance, luminance, luminance );
+			}
+			else if ( r_greyscale->value )
+			{
+				float luminance;
+
+				luminance = LUMA( shader.fogParms.color[0], shader.fogParms.color[1], shader.fogParms.color[2] );
+				shader.fogParms.color[0] = LERP( shader.fogParms.color[0], luminance, r_greyscale->value );
+				shader.fogParms.color[1] = LERP( shader.fogParms.color[1], luminance, r_greyscale->value );
+				shader.fogParms.color[2] = LERP( shader.fogParms.color[2], luminance, r_greyscale->value );
+			}
+
 			shader.fogParms.colorInt = ColorBytes4( shader.fogParms.color[0] * tr.identityLight,
 													shader.fogParms.color[1] * tr.identityLight,
 													shader.fogParms.color[2] * tr.identityLight, 1.0 );
@@ -2467,6 +2484,44 @@ static shader_t *GeneratePermanentShader( void ) {
 	return newShader;
 }
 
+
+#ifdef USE_PMLIGHT
+/*
+====================
+FindLightingStages
+
+Find proper stage for dlight pass
+====================
+*/
+#define GLS_BLEND_BITS (GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS)
+static void FindLightingStages( void )
+{
+	int i;
+	shader.lightingStage = -1;
+
+	if ( shader.isSky || ( shader.surfaceFlags & (SURF_NODLIGHT | SURF_SKY) ) || shader.sort > SS_OPAQUE )
+		return;
+
+	for ( i = 0; i < shader.numUnfoggedPasses; i++ ) {
+		if ( !stages[i].bundle[0].isLightmap ) {
+			if ( stages[i].bundle[0].tcGen != TCGEN_TEXTURE )
+				continue;
+			if ( (stages[i].stateBits & GLS_BLEND_BITS) == (GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE) )
+				continue;
+			 // fix for q3wcp17' textures/scanctf2/bounce_white and others
+			if ( stages[i].rgbGen == CGEN_IDENTITY && (stages[i].stateBits & GLS_BLEND_BITS) == (GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ZERO) ) {
+				if ( shader.lightingStage >= 0 ) {
+					continue;
+				}
+			}
+			shader.lightingStage = i;
+		}
+	}
+}
+#undef GLS_BLEND_BITS
+#endif // USE_PMLIGHT
+
+
 /*
 =================
 VertexLightingCollapse
@@ -2694,7 +2749,7 @@ from the current global working shader
 =========================
 */
 static shader_t *FinishShader( void ) {
-	int stage, i;
+	int stage;// , i;
 	qboolean hasLightmapStage;
 
 	hasLightmapStage = qfalse;
@@ -2709,44 +2764,51 @@ static shader_t *FinishShader( void ) {
 	//
 	// set polygon offset
 	//
-	if ( shader.polygonOffset && !shader.sort ) {
+	if ( shader.polygonOffset && shader.sort == SS_BAD ) {
 		shader.sort = SS_DECAL;
 	}
 
 	//
 	// set appropriate stage information
 	//
-	for ( stage = 0; stage < MAX_SHADER_STAGES; stage++ ) {
+	for ( stage = 0; stage < MAX_SHADER_STAGES; ) {
 		shaderStage_t *pStage = &stages[stage];
 
 		if ( !pStage->active ) {
 			break;
 		}
 
-		// check for a missing texture
+    // check for a missing texture
 		if ( !pStage->bundle[0].image[0] ) {
 			ri.Printf( PRINT_WARNING, "Shader %s has a stage with no image\n", shader.name );
 			pStage->active = qfalse;
+			stage++;
 			continue;
 		}
 
 		//
 		// ditch this stage if it's detail and detail textures are disabled
 		//
-		if ( pStage->isDetail && !r_detailTextures->integer ) {
-			if ( stage < ( MAX_SHADER_STAGES - 1 ) ) {
-				memmove( pStage, pStage + 1, sizeof( *pStage ) * ( MAX_SHADER_STAGES - stage - 1 ) );
-				// kill the last stage, since it's now a duplicate
-				for ( i = MAX_SHADER_STAGES - 1; i > stage; i-- ) {
-					if ( stages[i].active ) {
-						memset(  &stages[i], 0, sizeof( *pStage ) );
-						break;
-					}
-				}
-				stage--;    // the next stage is now the current stage, so check it again
-			} else {
-				memset( pStage, 0, sizeof( *pStage ) );
+		if ( pStage->isDetail && !r_detailTextures->integer )
+		{
+			int index;
+			
+			for(index = stage + 1; index < MAX_SHADER_STAGES; index++)
+			{
+				if(!stages[index].active)
+					break;
 			}
+			
+			if(index < MAX_SHADER_STAGES)
+				memmove(pStage, pStage + 1, sizeof(*pStage) * (index - stage));
+			else
+			{
+				if(stage + 1 < MAX_SHADER_STAGES)
+					memmove(pStage, pStage + 1, sizeof(*pStage) * (index - stage - 1));
+				
+				Com_Memset(&stages[index - 1], 0, sizeof(*stages));
+			}
+			
 			continue;
 		}
 
@@ -2808,7 +2870,7 @@ static shader_t *FinishShader( void ) {
 			}
 
 			// don't screw with sort order if this is a portal or environment
-			if ( !shader.sort ) {
+			if ( shader.sort == SS_BAD ) {
 				// see through item, like a grill or grate
 				if ( pStage->stateBits & GLS_DEPTHMASK_TRUE ) {
 					shader.sort = SS_SEE_THROUGH;
@@ -2817,11 +2879,13 @@ static shader_t *FinishShader( void ) {
 				}
 			}
 		}
+		
+		stage++;
 	}
 
 	// there are times when you will need to manually apply a sort to
 	// opaque alpha tested shaders that have later blend passes
-	if ( !shader.sort ) {
+	if ( shader.sort == SS_BAD ) {
 		shader.sort = SS_OPAQUE;
 	}
 
@@ -2852,11 +2916,12 @@ static shader_t *FinishShader( void ) {
 	// compute number of passes
 	//
 	shader.numUnfoggedPasses = stage;
-
+#ifdef USE_PMLIGHT
+	FindLightingStages();
+#endif
 	// fogonly shaders don't have any normal passes
-	if ( stage == 0 ) {
+	if (stage == 0 && !shader.isSky)
 		shader.sort = SS_FOG;
-	}
 
 	// determine which stage iterator function is appropriate
 	ComputeStageIteratorFunc();

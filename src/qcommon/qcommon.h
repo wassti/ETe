@@ -982,6 +982,7 @@ typedef struct gameInfo_s {
 extern gameInfo_t com_gameInfo;
 
 void Com_GetGameInfo( void );
+void Com_UpdateDefaultGametype( void );
 
 // TTimo
 // centralized and cleaned, that's the max string you can send to a Com_Printf / Com_DPrintf (above gets truncated)
@@ -1023,9 +1024,9 @@ void        Com_SetRecommended();
 // only a set with the exact name.  Only used during startup.
 
 //bani - profile functions
-void Com_TrackProfile( char *profile_path );
-qboolean Com_CheckProfile( char *profile_path );
-qboolean Com_WriteProfile( char *profile_path );
+void Com_TrackProfile( const char *profile_path );
+qboolean Com_CheckProfile( const char *profile_path );
+qboolean Com_WriteProfile( const char *profile_path );
 
 extern cvar_t  *com_crashed;
 

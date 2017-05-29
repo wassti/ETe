@@ -216,7 +216,7 @@ int QDECL Com_VPrintf( const char *fmt, va_list argptr ) {
 	}
 
 #ifndef DEDICATED
-	// echo to console if we're not a dedicated server
+	// echo to client console if we're not a dedicated server
 	if ( !com_dedicated || !com_dedicated->integer ) {
 		CL_ConsolePrint( msg );
 	}
@@ -512,7 +512,9 @@ void Com_ParseCommandLine( char *commandLine ) {
 
 /*
 ===================
-Com_ConsoleTitle
+Com_EarlyParseCmdLine
+
+returns qtrue if both vid_xpos and vid_ypos was set
 ===================
 */
 qboolean Com_EarlyParseCmdLine( char *commandLine, char *con_title, int title_size, int *vid_xpos, int *vid_ypos ) 
@@ -2559,16 +2561,62 @@ For controlling environment variables
 ==================
 */
 
-void Com_ExecuteCfg(void)
+void Com_ExecuteCfg(qboolean safeMode)
 {
 	Cbuf_ExecuteText(EXEC_NOW, "exec default.cfg\n");
 	Cbuf_Execute(); // Always execute after exec to prevent text buffer overflowing
+	Cbuf_ExecuteText(EXEC_NOW, "exec language.cfg\n" );     // NERVE - SMF
+	Cbuf_Execute(); // Always execute after exec to prevent text buffer overflowing
 
-	if(!Com_SafeMode())
-	{
-		// skip the q3config.cfg and autoexec.cfg if "safe" is on the command line
-		Cbuf_ExecuteText(EXEC_NOW, "exec " CONFIG_NAME "\n");
-		Cbuf_Execute();
+	// skip the etconfig.cfg if "safe" is on the command line
+	if ( !safeMode ) {
+		const char *cl_profileStr = Cvar_VariableString( "cl_profile" );
+
+		if ( com_gameInfo.usesProfiles ) {
+			if ( !cl_profileStr[0] ) {
+				char *defaultProfile = NULL;
+
+				FS_ReadFile( "profiles/defaultprofile.dat", (void **)&defaultProfile );
+
+				if ( defaultProfile ) {
+					char *text_p = defaultProfile;
+					char *token = COM_Parse( &text_p );
+
+					if ( token && *token ) {
+						Cvar_Set( "cl_defaultProfile", token );
+						Cvar_Set( "cl_profile", token );
+					}
+
+					FS_FreeFile( defaultProfile );
+
+					cl_profileStr = Cvar_VariableString( "cl_defaultProfile" );
+				}
+			}
+
+			if ( cl_profileStr[0] ) {
+				// bani - check existing pid file and make sure it's ok
+				if ( !Com_CheckProfile( va( "profiles/%s/profile.pid", cl_profileStr ) ) ) {
+#ifndef _DEBUG
+					Com_Printf( "^3WARNING: profile.pid found for profile '%s' - system settings will revert to defaults\n", cl_profileStr );
+					// ydnar: set crashed state
+					Cvar_Set( "com_crashed", "1" );
+#endif
+				}
+
+				// bani - write a new one
+				if ( !Com_WriteProfile( va( "profiles/%s/profile.pid", cl_profileStr ) ) ) {
+					Com_Printf( "^3WARNING: couldn't write profiles/%s/profile.pid\n", cl_profileStr );
+				}
+
+				// exec the config
+				Cbuf_ExecuteText(EXEC_NOW, va( "exec profiles/%s/%s\n", cl_profileStr, CONFIG_NAME ) );
+				Cbuf_Execute();
+			}
+		} else {
+			Cbuf_ExecuteText(EXEC_NOW, "exec " CONFIG_NAME "\n");
+			Cbuf_Execute();
+		}
+
 		Cbuf_ExecuteText(EXEC_NOW, "exec autoexec.cfg\n");
 		Cbuf_Execute();
 	}
@@ -2605,7 +2653,9 @@ void Com_GameRestart(int checksumFeed, qboolean clientRestart)
 	
 		// Clean out any user and VM created cvars
 		Cvar_Restart(qtrue);
-		Com_ExecuteCfg();
+
+		Com_GetGameInfo();
+		Com_ExecuteCfg(Com_SafeMode());
 		
 #ifndef DEDICATED
 		// Restart sound subsystem so old handles are flushed
@@ -2817,7 +2867,7 @@ void Com_SetRecommended() {
 // bani - checks if profile.pid is valid
 // return qtrue if it is
 // return qfalse if it isn't(!)
-qboolean Com_CheckProfile( char *profile_path ) {
+qboolean Com_CheckProfile( const char *profile_path ) {
 	fileHandle_t f;
 	char f_data[32];
 	int f_pid;
@@ -2859,7 +2909,7 @@ char last_profile_path[MAX_OSPATH];
 
 //bani - track profile changes, delete old profile.pid if we change fs_game(dir)
 //hackish, we fiddle with fs_gamedir to make FS_* calls work "right"
-void Com_TrackProfile( char *profile_path ) {
+void Com_TrackProfile( const char *profile_path ) {
 	char temp_fs_gamedir[MAX_OSPATH];
 
 //	Com_Printf( "Com_TrackProfile: Tracking profile [%s] [%s]\n", fs_gamedir, profile_path );
@@ -2886,11 +2936,11 @@ void Com_TrackProfile( char *profile_path ) {
 // bani - writes pid to profile
 // returns qtrue if successful
 // returns qfalse if not(!!)
-qboolean Com_WriteProfile( char *profile_path ) {
+qboolean Com_WriteProfile( const char *profile_path ) {
 	fileHandle_t f;
 
 	if ( FS_FileExists( profile_path ) ) {
-		FS_Delete( profile_path );
+		FS_Delete( (char *)profile_path );
 	}
 
 	f = FS_FOpenFileWrite( profile_path );
@@ -3196,8 +3246,10 @@ void Com_Init( char *commandLine ) {
 
 	Com_GetGameInfo();
 	
-	// ENSI TODO use Com_ExecuteCfg();
+	safeMode = Com_SafeMode();
+	Com_ExecuteCfg(safeMode);
 
+#if 0
 	Cbuf_AddText( "exec default.cfg\n" );
 	Cbuf_AddText( "exec language.cfg\n" );     // NERVE - SMF
 
@@ -3258,6 +3310,7 @@ void Com_Init( char *commandLine ) {
 
 	// execute the queued commands
 	Cbuf_Execute();
+#endif
 
 	// override anything from the config files with command line args
 	Com_StartupVariable( NULL );
@@ -4159,13 +4212,13 @@ void Field_CompleteCommand( char *cmd, qboolean doCommands, qboolean doCvars )
 
 		if( !Field_Complete( ) )
 		{
-		// run through again, printing matches
-		if( doCommands )
-			Cmd_CommandCompletion( PrintMatches );
+			// run through again, printing matches
+			if( doCommands )
+				Cmd_CommandCompletion( PrintMatches );
 
-		if( doCvars )
-			Cvar_CommandCompletion( PrintCvarMatches );
-	}
+			if( doCvars )
+				Cvar_CommandCompletion( PrintCvarMatches );
+		}
 	}
 }
 

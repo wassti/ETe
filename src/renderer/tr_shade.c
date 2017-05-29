@@ -1098,6 +1098,29 @@ static void ComputeColors( shaderStage_t *pStage ) {
 			break;
 		}
 	}
+	
+	// if in greyscale rendering mode turn all color values into greyscale.
+	if(r_greyscale->integer)
+	{
+		int scale;
+		for(i = 0; i < tess.numVertexes; i++)
+		{
+			scale = LUMA(tess.svars.colors[i][0], tess.svars.colors[i][1], tess.svars.colors[i][2]);
+ 			tess.svars.colors[i][0] = tess.svars.colors[i][1] = tess.svars.colors[i][2] = scale;
+		}
+	}
+	else if(r_greyscale->value)
+	{
+		float scale;
+		
+		for(i = 0; i < tess.numVertexes; i++)
+		{
+			scale = LUMA(tess.svars.colors[i][0], tess.svars.colors[i][1], tess.svars.colors[i][2]);
+			tess.svars.colors[i][0] = LERP(tess.svars.colors[i][0], scale, r_greyscale->value);
+			tess.svars.colors[i][1] = LERP(tess.svars.colors[i][1], scale, r_greyscale->value);
+			tess.svars.colors[i][2] = LERP(tess.svars.colors[i][2], scale, r_greyscale->value);
+		}
+	}
 }
 
 /*
@@ -1354,6 +1377,16 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input ) {
 			// draw
 			//
 			R_DrawElements( input->numIndexes, input->indexes );
+#ifdef USE_PMLIGHT
+			if ( pStage->depthFragment ) 
+			{
+				GL_State( pStage->stateBits | GLS_DEPTHMASK_TRUE );
+				GL_ProgramEnable();
+				R_DrawElements( input->numIndexes, input->indexes );
+				GL_ProgramDisable();
+				//GL_State( pStage->stateBits &= ~GLS_DEPTHMASK_TRUE );
+			}
+#endif
 		}
 
 		// allow skipping out to show just lightmaps during development
@@ -1367,33 +1400,44 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input ) {
 /*
 ** RB_StageIteratorGeneric
 */
-void RB_StageIteratorGeneric( void ) {
+void RB_StageIteratorGeneric( void )
+{
 	shaderCommands_t *input;
+	shader_t		*shader;
+
+#ifdef USE_PMLIGHT
+#ifdef USE_LEGACY_DLIGHTS
+	if ( r_dlightMode->integer ) 
+#endif
+	{
+		if ( tess.dlightPass ) 
+		{
+			ARB_LightingPass();
+			return;
+		}
+
+		GL_ProgramDisable();
+	}
+#endif // USE_PMLIGHT
 
 	input = &tess;
+	shader = input->shader;
 
 	RB_DeformTessGeometry();
 
 	//
-	// log this call
-	//
-	if ( r_logFile->integer ) {
-		// don't just call LogComment, or we will get
-		// a call to va() every frame!
-		//GLimp_LogComment( va( "--- RB_StageIteratorGeneric( %s ) ---\n", tess.shader->name ) );
-	}
-
 	// set GL fog
+	//
 	SetIteratorFog();
-
 
 	//
 	// set face culling appropriately
 	//
-	GL_Cull( input->shader->cullType );
+	GL_Cull( shader->cullType );
 
 	// set polygon offset if necessary
-	if ( input->shader->polygonOffset ) {
+	if ( shader->polygonOffset )
+	{
 		qglEnable( GL_POLYGON_OFFSET_FILL );
 		qglPolygonOffset( r_offsetFactor->value, r_offsetUnits->value );
 	}
@@ -1404,34 +1448,37 @@ void RB_StageIteratorGeneric( void ) {
 	// to avoid compiling those arrays since they will change
 	// during multipass rendering
 	//
-	if ( tess.numPasses > 1 || input->shader->multitextureEnv ) {
+	if ( tess.numPasses > 1 || shader->multitextureEnv )
+	{
 		setArraysOnce = qfalse;
-		qglDisableClientState( GL_COLOR_ARRAY );
-		qglDisableClientState( GL_TEXTURE_COORD_ARRAY );
-	} else
+		qglDisableClientState (GL_COLOR_ARRAY);
+		qglDisableClientState (GL_TEXTURE_COORD_ARRAY);
+	}
+	else
 	{
 		setArraysOnce = qtrue;
 
-		qglEnableClientState( GL_COLOR_ARRAY );
+		qglEnableClientState( GL_COLOR_ARRAY);
 		qglColorPointer( 4, GL_UNSIGNED_BYTE, 0, tess.svars.colors );
 
-		qglEnableClientState( GL_TEXTURE_COORD_ARRAY );
+		qglEnableClientState( GL_TEXTURE_COORD_ARRAY);
 		qglTexCoordPointer( 2, GL_FLOAT, 0, tess.svars.texcoords[0] );
 	}
 
 	//
 	// lock XYZ
 	//
-	qglVertexPointer( 3, GL_FLOAT, 16, input->xyz ); // padded for SIMD
-	if ( qglLockArraysEXT ) {
+	qglVertexPointer (3, GL_FLOAT, 16, input->xyz);	// padded for SIMD
+	if ( qglLockArraysEXT )
+	{
 		qglLockArraysEXT( 0, input->numVertexes );
-		//GLimp_LogComment( "glLockArraysEXT\n" );
 	}
 
 	//
 	// enable color and texcoord arrays after the lock if necessary
 	//
-	if ( !setArraysOnce ) {
+	if ( !setArraysOnce )
+	{
 		qglEnableClientState( GL_TEXTURE_COORD_ARRAY );
 		qglEnableClientState( GL_COLOR_ARRAY );
 	}
@@ -1445,6 +1492,10 @@ void RB_StageIteratorGeneric( void ) {
 	// now do any dynamic lighting needed
 	//
 	//%	tess.dlightBits = 255;	// HACK!
+#ifdef USE_LEGACY_DLIGHTS
+#ifdef USE_PMLIGHT
+	if ( !r_dlightMode->integer )
+#endif	
 	//%	if( tess.dlightBits && tess.shader->sort <= SS_OPAQUE &&
 	if ( tess.dlightBits && tess.shader->fogPass &&
 		 !( tess.shader->surfaceFlags & ( SURF_NODLIGHT | SURF_SKY ) ) ) {
@@ -1454,6 +1505,7 @@ void RB_StageIteratorGeneric( void ) {
 			DynamicLightSinglePass();
 		}
 	}
+#endif // USE_LEGACY_DLIGHTS
 
 	//
 	// now do fog
@@ -1465,15 +1517,16 @@ void RB_StageIteratorGeneric( void ) {
 	//
 	// unlock arrays
 	//
-	if ( qglUnlockArraysEXT ) {
+	if ( qglUnlockArraysEXT ) 
+	{
 		qglUnlockArraysEXT();
-		//GLimp_LogComment( "glUnlockArraysEXT\n" );
 	}
 
 	//
 	// reset polygon offset
 	//
-	if ( input->shader->polygonOffset ) {
+	if ( shader->polygonOffset )
+	{
 		qglDisable( GL_POLYGON_OFFSET_FILL );
 	}
 }
@@ -1482,13 +1535,25 @@ void RB_StageIteratorGeneric( void ) {
 /*
 ** RB_StageIteratorVertexLitTexture
 */
-void RB_StageIteratorVertexLitTexture( void ) {
+void RB_StageIteratorVertexLitTexture( void )
+{
 	shaderCommands_t *input;
-	shader_t        *shader;
-
 	input = &tess;
 
-	shader = input->shader;
+#ifdef USE_PMLIGHT
+#ifdef USE_LEGACY_DLIGHTS
+	if ( r_dlightMode->integer ) 
+#endif // USE_LEGACY_DLIGTHS
+	{
+		if ( tess.dlightPass ) 
+		{
+			ARB_LightingPass();
+			return;
+		}
+
+		GL_ProgramDisable();
+	}
+#endif // USE_PMLIGHT
 
 	//
 	// compute colors
@@ -1496,16 +1561,8 @@ void RB_StageIteratorVertexLitTexture( void ) {
 	RB_CalcDiffuseColor( ( unsigned char * ) tess.svars.colors );
 
 	//
-	// log this call
-	//
-	/*if ( r_logFile->integer ) {
-		// don't just call LogComment, or we will get
-		// a call to va() every frame!
-		GLimp_LogComment( va( "--- RB_StageIteratorVertexLitTexturedUnfogged( %s ) ---\n", tess.shader->name ) );
-	}*/
-
-
 	// set GL fog
+	//
 	SetIteratorFog();
 
 	//
@@ -1516,16 +1573,16 @@ void RB_StageIteratorVertexLitTexture( void ) {
 	//
 	// set arrays and lock
 	//
-	qglEnableClientState( GL_COLOR_ARRAY );
-	qglEnableClientState( GL_TEXTURE_COORD_ARRAY );
+	qglEnableClientState( GL_COLOR_ARRAY);
+	qglEnableClientState( GL_TEXTURE_COORD_ARRAY);
 
 	qglColorPointer( 4, GL_UNSIGNED_BYTE, 0, tess.svars.colors );
 	qglTexCoordPointer( 2, GL_FLOAT, 16, tess.texCoords[0][0] );
-	qglVertexPointer( 3, GL_FLOAT, 16, input->xyz );
+	qglVertexPointer (3, GL_FLOAT, 16, input->xyz);
 
-	if ( qglLockArraysEXT ) {
+	if ( qglLockArraysEXT )
+	{
 		qglLockArraysEXT( 0, input->numVertexes );
-		//GLimp_LogComment( "glLockArraysEXT\n" );
 	}
 
 	//
@@ -1534,10 +1591,23 @@ void RB_StageIteratorVertexLitTexture( void ) {
 	R_BindAnimatedImage( &tess.xstages[0]->bundle[0] );
 	GL_State( tess.xstages[0]->stateBits );
 	R_DrawElements( input->numIndexes, input->indexes );
-
-	//
+#ifdef USE_PMLIGHT
+	if ( tess.xstages[0]->depthFragment ) 
+	{
+		GL_State( tess.xstages[0]->stateBits | GLS_DEPTHMASK_TRUE );
+		GL_ProgramEnable();
+		R_DrawElements( input->numIndexes, input->indexes );
+		GL_ProgramDisable();
+		//GL_State( tess.xstages[0]->stateBits &= ~GLS_DEPTHMASK_TRUE );
+	}
+#endif
+	// 
 	// now do any dynamic lighting needed
 	//
+#ifdef USE_LEGACY_DLIGHTS
+#ifdef USE_PMLIGHT
+	if ( !r_dlightMode->integer )
+#endif
 	//%	if ( tess.dlightBits && tess.shader->sort <= SS_OPAQUE )
 	if ( tess.dlightBits && tess.shader->fogPass &&
 		 !( tess.shader->surfaceFlags & ( SURF_NODLIGHT | SURF_SKY ) ) ) {
@@ -1547,7 +1617,7 @@ void RB_StageIteratorVertexLitTexture( void ) {
 			DynamicLightSinglePass();
 		}
 	}
-
+#endif // USE_LEGACY_DLIGHTS
 
 	//
 	// now do fog
@@ -1559,29 +1629,38 @@ void RB_StageIteratorVertexLitTexture( void ) {
 	//
 	// unlock arrays
 	//
-	if ( qglUnlockArraysEXT ) {
+	if ( qglUnlockArraysEXT ) 
+	{
 		qglUnlockArraysEXT();
-		//GLimp_LogComment( "glUnlockArraysEXT\n" );
 	}
 }
+
 
 //define	REPLACE_MODE
 
 void RB_StageIteratorLightmappedMultitexture( void ) {
-	shaderCommands_t *input;
 
+	shaderCommands_t *input;
 	input = &tess;
 
-	//
-	// log this call
-	//
-	/*if ( r_logFile->integer ) {
-		// don't just call LogComment, or we will get
-		// a call to va() every frame!
-		GLimp_LogComment( va( "--- RB_StageIteratorLightmappedMultitexture( %s ) ---\n", tess.shader->name ) );
-	}*/
+#ifdef USE_PMLIGHT
+#ifdef USE_LEGACY_DLIGHTS
+	if ( r_dlightMode->integer ) 
+#endif
+	{
+		if ( tess.dlightPass ) 
+		{
+			ARB_LightingPass();
+			return;
+		}
 
+		GL_ProgramDisable();
+	}
+#endif // USE_PMLIGHT
+
+	//
 	// set GL fog
+	//
 	SetIteratorFog();
 
 	//
@@ -1642,17 +1721,16 @@ void RB_StageIteratorLightmappedMultitexture( void ) {
 	}
 
 	R_DrawElements( input->numIndexes, input->indexes );
-
-	// ENSI TODO
-	/*if ( tess.xstages[0]->depthFragment ) 
+#ifdef USE_PMLIGHT
+	if ( tess.xstages[0]->depthFragment ) 
 	{
 		GL_State( tess.xstages[0]->stateBits | GLS_DEPTHMASK_TRUE );
 		GL_ProgramEnable();
 		R_DrawElements( input->numIndexes, input->indexes );
 		GL_ProgramDisable();
 		//GL_State( tess.xstages[0]->stateBits &= ~GLS_DEPTHMASK_TRUE );
-	}*/
-
+	}
+#endif
 	//
 	// disable texturing on TEXTURE1, then select TEXTURE0
 	//
@@ -1668,6 +1746,10 @@ void RB_StageIteratorLightmappedMultitexture( void ) {
 	//
 	// now do any dynamic lighting needed
 	//
+#ifdef USE_LEGACY_DLIGHTS
+#ifdef USE_PMLIGHT
+	if ( !r_dlightMode->integer )
+#endif
 	//%	if ( tess.dlightBits && tess.shader->sort <= SS_OPAQUE )
 	if ( tess.dlightBits && tess.shader->fogPass &&
 		 !( tess.shader->surfaceFlags & ( SURF_NODLIGHT | SURF_SKY ) ) ) {
@@ -1677,6 +1759,7 @@ void RB_StageIteratorLightmappedMultitexture( void ) {
 			DynamicLightSinglePass();
 		}
 	}
+#endif // USE_LEGACY_DLIGTHS
 
 	//
 	// now do fog
@@ -1718,16 +1801,25 @@ void RB_EndSurface( void ) {
 	}
 
 	// for debugging of sort order issues, stop rendering after a given sort value
-	if ( r_debugSort->integer && r_debugSort->integer < tess.shader->sort ) {
+	if ( r_debugSort->integer && r_debugSort->integer < tess.shader->sort && !backEnd.doneSurfaces ) {
 		return;
 	}
 
 	//
 	// update performance counters
 	//
-	backEnd.pc.c_shaders++;
-	backEnd.pc.c_vertexes += tess.numVertexes;
-	backEnd.pc.c_indexes += tess.numIndexes;
+#ifdef USE_PMLIGHT
+	if ( tess.dlightPass ) {
+		backEnd.pc.c_lit_batches++;
+		backEnd.pc.c_lit_vertices += tess.numVertexes;
+		backEnd.pc.c_lit_indices += tess.numIndexes;
+	} else 
+#endif
+	{
+		backEnd.pc.c_shaders++;
+		backEnd.pc.c_vertexes += tess.numVertexes;
+		backEnd.pc.c_indexes += tess.numIndexes;
+	}
 	backEnd.pc.c_totalIndexes += tess.numIndexes * tess.numPasses;
 
 	//
@@ -1744,7 +1836,6 @@ void RB_EndSurface( void ) {
 	if ( r_shownormals->integer ) {
 		DrawNormals( input );
 	}
-
 
 	// clear shader so we can tell we don't have any unclosed surfaces
 	tess.numIndexes = 0;

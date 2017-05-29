@@ -1396,12 +1396,18 @@ R_MirrorViewBySurface
 Returns qtrue if another view has been rendered
 ========================
 */
+#ifdef USE_PMLIGHT
+extern int r_numdlights;
+#endif
 qboolean R_MirrorViewBySurface( drawSurf_t *drawSurf, int entityNum ) {
 	vec4_t			clipDest[128];
 	viewParms_t		newParms;
 	viewParms_t		oldParms;
 	orientation_t	surface, camera;
 	qboolean		isMirror;
+#ifdef USE_PMLIGHT
+	int				i;
+#endif
 
 	// don't recursively mirror
 	if (tr.viewParms.isPortal) {
@@ -1433,6 +1439,16 @@ qboolean R_MirrorViewBySurface( drawSurf_t *drawSurf, int entityNum ) {
 		return qfalse;		// bad portal, no portalentity
 	}
 
+#ifdef USE_PMLIGHT
+	if ( oldParms.num_dlights && r_numdlights + oldParms.num_dlights <= ARRAY_LEN( backEndData->dlights ) ) {
+		// create dedicated set for each view
+		newParms.dlights = oldParms.dlights + oldParms.num_dlights;
+		newParms.num_dlights = oldParms.num_dlights;
+		r_numdlights += oldParms.num_dlights;
+		for ( i = 0; i < oldParms.num_dlights; i++ )
+			newParms.dlights[i] = oldParms.dlights[i];
+	}
+#endif
 
 	if ( tess.numVertexes > 2 ) {
 		int mins[2], maxs[2];
@@ -1559,6 +1575,150 @@ static void R_RadixSort( drawSurf_t *source, int size )
 }
 
 
+#ifdef USE_PMLIGHT
+
+typedef struct litSurf_tape_s {
+	struct litSurf_s *first;
+	struct litSurf_s *last;
+	unsigned count;
+} litSurf_tape_t;
+
+// Philip Erdelsky gets all the credit for this one...
+
+static void R_SortLitsurfs( dlight_t* dl )
+{
+	litSurf_tape_t tape[ 4 ];
+	int				base;
+	litSurf_t		*p;
+	litSurf_t		*next;
+	unsigned		block_size;
+	litSurf_tape_t	*tape0;
+	litSurf_tape_t	*tape1;
+	int				dest;
+	litSurf_tape_t	*output_tape;
+	litSurf_tape_t	*chosen_tape;
+	unsigned		n0, n1;
+
+	// distribute the records alternately to tape[0] and tape[1]
+
+	tape[0].count = tape[1].count = 0;
+	tape[0].first = tape[1].first = NULL;
+
+	base = 0;
+	p = dl->head;
+
+	while ( p ) {
+		next = p->next;
+		p->next = tape[base].first;
+		tape[base].first = p;
+		tape[base].count++;
+		p = next;
+		base ^= 1;
+	}
+
+	// merge from the two active tapes into the two idle ones
+	// doubling the number of records and pingponging the tape sets as we go
+
+	block_size = 1;
+	for ( base = 0; tape[base+1].count; base ^= 2, block_size <<= 1 )
+	{
+		tape0 = tape + base;
+		tape1 = tape + base + 1;
+		dest = base ^ 2;
+
+		tape[dest].count = tape[dest+1].count = 0;
+		for (; tape0->count; dest ^= 1)
+		{
+			output_tape = tape + dest;
+			n0 = n1 = block_size;
+
+			while (1)
+			{
+				if (n0 == 0 || tape0->count == 0)
+				{
+					if (n1 == 0 || tape1->count == 0)
+						break;
+					chosen_tape = tape1;
+					n1--;
+				}
+				else if (n1 == 0 || tape1->count == 0)
+				{
+					chosen_tape = tape0;
+					n0--;
+				}
+				else if (tape0->first->sort > tape1->first->sort)
+				{
+					chosen_tape = tape1;
+					n1--;
+				}
+				else
+				{
+					chosen_tape = tape0;
+					n0--;
+				}
+				chosen_tape->count--;
+				p = chosen_tape->first;
+				chosen_tape->first = p->next;
+				if (output_tape->count == 0)
+					output_tape->first = p;
+				else
+					output_tape->last->next = p;
+				output_tape->last = p;
+				output_tape->count++;
+			}
+		}
+	}
+
+	if (tape[base].count > 1)
+		tape[base].last->next = NULL;
+
+	dl->head = tape[base].first;
+}
+
+
+/*
+=================
+R_AddLitSurf
+=================
+*/
+void R_AddLitSurf( surfaceType_t *surface, shader_t *shader, int fogIndex )
+{
+	struct litSurf_s *litsurf;
+
+	if ( tr.refdef.numLitSurfs >= ARRAY_LEN( backEndData->litSurfs ) )
+		return;
+
+	tr.pc.c_lit_surfs++;
+
+	litsurf = &tr.refdef.litSurfs[ tr.refdef.numLitSurfs++ ];
+
+	litsurf->sort = (shader->sortedIndex << QSORT_SHADERNUM_SHIFT) 
+		| tr.shiftedEntityNum | ( fogIndex << QSORT_FOGNUM_SHIFT );
+	litsurf->surface = surface;
+
+	if ( !tr.light->head )
+		tr.light->head = litsurf;
+	if ( tr.light->tail )
+		tr.light->tail->next = litsurf;
+
+	tr.light->tail = litsurf;
+	tr.light->tail->next = NULL;
+}
+
+
+/*
+=================
+R_DecomposeLitSort
+=================
+*/
+void R_DecomposeLitSort( unsigned sort, int *entityNum, shader_t **shader, int *fogNum ) {
+	*fogNum = ( sort >> QSORT_FOGNUM_SHIFT ) & FOGNUM_MASK;
+	*shader = tr.sortedShaders[ ( sort >> QSORT_SHADERNUM_SHIFT ) & (MAX_SHADERS-1) ];
+	*entityNum = ( sort >> QSORT_REFENTITYNUM_SHIFT ) & REFENTITYNUM_MASK;
+}
+
+#endif // USE_PMLIGHT
+
 
 //==========================================================================================
 
@@ -1650,6 +1810,23 @@ void R_SortDrawSurfs( drawSurf_t *drawSurfs, int numDrawSurfs ) {
 		}
 	}
 
+#ifdef USE_PMLIGHT
+#ifdef USE_LEGACY_DLIGHTS
+	if ( r_dlightMode->integer ) 
+#endif
+	{
+		dlight_t *dl;
+		// all the lit surfaces are in a single queue
+		// but each light's surfaces are sorted within its subsection
+		for ( i = 0; i < tr.refdef.num_dlights; ++i ) { 
+			dl = &tr.refdef.dlights[ i ];
+			if ( dl->head ) {
+				R_SortLitsurfs( dl );
+			}
+		}
+	}
+#endif // USE_PMLIGHT
+
 	R_AddDrawSurfCmd( drawSurfs, numDrawSurfs );
 }
 
@@ -1671,9 +1848,9 @@ void R_AddEntitySurfaces (void) {
 	      tr.currentEntityNum < tr.refdef.num_entities; 
 		  tr.currentEntityNum++ ) {
 		ent = tr.currentEntity = &tr.refdef.entities[tr.currentEntityNum];
-
+#ifdef USE_LEGACY_DLIGHTS
 		ent->needDlights = qfalse;
-
+#endif
 		// preshift the value we are going to OR into the drawsurf sort
 		tr.shiftedEntityNum = tr.currentEntityNum << QSORT_REFENTITYNUM_SHIFT;
 
@@ -1775,7 +1952,12 @@ void R_GenerateDrawSurfs( void ) {
 	R_SetupProjection(&tr.viewParms, r_zproj->value, qtrue);
 
 	R_CullDecalProjectors();
-	R_CullDlights();
+#ifdef USE_LEGACY_DLIGHTS
+#ifdef USE_PMLIGHT
+	if ( !r_dlightMode->integer )
+#endif // USE_PMLIGHT
+		R_CullDlights();
+#endif // USE_LEGACY_DLIGHTS
 
 	R_AddWorldSurfaces();
 

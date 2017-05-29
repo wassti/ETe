@@ -470,6 +470,13 @@ void RB_RenderFlares( void ) {
 		return;
 	}
 
+	// we can't read from multisampled renderbuffer storage
+#ifdef USE_PMLIGHT
+	if ( blitMSfbo ) 
+	{
+		FBO_BlitMS( qtrue );
+	}
+#endif
 	// (SA) turned light flares back on.  must evaluate problem id had with this
 	RB_AddDlightFlares();
 	RB_AddCoronaFlares();
@@ -504,6 +511,14 @@ void RB_RenderFlares( void ) {
 
 		prev = &f->next;
 	}
+
+	// bind primary framebuffer again
+#ifdef USE_PMLIGHT
+	if ( blitMSfbo ) 
+	{
+		FBO_BindMain();
+	}
+#endif
 
 	if ( !draw ) {
 		return;     // none visible

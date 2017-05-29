@@ -455,6 +455,9 @@ void RE_BeginFrame( stereoFrame_t stereoFrame ) {
 	tr.frameCount++;
 	tr.frameSceneNum = 0;
 
+#ifdef USE_PMLIGHT
+	FBO_BindMain();
+#endif
 
 	//
 	// texturemode stuff
@@ -630,6 +633,10 @@ void RE_EndFrame( int *frontEndMsec, int *backEndMsec ) {
 	if ( !glState.finishCalled ) {
 		qglFinish();
 	}
+
+#ifdef USE_PMLIGHT
+	FBO_PostProcess();
+#endif
 
 	R_BloomScreen();
 

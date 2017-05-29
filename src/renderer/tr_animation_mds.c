@@ -1231,6 +1231,8 @@ void RB_SurfaceAnim( mdsSurface_t *surface ) {
 	//
 	RB_CheckOverflow( surface->numVerts, surface->numTriangles * 3 );
 
+	tess.surfType = SF_MDS;
+
 //DBG_SHOWTIME
 
 	collapse_map   = ( int * )( ( byte * )surface + surface->ofsCollapseMap );

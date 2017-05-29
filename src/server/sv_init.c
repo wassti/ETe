@@ -823,12 +823,7 @@ void SV_Init( void ) {
 	sv_mapname = Cvar_Get( "mapname", "nomap", CVAR_SERVERINFO | CVAR_ROM );
 	sv_privateClients = Cvar_Get( "sv_privateClients", "0", CVAR_SERVERINFO );
 	sv_hostname = Cvar_Get( "sv_hostname", "ETHost", CVAR_SERVERINFO | CVAR_ARCHIVE );
-	//
-#ifdef __MACOS__
-	sv_maxclients = Cvar_Get( "sv_maxclients", "16", CVAR_SERVERINFO | CVAR_LATCH );               //DAJ HOG
-#else
 	sv_maxclients = Cvar_Get( "sv_maxclients", "20", CVAR_SERVERINFO | CVAR_LATCH );               // NERVE - SMF - changed to 20 from 8
-#endif
 
 	sv_minRate = Cvar_Get ("sv_minRate", "0", CVAR_ARCHIVE_ND | CVAR_SERVERINFO );
 	sv_maxRate = Cvar_Get( "sv_maxRate", "0", CVAR_ARCHIVE_ND | CVAR_SERVERINFO );
@@ -861,7 +856,7 @@ void SV_Init( void ) {
 
 	sv_allowDownload = Cvar_Get( "sv_allowDownload", "1", CVAR_ARCHIVE );
 	sv_master[0] = Cvar_Get( "sv_master1", MASTER_SERVER_NAME, 0 );
-	sv_master[1] = Cvar_Get( "sv_master2", "", CVAR_ARCHIVE );
+	sv_master[1] = Cvar_Get( "sv_master2", "master.etlegacy.com", CVAR_ARCHIVE );
 	sv_master[2] = Cvar_Get( "sv_master3", "", CVAR_ARCHIVE );
 	sv_master[3] = Cvar_Get( "sv_master4", "", CVAR_ARCHIVE );
 	sv_master[4] = Cvar_Get( "sv_master5", "", CVAR_ARCHIVE );

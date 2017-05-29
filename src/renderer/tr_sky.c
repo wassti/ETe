@@ -735,7 +735,7 @@ void R_BuildCloudData( shaderCommands_t *input ) {
 	tess.numIndexes = 0;
 	tess.numVertexes = 0;
 
-	if ( input->shader->sky.cloudHeight ) {
+	if ( shader->sky.cloudHeight ) {
 		// ok, this is really wierd. it's iterating through shader stages here,
 		// which is unecessary for a multi-stage sky shader, as far as i can tell
 		// nuking this
@@ -745,10 +745,10 @@ void R_BuildCloudData( shaderCommands_t *input ) {
 			if ( !tess.xstages[i] ) {
 				break;
 			}
-			FillCloudBox( input->shader, i );
+			FillCloudBox( shader, i );
 		}
 		#else
-		FillCloudBox( input->shader, 0 );
+		FillCloudBox( shader, 0 );
 		#endif
 	}
 }
@@ -965,6 +965,16 @@ Other things could be stuck in here, like birds in the sky, etc
 ================
 */
 void RB_StageIteratorSky( void ) {
+
+#ifdef USE_PMLIGHT
+#ifdef USE_LEGACY_DLIGHTS
+	if ( r_dlightMode->integer ) 
+#endif 
+	{
+		GL_ProgramDisable();
+	}
+#endif // USE_PMLIGHT
+
 	if ( r_fastsky->integer ) {
 		return;
 	}

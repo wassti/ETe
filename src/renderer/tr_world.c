@@ -223,6 +223,58 @@ static qboolean R_CullSurface( surfaceType_t *surface, shader_t *shader ) {
 	return qfalse;
 }
 
+#ifdef USE_PMLIGHT
+qboolean R_LightCullBounds( const dlight_t* dl, const vec3_t mins, const vec3_t maxs )
+{
+	if (dl->transformed[0] - dl->radius > maxs[0])
+		return qtrue;
+	if (dl->transformed[0] + dl->radius < mins[0])
+		return qtrue;
+
+	if (dl->transformed[1] - dl->radius > maxs[1])
+		return qtrue;
+	if (dl->transformed[1] + dl->radius < mins[1])
+		return qtrue;
+
+	if (dl->transformed[2] - dl->radius > maxs[2])
+		return qtrue;
+	if (dl->transformed[2] + dl->radius < mins[2])
+		return qtrue;
+
+	return qfalse;
+}
+
+
+static qboolean R_LightCullFace( const srfSurfaceFace_t* face, const dlight_t* dl )
+{
+	float d = DotProduct( dl->origin, face->plane.normal ) - face->plane.dist;
+	if ( (d < -dl->radius) || (d > dl->radius) )
+		return qtrue;
+
+	return qfalse;
+}
+
+
+static qboolean R_LightCullSurface( const surfaceType_t* surface, const dlight_t* dl )
+{
+	switch (*surface) {
+	case SF_FACE:
+		return R_LightCullFace( (const srfSurfaceFace_t*)surface, dl );
+	case SF_GRID: {
+		const srfGridMesh_t* grid = (const srfGridMesh_t*)surface;
+		return R_LightCullBounds( dl, grid->meshBounds[0], grid->meshBounds[1] );
+		}
+	case SF_TRIANGLES: {
+		const srfTriangles_t* tris = (const srfTriangles_t*)surface;
+		return R_LightCullBounds( dl, tris->bounds[0], tris->bounds[1] );
+		}
+	default:
+		return qfalse;
+	};
+}
+#endif // USE_PMLIGHT
+
+#ifdef USE_LEGACY_DLIGHTS
 #if 0
 static int R_DlightFace( srfSurfaceFace_t *face, int dlightBits ) {
 	float d;
@@ -249,7 +301,7 @@ static int R_DlightFace( srfSurfaceFace_t *face, int dlightBits ) {
 		tr.pc.c_dlightSurfacesCulled++;
 	}
 
-	face->dlightBits[ tr.smpFrame ] = dlightBits;
+	face->dlightBits = dlightBits;
 	return dlightBits;
 }
 
@@ -438,7 +490,8 @@ static int R_DlightSurface( msurface_t *surface, int dlightBits ) {
 	return dlightBits;
 }
 
-#endif
+#endif // 0
+#endif // USE_LEGACY_DLIGHTS
 
 
 
@@ -463,6 +516,36 @@ static void R_AddWorldSurface( msurface_t *surf, shader_t *shader, int dlightMap
 		return;
 	}
 
+#ifdef USE_PMLIGHT
+#ifdef USE_LEGACY_DLIGHTS
+	if ( r_dlightMode->integer ) 
+#endif
+	{
+#ifndef USE_LIGHT_COUNT
+		// reset surface light mask on first lookup for this scene
+		if ( surf->sceneCount != tr.sceneCount )
+			surf->lightMask = 0;
+		surf->sceneCount = tr.sceneCount;
+#endif
+		surf->vcVisible = tr.viewCount;
+		
+		// add decals
+		if ( decalBits ) {
+			// ydnar: project any decals
+			for ( i = 0; i < tr.refdef.numDecalProjectors; i++ )
+			{
+				if ( decalBits & ( 1 << i ) ) {
+					R_ProjectDecalOntoSurface( &tr.refdef.decalProjectors[ i ], surf, tr.currentBModel );
+				}
+			}
+		}		
+		
+		R_AddDrawSurf( surf->data, shader, surf->fogIndex, 0 );
+		return;
+	}
+#endif // USE_PMLIGHT
+
+#ifdef USE_LEGACY_DLIGHTS
 	// check for dlighting
 	if ( dlightMap ) {
 		dlightMap = R_DlightSurface( surf, dlightMap );
@@ -481,7 +564,114 @@ static void R_AddWorldSurface( msurface_t *surf, shader_t *shader, int dlightMap
 	}
 
 	R_AddDrawSurf( surf->data, shader, surf->fogIndex, dlightMap );
+#endif // USE_LEGACY_DLIGHTS
 }
+
+/*
+=============================================================
+	PM LIGHTING
+=============================================================
+*/
+#ifdef USE_PMLIGHT
+static void R_AddLitSurface( msurface_t *surf, const dlight_t *light )
+{
+	// since we're not worried about offscreen lights casting into the frustum (ATM !!!)
+	// only add the "lit" version of this surface if it was already added to the view
+	//if ( surf->viewCount != tr.viewCount )
+	//	return;
+
+#ifndef USE_LIGHT_COUNT
+	 // check if already masked by this light in this scene
+	if ( surf->lightMask & light->mask ) {
+		tr.pc.c_lit_masks++;
+		return;
+	}
+	surf->lightMask |= light->mask;
+#endif
+
+	// surfaces that were faceculled will still have the current viewCount in vcBSP
+	// because that's set to indicate that it's BEEN vis tested at all, to avoid
+	// repeated vis tests, not whether it actually PASSED the vis test or not
+	// only light surfaces that are GENUINELY visible, as opposed to merely in a visible LEAF
+	if ( surf->vcVisible != tr.viewCount ) {
+		return;
+	}
+
+	if ( surf->shader->lightingStage < 0 ) {
+		return;
+	}
+
+#ifdef USE_LIGHT_COUNT
+	if ( surf->lightCount == tr.lightCount )
+		return;
+
+	surf->lightCount = tr.lightCount;
+#endif
+
+	if ( R_LightCullSurface( surf->data, light ) ) {
+		tr.pc.c_lit_culls++;
+		return;
+	}
+
+	R_AddLitSurf( surf->data, surf->shader, surf->fogIndex );
+}
+
+
+static void R_RecursiveLightNode( const mnode_t* node )
+{
+	qboolean children[2];
+	msurface_t** mark;
+	msurface_t* surf;
+	float d;
+	int c;
+	do {
+		// if the node wasn't marked as potentially visible, exit
+		if ( node->visframe != tr.visCount )
+			return;
+
+		if ( node->contents != CONTENTS_NODE )
+			break;
+
+		children[0] = children[1] = qfalse;
+
+		d = DotProduct( tr.light->origin, node->plane->normal ) - node->plane->dist;
+		if ( d > -tr.light->radius ) {
+			children[0] = qtrue;
+		}
+		if ( d < tr.light->radius ) {
+			children[1] = qtrue;
+		}
+
+		if ( children[0] && children[1] ) {
+			R_RecursiveLightNode( node->children[0] );
+			node = node->children[1];
+		}
+		else if ( children[0] ) {
+			node = node->children[0];
+		}
+		else if ( children[1] ) {
+			node = node->children[1];
+		}
+		else {
+			return;
+		}
+
+	} while ( 1 );
+
+	tr.pc.c_lit_leafs++;
+
+	// add the individual surfaces
+	c = node->nummarksurfaces;
+	mark = node->firstmarksurface;
+	while ( c-- ) {
+		// the surface may have already been added if it spans multiple leafs
+		surf = *mark;
+		R_AddLitSurface( surf, tr.light );
+		mark++;
+	}
+}
+#endif // USE_PMLIGHT
+
 
 /*
 =============================================================

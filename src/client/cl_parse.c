@@ -581,7 +581,7 @@ CL_ParseServerInfo
 static void CL_ParseServerInfo(void)
 {
 	const char *serverInfo;
-	size_t	len;
+//	size_t	len;
 
 	serverInfo = cl.gameState.stringData
 		+ cl.gameState.stringOffsets[ CS_SERVERINFO ];
@@ -1034,7 +1034,7 @@ void CL_ParseServerMessage( msg_t *msg ) {
 			CL_ParseDownload( msg );
 			break;
 		case svc_voipSpeex: // ioq3 extension
-			clc.dm68compat = qfalse;
+			clc.dm84compat = qfalse;
 #ifdef USE_VOIP
 			CL_ParseVoip( msg, qtrue );
 			break;
@@ -1042,7 +1042,7 @@ void CL_ParseServerMessage( msg_t *msg ) {
 			return;
 #endif
 		case svc_voipOpus: // ioq3 extension
-			clc.dm68compat = qfalse;
+			clc.dm84compat = qfalse;
 #ifdef USE_VOIP
 			CL_ParseVoip( msg, !clc.voipEnabled );
 			break;

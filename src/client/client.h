@@ -174,6 +174,7 @@ extern	clientActive_t		cl;
 #define EM_GAMESTATE 1
 #define EM_SNAPSHOT  2
 #define EM_COMMAND   4
+#define EM_BINARYMESSAGE 8
 
 /*
 =============================================================================
@@ -249,7 +250,7 @@ typedef struct {
 	char		demoName[MAX_OSPATH];
 	char		recordName[MAX_OSPATH]; // without extension
 	char		recordNameShort[TRUNCATE_LENGTH]; // for recording message
-	qboolean	dm68compat;
+	qboolean	dm84compat;
 	qboolean	demorecording;
 	qboolean	demoplaying;
 	qboolean	demowaiting;	// don't record until a non-delta message is received
@@ -461,9 +462,6 @@ extern	cvar_t	*cl_allowDownload;
 extern	cvar_t	*cl_conXOffset;
 extern	cvar_t	*cl_conColor;
 extern	cvar_t	*cl_inGameVideo;
-
-extern cvar_t  *cl_missionStats;
-extern cvar_t  *cl_waitForFire;
 
 // NERVE - SMF - localization
 extern cvar_t  *cl_language;

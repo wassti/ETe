@@ -29,6 +29,17 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef TR_LOCAL_H
 #define TR_LOCAL_H
 
+#define USE_LEGACY_DLIGHTS	// vet dynamic lights
+//#define USE_PMLIGHT			// promode dynamic lights via \r_dlightMode 1
+typedef unsigned int		lightMask_t;
+#define USE_LIGHT_COUNT
+#define MAX_REAL_DLIGHTS	(MAX_DLIGHTS*2)
+#define MAX_LITSURFS		(MAX_DRAWSURFS*2)
+
+#ifdef USE_RENDERER2
+#undef USE_PMLIGHT
+#endif
+
 #include "../qcommon/q_shared.h"
 #include "../qcommon/qfiles.h"
 #include "../qcommon/qcommon.h"
@@ -58,8 +69,9 @@ typedef struct {
 	refEntity_t e;
 
 	float axisLength;           // compensate for non-normalized axis
-
+#ifdef USE_LEGACY_DLIGHTS
 	qboolean needDlights;       // true for bmodels that touch a dlight
+#endif
 	qboolean lightingCalculated;
 	vec3_t lightDir;            // normalized direction towards light
 	vec3_t ambientLight;        // color normalized to 0-255
@@ -67,6 +79,9 @@ typedef struct {
 	vec3_t directedLight;
 	int entityLightInt[ ENTITY_LIGHT_STEPS ];
 	float brightness;
+#ifdef USE_PMLIGHT
+	vec3_t		shadowLightDir;	// normalized direction towards light
+#endif
 } trRefEntity_t;
 
 
@@ -409,6 +424,13 @@ typedef struct dlight_s {
 	int flags;
 
 	vec3_t transformed;             // origin in local coordinate system
+#ifdef USE_PMLIGHT
+	struct litSurf_s	*head;
+	struct litSurf_s	*tail;
+#ifndef USE_LIGHT_COUNT
+	lightMask_t			mask;	// suitable only for MAX_DLIGHTS <= 32!
+#endif
+#endif // USE_PMLIGHT
 } dlight_t;
 
 // ydnar: decal projection
@@ -682,7 +704,9 @@ typedef struct srfSurfaceFace_s
 	cplane_t plane;
 
 	// dynamic lighting information
+#ifdef USE_LEGACY_DLIGHTS
 	int dlightBits;
+#endif
 
 	// triangle definitions (no normals at points)
 	int numPoints;
@@ -706,7 +730,9 @@ typedef struct srfTriangles_s
 	cplane_t plane;
 
 	// dynamic lighting information
+#ifdef USE_LEGACY_DLIGHTS
 	int dlightBits;
+#endif
 
 	// triangle definitions
 	int numIndexes;
@@ -769,7 +795,9 @@ typedef struct
 	cplane_t plane;
 
 	// dynamic lighting information
+#ifdef USE_LEGACY_DLIGHTS
 	int dlightBits;
+#endif
 
 	// triangle definitions
 	int numIndexes;
@@ -811,7 +839,15 @@ typedef struct msurface_s {
 	int viewCount;                  // if == tr.viewCount, already added
 	shader_t        *shader;
 	int fogIndex;
-
+#ifdef USE_PMLIGHT
+	int					vcVisible;		// if == tr.viewCount, is actually VISIBLE in this frame, i.e. passed facecull and has been added to the drawsurf list
+#ifdef USE_LIGHT_COUNT
+	int					lightCount;		// if == tr.lightCount, already added to the litsurf list for the current light
+#else
+	int					sceneCount;
+	lightMask_t			lightMask;
+#endif
+#endif // USE_PMLIGHT
 	surfaceType_t   *data;          // any of srf*_t
 } msurface_t;
 
@@ -1288,6 +1324,14 @@ extern cvar_t	*r_drawSun;				// controls drawing of sun quad
 										// "1" draw sun
 										// "2" also draw lens flare effect centered on sun
 extern cvar_t   *r_dynamiclight;        // dynamic lights enabled/disabled
+#ifdef USE_PMLIGHT
+extern cvar_t	*r_dlightMode;			// 0 - vq3, 1 - pmlight
+extern cvar_t	*r_dlightSpecPower;		// 1 - 32
+extern cvar_t	*r_dlightSpecColor;		// -1.0 - 1.0
+extern cvar_t	*r_dlightScale;			// 0.1 - 1.0
+extern cvar_t	*r_dlightIntensity;		// 0.1 - 1.0
+extern cvar_t	*r_fbo;
+#endif
 extern cvar_t   *r_dlightBacks;         // dlight non-facing surfaces for continuity
 
 extern cvar_t  *r_norefresh;            // bypasses the ref rendering
@@ -1313,7 +1357,6 @@ extern cvar_t  *r_colorMipLevels;               // development aid to see textur
 extern cvar_t  *r_picmip;                       // controls picmip values
 extern cvar_t  *r_finish;
 extern cvar_t  *r_textureMode;
-extern cvar_t  *r_textureAnisotropy;
 extern cvar_t  *r_offsetFactor;
 extern cvar_t  *r_offsetUnits;
 
@@ -1402,7 +1445,10 @@ void R_DecomposeSort( unsigned sort, int *entityNum, shader_t **shader,
 					  int *fogNum, int *dlightMap );
 
 void R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int fogNum, int dlightMap );
-
+#ifdef USE_PMLIGHT
+void R_DecomposeLitSort( unsigned sort, int *entityNum, shader_t **shader, int *fogNum );
+void R_AddLitSurf( surfaceType_t *surface, shader_t *shader, int fogIndex );
+#endif
 
 #define CULL_IN     0       // completely unclipped
 #define CULL_CLIP   1       // clipped by one or more planes
@@ -1423,7 +1469,6 @@ void    GL_Bind( image_t *image );
 void    GL_SetDefaultState( void );
 void    GL_SelectTexture( int unit );
 void    GL_TextureMode( const char *string );
-void    GL_TextureAnisotropy( float anisotropy );
 void    GL_CheckErrors( void );
 void    GL_State( unsigned long stateVector );
 void    GL_TexEnv( int env );
@@ -1579,9 +1624,9 @@ typedef struct shaderCommands_s
 	vec4_t		normal[SHADER_MAX_VERTEXES] QALIGN(16);
 	vec2_t		texCoords[SHADER_MAX_VERTEXES][2] QALIGN(16);
 	color4ub_t	vertexColors[SHADER_MAX_VERTEXES] QALIGN(16);
-#ifdef USE_LEGACY_DLIGHTS
-	int			vertexDlightBits[SHADER_MAX_VERTEXES] QALIGN(16);
-#endif
+//#ifdef USE_LEGACY_DLIGHTS
+//	int			vertexDlightBits[SHADER_MAX_VERTEXES] QALIGN(16);
+//#endif
 	stageVars_t	svars QALIGN(16);
 
 	color4ub_t	constantColor255[SHADER_MAX_VERTEXES] QALIGN(16);
@@ -1592,11 +1637,16 @@ typedef struct shaderCommands_s
 	shader_t	*shader;
 	double		shaderTime;	// -EC- set to double for frameloss fix
 	int			fogNum;
-
+#ifdef USE_LEGACY_DLIGHTS
 	int dlightBits;         // or together of all vertexDlightBits
-
+#endif
 	int			numIndexes;
 	int			numVertexes;
+
+#ifdef USE_PMLIGHT
+	qboolean	dlightPass;
+	const dlight_t* light;
+#endif
 
 	// info extracted from current shader
 	int			numPasses;
@@ -1666,6 +1716,36 @@ void R_DlightBmodel( bmodel_t *bmodel );
 void R_SetupEntityLighting( const trRefdef_t *refdef, trRefEntity_t *ent );
 int R_LightForPoint( vec3_t point, vec3_t ambientLight, vec3_t directedLight, vec3_t lightDir );
 
+#ifdef USE_PMLIGHT
+
+void R_BindAnimatedImage( const textureBundle_t *bundle );
+void R_DrawElements( int numIndexes, const glIndex_t *indexes );
+void R_ComputeTexCoords( const shaderStage_t *pStage );
+
+qboolean R_LightCullBounds( const dlight_t* dl, const vec3_t mins, const vec3_t maxs );
+
+void QGL_EarlyInitARB( void );
+void QGL_InitARB( void );
+
+void QGL_DoneARB( void );
+qboolean ARB_UpdatePrograms( void );
+
+qboolean GL_ProgramAvailable( void );
+void GL_ProgramDisable( void );
+void GL_ProgramEnable( void );
+
+void ARB_SetupLightParams( void );
+void ARB_LightingPass( void );
+
+extern qboolean		fboAvailable;
+extern qboolean		blitMSfbo;
+
+void FBO_BindMain( void );
+void FBO_Bind( void );
+void FBO_PostProcess( void );
+void FBO_BlitMS( qboolean depthOnly );
+
+#endif // USE_PMLIGHT
 
 /*
 ============================================================
@@ -1981,7 +2061,13 @@ typedef enum {
 // contained in a backEndData_t
 typedef struct {
 	drawSurf_t drawSurfs[MAX_DRAWSURFS];
+#ifdef USE_PMLIGHT
+	litSurf_t	litSurfs[MAX_LITSURFS];
+	dlight_t	dlights[MAX_REAL_DLIGHTS];
+#else
 	dlight_t dlights[MAX_DLIGHTS];
+#endif
+
 	corona_t coronas[MAX_CORONAS];          //----(SA)
 	trRefEntity_t	entities[MAX_REFENTITIES];
 	srfPoly_t polys[MAX_POLYS];

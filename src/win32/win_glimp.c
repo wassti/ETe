@@ -853,11 +853,30 @@ void UpdateMonitorInfo( const RECT *target )
 	hMon = MonitorFromRect( Rect, MONITOR_DEFAULTTONEAREST );
 	memset( &mInfo, 0, sizeof( mInfo ) );
 	mInfo.cbSize = sizeof( MONITORINFOEX );
-	if ( GetMonitorInfo( hMon, (LPMONITORINFO)&mInfo ) ) {
+
+	memset( &devMode, 0, sizeof( devMode ) );
+	devMode.dmSize = sizeof( DEVMODE );
+
+	if ( GetMonitorInfo( hMon, (LPMONITORINFO)&mInfo ) && EnumDisplaySettings( mInfo.szDevice, ENUM_CURRENT_SETTINGS, &devMode ) ) {
 		w = mInfo.rcMonitor.right - mInfo.rcMonitor.left;
 		h = mInfo.rcMonitor.bottom - mInfo.rcMonitor.top;
 		x = mInfo.rcMonitor.left;
 		y = mInfo.rcMonitor.top;
+
+		// try to detect DPI scale
+		// we can't properly handle it but at least detect monitor resolution 
+		// and inform user in console
+		if ( devMode.dmPelsWidth > w || devMode.dmPelsHeight > h ) {
+			int scaleX, scaleY;
+			scaleX = (devMode.dmPelsWidth * 100) / w;
+			scaleY = (devMode.dmPelsHeight * 100) / h;
+			if ( scaleX == scaleY ) {
+				ri.Printf( PRINT_ALL, "...detected DPI scale: %i%%\n", scaleX );
+				w = devMode.dmPelsWidth;
+				h = devMode.dmPelsHeight;
+			}
+		}
+
 		if ( glw_state.desktopWidth != w || glw_state.desktopHeight != h || 
 			glw_state.desktopX != x || glw_state.desktopY != y || 
 			glw_state.hMonitor != hMon ) {
@@ -872,20 +891,23 @@ void UpdateMonitorInfo( const RECT *target )
 				glw_state.desktopY = y;
 				glw_state.hMonitor = hMon;
 				memcpy( glw_state.displayName, mInfo.szDevice, sizeof( glw_state.displayName ) );
-				
-				memset( &devMode, 0, sizeof( devMode ) );
-				devMode.dmSize = sizeof( DEVMODE );
-				if ( EnumDisplaySettings( mInfo.szDevice, ENUM_CURRENT_SETTINGS, &devMode ) )
-					;
+
 				glw_state.desktopBitsPixel = devMode.dmBitsPerPel;
 
 				ri.Printf( PRINT_ALL, "...current monitor: %ix%i@%i,%i %s\n", 
 					w, h, x, y, WtoA( mInfo.szDevice ) );
+
 				if ( gammaSet ) {
 					R_SetColorMappings();
 				}
 		}
 	} else {
+		HDC hDC = GetDC( GetDesktopWindow() );
+		glw_state.desktopX = 0;
+		glw_state.desktopY = 0;
+		glw_state.desktopWidth = GetDeviceCaps( hDC, HORZRES );
+		glw_state.desktopHeight = GetDeviceCaps( hDC, VERTRES );
+		ReleaseDC( GetDesktopWindow(), hDC );
 		glw_state.displayName[0] = '\0';
 	}
 }
@@ -1406,19 +1428,21 @@ static void GLW_InitExtensions( void )
 		ri.Printf( PRINT_ALL, "...GL_EXT_compiled_vertex_array not found\n" );
 	}
 
-	textureFilterAnisotropic = qfalse;
+	glConfig.anisotropicAvailable = qfalse;
 	if ( GLimp_HaveExtension("GL_EXT_texture_filter_anisotropic") )
 	{
 		if ( r_ext_texture_filter_anisotropic->integer ) {
-			qglGetIntegerv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxAnisotropy );
-			if ( maxAnisotropy <= 0 ) {
+			int _maxAnisotropy = 0;
+			qglGetIntegerv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &_maxAnisotropy );
+			if ( _maxAnisotropy <= 0 ) {
 				ri.Printf( PRINT_ALL, "...GL_EXT_texture_filter_anisotropic not properly supported!\n" );
-				maxAnisotropy = 0;
+				_maxAnisotropy = glConfig.maxAnisotropy = 0;
 			}
 			else
 			{
-				ri.Printf( PRINT_ALL, "...using GL_EXT_texture_filter_anisotropic (max: %i)\n", maxAnisotropy );
-				textureFilterAnisotropic = qtrue;
+				ri.Printf( PRINT_ALL, "...using GL_EXT_texture_filter_anisotropic (max: %i)\n", _maxAnisotropy );
+				glConfig.anisotropicAvailable = qtrue;
+				glConfig.maxAnisotropy = _maxAnisotropy;
 			}
 		}
 		else
@@ -1430,31 +1454,6 @@ static void GLW_InitExtensions( void )
 	{
 		ri.Printf( PRINT_ALL, "...GL_EXT_texture_filter_anisotropic not found\n" );
 	}
-
-	// WGL_3DFX_gamma_control
-	/*qwglGetDeviceGammaRamp3DFX = NULL;
-	qwglSetDeviceGammaRamp3DFX = NULL;
-
-	if ( strstr( glConfig.extensions_string, "WGL_3DFX_gamma_control" ) ) {
-		if ( !r_ignorehwgamma->integer && r_ext_gamma_control->integer ) {
-			qwglGetDeviceGammaRamp3DFX = ( BOOL ( WINAPI * )( HDC, LPVOID ) )qwglGetProcAddress( "wglGetDeviceGammaRamp3DFX" );
-			qwglSetDeviceGammaRamp3DFX = ( BOOL ( WINAPI * )( HDC, LPVOID ) )qwglGetProcAddress( "wglSetDeviceGammaRamp3DFX" );
-
-			if ( qwglGetDeviceGammaRamp3DFX && qwglSetDeviceGammaRamp3DFX ) {
-				ri.Printf( PRINT_ALL, "...using WGL_3DFX_gamma_control\n" );
-			} else
-			{
-				qwglGetDeviceGammaRamp3DFX = NULL;
-				qwglSetDeviceGammaRamp3DFX = NULL;
-			}
-		} else
-		{
-			ri.Printf( PRINT_ALL, "...ignoring WGL_3DFX_gamma_control\n" );
-		}
-	} else
-	{
-		ri.Printf( PRINT_ALL, "...WGL_3DFX_gamma_control not found\n" );
-	}*/
 
 	// GL_NV_fog_distance
 	if ( GLimp_HaveExtension( "GL_NV_fog_distance" ) ) {

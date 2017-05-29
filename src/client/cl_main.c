@@ -79,7 +79,6 @@ cvar_t	*m_filter;
 
 cvar_t	*cl_activeAction;
 
-cvar_t  *cl_autorecord;
 
 cvar_t	*cl_motdString;
 
@@ -90,9 +89,6 @@ cvar_t	*cl_conColor;
 cvar_t	*cl_inGameVideo;
 
 cvar_t	*cl_serverStatusResendTime;
-cvar_t  *cl_trn;
-cvar_t  *cl_missionStats;
-cvar_t  *cl_waitForFire;
 
 // NERVE - SMF - localization
 cvar_t  *cl_language;
@@ -150,7 +146,6 @@ typedef struct serverStatus_s
 } serverStatus_t;
 
 serverStatus_t cl_serverStatusList[MAX_SERVERSTATUSREQUESTS];
-int serverStatusCount;
 
 // DHM - Nerve :: Have we heard from the auto-update server this session?
 qboolean autoupdateChecked;
@@ -304,7 +299,7 @@ void CL_StopRecord_f( void ) {
 		clc.recordfile = FS_INVALID_HANDLE;
 
 		// select proper extension
-		if ( clc.dm68compat || clc.demoplaying )
+		if ( clc.dm84compat || clc.demoplaying )
 			protocol = PROTOCOL_VERSION;
 		else
 			protocol = NEW_PROTOCOL_VERSION;
@@ -670,8 +665,8 @@ static void CL_Record_f( void ) {
 	// don't start saving messages until a non-delta compressed message is received
 	clc.demowaiting = qtrue;
 
-	// we will rename record to dm_68 or dm_71 depending from this flag
-	clc.dm68compat = qtrue; // ENSI WAT
+	// we will rename record to dm_84 or dm_85 depending from this flag
+	clc.dm84compat = qtrue;
 
 	// write out the gamestate message
 	CL_WriteGamestate( qtrue );
@@ -1874,7 +1869,6 @@ void CL_Vid_Restart_f( void ) {
 	} else {
 		Com_DPrintf( "...delay vid_restart\n" );
 		Com_DelayFunc = CL_Vid_Restart; // queue restart out of rendering cycle
-		
 	}
 }
 
@@ -4067,9 +4061,6 @@ void CL_Init( void ) {
 
 
 	Cvar_Get( "cg_autoReload", "1", CVAR_ARCHIVE_ND );
-
-	cl_missionStats = Cvar_Get( "g_missionStats", "0", CVAR_ROM );
-	cl_waitForFire = Cvar_Get( "cl_waitForFire", "0", CVAR_ROM );
 
 	// NERVE - SMF - localization
 	cl_language = Cvar_Get( "cl_language", "0", CVAR_ARCHIVE_ND );

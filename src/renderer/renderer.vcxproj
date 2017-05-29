@@ -142,6 +142,7 @@
     <ClCompile Include="..\win32\win_qgl.c" />
     <ClCompile Include="tr_animation_mdm.c" />
     <ClCompile Include="tr_animation_mds.c" />
+    <ClCompile Include="tr_arb.c" />
     <ClCompile Include="tr_backend.c" />
     <ClCompile Include="tr_bloom.c" />
     <ClCompile Include="tr_bsp.c" />

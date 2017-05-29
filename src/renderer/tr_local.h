@@ -30,7 +30,7 @@ If you have questions concerning this license or the applicable additional terms
 #define TR_LOCAL_H
 
 #define USE_LEGACY_DLIGHTS	// vet dynamic lights
-//#define USE_PMLIGHT			// promode dynamic lights via \r_dlightMode 1
+#define USE_PMLIGHT			// promode dynamic lights via \r_dlightMode 1
 typedef unsigned int		lightMask_t;
 #define USE_LIGHT_COUNT
 #define MAX_REAL_DLIGHTS	(MAX_DLIGHTS*2)
@@ -395,7 +395,11 @@ typedef struct shader_s {
 	int numUnfoggedPasses;
 	shaderStage_t   *stages[MAX_SHADER_STAGES];
 
-	void ( *optimalStageIteratorFunc )( void );
+#ifdef USE_PMLIGHT
+	int	lightingStage;
+#endif
+
+	void		(*optimalStageIteratorFunc)( void );
 
 	double	clampTime;                                  // time this shader is clamped to - set to double for frameloss fix -EC-
 	double	timeOffset;                                 // current time offset for this shader - set to double for frameloss fix -EC-
@@ -496,6 +500,10 @@ typedef struct {
 
 	int numDrawSurfs;
 	struct drawSurf_s   *drawSurfs;
+#ifdef USE_PMLIGHT
+	int			numLitSurfs;
+	struct litSurf_s	*litSurfs;
+#endif
 } trRefdef_t;
 
 
@@ -558,6 +566,11 @@ typedef struct {
 	stereoFrame_t	stereoFrame;
 	glfog_t		glFog;                  // fog parameters	//----(SA)	added
 
+#ifdef USE_PMLIGHT
+	// each view will have its own dlight set
+	unsigned int num_dlights;
+	struct dlight_s	*dlights;
+#endif
 } viewParms_t;
 
 
@@ -596,6 +609,14 @@ typedef struct drawSurf_s {
 	unsigned int		sort;			// bit combination for fast compares
 	surfaceType_t		*surface;		// any of surface*_t
 } drawSurf_t;
+
+#ifdef USE_PMLIGHT
+typedef struct litSurf_s {
+	unsigned int		sort;			// bit combination for fast compares
+	surfaceType_t		*surface;		// any of surface*_t
+	struct litSurf_s	*next;
+} litSurf_t;
+#endif
 
 #define MAX_FACE_POINTS     1024
 
@@ -1089,6 +1110,14 @@ typedef struct {
 	int c_dlightSurfacesCulled;
 
 	int c_decalProjectors, c_decalTestSurfaces, c_decalClipSurfaces, c_decalSurfaces, c_decalSurfacesCreated;
+#ifdef USE_PMLIGHT
+	int		c_light_cull_out;
+	int		c_light_cull_in;
+	int		c_lit_leafs;
+	int		c_lit_surfs;
+	int		c_lit_culls;
+	int		c_lit_masks;
+#endif
 } frontEndCounters_t;
 
 #define FOG_TABLE_SIZE      256
@@ -1120,6 +1149,14 @@ typedef struct {
 	int c_flareRenders;
 
 	int msec;               // total msec for backend run
+#ifdef USE_PMLIGHT
+	int		c_lit_batches;
+	int		c_lit_vertices;
+	int		c_lit_indices;
+	int		c_lit_indices_latecull_in;
+	int		c_lit_indices_latecull_out;
+	int		c_lit_vertices_lateculltest;
+#endif
 } backEndCounters_t;
 
 typedef struct videoFrameCommand_s {
@@ -1180,7 +1217,11 @@ typedef struct {
 	int						sceneCount;		// incremented every scene
 	int						viewCount;		// incremented every view (twice a scene if portaled)
 											// and every R_MarkFragments call
-
+#ifdef USE_PMLIGHT
+#ifdef USE_LIGHT_COUNT
+	int						lightCount;		// incremented for each dlight in the view
+#endif
+#endif
 
 	int						frameSceneNum;	// zeroed at RE_BeginFrame
 
@@ -1229,7 +1270,9 @@ typedef struct {
 	trRefdef_t				refdef;
 
 	int						viewCluster;
-
+#ifdef USE_PMLIGHT
+	dlight_t				*light;				// current light during R_RecursiveLightNode
+#endif
 	vec3_t					sunLight;			// from the sky shader for this level
 	vec3_t					sunDirection;
 
@@ -2063,7 +2106,7 @@ typedef struct {
 	drawSurf_t drawSurfs[MAX_DRAWSURFS];
 #ifdef USE_PMLIGHT
 	litSurf_t	litSurfs[MAX_LITSURFS];
-	dlight_t	dlights[MAX_REAL_DLIGHTS];
+	dlight_t	dlights[MAX_DLIGHTS]; // MAX_REAL_DLIGHTS
 #else
 	dlight_t dlights[MAX_DLIGHTS];
 #endif

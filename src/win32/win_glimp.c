@@ -1716,29 +1716,22 @@ void GLimp_Init( void )
 	// load appropriate DLL and initialize subsystem
 	if ( !GLW_StartOpenGL() )
 		return;
-	// get our config strings
-	Q_strncpyz( glConfig.vendor_string, qglGetString( GL_VENDOR ), sizeof( glConfig.vendor_string ) );
-	Q_strncpyz( glConfig.renderer_string, qglGetString( GL_RENDERER ), sizeof( glConfig.renderer_string ) );
-	Q_strncpyz( glConfig.version_string, qglGetString( GL_VERSION ), sizeof( glConfig.version_string ) );
 
-	glConfigExt.originalExtensionString = (const char *)qglGetString( GL_EXTENSIONS );
-
-	Q_strncpyz( glConfig.extensions_string, TruncateGLExtensionsString( glConfigExt.originalExtensionString, 128 ), sizeof( glConfig.extensions_string ) );
-	// TTimo - safe check
-	/*if ( strlen( qglGetString( GL_EXTENSIONS ) ) >= sizeof( glConfig.extensions_string ) ) {
-		Com_DPrintf( S_COLOR_YELLOW "WARNNING: GL extensions string too long (%d), truncated to %d\n", strlen( qglGetString( GL_EXTENSIONS ) ), sizeof( glConfig.extensions_string ) );
-	}*/
-
-
-
+	//glConfig.driverType = GLDRV_ICD;
+	glConfig.hardwareType = GLHW_GENERIC;
 
 	ri.Cvar_Set( "r_highQualityVideo", "1" );
 	ri.Cvar_Set( "r_lastValidRenderer", glConfig.renderer_string );
 
 	GLW_InitExtensions();
 
-	GLW_AttemptMSAA();
-
+#if defined(USE_PMLIGHT) && !defined(USE_RENDERER2)
+	QGL_EarlyInitARB();
+	if ( !r_fbo->integer ) 
+#endif
+	{
+		GLW_AttemptMSAA();
+	}
 #if defined(USE_PMLIGHT) && !defined(USE_RENDERER2)
 	QGL_InitARB();
 #endif

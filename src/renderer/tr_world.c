@@ -262,17 +262,20 @@ static qboolean R_LightCullSurface( const surfaceType_t* surface, const dlight_t
 		return R_LightCullFace( (const srfSurfaceFace_t*)surface, dl );
 	case SF_GRID: {
 		const srfGridMesh_t* grid = (const srfGridMesh_t*)surface;
-		return R_LightCullBounds( dl, grid->meshBounds[0], grid->meshBounds[1] );
+		return R_LightCullBounds( dl, grid->bounds[0], grid->bounds[1] );
 		}
+	case SF_FOLIAGE:
 	case SF_TRIANGLES: {
-		const srfTriangles_t* tris = (const srfTriangles_t*)surface;
-		return R_LightCullBounds( dl, tris->bounds[0], tris->bounds[1] );
+		//const srfTriangles_t* tris = (const srfTriangles_t*)surface;
+		const srfGeneric_t *gen = (const srfGeneric_t*)surface;
+		return R_LightCullBounds( dl, gen->bounds[0], gen->bounds[1] );
 		}
 	default:
 		return qfalse;
 	};
 }
 #endif // USE_PMLIGHT
+
 
 #ifdef USE_LEGACY_DLIGHTS
 #if 0
@@ -831,7 +834,56 @@ void R_AddBrushModelSurfaces( trRefEntity_t *ent ) {
 	// set local decal projectors
 	tr.refdef.numDecalProjectors = numLocalProjectors;
 	tr.refdef.decalProjectors = localProjectors;
+	
+#ifdef USE_PMLIGHT
+#ifdef USE_LEGACY_DLIGHTS
+	if ( r_dlightMode->integer ) 
+#endif
+	{
+		dlight_t *dl;
+		int s;
 
+		for ( s = 0; s < bmodel->numSurfaces; s++ ) {
+			( bmodel->firstSurface + s )->fogIndex = fognum;
+			// Arnout: custom shader support for brushmodels
+			if ( ent->e.customShader ) {
+				R_AddWorldSurface( bmodel->firstSurface + s, R_GetShaderByHandle( ent->e.customShader ), qfalse, decalBits );
+			} else {
+				R_AddWorldSurface( bmodel->firstSurface + s, ( ( msurface_t * )( bmodel->firstSurface + s ) )->shader, qfalse, decalBits );
+			}
+		}
+
+		R_SetupEntityLighting( &tr.refdef, ent );
+		
+		R_TransformDlights( tr.viewParms.num_dlights, tr.viewParms.dlights, &tr.orientation );
+
+		for ( i = 0; i < tr.viewParms.num_dlights; i++ ) {
+			dl = &tr.viewParms.dlights[i];
+			if ( !R_LightCullBounds( dl, bmodel->bounds[0], bmodel->bounds[1] ) ) {
+#ifdef USE_LIGHT_COUNT
+				tr.lightCount++;
+#endif
+				tr.light = dl;
+				for ( s = 0; s < bmodel->numSurfaces; s++ ) {
+					R_AddLitSurface( bmodel->firstSurface + s, dl );
+				}
+			}
+		}
+
+		// ydnar: restore old decal projectors
+		tr.refdef.numDecalProjectors = savedNumDecalProjectors;
+		tr.refdef.decalProjectors = savedDecalProjectors;
+
+		// ydnar: add decal surfaces
+		R_AddDecalSurfaces( bmodel );
+
+		// ydnar: clear current brush model
+		tr.currentBModel = NULL;
+		return;
+	}
+#endif // USE_PMLIGHT
+
+#ifdef USE_LEGACY_DLIGHTS
 	// add model surfaces
 	for ( i = 0; i < bmodel->numSurfaces; i++ )
 	{
@@ -853,6 +905,7 @@ void R_AddBrushModelSurfaces( trRefEntity_t *ent ) {
 
 	// ydnar: clear current brush model
 	tr.currentBModel = NULL;
+#endif
 }
 
 
@@ -918,14 +971,11 @@ R_RecursiveWorldNode
 ================
 */
 static void R_RecursiveWorldNode( mnode_t *node, int planeBits, int dlightBits, int decalBits ) {
-	int i, r;
-	dlight_t    *dl;
 
+	do {
 
-	do
-	{
 		// if the node wasn't marked as potentially visible, exit
-		if ( node->visframe != tr.visCount ) {
+		if (node->visframe != tr.visCount) {
 			return;
 		}
 
@@ -933,43 +983,45 @@ static void R_RecursiveWorldNode( mnode_t *node, int planeBits, int dlightBits, 
 		// inside can be visible OPTIMIZE: don't do this all the way to leafs?
 
 		if ( !r_nocull->integer ) {
+			int		r;
+
 			if ( planeBits & 1 ) {
-				r = BoxOnPlaneSide( node->mins, node->maxs, &tr.viewParms.frustum[0] );
-				if ( r == 2 ) {
-					return;                     // culled
+				r = BoxOnPlaneSide(node->mins, node->maxs, &tr.viewParms.frustum[0]);
+				if (r == 2) {
+					return;						// culled
 				}
 				if ( r == 1 ) {
-					planeBits &= ~1;            // all descendants will also be in front
+					planeBits &= ~1;			// all descendants will also be in front
 				}
 			}
 
 			if ( planeBits & 2 ) {
-				r = BoxOnPlaneSide( node->mins, node->maxs, &tr.viewParms.frustum[1] );
-				if ( r == 2 ) {
-					return;                     // culled
+				r = BoxOnPlaneSide(node->mins, node->maxs, &tr.viewParms.frustum[1]);
+				if (r == 2) {
+					return;						// culled
 				}
 				if ( r == 1 ) {
-					planeBits &= ~2;            // all descendants will also be in front
+					planeBits &= ~2;			// all descendants will also be in front
 				}
 			}
 
 			if ( planeBits & 4 ) {
-				r = BoxOnPlaneSide( node->mins, node->maxs, &tr.viewParms.frustum[2] );
-				if ( r == 2 ) {
-					return;                     // culled
+				r = BoxOnPlaneSide(node->mins, node->maxs, &tr.viewParms.frustum[2]);
+				if (r == 2) {
+					return;						// culled
 				}
 				if ( r == 1 ) {
-					planeBits &= ~4;            // all descendants will also be in front
+					planeBits &= ~4;			// all descendants will also be in front
 				}
 			}
 
 			if ( planeBits & 8 ) {
-				r = BoxOnPlaneSide( node->mins, node->maxs, &tr.viewParms.frustum[3] );
-				if ( r == 2 ) {
-					return;                     // culled
+				r = BoxOnPlaneSide(node->mins, node->maxs, &tr.viewParms.frustum[3]);
+				if (r == 2) {
+					return;						// culled
 				}
 				if ( r == 1 ) {
-					planeBits &= ~8;            // all descendants will also be in front
+					planeBits &= ~8;			// all descendants will also be in front
 				}
 			}
 
@@ -987,17 +1039,24 @@ static void R_RecursiveWorldNode( mnode_t *node, int planeBits, int dlightBits, 
 		}
 
 		// ydnar: cull dlights
+#ifdef USE_LEGACY_DLIGHTS
+#ifdef USE_PMLIGHT
+		if ( !r_dlightMode->integer )
+#endif
 		if ( dlightBits ) {  //%	&& node->contents != -1 )
-			for ( i = 0; i < tr.refdef.num_dlights; i++ )
-			{
+			int i;
+
+			for ( i = 0; i < tr.refdef.num_dlights; i++ ) {
+				dlight_t	*dl;
+
 				if ( dlightBits & ( 1 << i ) ) {
+					dl = &tr.refdef.dlights[i];
 					// directional dlights don't get culled
-					if ( tr.refdef.dlights[ i ].flags & REF_DIRECTED_DLIGHT ) {
+					if ( dl->flags & REF_DIRECTED_DLIGHT ) {
 						continue;
 					}
 
 					// test dlight bounds against node surface bounds
-					dl = &tr.refdef.dlights[ i ];
 					if ( node->surfMins[ 0 ] >= ( dl->origin[ 0 ] + dl->radius ) || node->surfMaxs[ 0 ] <= ( dl->origin[ 0 ] - dl->radius ) ||
 						 node->surfMins[ 1 ] >= ( dl->origin[ 1 ] + dl->radius ) || node->surfMaxs[ 1 ] <= ( dl->origin[ 1 ] - dl->radius ) ||
 						 node->surfMins[ 2 ] >= ( dl->origin[ 2 ] + dl->radius ) || node->surfMaxs[ 2 ] <= ( dl->origin[ 2 ] - dl->radius ) ) {
@@ -1006,9 +1065,11 @@ static void R_RecursiveWorldNode( mnode_t *node, int planeBits, int dlightBits, 
 				}
 			}
 		}
+#endif // USE_LEGACY_DLIGHTS
 
 		// ydnar: cull decals
 		if ( decalBits ) {
+			int i;
 			for ( i = 0; i < tr.refdef.numDecalProjectors; i++ )
 			{
 				if ( decalBits & ( 1 << i ) ) {
@@ -1022,7 +1083,7 @@ static void R_RecursiveWorldNode( mnode_t *node, int planeBits, int dlightBits, 
 		}
 
 		// handle leaf nodes
-		if ( node->contents != -1 ) {
+		if ( node->contents != CONTENTS_NODE ) {
 			break;
 		}
 
@@ -1097,7 +1158,7 @@ qboolean R_inPVS( const vec3_t p1, const vec3_t p2 ) {
 	byte    *vis;
 
 	leaf = R_PointInLeaf( p1 );
-	vis = CM_ClusterPVS( leaf->cluster );
+	vis = CM_ClusterPVS( leaf->cluster ); // ENSI NOTE make this an ri. function for modular renderer
 	leaf = R_PointInLeaf( p2 );
 
 	if ( !( vis[leaf->cluster >> 3] & ( 1 << ( leaf->cluster & 7 ) ) ) ) {
@@ -1205,6 +1266,11 @@ R_AddWorldSurfaces
 =============
 */
 void R_AddWorldSurfaces( void ) {
+#ifdef USE_PMLIGHT
+	dlight_t* dl;
+	int i;
+#endif
+
 	if ( !r_drawworld->integer ) {
 		return;
 	}
@@ -1237,11 +1303,49 @@ void R_AddWorldSurfaces( void ) {
 		// perform frustum culling and add all the potentially visible surfaces
 		R_RecursiveWorldNode( tr.world->nodes, 255, tr.refdef.dlightBits, tr.refdef.decalBits );
 
+#ifdef USE_PMLIGHT
+#ifdef USE_LEGACY_DLIGHTS
+		if ( !r_dlightMode->integer )
+		{
+			// ydnar: add decal surfaces
+			R_AddDecalSurfaces( tr.world->bmodels );
+
+			// clear brush model
+			tr.currentBModel = NULL;
+
+			return;
+		}
+#endif // USE_LEGACY_DLIGHTS
+
+		// "transform" all the dlights so that dl->transformed is actually populated
+		// (even though HERE it's == dl->origin) so we can always use R_LightCullBounds
+		// instead of having copypasted versions for both world and local cases
+
+		R_TransformDlights( tr.viewParms.num_dlights, tr.viewParms.dlights, &tr.viewParms.world );
+		for ( i = 0; i < tr.viewParms.num_dlights; i++ ) 
+		{
+			dl = &tr.viewParms.dlights[i];	
+#ifdef USE_LIGHT_COUNT
+			dl->head = dl->tail = NULL;
+#endif
+			if ( R_CullPointAndRadius( dl->origin, dl->radius ) == CULL_OUT ) {
+				tr.pc.c_light_cull_out++;
+				continue;
+			}
+			tr.pc.c_light_cull_in++;
+#ifdef USE_LIGHT_COUNT
+			tr.lightCount++;
+#endif
+			tr.light = dl;
+			R_RecursiveLightNode( tr.world->nodes );
+		}
+
 		// ydnar: add decal surfaces
 		R_AddDecalSurfaces( tr.world->bmodels );
 	}
 
 	// clear brush model
 	tr.currentBModel = NULL;
+#endif // USE_PMLIGHT
 }
 

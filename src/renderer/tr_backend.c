@@ -906,20 +906,21 @@ static void RB_RenderLitSurfList( dlight_t* dl ) {
 
 			if ( entityNum != REFENTITYNUM_WORLD ) {
 				backEnd.currentEntity = &backEnd.refdef.entities[entityNum];
-				if ( backEnd.floatfix ) // -EC-
-					backEnd.refdef.floatTime = originalTime - (double)(backEnd.currentEntity->e.shaderTime.i) * 0.001;
-				else
-					backEnd.refdef.floatTime = originalTime - (double)backEnd.currentEntity->e.shaderTime.f;
+				//if ( backEnd.floatfix ) // -EC-
+				//	backEnd.refdef.floatTime = originalTime - (double)(backEnd.currentEntity->e.shaderTime.i) * 0.001;
+				//else
+				//	backEnd.refdef.floatTime = originalTime - (double)backEnd.currentEntity->e.shaderTime.f;
+				backEnd.refdef.floatTime = originalTime - (double)backEnd.currentEntity->e.shaderTime;
 
 				// we have to reset the shaderTime as well otherwise image animations start
 				// from the wrong frame
 				tess.shaderTime = backEnd.refdef.floatTime - tess.shader->timeOffset;
 
 				// set up the transformation matrix
-				R_RotateForEntity( backEnd.currentEntity, &backEnd.viewParms, &backEnd.or );
+				R_RotateForEntity( backEnd.currentEntity, &backEnd.viewParms, &backEnd.orientation );
 
 				// set up the dynamic lighting
-				R_TransformDlights( 1, dl, &backEnd.or );
+				R_TransformDlights( 1, dl, &backEnd.orientation );
 				ARB_SetupLightParams();
 
 				if ( backEnd.currentEntity->e.renderfx & RF_DEPTHHACK ) {
@@ -932,16 +933,16 @@ static void RB_RenderLitSurfList( dlight_t* dl ) {
 			} else {
 				backEnd.currentEntity = &tr.worldEntity;
 				backEnd.refdef.floatTime = originalTime;
-				backEnd.or = backEnd.viewParms.world;
+				backEnd.orientation = backEnd.viewParms.world;
 				// we have to reset the shaderTime as well otherwise image animations on
 				// the world (like water) continue with the wrong frame
 				tess.shaderTime = backEnd.refdef.floatTime - tess.shader->timeOffset;
 
-				R_TransformDlights( 1, dl, &backEnd.or );
+				R_TransformDlights( 1, dl, &backEnd.orientation );
 				ARB_SetupLightParams();
 			}
 
-			qglLoadMatrixf( backEnd.or.modelMatrix );
+			qglLoadMatrixf( backEnd.orientation.modelMatrix );
 
 			//
 			// change depthrange. Also change projection matrix so first person weapon does not look like coming

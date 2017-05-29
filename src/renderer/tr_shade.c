@@ -1128,9 +1128,9 @@ static void ComputeColors( shaderStage_t *pStage ) {
 ComputeTexCoords
 ===============
 */
-static void ComputeTexCoords( shaderStage_t *pStage ) {
-	int i;
-	int b;
+void R_ComputeTexCoords( const shaderStage_t *pStage ) {
+	int		i;
+	int		b;
 
 	for ( b = 0; b < NUM_TEXTURE_BUNDLES; b++ ) {
 		int tm;
@@ -1290,7 +1290,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input ) {
 		}
 
 		ComputeColors( pStage );
-		ComputeTexCoords( pStage );
+		R_ComputeTexCoords( pStage );
 
 		if ( !setArraysOnce ) {
 			qglEnableClientState( GL_COLOR_ARRAY );

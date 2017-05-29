@@ -416,7 +416,33 @@ void R_SetupEntityLighting( const trRefdef_t *refdef, trRefEntity_t *ent ) {
 	//
 	d = VectorLength( ent->directedLight );
 	VectorScale( ent->lightDir, d, lightDir );
+#ifdef USE_PMLIGHT
+	if ( r_dlightMode->integer == 2 ) { 
+		// only direct lights
+		// but we need to deal with shadow light direction
+		VectorCopy( lightDir, shadowLightDir );
+		if ( r_shadows->integer == 2 ) {
+			for ( i = 0 ; i < refdef->num_dlights ; i++ ) {
+				dl = &refdef->dlights[i];
 
+				if ( dl->shader ) { //----(SA)	if the dlight has a diff shader specified, you don't know what it does, so don't let it affect entities lighting
+					continue;
+				}
+
+				VectorSubtract( dl->origin, lightOrigin, dir );
+				d = VectorNormalize( dir );
+
+				modulate = DLIGHT_AT_RADIUS * ( dl->radius * dl->radius );
+				if ( d < DLIGHT_MINIMUM_RADIUS ) {
+					d = DLIGHT_MINIMUM_RADIUS;
+				}
+				d = modulate / ( d * d );
+				VectorMA( shadowLightDir, d, dir, shadowLightDir );
+			}
+		} // if ( r_shadows->integer == 2 )
+	}  // if ( r_dlightMode->integer == 2 )
+	else
+#endif
 	for ( i = 0 ; i < refdef->num_dlights ; i++ ) {
 		dl = &refdef->dlights[i];
 

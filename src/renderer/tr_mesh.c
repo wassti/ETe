@@ -85,8 +85,8 @@ static float ProjectRadius( float r, vec3_t location ) {
 R_CullModel
 =============
 */
-static int R_CullModel( md3Header_t *header, trRefEntity_t *ent ) {
-	vec3_t bounds[2];
+static int R_CullModel( md3Header_t *header, trRefEntity_t *ent, vec3_t bounds[] ) {
+	//vec3_t bounds[2];
 	md3Frame_t  *oldFrame, *newFrame;
 	int i;
 
@@ -278,15 +278,16 @@ R_AddMD3Surfaces
 =================
 */
 void R_AddMD3Surfaces( trRefEntity_t *ent ) {
-	int i;
-	md3Header_t     *header = 0;
-	md3Surface_t    *surface = 0;
-	md3Shader_t     *md3Shader = 0;
-	shader_t        *shader = 0;
-	int cull;
-	int lod;
-	int fogNum;
-	qboolean personalModel;
+	vec3_t			bounds[2];
+	int				i;
+	md3Header_t		*header = NULL;
+	md3Surface_t	*surface = NULL;
+	md3Shader_t		*md3Shader = NULL;
+	shader_t		*shader = NULL;
+	int				cull;
+	int				lod;
+	int				fogNum;
+	qboolean		personalModel;
 #ifdef USE_PMLIGHT
 	dlight_t		*dl;
 	int				n;
@@ -335,7 +336,7 @@ void R_AddMD3Surfaces( trRefEntity_t *ent ) {
 	// cull the entire model if merged bounding box of both frames
 	// is outside the view frustum.
 	//
-	cull = R_CullModel( header, ent );
+	cull = R_CullModel( header, ent, bounds );
 	if ( cull == CULL_OUT ) {
 		return;
 	}

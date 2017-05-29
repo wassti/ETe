@@ -5683,7 +5683,7 @@ void CL_LoadTransTable( const char *fileName ) {
 	} while ( token );
 
 	if ( aborted ) {
-		int i, line = 1;
+		int line = 1;
 
 		for ( i = 0; i < len && ( text + i ) < text_p; i++ ) {
 			if ( text[i] == '\n' ) {

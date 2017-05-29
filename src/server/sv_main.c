@@ -1428,11 +1428,11 @@ void SV_Frame( int msec ) {
 			svs.currentSampleIndex++;
 
 			if ( svs.currentSampleIndex > SERVER_PERFORMANCECOUNTER_SAMPLES ) {
-				int totalTime, i;
+				int totalTime, spcs;
 
 				totalTime = 0;
-				for ( i = 0; i < SERVER_PERFORMANCECOUNTER_SAMPLES; i++ ) {
-					totalTime += svs.sampleTimes[i];
+				for ( spcs = 0; spcs < SERVER_PERFORMANCECOUNTER_SAMPLES; spcs++ ) {
+					totalTime += svs.sampleTimes[spcs];
 				}
 
 				if ( !totalTime ) {

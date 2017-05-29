@@ -41,38 +41,38 @@ static soundInterface_t si;
 S_ValidateInterface
 =================
 */
-static qboolean S_ValidSoundInterface( soundInterface_t *si )
+static qboolean S_ValidSoundInterface( soundInterface_t *_si )
 {
-	if( !si->Shutdown ) return qfalse;
-	if( !si->StartSound ) return qfalse;
-	if( !si->StartSoundEx ) return qfalse;
-	if( !si->StartLocalSound ) return qfalse;
-	if( !si->StartBackgroundTrack ) return qfalse;
-	if( !si->StopBackgroundTrack ) return qfalse;
-	if( !si->StartStreamingSound ) return qfalse;
-	if( !si->GetVoiceAmplitude ) return qfalse;
-	if( !si->RawSamples ) return qfalse;
-	if( !si->StopAllSounds ) return qfalse;
-	if( !si->ClearLoopingSounds ) return qfalse;
-	if( !si->AddLoopingSound ) return qfalse;
-	if( !si->AddRealLoopingSound ) return qfalse;
-	if( !si->StopLoopingSound ) return qfalse;
-	if( !si->Respatialize ) return qfalse;
-	if( !si->UpdateEntityPosition ) return qfalse;
-	if( !si->Update ) return qfalse;
-	if( !si->DisableSounds ) return qfalse;
-	if( !si->BeginRegistration ) return qfalse;
-	if( !si->RegisterSound ) return qfalse;
-	if( !si->ClearSoundBuffer ) return qfalse;
-	if( !si->SoundInfo ) return qfalse;
-	if( !si->SoundList ) return qfalse;
+	if( !_si->Shutdown ) return qfalse;
+	if( !_si->StartSound ) return qfalse;
+	if( !_si->StartSoundEx ) return qfalse;
+	if( !_si->StartLocalSound ) return qfalse;
+	if( !_si->StartBackgroundTrack ) return qfalse;
+	if( !_si->StopBackgroundTrack ) return qfalse;
+	if( !_si->StartStreamingSound ) return qfalse;
+	if( !_si->GetVoiceAmplitude ) return qfalse;
+	if( !_si->RawSamples ) return qfalse;
+	if( !_si->StopAllSounds ) return qfalse;
+	if( !_si->ClearLoopingSounds ) return qfalse;
+	if( !_si->AddLoopingSound ) return qfalse;
+	if( !_si->AddRealLoopingSound ) return qfalse;
+	if( !_si->StopLoopingSound ) return qfalse;
+	if( !_si->Respatialize ) return qfalse;
+	if( !_si->UpdateEntityPosition ) return qfalse;
+	if( !_si->Update ) return qfalse;
+	if( !_si->DisableSounds ) return qfalse;
+	if( !_si->BeginRegistration ) return qfalse;
+	if( !_si->RegisterSound ) return qfalse;
+	if( !_si->ClearSoundBuffer ) return qfalse;
+	if( !_si->SoundInfo ) return qfalse;
+	if( !_si->SoundList ) return qfalse;
 
 #ifdef USE_VOIP
-	if( !si->StartCapture ) return qfalse;
-	if( !si->AvailableCaptureSamples ) return qfalse;
-	if( !si->Capture ) return qfalse;
-	if( !si->StopCapture ) return qfalse;
-	if( !si->MasterGain ) return qfalse;
+	if( !_si->StartCapture ) return qfalse;
+	if( !_si->AvailableCaptureSamples ) return qfalse;
+	if( !_si->Capture ) return qfalse;
+	if( !_si->StopCapture ) return qfalse;
+	if( !_si->MasterGain ) return qfalse;
 #endif
 
 	return qtrue;

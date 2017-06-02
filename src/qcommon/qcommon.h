@@ -1294,7 +1294,7 @@ char	*Sys_ConsoleInput( void );
 qboolean	Sys_IsNumLockDown( void );
 
 // general development dll loading for virtual machine testing
-void	*QDECL Sys_LoadDll( const char *name, char *fqpath, dllSyscall_t *entryPoint, dllSyscall_t systemcalls );
+void	*QDECL Sys_LoadDll( const char *name, dllSyscall_t *entryPoint, dllSyscall_t systemcalls );
 void	Sys_UnloadDll( void *dllHandle );
 
 char	*Sys_GetCurrentUser( void );

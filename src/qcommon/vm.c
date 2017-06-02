@@ -483,7 +483,7 @@ vm_t *VM_Create( vmIndex_t index, syscall_t systemCalls, dllSyscall_t dllSyscall
 	if ( interpret == VMI_NATIVE ) {
 		// try to load as a system dll
 		Com_Printf( "Loading dll file %s.\n", name );
-		vm->dllHandle = Sys_LoadDll( name, vm->fqpath, &vm->entryPoint, dllSyscalls );
+		vm->dllHandle = Sys_LoadDll( name, &vm->entryPoint, dllSyscalls );
 		// TTimo - never try qvm
 		if ( vm->dllHandle ) {
 			return vm;

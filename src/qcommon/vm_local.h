@@ -143,9 +143,6 @@ struct vm_s {
    
 	const char	*name;
 
-	// fqpath member added 2/15/02 by T.Ray
-	char fqpath[MAX_QPATH + 1];
-
 	vmIndex_t	index;
 
 	const int	*vmMainArgs;

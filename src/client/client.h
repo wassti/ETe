@@ -749,6 +749,7 @@ int Key_GetCatcher( void );
 void Key_SetCatcher( int catcher );
 void LAN_LoadCachedServers( void );
 void LAN_SaveServersToCache( void );
+int LAN_AddFavAddr( const char *address );
 
 
 //

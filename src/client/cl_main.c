@@ -3884,6 +3884,32 @@ static void CL_CompleteVideoName( char *args, int argNum )
 	}
 }
 
+static void CL_AddFavorite_f( void ) {
+	const qboolean connected = (cls.state == CA_ACTIVE) && !clc.demoplaying;
+	const int argc = Cmd_Argc();
+	if ( !connected && argc != 2 ) {
+		Com_Printf( "syntax: addFavorite <ip or hostname>\n" );
+		return;
+	}
+
+	const char *server = (argc == 2) ? Cmd_Argv( 1 ) : NET_AdrToString( &clc.serverAddress );
+	const int status = LAN_AddFavAddr( server );
+	switch ( status ) {
+	case -1:
+		Com_Printf( "error adding favorite server: too many favorite servers\n" );
+		break;
+	case 0:
+		Com_Printf( "error adding favorite server: server already exists\n" );
+		break;
+	case 1:
+		Com_Printf( "successfully added favorite server \"%s\"\n", server );
+		break;
+	default:
+		Com_Printf( "unknown error (%i) adding favorite server\n", status );
+		break;
+	}
+}
+
 /*
 ====================
 CL_Init
@@ -4147,6 +4173,8 @@ void CL_Init( void ) {
 //	Cmd_AddCommand( "wav_record", CL_WavRecord_f );
 //	Cmd_AddCommand( "wav_stoprecord", CL_WavStopRecord_f );
 
+	Cmd_AddCommand( "addFavorite", CL_AddFavorite_f );
+
 	CL_InitRef();
 
 	SCR_Init ();
@@ -4239,6 +4267,8 @@ void CL_Shutdown( const char *finalmsg, qboolean quit ) {
 	Cmd_RemoveCommand( "wav_record" );
 	Cmd_RemoveCommand( "wav_stoprecord" );
 	// done.
+
+	Cmd_RemoveCommand( "addFavorite" );
 
 	CL_ClearInput();
 	Cvar_Set( "cl_running", "0" );

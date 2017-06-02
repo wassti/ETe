@@ -1203,6 +1203,7 @@ void IN_Frame( void ) {
 		if ( !glw_state.cdsFullscreen ) {
 			IN_DeactivateMouse();
 			WIN_EnableAltTab();
+			WIN_DisableHook();
 			return;
 		}
 	}
@@ -1215,6 +1216,7 @@ void IN_Frame( void ) {
 	IN_ActivateMouse();
 	
 	WIN_DisableAltTab();
+	WIN_EnableHook();
 
 	// post events to the system que
 	IN_MouseMove();

@@ -628,31 +628,39 @@ Used to load a development dll instead of a virtual machine
 extern int cl_connectedToPureServer;
 
 const char* Sys_GetDLLName( const char *name ) {
+#if idx64
+	return va( "%s_mp_x86_64.dll", name );
+#else
 	return va( "%s_mp_x86.dll", name );
+#endif
 }
 
-// fqpath param added 2/15/02 by T.Ray - Sys_LoadDll is only called in vm.c at this time
-// fqpath will be empty if dll not loaded, otherwise will hold fully qualified path of dll module loaded
-// fqpath buffersize must be at least MAX_QPATH+1 bytes long
-void * QDECL Sys_LoadDll( const char *name, char *fqpath, int( QDECL **entryPoint ) ( int, ... ),
-						  int ( QDECL *systemcalls )( int, ... ) ) {
+void * QDECL Sys_LoadDll( const char *name, dllSyscall_t *entryPoint, dllSyscall_t systemcalls ) {
 	HINSTANCE libHandle;
 	dllEntry_t	dllEntry;
 	const char	*basepath;
 	const char	*homepath;
-	const char	*cdpath;
 	const char	*gamedir;
 	char		*fn;
 	char		filename[ MAX_QPATH ];
-
-	*fqpath = 0 ;       // added 2/15/02 by T.Ray
 
 	Q_strncpyz( filename, Sys_GetDLLName( name ), sizeof( filename ) );
 
 	basepath = Cvar_VariableString( "fs_basepath" );
 	homepath = Cvar_VariableString( "fs_homepath" );
-	cdpath = Cvar_VariableString( "fs_cdpath" );
 	gamedir = Cvar_VariableString( "fs_game" );
+	if ( !*gamedir ) {
+		gamedir = Cvar_VariableString( "fs_basegame" );
+	}
+	fn = filename;
+
+#ifdef DEBUG
+	if ( GetCurrentDirectory( currpath, ARRAY_LEN( currpath ) ) < ARRAY_LEN( currpath ) ) {
+		fn = FS_BuildOSPath( WtoA( currpath ), gamedir, filename );
+		libHandle = LoadLibrary( AtoW( filename ) );
+	} else
+#endif
+	libHandle = NULL;
 
 	// try gamepath first
 	fn = FS_BuildOSPath( basepath, gamedir, filename );
@@ -670,32 +678,32 @@ void * QDECL Sys_LoadDll( const char *name, char *fqpath, int( QDECL **entryPoin
 		}
 	}
 #endif
-
-	libHandle = LoadLibrary( fn );
 	if ( !libHandle ) {
-		// First try falling back to BASEGAME
-		fn = FS_BuildOSPath( basepath, BASEGAME, filename );
-		libHandle = LoadLibrary( fn );
-
-		if ( !libHandle ) {
-			// Final fall-back to current directory
-			libHandle = LoadLibrary( filename );
-			if ( !libHandle ) {
-				return NULL;
-			}
-			Q_strncpyz( fqpath, filename, MAX_QPATH ) ;         // added 2/15/02 by T.Ray
-
-		} else {Q_strncpyz( fqpath, fn, MAX_QPATH ) ;       // added 2/15/02 by T.Ray
-		}
-	} else {Q_strncpyz( fqpath, fn, MAX_QPATH ) ;       // added 2/15/02 by T.Ray
+		libHandle = LoadLibrary( AtoW( fn ) );
 	}
-	dllEntry = ( void ( QDECL * )( int ( QDECL * )( int, ... ) ) )GetProcAddress( libHandle, "dllEntry" );
-	*entryPoint = ( int ( QDECL * )( int,... ) )GetProcAddress( libHandle, "vmMain" );
+
+	if ( !libHandle && *homepath && Q_stricmp( basepath, homepath ) ) {
+		fn = FS_BuildOSPath( homepath, gamedir, filename );
+		libHandle = LoadLibrary( AtoW( fn ) );
+	}
+
+	if ( !libHandle ) {
+		Com_Printf( "LoadLibrary '%s' failed\n", fn );
+		return NULL;
+	}
+
+	Com_Printf( "LoadLibrary '%s' ok\n", fn );
+
+	dllEntry = ( dllEntry_t ) GetProcAddress( libHandle, "dllEntry" ); 
+	*entryPoint = ( dllSyscall_t ) GetProcAddress( libHandle, "vmMain" );
 	if ( !*entryPoint || !dllEntry ) {
 		FreeLibrary( libHandle );
 		return NULL;
 	}
+
+	Com_Printf( "Sys_LoadDll(%s) found **vmMain** at %p\n", name, *entryPoint );
 	dllEntry( systemcalls );
+	Com_Printf( "Sys_LoadDll(%s) succeeded!\n", name );
 
 	return libHandle;
 }
@@ -811,7 +819,6 @@ void Sys_Init( void ) {
 
 	IN_Init();
 #endif
-
 }
 
 //=======================================================================

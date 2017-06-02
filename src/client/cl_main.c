@@ -661,7 +661,6 @@ static void CL_Record_f( void ) {
 
 	Com_TruncateLongString( clc.recordNameShort, clc.recordName );
 
-
 	// don't start saving messages until a non-delta compressed message is received
 	clc.demowaiting = qtrue;
 
@@ -1753,21 +1752,12 @@ CL_SendPureChecksums
 =================
 */
 void CL_SendPureChecksums( void ) {
-	const char *pChecksums;
 	char cMsg[MAX_INFO_VALUE];
-	int i;
 
 	// if we are pure we need to send back a command with our referenced pk3 checksums
-	pChecksums = FS_ReferencedPakPureChecksums();
+	Com_sprintf(cMsg, sizeof(cMsg), "cp %d %s", cl.serverId, FS_ReferencedPakPureChecksums());
 
-	// "cp"
-	Com_sprintf( cMsg, sizeof( cMsg ), "Va " );
-	Q_strcat( cMsg, sizeof( cMsg ), va( "%d ", cl.serverId ) );
-	Q_strcat( cMsg, sizeof( cMsg ), pChecksums );
-	for ( i = 0; i < 2; i++ ) {
-		cMsg[i] += 13 + ( i * 2 );
-	}
-	CL_AddReliableCommand( cMsg, qfalse );
+	CL_AddReliableCommand(cMsg, qfalse);
 }
 
 /*
@@ -1778,6 +1768,7 @@ CL_ResetPureClientAtServer
 void CL_ResetPureClientAtServer( void ) {
 	CL_AddReliableCommand( "vdr", qfalse );
 }
+
 
 /*
 =================

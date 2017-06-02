@@ -1158,7 +1158,7 @@ qboolean R_inPVS( const vec3_t p1, const vec3_t p2 ) {
 	byte    *vis;
 
 	leaf = R_PointInLeaf( p1 );
-	vis = CM_ClusterPVS( leaf->cluster ); // ENSI NOTE make this an ri. function for modular renderer
+	vis = ri.CM_ClusterPVS( leaf->cluster );
 	leaf = R_PointInLeaf( p2 );
 
 	if ( !( vis[leaf->cluster >> 3] & ( 1 << ( leaf->cluster & 7 ) ) ) ) {

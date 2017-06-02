@@ -188,7 +188,7 @@ typedef struct {
 
 	void	(*Cmd_ExecuteText)( cbufExec_t exec_when, const char *text );
 
-	//byte	*(*CM_ClusterPVS)(int cluster);
+	byte	*(*CM_ClusterPVS)(int cluster);
 
 	// visualization for debugging collision detection
 	void ( *CM_DrawDebugSurface )( void( *drawPoly ) ( int color, int numPoints, float *points ) );

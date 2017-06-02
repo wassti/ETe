@@ -5,7 +5,7 @@
 
 // This must not exceed MAX_CMD_LINE
 #define     MAX_CONSOLE_SAVE_BUFFER	1024
-#define     CONSOLE_HISTORY_FILE    "q3history"
+#define     CONSOLE_HISTORY_FILE    "ethistory"
 
 static char consoleSaveBuffer[ MAX_CONSOLE_SAVE_BUFFER ];
 static int  consoleSaveBufferSize = 0;

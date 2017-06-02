@@ -863,5 +863,3 @@ void Key_SetCatcher( int catcher ) {
 
 	keyCatchers = catcher;
 }
-
-

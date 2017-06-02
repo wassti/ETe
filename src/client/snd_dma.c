@@ -571,7 +571,7 @@ static qboolean S_Base_HearingThroughEntity( int entityNum, vec3_t origin )
 	if (origin)
 		VectorCopy(origin, sorigin);
 	else
-		VectorCopy(loopSounds[entityNum].origin, sorigin);
+		VectorCopy(entityPositions[entityNum], sorigin);
 
 	if( listener_number == entityNum )
 	{
@@ -759,12 +759,13 @@ static void S_Base_MainStartSound( vec3_t origin, int entityNum, int entchannel,
 					continue;
 				}
 			}
+
 		}
 	}
 
 	// re-use channel if applicable
 	for ( i = 0 ; i < MAX_CHANNELS ; i++ ) {
-		if ( s_channels[i].entnum == entityNum && s_channels[i].entchannel == entchannel ) {
+		if ( s_channels[i].entnum == entityNum && s_channels[i].entchannel == entchannel && entchannel != CHAN_AUTO ) {
 			if ( !( s_channels[i].flags & SND_NOCUT ) && s_channels[i].thesfx == sfx ) {
 				ch = &s_channels[i];
 				break;
@@ -1262,7 +1263,7 @@ void S_Base_RawSamples( int stream, int samples, int rate, int width, int n_chan
 
 		if ( entityNum >= 0 && entityNum < MAX_GENTITIES ) {
 			// support spatialized raw streams, e.g. for VoIP
-			S_SpatializeOrigin( loopSounds[ entityNum ].origin, 256, &leftvol, &rightvol, SOUND_RANGE_DEFAULT );
+			S_SpatializeOrigin( entityPositions[ entityNum ], 256, &leftvol, &rightvol, SOUND_RANGE_DEFAULT );
 		} else {
 			leftvol = rightvol = 256;
 		}
@@ -1369,7 +1370,7 @@ void S_Base_UpdateEntityPosition( int entityNum, const vec3_t origin ) {
 	if ( entityNum < 0 || entityNum >= MAX_GENTITIES ) {
 		Com_Error( ERR_DROP, "S_UpdateEntityPosition: bad entitynum %i", entityNum );
 	}
-	VectorCopy( origin, loopSounds[entityNum].origin );
+	VectorCopy( origin, entityPositions[entityNum] );
 }
 
 
@@ -1409,7 +1410,7 @@ void S_Base_Respatialize( int entityNum, const vec3_t head, vec3_t axis[3], int 
 			if (ch->fixed_origin) {
 				VectorCopy( ch->origin, origin );
 			} else {
-				VectorCopy( loopSounds[ ch->entnum ].origin, origin );
+				VectorCopy( entityPositions[ ch->entnum ], origin );
 			}
 
 			S_SpatializeOrigin (origin, ch->master_vol, &ch->leftvol, &ch->rightvol, SOUND_RANGE_DEFAULT );
@@ -1498,24 +1499,26 @@ void S_Base_Update( void ) {
 	S_Update_();
 }
 
-void S_GetSoundtime(void)
+void S_GetSoundtime( void )
 {
 	int		samplepos;
 	static	int		buffers;
 	static	int		oldsamplepos;
 	int		fullsamples;
+	float	fps;
+	float	frameDuration;
+	int		msec;
 	
 	fullsamples = dma.samples / dma.channels;
 
 	if( CL_VideoRecording( ) )
 	{
-		float fps = MIN(cl_aviFrameRate->value, 1000.0f);
-		float frameDuration = MAX(dma.speed / fps, 1.0f) + clc.aviSoundFrameRemainder;
+		fps = MIN( cl_aviFrameRate->value, 1000.0f );
+		frameDuration = MAX( dma.speed / fps, 1.0f ) + clc.aviSoundFrameRemainder;
 
-		int msec = (int)frameDuration;
+		msec = (int)frameDuration;
 		s_soundtime += msec;
 		clc.aviSoundFrameRemainder = frameDuration - msec;
-
 		return;
 	}
 
@@ -1857,11 +1860,16 @@ void S_Base_Shutdown( void ) {
 	}
 
 	SNDDMA_Shutdown();
-	SND_shutdown();
 
-	s_soundStarted = 0;
-	s_numSfx = 0;
+	// release sound buffers only when switching to dedicated 
+	// to avoid redundand reallocation at client restart
+	if ( com_dedicated->integer )
+		SND_shutdown();
 
+	s_soundStarted = qfalse;
+
+	s_numSfx = 0; // clean up sound cache -EC-
+	
 	Cmd_RemoveCommand("s_info");
 }
 

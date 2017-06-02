@@ -331,6 +331,11 @@ S_RegisterSound
 */
 sfxHandle_t	S_RegisterSound( const char *sample, qboolean compressed )
 {
+	if ( !sample || !*sample ) {
+		Com_Printf( "NULL sound\n" );
+		return 0;
+	}
+
 	if( si.RegisterSound ) {
 		return si.RegisterSound( sample, compressed );
 	} else {
@@ -546,7 +551,7 @@ void S_Init( void )
 	s_volume = Cvar_Get( "s_volume", "0.8", CVAR_ARCHIVE );
 	s_musicVolume = Cvar_Get( "s_musicvolume", "0.25", CVAR_ARCHIVE );
 	s_muted = Cvar_Get("s_muted", "0", CVAR_ROM);
-	s_doppler = Cvar_Get( "s_doppler", "1", CVAR_ARCHIVE );
+	s_doppler = Cvar_Get( "s_doppler", "1", CVAR_ARCHIVE_ND );
 	s_backend = Cvar_Get( "s_backend", "", CVAR_ROM );
 	s_muteWhenMinimized = Cvar_Get( "s_muteWhenMinimized", "0", CVAR_ARCHIVE );
 	s_muteWhenUnfocused = Cvar_Get( "s_muteWhenUnfocused", "0", CVAR_ARCHIVE );
@@ -599,6 +604,10 @@ S_Shutdown
 */
 void S_Shutdown( void )
 {
+	if ( si.StopAllSounds ) {
+		si.StopAllSounds();
+	}
+
 	if( si.Shutdown ) {
 		si.Shutdown( );
 	}

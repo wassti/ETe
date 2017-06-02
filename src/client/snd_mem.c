@@ -55,6 +55,7 @@ void	SND_free(sndBuffer *v) {
 	*(sndBuffer **)v = freelist;
 	freelist = (sndBuffer*)v;
 	inUse += sizeof(sndBuffer);
+	totalInUse -= sizeof(sndBuffer); // -EC-
 }
 
 sndBuffer*	SND_malloc(void) {
@@ -74,22 +75,62 @@ redo:
 	return v;
 }
 
-void SND_setup(void) {
+
+void SND_setup( void ) 
+{
 	sndBuffer *p, *q;
 	cvar_t	*cv;
-	int scs;
+	int scs, sz;
+	static int old_scs = -1;
 
 	cv = Cvar_Get( "com_soundMegs", DEF_COMSOUNDMEGS, CVAR_LATCH | CVAR_ARCHIVE );
 
-	scs = (cv->integer*1536);
+	scs = ( cv->integer * /*1536*/ 12 * dma.speed ) / 22050;
+	scs *= 128;
 
-	buffer = malloc(scs*sizeof(sndBuffer) );
+	sz = scs * sizeof( sndBuffer );
+
+	// realloc buffer if com_comSoundMegs changed
+	if ( old_scs != scs ) {
+		if ( buffer != NULL ) {
+			free( buffer );
+			buffer = NULL;
+		}
+		old_scs = scs;
+	}
+
+	if ( buffer == NULL ) {
+		buffer = malloc( sz );
+	}
+
+	// -EC-
+	if ( buffer == NULL ) {
+		Com_Error( ERR_FATAL, "Error allocating %i bytes for sound buffer", sz );
+	} else {
+		Com_Memset( buffer, 0, sz );
+	}
+
+	sz = SND_CHUNK_SIZE * sizeof(short) * 4;
+
 	// allocate the stack based hunk allocator
-	sfxScratchBuffer = malloc(SND_CHUNK_SIZE * sizeof(short) * 4);	//Hunk_Alloc(SND_CHUNK_SIZE * sizeof(short) * 4);
+	// -EC-
+	if ( sfxScratchBuffer == NULL ) {
+		sfxScratchBuffer = malloc( sz );	//Hunk_Alloc(SND_CHUNK_SIZE * sizeof(short) * 4);
+	}
+
+	// clear scratch buffer -EC-
+	if ( sfxScratchBuffer == NULL ) {
+		Com_Error( ERR_FATAL, "Error allocating %i bytes for sfxScratchBuffer",	sz );
+	} else {
+		Com_Memset( sfxScratchBuffer, 0, sz );
+	}
+
 	sfxScratchPointer = NULL;
 
-	inUse = scs*sizeof(sndBuffer);
-	p = buffer;;
+	inUse = scs * sizeof( sndBuffer );
+	totalInUse = 0; // -EC-
+
+	p = buffer;
 	q = p + scs;
 	while (--q > p)
 		*(sndBuffer **)q = q-1;
@@ -97,14 +138,24 @@ void SND_setup(void) {
 	*(sndBuffer **)q = NULL;
 	freelist = p + scs - 1;
 
-	Com_Printf("Sound memory manager started\n");
+	Com_Printf( "Sound memory manager started\n" );
 }
 
-void SND_shutdown(void)
+
+void SND_shutdown( void )
 {
-		free(sfxScratchBuffer);
-		free(buffer);
+	if ( sfxScratchBuffer ) 
+	{
+		free( sfxScratchBuffer );
+		sfxScratchBuffer = NULL;
+	}
+	if ( buffer ) 
+	{
+		free( buffer );
+		buffer = NULL;
+	}
 }
+
 
 /*
 ================

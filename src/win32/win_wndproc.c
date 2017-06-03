@@ -805,7 +805,11 @@ LRESULT WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM  wParam, LPARAM lParam 
 		break;
 
 	case WM_SYSCOMMAND:
-		if ( wParam == SC_SCREENSAVE )
+		// Prevent Alt+Letter commands from hanging the application temporarily
+		if ( wParam == SC_KEYMENU )
+			return 0;
+
+		if ( wParam == SC_SCREENSAVE || wParam == SC_MONITORPOWER )
 			return 0;
 
 #ifdef USE_PMLIGHT

@@ -211,6 +211,14 @@ or configs will never get loaded from disk!
 
 */
 
+static const unsigned pak_checksums[] = {
+	2573271400u,
+	1581790464u,
+	608521179u,
+};
+
+static const unsigned mpbin_checksum = 2004278281u;
+
 #define MAX_ZPATH           256
 #define MAX_SEARCH_PATHS    4096
 #define MAX_FILEHASH_SIZE	4096
@@ -3959,10 +3967,9 @@ static void FS_Startup( void ) {
 
 	fs_gamedirvar->modified = qfalse; // We just loaded, it's not modified
 
-	// check original q3a files
-	// ENSI NOTE CHANGE THIS TO official ET files
-	//if ( !Q_stricmp( fs_basegame->string, BASEGAME ) || !Q_stricmp( fs_basegame->string, BASEDEMO ) )
-	//	FS_CheckIdPaks();
+	// check original ET files
+	if ( !Q_stricmp( fs_basegame->string, BASEGAME ) )
+		FS_CheckIdPaks();
 
 #ifdef FS_MISSING
 	if (missingFiles == NULL) {
@@ -3971,6 +3978,132 @@ static void FS_Startup( void ) {
 #endif
 }
 
+
+/*
+===================
+FS_CheckIdPaks
+
+Checks that pak0.pk3 is present and its checksum is correct
+Note: If you're building a game that doesn't depend on the
+Q3 media pak0.pk3, you'll want to remove this function
+===================
+*/
+static void FS_CheckIdPaks( void )
+{
+	searchpath_t	*path;
+	unsigned foundPak = 0;
+
+	for( path = fs_searchpaths; path; path = path->next )
+	{
+		const char* pakBasename;
+
+		if ( !path->pack )
+			continue;
+
+		pakBasename = path->pack->pakBasename;
+
+
+		if(!Q_stricmpn( path->pack->pakGamename, BASEGAME, MAX_OSPATH )
+			&& strlen(pakBasename) == 4 && !Q_stricmpn( pakBasename, "pak", 3 )
+			&& pakBasename[3] >= '0' && pakBasename[3] <= '2')
+		{
+			if( (unsigned int)path->pack->checksum != pak_checksums[pakBasename[3]-'0'] )
+			{
+				if(pakBasename[3] == '0')
+				{
+					Com_Printf("\n\n"
+						"**************************************************\n"
+						"ERROR: pak0.pk3 is present but its checksum (%u)\n"
+						"is not correct. Please re-copy pak0.pk3 from your\n"
+						"legitimate ET installation.\n"
+						"**************************************************\n\n\n",
+						path->pack->checksum );
+				}
+				else
+				{
+					Com_Printf("\n\n"
+						"**************************************************\n"
+						"ERROR: pak%d.pk3 is present but its checksum (%u)\n"
+						"is not correct. Please re-install Wolfenstein: Enemy Territory \n"
+#ifdef __MACOS__
+						"v2.60d pk3 files\n"
+#else
+						"v2.60b pk3 files\n"
+#endif
+						"**************************************************\n\n\n",
+						pakBasename[3]-'0', path->pack->checksum );
+				}
+				Com_Error(ERR_FATAL, "\n* You need to install correct Wolfenstein: Enemy Territory files in order to play *");
+			}
+
+			foundPak |= 1<<(pakBasename[3]-'0');
+		}
+		else if(!Q_stricmpn( path->pack->pakGamename, BASEGAME, MAX_OSPATH )
+			&& !Q_stricmpn( pakBasename, "mp_bin", 6 ))
+		{
+			if( (unsigned int)path->pack->checksum != mpbin_checksum )
+			{
+				Com_Printf("\n\n"
+					"**************************************************\n"
+					"ERROR: mp_bin.pk3 is present but its checksum (%u)\n"
+					"is not correct. Please re-install Wolfenstein: Enemy Territory \n"
+#ifdef __MACOS__
+					"v2.60d pk3 files\n"
+#else
+					"v2.60b pk3 files\n"
+#endif
+					"**************************************************\n\n\n",
+					path->pack->checksum );
+				Com_Error(ERR_FATAL, "\n* You need to install correct Wolfenstein: Enemy Territory files in order to play *");
+			}
+
+			foundPak |= 1<<3;
+		}
+	}
+
+	if((foundPak & 0xF) != 0xF )
+	{
+		if((foundPak&1) != 1 )
+		{
+			Com_Printf("\n\n"
+			"pak0.pk3 is missing. Please copy it\n"
+			"from your legitimate ET installation.\n");
+		}
+
+		if((foundPak&0x6) != 0x6 )
+		{
+			Com_Printf("\n\n"
+			"Point Release files are missing. Please\n"
+			"Copy it from your legitimate ET installation or"
+#ifdef __MACOS__
+			"re-install ET with the 2.60d updates.\n");
+#else
+			"re-install ET with the 2.60b updates.\n");
+#endif
+		}
+
+		if((foundPak&0x8) != 0x8 )
+		{
+			Com_Printf("\n\n"
+			"Binary pack file is missing. Please\n"
+			"Copy it from your legitimate ET installation or"
+#ifdef __MACOS__
+			"re-install ET with the 2.60d updates.\n");
+#else
+			"re-install ET with the 2.60b updates.\n");
+#endif
+		}
+
+		Com_Printf("\n\n"
+			"Also check that your ET executable is in\n"
+			"the correct place and that every file\n"
+			"in the %s directory is present and readable.\n", BASEGAME);
+
+		if(!fs_gamedirvar->string[0]
+		|| !Q_stricmp( fs_gamedirvar->string, BASEGAME ))
+			Com_Error(ERR_FATAL, "\n*** you need to install Wolfenstein: Enemy Territory in order to play ***");
+	}
+}
 
 
 #if !defined( DO_LIGHT_DEDICATED )

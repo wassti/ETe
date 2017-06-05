@@ -335,13 +335,20 @@ Just prints the rest of the line to the console
 ===============
 */
 void Cmd_Echo_f( void ) {
-	int i;
+#ifdef DEDICATED
+	Com_Printf ("%s\n", Cmd_Args());
+#else
+	if ( com_dedicated && !com_dedicated->integer ) {
 
-	Cbuf_AddText( "cpm \"" );
-	for ( i = 1; i < Cmd_Argc(); i++ ) {
-		Cbuf_AddText( va( "%s ", Cmd_Argv( i ) ) );
+		if ( com_cl_running && com_cl_running->integer && CL_CgameRunning() )
+			Cbuf_AddText( va("cpm \"%s\"\n", Cmd_Args() ) );
+		else
+			Com_Printf ("%s\n", Cmd_Args());
 	}
-	Cbuf_AddText( "\"\n" );
+	else {
+		Com_Printf ("%s\n", Cmd_Args());
+	}
+#endif
 }
 
 

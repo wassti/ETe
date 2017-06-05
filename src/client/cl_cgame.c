@@ -1525,3 +1525,11 @@ qboolean CL_GetTag( int clientNum, char *tagname, orientation_t *or ) {
 
 	return VM_Call( cgvm, CG_GET_TAG, clientNum, tagname, or );
 }
+
+qboolean CL_CgameRunning( void ) {
+	if ( !cgvm ) {
+		return qfalse;
+	}
+
+	return qtrue;
+}

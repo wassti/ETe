@@ -3238,11 +3238,13 @@ void CL_Frame( int msec ) {
 	SCR_RunCinematic();
 
 	Con_RunConsole();
-	//#ifdef USE_PMLIGHT
+//#ifdef USE_PMLIGHT
 	if ( r_dlightSpecPower->modified || r_dlightSpecColor->modified ) {
 		ARB_UpdatePrograms();
+		r_dlightSpecPower->modified = qfalse;
+		r_dlightSpecColor->modified = qfalse;
 	}
-	//#endif
+//#endif
 	cls.framecount++;
 }
 

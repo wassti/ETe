@@ -816,7 +816,7 @@ void Cvar_SetLatched( const char *var_name, const char *value) {
 Cvar_SetValue
 ============
 */
-void Cvar_SetValue( const char *var_name, float value) {
+void Cvar_SetValueExt( const char *var_name, float value, qboolean force) {
 	char	val[32];
 
 	if ( value == (int)value ) {
@@ -824,7 +824,15 @@ void Cvar_SetValue( const char *var_name, float value) {
 	} else {
 		Com_sprintf (val, sizeof(val), "%f",value);
 	}
-	Cvar_Set (var_name, val);
+	Cvar_Set2 (var_name, val, force);
+}
+
+void Cvar_SetValue( const char *var_name, float value ) {
+	Cvar_SetValueExt( var_name, value, qtrue );
+}
+
+void Cvar_SetValueNoForce( const char *var_name, float value ) {
+	Cvar_SetValueExt( var_name, value, qfalse );
 }
 
 /*
@@ -911,6 +919,14 @@ qboolean Cvar_Command( void ) {
 	if ( Cmd_Argc() == 1 ) {
 		Cvar_Print( v );
 		return qtrue;
+	}
+
+	if ( Cmd_Argc() == 2 ) {
+		// Swap the value if our command has ! in it (bind p "cg_thirdPeson !")
+		if ( !strcmp( Cmd_Argv( 1 ), "!" ) ) {
+			Cvar_SetValueNoForce( v->name, !v->value );
+			return qtrue;
+		}
 	}
 
 	// set the value if forcing isn't required

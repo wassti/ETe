@@ -492,7 +492,6 @@ qboolean CL_NextUpdateServer( void );
 void CL_GetAutoUpdate( void );
 
 void CL_Disconnect_f( void );
-void CL_GetChallengePacket( void );
 void CL_Vid_Restart_f( void );
 void CL_Snd_Restart_f (void);
 void CL_StartDemoLoop( void );
@@ -525,8 +524,6 @@ const char* CL_TranslateStringBuf( const char *string ); // TTimo
 // -NERVE - SMF
 
 void CL_OpenURL( const char *url ); // TTimo
-
-void CL_Record( const char* name );
 
 qboolean CL_CheckPaused(void);
 
@@ -581,18 +578,11 @@ void CL_InitInput (void);
 void CL_ClearInput (void);
 void CL_SendCmd (void);
 void CL_ClearState (void);
-void CL_ReadPackets (void);
 
 void CL_WritePacket( void );
 //void IN_CenterView (void);
 void IN_Notebook( void );
 void IN_Help( void );
-
-//----(SA) salute
-void IN_Salute( void );
-//----(SA)
-
-void CL_VerifyCode( void );
 
 //
 // cl_keys.c
@@ -622,7 +612,6 @@ void CL_ParseServerMessage( msg_t *msg );
 
 void	CL_LocalServers_f( void );
 void	CL_GlobalServers_f( void );
-void	CL_FavoriteServers_f( void );
 void	CL_Ping_f( void );
 qboolean CL_UpdateVisiblePings_f( int source );
 qboolean CL_ValidPakSignature( const byte *data, int len );
@@ -669,8 +658,6 @@ typedef struct {
 
 extern console_t con;
 
-void Con_DrawCharacter( int cx, int line, int num );
-
 void Con_CheckResize( void );
 void Con_Init( void );
 void Con_Clear_f( void );
@@ -684,9 +671,6 @@ void Con_PageDown( int lines );
 void Con_Top( void );
 void Con_Bottom( void );
 void Con_Close( void );
-
-void CL_LoadConsoleHistory( void );
-void CL_SaveConsoleHistory( void );
 
 //
 // cl_scrn.c

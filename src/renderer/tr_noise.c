@@ -25,9 +25,8 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-
 // tr_noise.c
-#include "tr_local.h"
+#include "tr_common.h"
 
 #define NOISE_SIZE 256
 #define NOISE_MASK ( NOISE_SIZE - 1 )

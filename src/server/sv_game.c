@@ -32,20 +32,12 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "../game/botlib.h"
 
-botlib_export_t *botlib_export;
-
-void SV_GameError( const char *string ) {
-	Com_Error( ERR_DROP, "%s", string );
-}
-
-void SV_GamePrint( const char *string ) {
-	Com_Printf( "%s", string );
-}
+botlib_export_t	*botlib_export;
 
 // these functions must be used instead of pointer arithmetic, because
 // the game allocates gentities with private information after the server shared part
-int SV_NumForGentity( sharedEntity_t *ent ) {
-	int num;
+int	SV_NumForGentity( sharedEntity_t *ent ) {
+	int		num;
 
 	num = ( (byte *)ent - (byte *)sv.gentities ) / sv.gentitySize;
 
@@ -55,20 +47,20 @@ int SV_NumForGentity( sharedEntity_t *ent ) {
 sharedEntity_t *SV_GentityNum( int num ) {
 	sharedEntity_t *ent;
 
-	ent = ( sharedEntity_t * )( (byte *)sv.gentities + sv.gentitySize * ( num ) );
+	ent = (sharedEntity_t *)((byte *)sv.gentities + sv.gentitySize*(num));
 
 	return ent;
 }
 
 playerState_t *SV_GameClientNum( int num ) {
-	playerState_t   *ps;
+	playerState_t	*ps;
 
-	ps = ( playerState_t * )( (byte *)sv.gameClients + sv.gameClientSize * ( num ) );
+	ps = (playerState_t *)((byte *)sv.gameClients + sv.gameClientSize*(num));
 
 	return ps;
 }
 
-svEntity_t  *SV_SvEntityForGentity( sharedEntity_t *gEnt ) {
+svEntity_t	*SV_SvEntityForGentity( sharedEntity_t *gEnt ) {
 	if ( !gEnt || gEnt->s.number < 0 || gEnt->s.number >= MAX_GENTITIES ) {
 		Com_Error( ERR_DROP, "SV_SvEntityForGentity: bad gEnt" );
 	}
@@ -76,7 +68,7 @@ svEntity_t  *SV_SvEntityForGentity( sharedEntity_t *gEnt ) {
 }
 
 sharedEntity_t *SV_GEntityForSvEntity( svEntity_t *svEnt ) {
-	int num;
+	int		num;
 
 	num = svEnt - sv.svEntities;
 	return SV_GentityNum( num );
@@ -96,7 +88,7 @@ void SV_GameSendServerCommand( int clientNum, const char *text ) {
 		if ( clientNum < 0 || clientNum >= sv_maxclients->integer ) {
 			return;
 		}
-		SV_SendServerCommand( svs.clients + clientNum, "%s", text );
+		SV_SendServerCommand( svs.clients + clientNum, "%s", text );	
 	}
 }
 
@@ -127,14 +119,14 @@ sets mins and maxs for inline bmodels
 =================
 */
 void SV_SetBrushModel( sharedEntity_t *ent, const char *name ) {
-	clipHandle_t h;
-	vec3_t mins, maxs;
+	clipHandle_t	h;
+	vec3_t			mins, maxs;
 
-	if ( !name ) {
+	if (!name) {
 		Com_Error( ERR_DROP, "SV_SetBrushModel: NULL" );
 	}
 
-	if ( name[0] != '*' ) {
+	if (name[0] != '*') {
 		Com_Error( ERR_DROP, "SV_SetBrushModel: %s isn't a brush model", name );
 	}
 
@@ -143,13 +135,13 @@ void SV_SetBrushModel( sharedEntity_t *ent, const char *name ) {
 
 	h = CM_InlineModel( ent->s.modelindex );
 	CM_ModelBounds( h, mins, maxs );
-	VectorCopy( mins, ent->r.mins );
-	VectorCopy( maxs, ent->r.maxs );
+	VectorCopy (mins, ent->r.mins);
+	VectorCopy (maxs, ent->r.maxs);
 	ent->r.bmodel = qtrue;
 
-	ent->r.contents = -1;       // we don't know exactly what is in the brushes
+	ent->r.contents = -1;		// we don't know exactly what is in the brushes
 
-	SV_LinkEntity( ent );       // FIXME: remove
+	SV_LinkEntity( ent );		// FIXME: remove
 }
 
 
@@ -161,26 +153,25 @@ SV_inPVS
 Also checks portalareas so that doors block sight
 =================
 */
-qboolean SV_inPVS( const vec3_t p1, const vec3_t p2 ) {
-	int leafnum;
-	int cluster;
-	int area1, area2;
-	byte    *mask;
+qboolean SV_inPVS (const vec3_t p1, const vec3_t p2)
+{
+	int		leafnum;
+	int		cluster;
+	int		area1, area2;
+	byte	*mask;
 
-	leafnum = CM_PointLeafnum( p1 );
-	cluster = CM_LeafCluster( leafnum );
-	area1 = CM_LeafArea( leafnum );
-	mask = CM_ClusterPVS( cluster );
+	leafnum = CM_PointLeafnum (p1);
+	cluster = CM_LeafCluster (leafnum);
+	area1 = CM_LeafArea (leafnum);
+	mask = CM_ClusterPVS (cluster);
 
-	leafnum = CM_PointLeafnum( p2 );
-	cluster = CM_LeafCluster( leafnum );
-	area2 = CM_LeafArea( leafnum );
-	if ( mask && ( !( mask[cluster >> 3] & ( 1 << ( cluster & 7 ) ) ) ) ) {
+	leafnum = CM_PointLeafnum (p2);
+	cluster = CM_LeafCluster (leafnum);
+	area2 = CM_LeafArea (leafnum);
+	if ( mask && (!(mask[cluster>>3] & (1<<(cluster&7)) ) ) )
 		return qfalse;
-	}
-	if ( !CM_AreasConnected( area1, area2 ) ) {
-		return qfalse;      // a door blocks sight
-	}
+	if (!CM_AreasConnected (area1, area2))
+		return qfalse;		// a door blocks sight
 	return qtrue;
 }
 
@@ -192,24 +183,21 @@ SV_inPVSIgnorePortals
 Does NOT check portalareas
 =================
 */
-qboolean SV_inPVSIgnorePortals( const vec3_t p1, const vec3_t p2 ) {
-	int leafnum;
-	int cluster;
-	int area1, area2;
-	byte    *mask;
+qboolean SV_inPVSIgnorePortals( const vec3_t p1, const vec3_t p2)
+{
+	int		leafnum;
+	int		cluster;
+	byte	*mask;
 
-	leafnum = CM_PointLeafnum( p1 );
-	cluster = CM_LeafCluster( leafnum );
-	area1 = CM_LeafArea( leafnum );
-	mask = CM_ClusterPVS( cluster );
+	leafnum = CM_PointLeafnum (p1);
+	cluster = CM_LeafCluster (leafnum);
+	mask = CM_ClusterPVS (cluster);
 
-	leafnum = CM_PointLeafnum( p2 );
-	cluster = CM_LeafCluster( leafnum );
-	area2 = CM_LeafArea( leafnum );
+	leafnum = CM_PointLeafnum (p2);
+	cluster = CM_LeafCluster (leafnum);
 
-	if ( mask && ( !( mask[cluster >> 3] & ( 1 << ( cluster & 7 ) ) ) ) ) {
+	if ( mask && (!(mask[cluster>>3] & (1<<(cluster&7)) ) ) )
 		return qfalse;
-	}
 
 	return qtrue;
 }
@@ -221,7 +209,7 @@ SV_AdjustAreaPortalState
 ========================
 */
 void SV_AdjustAreaPortalState( sharedEntity_t *ent, qboolean open ) {
-	svEntity_t  *svEnt;
+	svEntity_t	*svEnt;
 
 	svEnt = SV_SvEntityForGentity( ent );
 	if ( svEnt->areanum2 == -1 ) {
@@ -233,7 +221,7 @@ void SV_AdjustAreaPortalState( sharedEntity_t *ent, qboolean open ) {
 
 /*
 ==================
-SV_GameAreaEntities
+SV_EntityContact
 ==================
 */
 qboolean    SV_EntityContact( const vec3_t mins, const vec3_t maxs, const sharedEntity_t *gEnt, const int capsule ) {
@@ -246,8 +234,8 @@ qboolean    SV_EntityContact( const vec3_t mins, const vec3_t maxs, const shared
 	angles = gEnt->r.currentAngles;
 
 	ch = SV_ClipHandleForEntity( gEnt );
-	CM_TransformedBoxTrace( &trace, vec3_origin, vec3_origin, mins, maxs,
-							ch, -1, origin, angles, capsule );
+	CM_TransformedBoxTrace ( &trace, vec3_origin, vec3_origin, mins, maxs,
+		ch, -1, origin, angles, capsule );
 
 	return trace.startsolid;
 }

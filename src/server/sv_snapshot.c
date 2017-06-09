@@ -659,6 +659,7 @@ static void SV_BuildCommonSnapshot( void )
 	}
 }
 
+
 /*
 =============
 SV_BuildClientSnapshot

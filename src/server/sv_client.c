@@ -732,6 +732,7 @@ void SV_DropClient( client_t *drop, const char *reason ) {
 	}
 }
 
+
 /*
 ================
 SV_SendClientGameState
@@ -858,6 +859,7 @@ void SV_ClientEnterWorld( client_t *client, usercmd_t *cmd ) {
 	VM_Call( gvm, GAME_CLIENT_BEGIN, client - svs.clients );
 }
 
+
 /*
 ============================================================
 
@@ -894,6 +896,7 @@ static void SV_CloseDownload( client_t *cl ) {
 
 }
 
+
 /*
 ==================
 SV_StopDownload_f
@@ -907,6 +910,7 @@ static void SV_StopDownload_f( client_t *cl ) {
 
 	SV_CloseDownload( cl );
 }
+
 
 /*
 ==================
@@ -923,6 +927,7 @@ static void SV_DoneDownload_f( client_t *cl ) {
 	// resend the game state to update any clients that entered during the download
 	SV_SendClientGameState(cl);
 }
+
 
 /*
 ==================
@@ -955,6 +960,7 @@ static void SV_NextDownload_f( client_t *cl )
 	//			because the cgame isn't loaded yet
 	SV_DropClient( cl, "broken download" );
 }
+
 
 /*
 ==================
@@ -1426,6 +1432,7 @@ static void SV_Disconnect_f( client_t *cl ) {
 	SV_DropClient( cl, "disconnected" );
 }
 
+
 /*
 =================
 SV_VerifyPaks_f
@@ -1450,9 +1457,9 @@ static void SV_VerifyPaks_f( client_t *cl ) {
 	// if we are pure, we "expect" the client to load certain things from
 	// certain pk3 files, namely we want the client to have loaded the
 	// ui and cgame that we think should be loaded based on the pure setting
+	//
 	if ( sv_pure->integer != 0 ) {
 
-		bGood = qtrue;
 		nChkSum1 = nChkSum2 = 0;
 
 		bGood = ( FS_FileIsInPAK( FS_ShiftStr( SYS_DLLNAME_CGAME, -SYS_DLLNAME_CGAME_SHIFT ), &nChkSum1 ) == 1 );
@@ -1465,16 +1472,17 @@ static void SV_VerifyPaks_f( client_t *cl ) {
 		// start at arg 2 ( skip serverId cl_paks )
 		nCurArg = 1;
 
-		pArg = Cmd_Argv( nCurArg++ );
-
-		if ( !pArg ) {
+		pArg = Cmd_Argv(nCurArg++);
+		if(!pArg) {
 			bGood = qfalse;
-		} else
+		}
+		else
 		{
 			// show_bug.cgi?id=475
 			// we may get incoming cp sequences from a previous checksumFeed, which we need to ignore
 			// since serverId is a frame count, it always goes up
-			if ( atoi( pArg ) < sv.checksumFeedServerId ) {
+			if (atoi(pArg) < sv.checksumFeedServerId)
+			{
 				Com_DPrintf( "ignoring outdated cp command from client %s\n", cl->name );
 				return;
 			}
@@ -1519,29 +1527,25 @@ static void SV_VerifyPaks_f( client_t *cl ) {
 			// so the client can't send 5 the same checksums
 			for ( i = 0; i < nClientPaks; i++ ) {
 				for ( j = 0; j < nClientPaks; j++ ) {
-					if ( i == j ) {
+					if (i == j)
 						continue;
-					}
 					if ( nClientChkSum[i] == nClientChkSum[j] ) {
 						bGood = qfalse;
 						break;
 					}
 				}
-				if ( bGood == qfalse ) {
+				if (bGood == qfalse)
 					break;
-				}
 			}
-			if ( bGood == qfalse ) {
+			if (bGood == qfalse)
 				break;
-			}
 
 			// get the pure checksums of the pk3 files loaded by the server
 			pPaks = FS_LoadedPakPureChecksums();
 			Cmd_TokenizeString( pPaks );
 			nServerPaks = Cmd_Argc();
-			if ( nServerPaks > 1024 ) {
+			if (nServerPaks > 1024)
 				nServerPaks = 1024;
-			}
 
 			for ( i = 0; i < nServerPaks; i++ ) {
 				nServerChkSum[i] = atoi( Cmd_Argv( i ) );
@@ -1594,6 +1598,7 @@ static void SV_VerifyPaks_f( client_t *cl ) {
 	}
 }
 
+
 /*
 =================
 SV_ResetPureClient_f
@@ -1603,6 +1608,7 @@ static void SV_ResetPureClient_f( client_t *cl ) {
 	cl->pureAuthentic = 0;
 	cl->gotCP = qfalse;
 }
+
 
 /*
 =================
@@ -1767,10 +1773,11 @@ void SV_ExecuteClientCommand( client_t *cl, const char *s, qboolean clientOK, qb
 			Cmd_Args_Sanitize();
 			VM_Call( gvm, GAME_CLIENT_COMMAND, cl - svs.clients );
 		}
-	} else if ( !bProcessed )     {
-		Com_DPrintf( "client text ignored for %s: %s\n", cl->name, Cmd_Argv( 0 ) );
 	}
+	else if (!bProcessed)
+		Com_DPrintf( "client text ignored for %s: %s\n", cl->name, Cmd_Argv(0) );
 }
+
 
 /*
 ===============
@@ -1863,6 +1870,7 @@ void SV_ClientThink( client_t *cl, usercmd_t *cmd ) {
 	VM_Call( gvm, GAME_CLIENT_THINK, cl - svs.clients );
 }
 
+
 /*
 ==================
 SV_UserMove
@@ -1923,7 +1931,8 @@ static void SV_UserMove( client_t *cl, msg_t *msg, qboolean delta ) {
 	// if CS_ACTIVE, then it's time to trigger a new gamestate emission
 	// if not, then we are getting remaining parasite usermove commands, which we should ignore
 	if ( sv_pure->integer != 0 && cl->pureAuthentic == 0 && !cl->gotCP ) {
-		if ( cl->state == CS_ACTIVE ) {
+		if (cl->state == CS_ACTIVE)
+		{
 			// we didn't get a cp yet, don't assume anything and just send the gamestate all over again
 			Com_DPrintf( "%s: didn't get cp command, resending gamestate\n", cl->name );
 			SV_SendClientGameState( cl );

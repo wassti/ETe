@@ -1192,6 +1192,7 @@ typedef struct {
 	qboolean	vertexes2D;		// shader needs to be finished
 	qboolean	doneBloom;		// done bloom this frame
 	qboolean	doneSurfaces;   // done any 3d surfaces already
+	qboolean	doneBloom2fbo;
 	trRefEntity_t	entity2D;	// currentEntity will point at this when doing 2D rendering
 
 	qboolean	floatfix;		// -EC- frameloss bug fix
@@ -1790,6 +1791,7 @@ void FBO_BindMain( void );
 void FBO_Bind( void );
 void FBO_PostProcess( void );
 void FBO_BlitMS( qboolean depthOnly );
+qboolean FBO_Bloom( const int w, const int h, const float gamma, const float obScale, qboolean finalPass );
 
 #endif // USE_PMLIGHT
 

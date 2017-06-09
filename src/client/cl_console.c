@@ -344,8 +344,6 @@ Con_Init
 */
 void Con_Init( void ) 
 {
-	static qboolean inited = qfalse;
-
 	con_notifytime = Cvar_Get( "con_notifytime", "7", 0 ); // JPW NERVE increased per id req for obits
 	con_conspeed = Cvar_Get( "scr_conspeed", "3", 0 );
 	con_debug = Cvar_Get( "con_debug", "0", CVAR_ARCHIVE_ND );   //----(SA)	added
@@ -355,11 +353,6 @@ void Con_Init( void )
 	Field_Clear( &g_consoleField );
 	g_consoleField.widthInChars = g_console_field_width;
 
-	// don't try to add commands twice when switching back from dedicated
-	if ( inited == qtrue )
-		return;
-	inited = qtrue;
-
 	Cmd_AddCommand( "toggleConsole", Con_ToggleConsole_f );
 	// ydnar: these are deprecated in favor of cgame/ui based version
 	Cmd_AddCommand( "clMessageMode", Con_MessageMode_f );
@@ -368,6 +361,21 @@ void Con_Init( void )
 	Cmd_AddCommand( "clear", Con_Clear_f );
 	Cmd_AddCommand( "condump", Con_Dump_f );
 	Cmd_SetCommandCompletionFunc( "condump", Cmd_CompleteTxtName );
+}
+
+/*
+================
+Con_Shutdown
+================
+*/
+void Con_Shutdown( void )
+{
+	Cmd_RemoveCommand( "toggleConsole" );
+	Cmd_RemoveCommand( "clMessageMode" );
+	Cmd_RemoveCommand( "clMessageMode2" );
+	Cmd_RemoveCommand( "clMessageMode3" );
+	Cmd_RemoveCommand( "clear" );
+	Cmd_RemoveCommand( "condump" );
 }
 
 

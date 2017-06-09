@@ -4272,7 +4272,8 @@ void CL_Shutdown( const char *finalmsg, qboolean quit ) {
 
 	Cmd_RemoveCommand( "addFavorite" );
 
-	CL_ClearInput();
+	CL_ShutdownInput();
+	Con_Shutdown();
 	Cvar_Set( "cl_running", "0" );
 
 	recursive = qfalse;

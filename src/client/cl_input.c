@@ -1103,11 +1103,7 @@ void CL_ClearKeys( void ) {
 	memset( kb, 0, sizeof( kb ) );
 }
 
-void CL_ClearInput( void ) {
-	// ENSI TODO ET commands
-
-	Cmd_RemoveCommand ("centerview");
-
+void CL_ShutdownInput( void ) {
 	Cmd_RemoveCommand ("+moveup");
 	Cmd_RemoveCommand ("-moveup");
 	Cmd_RemoveCommand ("+movedown");
@@ -1134,36 +1130,30 @@ void CL_ClearInput( void ) {
 	Cmd_RemoveCommand ("-speed");
 	Cmd_RemoveCommand ("+attack");
 	Cmd_RemoveCommand ("-attack");
-	Cmd_RemoveCommand ("+button0");
-	Cmd_RemoveCommand ("-button0");
-	Cmd_RemoveCommand ("+button1");
-	Cmd_RemoveCommand ("-button1");
-	Cmd_RemoveCommand ("+button2");
-	Cmd_RemoveCommand ("-button2");
-	Cmd_RemoveCommand ("+button3");
-	Cmd_RemoveCommand ("-button3");
-	Cmd_RemoveCommand ("+button4");
-	Cmd_RemoveCommand ("-button4");
-	Cmd_RemoveCommand ("+button5");
-	Cmd_RemoveCommand ("-button5");
-	Cmd_RemoveCommand ("+button6");
-	Cmd_RemoveCommand ("-button6");
-	Cmd_RemoveCommand ("+button7");
-	Cmd_RemoveCommand ("-button7");
-	Cmd_RemoveCommand ("+button8");
-	Cmd_RemoveCommand ("-button8");
-	Cmd_RemoveCommand ("+button9");
-	Cmd_RemoveCommand ("-button9");
-	Cmd_RemoveCommand ("+button10");
-	Cmd_RemoveCommand ("-button10");
-	Cmd_RemoveCommand ("+button11");
-	Cmd_RemoveCommand ("-button11");
-	Cmd_RemoveCommand ("+button12");
-	Cmd_RemoveCommand ("-button12");
-	Cmd_RemoveCommand ("+button13");
-	Cmd_RemoveCommand ("-button13");
-	Cmd_RemoveCommand ("+button14");
-	Cmd_RemoveCommand ("-button14");
+	Cmd_RemoveCommand( "+button1");
+	Cmd_RemoveCommand( "-button1");
+	Cmd_RemoveCommand( "+useitem");
+	Cmd_RemoveCommand( "-useitem");
+	Cmd_RemoveCommand( "+salute");
+	Cmd_RemoveCommand( "-salute");
+	Cmd_RemoveCommand( "+button4");
+	Cmd_RemoveCommand( "-button4");
+	Cmd_RemoveCommand( "+activate");
+	Cmd_RemoveCommand( "-activate");
+	Cmd_RemoveCommand( "+prone");
+	Cmd_RemoveCommand( "-prone");
+	Cmd_RemoveCommand( "+sprint");
+	Cmd_RemoveCommand( "-sprint");
+	Cmd_RemoveCommand( "+attack2");
+	Cmd_RemoveCommand( "-attack2");
+	Cmd_RemoveCommand( "+zoom");
+	Cmd_RemoveCommand( "-zoom");
+	Cmd_RemoveCommand( "+reload");
+	Cmd_RemoveCommand( "-reload");
+	Cmd_RemoveCommand( "+leanleft");
+	Cmd_RemoveCommand( "-leanleft");
+	Cmd_RemoveCommand( "+leanright");
+	Cmd_RemoveCommand( "-leanright");
 	Cmd_RemoveCommand ("+mlook");
 	Cmd_RemoveCommand ("-mlook");
 }

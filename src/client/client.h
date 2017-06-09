@@ -575,7 +575,7 @@ typedef enum {
 void CL_ClearKeys( void );
 
 void CL_InitInput (void);
-void CL_ClearInput (void);
+void CL_ShutdownInput(void);
 void CL_SendCmd (void);
 void CL_ClearState (void);
 
@@ -660,6 +660,7 @@ extern console_t con;
 
 void Con_CheckResize( void );
 void Con_Init( void );
+void Con_Shutdown( void );
 void Con_Clear_f( void );
 void Con_ToggleConsole_f( void );
 void Con_DrawNotify( void );

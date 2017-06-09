@@ -125,6 +125,8 @@ clientConnection_t	clc;
 clientStatic_t		cls;
 vm_t				*cgvm;
 
+netadr_t			rcon_address;
+
 char				cl_reconnectArgs[ MAX_OSPATH ];
 char				cl_oldGame[ MAX_QPATH ];
 qboolean			cl_oldGameSet;
@@ -1704,7 +1706,6 @@ CL_Rcon_f
 */
 void CL_Rcon_f( void ) {
 	char	message[MAX_RCON_MESSAGE];
-	netadr_t	to;
 
 	if ( !rcon_client_password->string[0] ) {
 		Com_Printf ("You must set 'rconPassword' before\n"
@@ -1727,7 +1728,7 @@ void CL_Rcon_f( void ) {
 	Q_strcat (message, MAX_RCON_MESSAGE, Cmd_Cmd()+5);
 
 	if ( cls.state >= CA_CONNECTED ) {
-		to = clc.netchan.remoteAddress;
+		rcon_address = clc.netchan.remoteAddress;
 	} else {
 		if (!strlen(rconAddress->string)) {
 			Com_Printf ("You must either be connected,\n"
@@ -1736,13 +1737,13 @@ void CL_Rcon_f( void ) {
 
 			return;
 		}
-		NET_StringToAdr( rconAddress->string, &to, NA_UNSPEC );
-		if (to.port == 0) {
-			to.port = BigShort (PORT_SERVER);
+		NET_StringToAdr( rconAddress->string, &rcon_address, NA_UNSPEC );
+		if (rcon_address.port == 0) {
+			rcon_address.port = BigShort (PORT_SERVER);
 		}
 	}
 	
-	NET_SendPacket( NS_CLIENT, strlen(message)+1, message, &to );
+	NET_SendPacket( NS_CLIENT, strlen(message)+1, message, &rcon_address );
 }
 
 
@@ -2408,7 +2409,14 @@ print OOB are the only messages we handle markups in
 ===================
 */
 static void CL_PrintPacket( const netadr_t *from, msg_t *msg ) {
-	const char *s = MSG_ReadBigString( msg );
+	const char *s = NULL;
+
+	// NOTE: we may have to add exceptions for auth and update servers
+	if ( !NET_CompareAdr( from, &clc.serverAddress ) && NET_CompareAdr( from, &rcon_address ) ) {
+		return;
+	}
+
+	s = MSG_ReadBigString( msg );
 
 	if ( !Q_stricmpn( s, "[err_dialog]", 12 ) ) {
 		Q_strncpyz( clc.serverMessage, s + 12, sizeof( clc.serverMessage ) );

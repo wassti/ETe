@@ -3516,7 +3516,7 @@ void Com_WriteConfiguration( void ) {
 	extern cvar_t *fs_basegame;
 	extern cvar_t *fs_gamedirvar;
 #endif
-	char *cl_profileStr = Cvar_VariableString( "cl_profile" );
+	const char *cl_profileStr = Cvar_VariableString( "cl_profile" );
 
 	// if we are quiting without fully initializing, make sure
 	// we don't write out anything
@@ -3908,7 +3908,7 @@ Com_Shutdown
 =================
 */
 void Com_Shutdown( qboolean badProfile ) {
-	char *cl_profileStr = Cvar_VariableString( "cl_profile" );
+	const char *cl_profileStr = Cvar_VariableString( "cl_profile" );
 
 
 	// delete pid file

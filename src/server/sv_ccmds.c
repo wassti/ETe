@@ -167,7 +167,7 @@ static void SV_Map_f( void ) {
 	qboolean killBots, cheat, buildScript;
 	char expanded[MAX_QPATH];
 	int savegameTime = -1;
-	char        *cl_profileStr = Cvar_VariableString( "cl_profile" );
+	const char *cl_profileStr = Cvar_VariableString( "cl_profile" );
 
 	map = Cmd_Argv(1);
 	if ( !map || !*map ) {

@@ -351,15 +351,25 @@ S_DefaultSound
 =================
 */
 void S_DefaultSound( sfx_t *sfx ) {
-	
-	int		i;
+	int i;
 
+	if ( s_defaultsound->integer ) {
 	sfx->soundLength = 512;
+	} else {
+		sfx->soundLength = 8;
+	}
+
 	sfx->soundData = SND_malloc();
 	sfx->soundData->next = NULL;
 
+	if ( s_defaultsound->integer ) {
 	for ( i = 0 ; i < sfx->soundLength ; i++ ) {
 		sfx->soundData->sndChunk[i] = i;
+		}
+	} else {
+		for ( i = 0 ; i < sfx->soundLength ; i++ ) {
+			sfx->soundData->sndChunk[i] = 0;
+		}
 	}
 }
 

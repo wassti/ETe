@@ -46,8 +46,6 @@ static	byte		*fileBase;
 int			c_subdivisions;
 int			c_gridVerts;
 
-surfaceType_t skipData = SF_SKIP;
-
 //===============================================================================
 
 static void HSVtoRGB( float h, float s, float v, float rgb[3] )
@@ -431,14 +429,15 @@ static void FinishGenericSurface( dsurface_t *ds, srfGeneric_t *gen, vec3_t pt )
 ParseMesh
 ===============
 */
-static void ParseMesh( dsurface_t *ds, drawVert_t *verts, msurface_t *surf ) {
-	srfGridMesh_t   *grid;
-	int i, j;
-	int width, height, numPoints;
-	drawVert_t points[MAX_PATCH_SIZE * MAX_PATCH_SIZE];
-	int lightmapNum;
-	vec3_t bounds[2];
-	vec3_t tmpVec;
+static void ParseMesh ( dsurface_t *ds, drawVert_t *verts, msurface_t *surf ) {
+	srfGridMesh_t	*grid;
+	int				i, j;
+	int				width, height, numPoints;
+	drawVert_t points[MAX_PATCH_SIZE*MAX_PATCH_SIZE];
+	int				lightmapNum;
+	vec3_t			bounds[2];
+	vec3_t			tmpVec;
+	static surfaceType_t	skipData = SF_SKIP;
 
 	lightmapNum = LittleLong( ds->lightmapNum );
 

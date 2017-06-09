@@ -120,7 +120,7 @@ static void MakeMeshNormals( int width, int height, drawVert_t ctrl[MAX_GRID_SIZ
 	int i, j, k, dist;
 	vec3_t normal;
 	vec3_t sum;
-	int count;
+	int		count = 0;
 	vec3_t base;
 	vec3_t delta;
 	int x, y;
@@ -367,7 +367,9 @@ R_SubdividePatchToGrid
 srfGridMesh_t *R_SubdividePatchToGrid( int width, int height,
 									   drawVert_t points[MAX_PATCH_SIZE*MAX_PATCH_SIZE] ) {
 	int i, j, k, l;
-	drawVert_t prev, next, mid;
+	drawVert_t_cleared( prev );
+	drawVert_t_cleared( next );
+	drawVert_t_cleared( mid );
 	float len, maxLen;
 	int dir;
 	int t;

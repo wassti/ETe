@@ -124,7 +124,7 @@ int DL_BeginDownload( const char *localName, const char *remoteName, int debug )
 	}
 
 	FS_CreatePath( localName );
-	dl_file = fopen( localName, "wb+" );
+	dl_file = Sys_FOpen( localName, "wb+" );
 	if ( !dl_file ) {
 		Com_Printf( "ERROR: DL_BeginDownload unable to open '%s' for writing\n", localName );
 		return 0;
@@ -133,8 +133,7 @@ int DL_BeginDownload( const char *localName, const char *remoteName, int debug )
 	DL_InitDownload();
 
 	/* ET://ip:port */
-	strcpy( referer, "ET://" );
-	Q_strncpyz( referer + 5, Cvar_VariableString( "cl_currentServerIP" ), MAX_STRING_CHARS );
+	Com_sprintf( referer, sizeof( referer ), "ET://%s", Cvar_VariableString( "cl_currentServerIP" ) );
 
 	dl_request = curl_easy_init();
 	curl_easy_setopt( dl_request, CURLOPT_USERAGENT, va( "%s %s", APP_NAME "/" APP_VERSION, curl_version() ) );
@@ -177,7 +176,7 @@ dlStatus_t DL_DownloadLoop() {
 	}
 
 	if ( msg->data.result != CURLE_OK ) {
-#ifdef __MACOS__ // ¥¥¥
+#ifdef __MACOS__ // ï¿½ï¿½ï¿½
 		err = "unknown curl error.";
 #else
 		err = curl_easy_strerror( msg->data.result );

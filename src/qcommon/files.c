@@ -552,11 +552,9 @@ FS_CreatePath
 Creates any directories needed to store the given filename
 ============
 */
-int FS_CreatePath( const char *OSPath_ ) {
-	// use va() to have a clean const char* prototype
-	char *OSPath = va( "%s", OSPath_ );
-	char *ofs;
-
+qboolean FS_CreatePath( char *OSPath ) {
+	char	*ofs;
+	
 	// make absolutely sure that it can't back up the path
 	// FIXME: is c: allowed???
 	if ( strstr( OSPath, ".." ) || strstr( OSPath, "::" ) ) {

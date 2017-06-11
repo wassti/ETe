@@ -2412,7 +2412,7 @@ static void CL_PrintPacket( const netadr_t *from, msg_t *msg ) {
 	const char *s = NULL;
 
 	// NOTE: we may have to add exceptions for auth and update servers
-	if ( !NET_CompareAdr( from, &clc.serverAddress ) && NET_CompareAdr( from, &rcon_address ) ) {
+	if ( !NET_CompareAdr( from, &clc.serverAddress ) && !NET_CompareAdr( from, &rcon_address ) ) {
 		return;
 	}
 
@@ -2836,7 +2836,10 @@ static void CL_ConnectionlessPacket( const netadr_t *from, msg_t *msg ) {
 
 	// echo request from server
 	if ( !Q_stricmp(c, "echo") ) {
-		NET_OutOfBandPrint( NS_CLIENT, from, "%s", Cmd_Argv(1) );
+		// NOTE: we may have to add exceptions for auth and update servers
+		if ( NET_CompareAdr( from, &clc.serverAddress ) || NET_CompareAdr( from, &rcon_address ) ) {
+			NET_OutOfBandPrint( NS_CLIENT, from, "%s", Cmd_Argv( 1 ) );
+		}
 		return;
 	}
 

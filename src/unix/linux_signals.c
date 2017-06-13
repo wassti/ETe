@@ -25,50 +25,49 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-
 #include <signal.h>
 
-#include "../game/q_shared.h"
+#include "../qcommon/q_shared.h"
 #include "../qcommon/qcommon.h"
 #ifndef DEDICATED
 #include "../renderer/tr_local.h"
 #endif
 
-// rain - don't bother building this in debug builds now, since we
-// aren't calling the signal handler at all
-#ifndef _DEBUG
-static qboolean signalcaught = qfalse;;
+static qboolean signalcaught = qfalse;
 
-void Sys_Exit( int ); // bk010104 - abstraction
+extern void Sys_Exit( int code );
 
-static void signal_handler( int sig ) { // bk010104 - replace this... (NOTE TTimo huh?)
-	if ( signalcaught ) {
+static void signal_handler( int sig )
+{
+	char msg[32];
+
+	if ( signalcaught == qtrue )
+	{
 		printf( "DOUBLE SIGNAL FAULT: Received signal %d, exiting...\n", sig );
-		Sys_Exit( 1 ); // bk010104 - abstraction
+		Sys_Exit( 1 ); // abstraction
 	}
 
 	signalcaught = qtrue;
+	sprintf( msg, "Signal caught (%d)", sig );
 	printf( "Received signal %d, exiting...\n", sig );
 #ifndef DEDICATED
-	GLimp_Shutdown(); // bk010104 - shouldn't this be CL_Shutdown
+	CL_Shutdown( msg, qtrue );
 #endif
-	Sys_Exit( 0 ); // bk010104 - abstraction NOTE TTimo send a 0 to avoid DOUBLE SIGNAL FAULT
+	SV_Shutdown( msg );
+	Sys_Exit( 0 ); // send a 0 to avoid DOUBLE SIGNAL FAULT
 }
-#endif
 
-void InitSig( void ) {
-//bani - allows debug builds to core...
-#ifndef _DEBUG
+
+void InitSig( void )
+{
+	signal( SIGINT, SIG_IGN );
 	signal( SIGHUP, signal_handler );
-	signal( SIGINT, signal_handler );
 	signal( SIGQUIT, signal_handler );
 	signal( SIGILL, signal_handler );
 	signal( SIGTRAP, signal_handler );
 	signal( SIGIOT, signal_handler );
 	signal( SIGBUS, signal_handler );
 	signal( SIGFPE, signal_handler );
-	signal( SIGKILL, signal_handler );
 	signal( SIGSEGV, signal_handler );
 	signal( SIGTERM, signal_handler );
-#endif
 }

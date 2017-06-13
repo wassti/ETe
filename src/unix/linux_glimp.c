@@ -68,13 +68,7 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "unix_glw.h"
 
-// using our local glext.h
-// http://oss.sgi.com/projects/ogl-sample/ABI/
-#define GL_GLEXT_LEGACY
-#define GLX_GLXEXT_LEGACY
-#include <GL/gl.h>
 #include <GL/glx.h>
-#include "../renderer/glext.h"
 
 #include <X11/keysym.h>
 #include <X11/cursorfont.h>
@@ -116,18 +110,18 @@ static Display *dpy = NULL;
 static int scrnum;
 static Window win = 0;
 static GLXContext ctx = NULL;
-const char *glx_extensions_string;
+static Atom wmDeleteEvent = None;
 
-static Atom wm_protocols;
-static Atom wm_delete_window;
+static int desktop_width = 0;
+static int desktop_height = 0;
+static qboolean desktop_ok = qfalse;
 
 // bk001206 - not needed anymore
 // static qboolean autorepeaton = qtrue;
 
-#define KEY_MASK ( KeyPressMask | KeyReleaseMask )
-#define MOUSE_MASK ( ButtonPressMask | ButtonReleaseMask | \
-					 PointerMotionMask | ButtonMotionMask )
-#define X_MASK ( KEY_MASK | MOUSE_MASK | VisibilityChangeMask | StructureNotifyMask )
+#define KEY_MASK (KeyPressMask | KeyReleaseMask)
+#define MOUSE_MASK (ButtonPressMask | ButtonReleaseMask | PointerMotionMask | ButtonMotionMask )
+#define X_MASK (KEY_MASK | MOUSE_MASK | VisibilityChangeMask | StructureNotifyMask )
 
 static qboolean mouse_avail;
 static qboolean mouse_active = qfalse;
@@ -175,36 +169,6 @@ static int mouse_accel_numerator;
 static int mouse_accel_denominator;
 static int mouse_threshold;
 
-/*
-* Find the first occurrence of find in s.
-*/
-// bk001130 - from cvs1.17 (mkv), const
-// bk001130 - made first argument const
-static const char *Q_stristr( const char *s, const char *find ) {
-	register char c, sc;
-	register size_t len;
-
-	if ( ( c = *find++ ) != 0 ) {
-		if ( c >= 'a' && c <= 'z' ) {
-			c -= ( 'a' - 'A' );
-		}
-		len = strlen( find );
-		do
-		{
-			do
-			{
-				if ( ( sc = *s++ ) == 0 ) {
-					return NULL;
-				}
-				if ( sc >= 'a' && sc <= 'z' ) {
-					sc -= ( 'a' - 'A' );
-				}
-			} while ( sc != c );
-		} while ( Q_stricmpn( s, find, len ) != 0 );
-		s--;
-	}
-	return s;
-}
 
 /*****************************************************************************
 ** KEYBOARD
@@ -676,7 +640,7 @@ static qboolean directMap( const byte chr )
 		case 0xC: // CTRL+L
 			return qtrue;
 	}
-	if ( chr < ' ' || chr > 127 )
+	if ( chr < ' ' || chr > 127 || in_forceCharset->integer > 1 )
 		return qfalse;
 	else
 		return qtrue;
@@ -1019,7 +983,11 @@ void GLimp_SetGamma( unsigned char red[256], unsigned char green[256], unsigned 
 	int m, m1;
 	int shift;
 
+#ifdef USE_PMLIGHT
+	if ( !glConfig.deviceSupportsGamma || r_ignorehwgamma->integer || r_fbo->integer )
+#else
 	if ( !glConfig.deviceSupportsGamma || r_ignorehwgamma->integer )
+#endif
 		return;
 
 	XF86VidModeGetGammaRampSize( dpy, scrnum, &size );
@@ -1099,7 +1067,11 @@ void GLimp_Shutdown( void )
 			}
 		}
 
+#ifdef USE_PMLIGHT
+		if ( glConfig.deviceSupportsGamma && !r_fbo->integer )
+#else
 		if ( glConfig.deviceSupportsGamma )
+#endif
 		{
 			XF86VidModeSetGamma( dpy, scrnum, &vidmode_InitialGamma );
 		}
@@ -1173,6 +1145,7 @@ static qboolean GLW_StartDriverAndSetMode( const char *drivername, int mode, con
 
 	return qtrue;
 }
+
 
 /*
 ** GLW_SetMode
@@ -1519,66 +1492,75 @@ int GLW_SetMode( const char *drivername, int mode, const char *modeFS, qboolean 
 		return RSERR_INVALID_MODE;
 	}
 
-	qglXChooseFBConfig = qwglGetProcAddress( "glXChooseFBConfig" );
-	qglXGetFBConfigAttrib = qwglGetProcAddress( "glXGetFBConfigAttrib" );
-	qglXGetVisualFromFBConfig = qwglGetProcAddress( "glXGetVisualFromFBConfig" );
-	
-	if ( r_ext_multisample->integer > 0 && colorbits == 24 && qglXChooseFBConfig && qglXGetFBConfigAttrib && qglXGetVisualFromFBConfig )
+#ifdef USE_PMLIGHT
+	if ( r_ext_multisample->integer > 0 && !r_fbo->integer )
+#else
+	if ( r_ext_multisample->integer > 0 )
+#endif
 	{
-		GLXFBConfig *fbconfig;
-		int numfbconfig;
-		int maxval;
-		int bestfbi;
-		int value;
-		
-		value = 0;
-		maxval = 0;
-		bestfbi = 0;
+		qglXChooseFBConfig = qwglGetProcAddress( "glXChooseFBConfig" );
+		qglXGetFBConfigAttrib = qwglGetProcAddress( "glXGetFBConfigAttrib" );
+		qglXGetVisualFromFBConfig = qwglGetProcAddress( "glXGetVisualFromFBConfig" );
 
-		MSAAattrib[ MSAA_DEPTH_INDEX ] = glConfig.depthBits;
-		MSAAattrib[ MSAA_STENCIL_INDEX ] = glConfig.stencilBits;
-		
-		fbconfig = qglXChooseFBConfig( dpy, scrnum, MSAAattrib, &numfbconfig );
-		if ( fbconfig )
+		if ( colorbits == 24 && qglXChooseFBConfig && qglXGetFBConfigAttrib && qglXGetVisualFromFBConfig )
 		{
-			for( i = 0; i < numfbconfig; i++ )
+			GLXFBConfig *fbconfig;
+			int numfbconfig;
+			int maxval;
+			int bestfbi;
+			int value;
+			int nSamples;
+		
+			value = 0;
+			maxval = 0;
+			bestfbi = 0;
+
+			MSAAattrib[ MSAA_DEPTH_INDEX ] = glConfig.depthBits;
+			MSAAattrib[ MSAA_STENCIL_INDEX ] = glConfig.stencilBits;
+			nSamples = MAX( r_ext_multisample->integer, 8 );
+		
+			fbconfig = qglXChooseFBConfig( dpy, scrnum, MSAAattrib, &numfbconfig );
+			if ( fbconfig )
 			{
-				qglXGetFBConfigAttrib( dpy, fbconfig[ i ], GLX_SAMPLES, &value );
-				if ( value > maxval )
+				for( i = 0; i < numfbconfig; i++ )
 				{
-					bestfbi = i;
-					maxval = value;
-					if ( maxval >= r_ext_multisample->integer )
+					qglXGetFBConfigAttrib( dpy, fbconfig[ i ], GLX_SAMPLES, &value );
+					if ( value > maxval )
 					{
-						break;
+						bestfbi = i;
+						maxval = value;
+						if ( maxval >= nSamples )
+						{
+							break;
+						}
 					}
 				}
-			}
-			if ( value )
-			{
-				visinfo = qglXGetVisualFromFBConfig( dpy, fbconfig[ bestfbi ] );
-				ri.Printf( PRINT_ALL, "...using %ix MSAA visual\n", value );
+				if ( value )
+				{
+					visinfo = qglXGetVisualFromFBConfig( dpy, fbconfig[ bestfbi ] );
+					ri.Printf( PRINT_ALL, "...using %ix MSAA visual\n", value );
+				}
+				else
+				{
+					ri.Printf( PRINT_ALL, "...no MSAA visuals available\n" );
+				}
+			//
 			}
 			else
 			{
 				ri.Printf( PRINT_ALL, "...no MSAA visuals available\n" );
+			}// if ( fbconfig )
+		}
+		else // verbose errors
+		{
+			if ( !qglXChooseFBConfig || !qglXGetFBConfigAttrib || !qglXGetVisualFromFBConfig )
+			{
+				ri.Printf( PRINT_ALL, "...MSAA functions resolve error\n" );
 			}
-			//
-		}
-		else
-		{
-			ri.Printf( PRINT_ALL, "...no MSAA visuals available\n" );
-		}// if ( fbconfig )
-	}
-	else // verbose errors
-	{
-		if ( !qglXChooseFBConfig || !qglXGetFBConfigAttrib || !qglXGetVisualFromFBConfig )
-		{
-			ri.Printf( PRINT_ALL, "...MSAA functions resolve error\n" );
-		}
-		else if ( colorbits != 24 )
-		{
-			ri.Printf( PRINT_ALL, "...MSAA requires 24 bit color depth\n" );
+			else if ( colorbits != 24 )
+			{
+				ri.Printf( PRINT_ALL, "...MSAA requires 24 bit color depth\n" );
+			}
 		}
 	}
 
@@ -1669,11 +1651,41 @@ int GLW_SetMode( const char *drivername, int mode, const char *modeFS, qboolean 
 */
 qboolean GLimp_HaveExtension( const char *ext )
 {
-	const char *ptr = Q_stristr( glw_state.gl_extensions, ext );
+	const char *ptr = NULL;
+	if( strlen(ext) > 3 && ext[0] == 'G' && ext[1] == 'L' && ext[2] == 'X')
+		ptr = Q_stristr( glx_extensions_string, ext );
+	else
+		ptr = Q_stristr( glConfigExt.originalExtensionString, ext );
 	if (ptr == NULL)
 		return qfalse;
 	ptr += strlen(ext);
 	return ((*ptr == ' ') || (*ptr == '\0'));  // verify it's complete string.
+}
+
+// Truncates the GL extensions string by only allowing up to 'maxExtensions' extensions in the string.
+static const char *TruncateGLExtensionsString( const char *extensionsString, int maxExtensions ) {
+	const char *p = extensionsString;
+	const char *q;
+	int numExtensions = 0;
+	size_t extensionsLen = strlen( extensionsString );
+
+	char *truncatedExtensions;
+
+	while ( ( q = strchr( p, ' ' ) ) != NULL && numExtensions <= maxExtensions ) {
+		p = q + 1;
+		numExtensions++;
+	}
+
+	if ( q != NULL ) {
+		// We still have more extensions. We'll call this the end
+
+		extensionsLen = p - extensionsString - 1;
+	}
+
+	truncatedExtensions = (char *)Hunk_Alloc( extensionsLen + 1, h_low );
+	Q_strncpyz( truncatedExtensions, extensionsString, extensionsLen + 1 );
+
+	return truncatedExtensions;
 }
 
 /*
@@ -1681,6 +1693,33 @@ qboolean GLimp_HaveExtension( const char *ext )
 */
 static void GLW_InitExtensions( void )
 {
+	size_t len;
+
+	// for some unknown reason glGetString() calls may start returning NULL
+	// and interaction with any other opengl function leads to segfault
+	// this may happen after system (mesa?) update and before reboot, catched on Arch linux distribution
+	if ( !qglGetString( GL_EXTENSIONS ) )
+	{
+		ri.Error( ERR_FATAL, "OpenGL installation is broken. Please fix video drivers and/or restart your system" );
+	}
+
+	// get our config strings
+	Q_strncpyz( glConfig.vendor_string, (char *)qglGetString (GL_VENDOR), sizeof( glConfig.vendor_string ) );
+	Q_strncpyz( glConfig.renderer_string, (char *)qglGetString (GL_RENDERER), sizeof( glConfig.renderer_string ) );
+	len = strlen( glConfig.renderer_string );
+	if ( len && glConfig.renderer_string[ len - 1 ] == '\n')
+		glConfig.renderer_string[ len - 1 ] = '\0';
+	Q_strncpyz( glConfig.version_string, (char *)qglGetString (GL_VERSION), sizeof( glConfig.version_string ) );
+
+	glConfigExt.originalExtensionString = (const char *)qglGetString( GL_EXTENSIONS );
+	Q_strncpyz( glw_state.gl_extensions, glConfigExt.originalExtensionString, sizeof( glw_state.gl_extensions ) );
+	Q_strncpyz( glConfig.extensions_string, TruncateGLExtensionsString( glConfigExt.originalExtensionString, 128 ), sizeof( glConfig.extensions_string ) );
+
+	//bani - glx extensions string
+	if ( qglXQueryExtensionsString ) {
+		glx_extensions_string = qglXQueryExtensionsString( dpy, scrnum );
+	}
+
 	if ( !r_allowExtensions->integer )
 	{
 		ri.Printf( PRINT_ALL, "*** IGNORING OPENGL EXTENSIONS ***\n" );
@@ -1705,40 +1744,31 @@ static void GLW_InitExtensions( void )
 	}
 
 	// GL_S3_s3tc
-	if (glConfig.textureCompression == TC_NONE) {
-		if ( GLimp_HaveExtension("GL_S3_s3tc") )
-		{
-			if ( r_ext_compressed_textures->value )
-			{
+	if ( glConfig.textureCompression == TC_NONE && r_ext_compressed_textures->integer ) {
+		if ( GLimp_HaveExtension( "GL_S3_s3tc" ) ) {
+			if ( r_ext_compressed_textures->integer ) {
 				glConfig.textureCompression = TC_S3TC;
 				ri.Printf( PRINT_ALL, "...using GL_S3_s3tc\n" );
-			} else
-			{
+			} else {
 				glConfig.textureCompression = TC_NONE;
 				ri.Printf( PRINT_ALL, "...ignoring GL_S3_s3tc\n" );
 			}
-		} else
-		{
-			glConfig.textureCompression = TC_NONE;
+		} else {
 			ri.Printf( PRINT_ALL, "...GL_S3_s3tc not found\n" );
 		}
 	}
 
 	// GL_EXT_texture_env_add
 	glConfig.textureEnvAddAvailable = qfalse;
-	if ( GLimp_HaveExtension("EXT_texture_env_add") )
-	{
-		if ( r_ext_texture_env_add->integer )
-		{
+	if ( GLimp_HaveExtension( "EXT_texture_env_add" ) ) {
+		if ( r_ext_texture_env_add->integer ) {
 			glConfig.textureEnvAddAvailable = qtrue;
 			ri.Printf( PRINT_ALL, "...using GL_EXT_texture_env_add\n" );
-		} else
-		{
+		} else {
 			glConfig.textureEnvAddAvailable = qfalse;
 			ri.Printf( PRINT_ALL, "...ignoring GL_EXT_texture_env_add\n" );
 		}
-	} else
-	{
+	} else {
 		ri.Printf( PRINT_ALL, "...GL_EXT_texture_env_add not found\n" );
 	}
 
@@ -1746,9 +1776,9 @@ static void GLW_InitExtensions( void )
 	qglMultiTexCoord2fARB = NULL;
 	qglActiveTextureARB = NULL;
 	qglClientActiveTextureARB = NULL;
-	if ( GLimp_HaveExtension("GL_ARB_multitexture") )
+	if ( GLimp_HaveExtension("GL_ARB_multitexture")  )
 	{
-		if ( r_ext_multitexture->value )
+		if ( r_ext_multitexture->integer )
 		{
 			qglMultiTexCoord2fARB = ( PFNGLMULTITEXCOORD2FARBPROC ) dlsym( glw_state.OpenGLLib, "glMultiTexCoord2fARB" );
 			qglActiveTextureARB = ( PFNGLACTIVETEXTUREARBPROC ) dlsym( glw_state.OpenGLLib, "glActiveTextureARB" );
@@ -1756,14 +1786,13 @@ static void GLW_InitExtensions( void )
 
 			if ( qglActiveTextureARB )
 			{
-				GLint glint = 0;
-				qglGetIntegerv( GL_MAX_ACTIVE_TEXTURES_ARB, &glint );
-				glConfig.maxActiveTextures = (int) glint;
+				qglGetIntegerv( GL_MAX_ACTIVE_TEXTURES_ARB, &glConfig.maxActiveTextures );
 
 				if ( glConfig.maxActiveTextures > 1 )
 				{
 					ri.Printf( PRINT_ALL, "...using GL_ARB_multitexture\n" );
-				} else
+				}
+				else
 				{
 					qglMultiTexCoord2fARB = NULL;
 					qglActiveTextureARB = NULL;
@@ -1771,49 +1800,56 @@ static void GLW_InitExtensions( void )
 					ri.Printf( PRINT_ALL, "...not using GL_ARB_multitexture, < 2 texture units\n" );
 				}
 			}
-		} else
+		}
+		else
 		{
 			ri.Printf( PRINT_ALL, "...ignoring GL_ARB_multitexture\n" );
 		}
-	} else
+	}
+	else
 	{
 		ri.Printf( PRINT_ALL, "...GL_ARB_multitexture not found\n" );
 	}
 
 	// GL_EXT_compiled_vertex_array
+	qglLockArraysEXT = NULL;
+	qglUnlockArraysEXT = NULL;
 	if ( GLimp_HaveExtension("GL_EXT_compiled_vertex_array") )
 	{
-		if ( r_ext_compiled_vertex_array->value )
+		if ( r_ext_compiled_vertex_array->integer )
 		{
 			ri.Printf( PRINT_ALL, "...using GL_EXT_compiled_vertex_array\n" );
 			qglLockArraysEXT = ( void ( APIENTRY * )( int, int ) ) dlsym( glw_state.OpenGLLib, "glLockArraysEXT" );
 			qglUnlockArraysEXT = ( void ( APIENTRY * )( void ) ) dlsym( glw_state.OpenGLLib, "glUnlockArraysEXT" );
-		if ( !qglLockArraysEXT || !qglUnlockArraysEXT )
-		{
-			ri.Error (ERR_FATAL, "bad getprocaddress");
+			if (!qglLockArraysEXT || !qglUnlockArraysEXT) {
+				ri.Error (ERR_VID_FATAL, "bad getprocaddress");
+			}
 		}
-		} else
+		else
 		{
 			ri.Printf( PRINT_ALL, "...ignoring GL_EXT_compiled_vertex_array\n" );
 		}
-	} else
+	}
+	else
 	{
 		ri.Printf( PRINT_ALL, "...GL_EXT_compiled_vertex_array not found\n" );
 	}
 
-	textureFilterAnisotropic = qfalse;
+	glConfig.anisotropicAvailable = qfalse;
 	if ( GLimp_HaveExtension("GL_EXT_texture_filter_anisotropic") )
 	{
 		if ( r_ext_texture_filter_anisotropic->integer ) {
-			qglGetIntegerv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxAnisotropy );
-			if ( maxAnisotropy <= 0 ) {
+			int _maxAnisotropy = 0;
+			qglGetIntegerv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &_maxAnisotropy );
+			if ( _maxAnisotropy <= 0 ) {
 				ri.Printf( PRINT_ALL, "...GL_EXT_texture_filter_anisotropic not properly supported!\n" );
-				maxAnisotropy = 0;
+				_maxAnisotropy = glConfig.maxAnisotropy = 0;
 			}
 			else
 			{
-				ri.Printf( PRINT_ALL, "...using GL_EXT_texture_filter_anisotropic (max: %i)\n", maxAnisotropy );
-				textureFilterAnisotropic = qtrue;
+				ri.Printf( PRINT_ALL, "...using GL_EXT_texture_filter_anisotropic (max: %i)\n", _maxAnisotropy );
+				glConfig.anisotropicAvailable = qtrue;
+				glConfig.maxAnisotropy = _maxAnisotropy;
 			}
 		}
 		else
@@ -1826,9 +1862,8 @@ static void GLW_InitExtensions( void )
 		ri.Printf( PRINT_ALL, "...GL_EXT_texture_filter_anisotropic not found\n" );
 	}
 
-	// ENSI : FIXME
 	// GL_NV_fog_distance
-	if ( Q_stristr( glConfig.extensions_string, "GL_NV_fog_distance" ) ) {
+	if ( GLimp_HaveExtension( "GL_NV_fog_distance" ) ) {
 		if ( r_ext_NV_fog_dist->integer ) {
 			glConfig.NVFogAvailable = qtrue;
 			ri.Printf( PRINT_ALL, "...using GL_NV_fog_distance\n" );
@@ -1840,59 +1875,39 @@ static void GLW_InitExtensions( void )
 		ri.Printf( PRINT_ALL, "...GL_NV_fog_distance not found\n" );
 		ri.Cvar_Set( "r_ext_NV_fog_dist", "0" );
 	}
-
-	// GL_EXT_texture_filter_anisotropic
-	if ( Q_stristr( glConfig.extensions_string, "GL_EXT_texture_filter_anisotropic" ) ) {
-		if ( r_ext_texture_filter_anisotropic->integer ) {
-			glConfig.anisotropicAvailable = qtrue;
-			ri.Printf( PRINT_ALL, "...using GL_EXT_texture_filter_anisotropic\n" );
-		} else {
-			ri.Printf( PRINT_ALL, "...ignoring GL_EXT_texture_filter_anisotropic\n" );
-			ri.Cvar_Set( "r_ext_texture_filter_anisotropic", "0" );
-		}
-	} else {
-		ri.Printf( PRINT_ALL, "... GL_EXT_texture_filter_anisotropic not found\n" );
-		ri.Cvar_Set( "r_ext_texture_filter_anisotropic", "0" );
-	}
-
-	ri.Printf( PRINT_ALL, "Initializing GLX extensions\n" );
-
-	// GLX_SGI_swap_control
-	if ( Q_stristr( glx_extensions_string, "GLX_SGI_swap_control" ) ) {
-		ri.Printf( PRINT_ALL, "...using GLX_SGI_swap_control\n" );
-	} else {
-		ri.Printf( PRINT_ALL, "... GLX_SGI_swap_control not found\n" );
-		qglXSwapIntervalSGI = NULL;
-	}
-
-	// GLX_SGI_video_sync
-	if ( Q_stristr( glx_extensions_string, "GLX_SGI_video_sync" ) ) {
-		ri.Printf( PRINT_ALL, "...using GLX_SGI_video_sync\n" );
-	} else {
-		ri.Printf( PRINT_ALL, "... GLX_SGI_video_sync not found\n" );
-		qglXGetVideoSyncSGI = NULL;
-		qglXWaitVideoSyncSGI = NULL;
-	}
 }
 
-static void GLW_InitGamma() {
+static void GLW_InitGamma( void )
+{
+#ifdef USE_PMLIGHT
+	if ( fboAvailable ) 
+	{
+		glConfig.deviceSupportsGamma = qtrue;
+		return;
+	}
+#endif
 	/* Minimum extension version required */
-  #define GAMMA_MINMAJOR 2
-  #define GAMMA_MINMINOR 0
+	#define GAMMA_MINMAJOR 2
+	#define GAMMA_MINMINOR 0
 
 	glConfig.deviceSupportsGamma = qfalse;
 
-	if ( vidmode_ext ) {
-		if ( vidmode_MajorVersion < GAMMA_MINMAJOR ||
-			 ( vidmode_MajorVersion == GAMMA_MINMAJOR && vidmode_MinorVersion < GAMMA_MINMINOR ) ) {
-			ri.Printf( PRINT_ALL, "XF86 Gamma extension not supported in this version\n" );
+#ifdef HAVE_XF86DGA
+	if ( vidmode_ext )
+	{
+		if (vidmode_MajorVersion < GAMMA_MINMAJOR || 
+			(vidmode_MajorVersion == GAMMA_MINMAJOR && vidmode_MinorVersion < GAMMA_MINMINOR)) 
+		{
+			ri.Printf( PRINT_ALL, "XF86 Gamma extension not supported in this version\n");
 			return;
 		}
-		XF86VidModeGetGamma( dpy, scrnum, &vidmode_InitialGamma );
-		ri.Printf( PRINT_ALL, "XF86 Gamma extension initialized\n" );
+		XF86VidModeGetGamma(dpy, scrnum, &vidmode_InitialGamma);
+		ri.Printf( PRINT_ALL, "XF86 Gamma extension initialized\n");
 		glConfig.deviceSupportsGamma = qtrue;
 	}
+#endif /* HAVE_XF86DGA */
 }
+
 
 /*
 ** GLW_LoadOpenGL
@@ -1900,45 +1915,72 @@ static void GLW_InitGamma() {
 ** GLimp_win.c internal function that that attempts to load and use
 ** a specific OpenGL DLL.
 */
-static qboolean GLW_LoadOpenGL( const char *name ) {
+static qboolean GLW_LoadOpenGL( const char *name )
+{
 	qboolean fullscreen;
+	cvar_t		*r_swapInterval;
 
-	ri.Printf( PRINT_ALL, "...loading %s: ", name );
+	r_swapInterval = ri.Cvar_Get( "r_swapInterval", "0", CVAR_ARCHIVE_ND );
 
-	// disable the 3Dfx splash screen and set gamma
-	// we do this all the time, but it shouldn't hurt anything
-	// on non-3Dfx stuff
-	putenv( "FX_GLIDE_NO_SPLASH=0" );
-
-	// Mesa VooDoo hacks
-	putenv( "MESA_GLX_FX=fullscreen\n" );
+	if ( r_swapInterval->integer )
+		setenv( "vblank_mode", "2", 1 );
+	else
+		setenv( "vblank_mode", "1", 1 );
 
 	// load the QGL layer
-	if ( QGL_Init( name ) ) {
-		fullscreen = r_fullscreen->integer;
-
+	if ( QGL_Init( name ) )
+	{
+		fullscreen = (r_fullscreen->integer != 0);
 		// create the window and set up the context
-		if ( !GLW_StartDriverAndSetMode( name, r_mode->integer, fullscreen ) ) {
-			if ( r_mode->integer != 3 ) {
-				if ( !GLW_StartDriverAndSetMode( name, 3, fullscreen ) ) {
+		if ( !GLW_StartDriverAndSetMode( name, r_mode->integer, r_modeFullscreen->string, fullscreen ) )
+		{
+			if ( r_mode->integer != 3 )
+			{
+				if ( !GLW_StartDriverAndSetMode( name, 3, "", fullscreen ) )
+				{
 					goto fail;
 				}
-			} else {
+			}
+			else
+			{
 				goto fail;
 			}
 		}
-
 		return qtrue;
-	} else
-	{
-		ri.Printf( PRINT_ALL, "failed\n" );
 	}
-fail:
+	fail:
 
 	QGL_Shutdown();
 
 	return qfalse;
 }
+
+
+static qboolean GLW_StartOpenGL( void )
+{
+	//
+	// load and initialize the specific OpenGL driver
+	//
+	if ( !GLW_LoadOpenGL( r_glDriver->string ) )
+	{
+		if ( Q_stricmp( r_glDriver->string, OPENGL_DRIVER_NAME ) != 0 ) 
+		{
+			// try default driver
+			if ( GLW_LoadOpenGL( OPENGL_DRIVER_NAME ) )
+			{
+				ri.Cvar_Set( "r_glDriver", OPENGL_DRIVER_NAME );
+				r_glDriver->modified = qfalse;
+				return qtrue;
+			}
+		}
+
+		ri.Error( ERR_FATAL, "GLW_StartOpenGL() - could not load OpenGL subsystem\n" );
+		return qfalse;
+	}
+
+	return qtrue;
+}
+
 
 /*
 ** XErrorHandler
@@ -1947,15 +1989,17 @@ fail:
 **   but those don't seem to be fatal .. so the default would be to just ignore them
 **   our implementation mimics the default handler behaviour (not completely cause I'm lazy)
 */
-int qXErrorHandler( Display *dpy, XErrorEvent *ev ) {
+int qXErrorHandler( Display *dpy, XErrorEvent *ev )
+{
 	static char buf[1024];
-	XGetErrorText( dpy, ev->error_code, buf, 1024 );
-	ri.Printf( PRINT_ALL, "X Error of failed request: %s\n", buf );
-	ri.Printf( PRINT_ALL, "  Major opcode of failed request: %d\n", ev->request_code, buf );
+	XGetErrorText( dpy, ev->error_code, buf, sizeof( buf ) );
+	ri.Printf( PRINT_ALL, "X Error of failed request: %s\n", buf) ;
+	ri.Printf( PRINT_ALL, "  Major opcode of failed request: %d\n", ev->request_code );
 	ri.Printf( PRINT_ALL, "  Minor opcode of failed request: %d\n", ev->minor_code );
-	ri.Printf( PRINT_ALL, "  Serial number of failed request: %d\n", ev->serial );
+	ri.Printf( PRINT_ALL, "  Serial number of failed request: %d\n", (int)ev->serial );
 	return 0;
 }
+
 
 /*
 ** GLimp_Init
@@ -1963,150 +2007,40 @@ int qXErrorHandler( Display *dpy, XErrorEvent *ev ) {
 ** This routine is responsible for initializing the OS specific portions
 ** of OpenGL.
 */
-void GLimp_Init( void ) {
-	qboolean attemptedlibGL = qfalse;
-	qboolean attempted3Dfx = qfalse;
-	qboolean success = qfalse;
-	char buf[1024];
-	cvar_t *lastValidRenderer = ri.Cvar_Get( "r_lastValidRenderer", "(uninitialized)", CVAR_ARCHIVE );
-
-	r_allowSoftwareGL = ri.Cvar_Get( "r_allowSoftwareGL", "0", CVAR_LATCH );
-
-	r_previousglDriver = ri.Cvar_Get( "r_previousglDriver", "", CVAR_ROM );
-
+void GLimp_Init( void )
+{
 	InitSig();
 
-	// Hack here so that if the UI
-	if ( *r_previousglDriver->string ) {
-		// The UI changed it on us, hack it back
-		// This means the renderer can't be changed on the fly
-		ri.Cvar_Set( "r_glDriver", r_previousglDriver->string );
-	}
+	IN_Init();   // rcg08312005 moved into glimp.
 
 	// set up our custom error handler for X failures
 	XSetErrorHandler( &qXErrorHandler );
 
+	r_allowSoftwareGL = ri.Cvar_Get( "r_allowSoftwareGL", "0", CVAR_LATCH );
+
 	//
 	// load and initialize the specific OpenGL driver
 	//
-	if ( !GLW_LoadOpenGL( r_glDriver->string ) ) {
-		if ( !Q_stricmp( r_glDriver->string, OPENGL_DRIVER_NAME ) ) {
-			attemptedlibGL = qtrue;
-		} else if ( !Q_stricmp( r_glDriver->string, _3DFX_DRIVER_NAME ) ) {
-			attempted3Dfx = qtrue;
-		}
-
-	#if 0
-		// TTimo
-		// show_bug.cgi?id=455
-		// old legacy load code, was confusing people who had a bad OpenGL setup
-		if ( !attempted3Dfx && !success ) {
-			attempted3Dfx = qtrue;
-			if ( GLW_LoadOpenGL( _3DFX_DRIVER_NAME ) ) {
-				ri.Cvar_Set( "r_glDriver", _3DFX_DRIVER_NAME );
-				r_glDriver->modified = qfalse;
-				success = qtrue;
-			}
-		}
-	#endif
-
-		// try ICD before trying 3Dfx standalone driver
-		if ( !attemptedlibGL && !success ) {
-			attemptedlibGL = qtrue;
-			if ( GLW_LoadOpenGL( OPENGL_DRIVER_NAME ) ) {
-				ri.Cvar_Set( "r_glDriver", OPENGL_DRIVER_NAME );
-				r_glDriver->modified = qfalse;
-				success = qtrue;
-			}
-		}
-
-		if ( !success ) {
-			ri.Error( ERR_FATAL, "GLimp_Init() - could not load OpenGL subsystem\n" );
-		}
-
+	if ( !GLW_StartOpenGL() )
+	{
+		return;
 	}
-
-	// Save it in case the UI stomps it
-	ri.Cvar_Set( "r_previousglDriver", r_glDriver->string );
 
 	// This values force the UI to disable driver selection
 	glConfig.driverType = GLDRV_ICD;
 	glConfig.hardwareType = GLHW_GENERIC;
 
-	// get our config strings
-	Q_strncpyz( glConfig.vendor_string, qglGetString( GL_VENDOR ), sizeof( glConfig.vendor_string ) );
-	Q_strncpyz( glConfig.renderer_string, qglGetString( GL_RENDERER ), sizeof( glConfig.renderer_string ) );
-	if ( *glConfig.renderer_string && glConfig.renderer_string[strlen( glConfig.renderer_string ) - 1] == '\n' ) {
-		glConfig.renderer_string[strlen( glConfig.renderer_string ) - 1] = 0;
-	}
-	Q_strncpyz( glConfig.version_string, qglGetString( GL_VERSION ), sizeof( glConfig.version_string ) );
-	Q_strncpyz( glConfig.extensions_string, qglGetString( GL_EXTENSIONS ), sizeof( glConfig.extensions_string ) );
-	// TTimo - safe check
-	if ( strlen( qglGetString( GL_EXTENSIONS ) ) >= sizeof( glConfig.extensions_string ) ) {
-		Com_Printf( S_COLOR_YELLOW "WARNNING: GL extensions string too long (%d), truncated to %d\n", strlen( qglGetString( GL_EXTENSIONS ) ), sizeof( glConfig.extensions_string ) );
-	}
-
-	//bani - glx extensions string
-	if ( qglXQueryExtensionsString ) {
-		glx_extensions_string = qglXQueryExtensionsString( dpy, scrnum );
-	}
-
-	//
-	// chipset specific configuration
-	//
-	strcpy( buf, glConfig.renderer_string );
-	strlwr( buf );
-
-	//
-	// NOTE: if changing cvars, do it within this block.  This allows them
-	// to be overridden when testing driver fixes, etc. but only sets
-	// them to their default state when the hardware is first installed/run.
-	//
-	if ( Q_stricmp( lastValidRenderer->string, glConfig.renderer_string ) ) {
-		glConfig.hardwareType = GLHW_GENERIC;
-
-		ri.Cvar_Set( "r_textureMode", "GL_LINEAR_MIPMAP_NEAREST" );
-
-		// VOODOO GRAPHICS w/ 2MB
-		if ( Q_stristr( buf, "voodoo graphics/1 tmu/2 mb" ) ) {
-			ri.Cvar_Set( "r_picmip", "2" );
-			ri.Cvar_Get( "r_picmip", "1", CVAR_ARCHIVE | CVAR_LATCH );
-		} else
-		{
-			ri.Cvar_Set( "r_picmip", "1" );
-
-			if ( Q_stristr( buf, "rage 128" ) || Q_stristr( buf, "rage128" ) ) {
-				ri.Cvar_Set( "r_finish", "0" );
-			}
-			// Savage3D and Savage4 should always have trilinear enabled
-			else if ( Q_stristr( buf, "savage3d" ) || Q_stristr( buf, "s3 savage4" ) ) {
-				ri.Cvar_Set( "r_texturemode", "GL_LINEAR_MIPMAP_LINEAR" );
-			}
-		}
-	}
-
-	//
-	// this is where hardware specific workarounds that should be
-	// detected/initialized every startup should go.
-	//
-	if ( Q_stristr( buf, "banshee" ) || Q_stristr( buf, "Voodoo_Graphics" ) ) {
-		glConfig.hardwareType = GLHW_3DFX_2D3D;
-	} else if ( Q_stristr( buf, "rage pro" ) || Q_stristr( buf, "RagePro" ) ) {
-		glConfig.hardwareType = GLHW_RAGEPRO;
-	} else if ( Q_stristr( buf, "permedia2" ) ) {
-		glConfig.hardwareType = GLHW_PERMEDIA2;
-	} else if ( Q_stristr( buf, "riva 128" ) ) {
-		glConfig.hardwareType = GLHW_RIVA128;
-	} else if ( Q_stristr( buf, "riva tnt " ) ) {
-	}
-
-	ri.Cvar_Set( "r_lastValidRenderer", glConfig.renderer_string );
-
 	// initialize extensions
 	GLW_InitExtensions();
+
+#if defined(USE_PMLIGHT) && !defined(USE_RENDERER2)
+	QGL_EarlyInitARB();
+	QGL_InitARB();
+#endif
+
 	GLW_InitGamma();
 
-	InitSig();
+	InitSig(); // not clear why this is at begin & end of function
 
 	return;
 }
@@ -2114,190 +2048,111 @@ void GLimp_Init( void ) {
 
 /*
 ** GLimp_EndFrame
-**
+** 
 ** Responsible for doing a swapbuffers and possibly for other stuff
 ** as yet to be determined.  Probably better not to make this a GLimp
 ** function and instead do a call to GLimp_SwapBuffers.
 */
-void GLimp_EndFrame( void ) {
-	//
-	// swapinterval stuff
-	// bani: wtf, wgl lets you turn it off and glx doesnt?!
-	//
-	if ( r_swapInterval->modified ) {
-		r_swapInterval->modified = qfalse;
-
-		if ( !glConfig.stereoEnabled ) {    // why?
-			if ( qglXSwapIntervalSGI ) {
-				qglXSwapIntervalSGI( r_swapInterval->integer );
-			}
-		}
-	}
-#if 0
-	//
-	// bani - video sync
-	// this method causes strange stutters when fps drops below refresh rate though!
-	//
-	if ( r_swapInterval->integer && qglXGetVideoSyncSGI && qglXWaitVideoSyncSGI ) {
-		int i;
-		unsigned int framecount = 0;
-
-		for ( i = 0; i < r_swapInterval->integer; i++ ) {
-			qglXGetVideoSyncSGI( &framecount );
-			qglXWaitVideoSyncSGI( 1, 0, &framecount );
-		}
-	}
-#endif
-
+void GLimp_EndFrame( void )
+{
 	// don't flip if drawing to front buffer
-	if ( Q_stricmp( r_drawBuffer->string, "GL_FRONT" ) != 0 ) {
+	if ( Q_stricmp( r_drawBuffer->string, "GL_FRONT" ) != 0 )
+	{
 		qglXSwapBuffers( dpy, win );
 	}
-
-	// check logging
-	QGL_EnableLogging( (qboolean)r_logFile->integer ); // bk001205 - was ->value
 }
 
-#ifdef SMP
-/*
-===========================================================
+void GLimp_RenderThreadWrapper( void *stub )
+{
 
-SMP acceleration
+}
 
-===========================================================
-*/
 
-sem_t renderCommandsEvent;
-sem_t renderCompletedEvent;
-sem_t renderActiveEvent;
-
-void ( *glimpRenderThread )( void );
-
-void *GLimp_RenderThreadWrapper( void *stub ) {
-	glimpRenderThread();
+void *GLimp_RendererSleep( void ) 
+{
 	return NULL;
 }
 
 
-/*
-=======================
-GLimp_SpawnRenderThread
-=======================
-*/
-pthread_t renderThreadHandle;
-qboolean GLimp_SpawnRenderThread( void ( *function )( void ) ) {
+void GLimp_FrontEndSleep( void )
+{
 
-	sem_init( &renderCommandsEvent, 0, 0 );
-	sem_init( &renderCompletedEvent, 0, 0 );
-	sem_init( &renderActiveEvent, 0, 0 );
-
-	glimpRenderThread = function;
-
-	if ( pthread_create( &renderThreadHandle, NULL,
-						 GLimp_RenderThreadWrapper, NULL ) ) {
-		return qfalse;
-	}
-
-	return qtrue;
-}
-
-static void  *smpData;
-//static	int		glXErrors; // bk001204 - unused
-
-void *GLimp_RendererSleep( void ) {
-	void  *data;
-
-	// after this, the front end can exit GLimp_FrontEndSleep
-	sem_post( &renderCompletedEvent );
-
-	sem_wait( &renderCommandsEvent );
-
-	data = smpData;
-
-	// after this, the main thread can exit GLimp_WakeRenderer
-	sem_post( &renderActiveEvent );
-
-	return data;
 }
 
 
-void GLimp_FrontEndSleep( void ) {
-	sem_wait( &renderCompletedEvent );
+void GLimp_WakeRenderer( void *data ) 
+{
+
 }
 
-
-void GLimp_WakeRenderer( void *data ) {
-	smpData = data;
-
-	// after this, the renderer can continue through GLimp_RendererSleep
-	sem_post( &renderCommandsEvent );
-
-	sem_wait( &renderActiveEvent );
-}
-
-#else
-
-void GLimp_RenderThreadWrapper( void *stub ) {}
-qboolean GLimp_SpawnRenderThread( void ( *function )( void ) ) {
-	return qfalse;
-}
-void *GLimp_RendererSleep( void ) {
-	return NULL;
-}
-void GLimp_FrontEndSleep( void ) {}
-void GLimp_WakeRenderer( void *data ) {}
-
-#endif
 
 /*****************************************************************************/
 /* MOUSE                                                                     */
 /*****************************************************************************/
 
-void IN_Init( void ) {
-	Com_Printf( "\n------- Input Initialization -------\n" );
+void IN_Init( void )
+{
+	Com_DPrintf( "\n------- Input Initialization -------\n" );
+
 	// mouse variables
 	in_mouse = Cvar_Get( "in_mouse", "1", CVAR_ARCHIVE );
-	in_dgamouse = Cvar_Get( "in_dgamouse", "1", CVAR_ARCHIVE );
+	in_dgamouse = Cvar_Get( "in_dgamouse", "1", CVAR_ARCHIVE_ND );
+	in_shiftedKeys = Cvar_Get( "in_shiftedKeys", "0", CVAR_ARCHIVE_ND );
 
 	// turn on-off sub-frame timing of X events
-	in_subframe = Cvar_Get( "in_subframe", "1", CVAR_ARCHIVE );
+	in_subframe = Cvar_Get( "in_subframe", "1", CVAR_ARCHIVE_ND );
 
 	// developer feature, allows to break without loosing mouse pointer
 	in_nograb = Cvar_Get( "in_nograb", "0", 0 );
 
+	in_forceCharset = Cvar_Get( "in_forceCharset", "1", CVAR_ARCHIVE_ND );
+
+#ifdef USE_JOYSTICK
 	// bk001130 - from cvs.17 (mkv), joystick variables
-	in_joystick = Cvar_Get( "in_joystick", "0", CVAR_ARCHIVE | CVAR_LATCH );
+	in_joystick = Cvar_Get( "in_joystick", "0", CVAR_ARCHIVE_ND | CVAR_LATCH );
 	// bk001130 - changed this to match win32
 	in_joystickDebug = Cvar_Get( "in_debugjoystick", "0", CVAR_TEMP );
-	joy_threshold = Cvar_Get( "joy_threshold", "0.15", CVAR_ARCHIVE ); // FIXME: in_joythreshold
+	joy_threshold = Cvar_Get( "joy_threshold", "0.15", CVAR_ARCHIVE_ND ); // FIXME: in_joythreshold
+#endif
 
-	in_shiftedkeys = Cvar_Get( "in_shiftedkeys", "1", CVAR_ARCHIVE );
-
-	if ( in_mouse->value ) {
+	if ( in_mouse->integer )
+	{
 		mouse_avail = qtrue;
-	} else {
+	}
+	else
+	{
 		mouse_avail = qfalse;
 	}
 
+#ifdef USE_JOYSTICK
 	IN_StartupJoystick(); // bk001130 - from cvs1.17 (mkv)
-	Com_Printf( "------------------------------------\n" );
+#endif
+
+	Com_DPrintf( "------------------------------------\n" );
 }
 
-void IN_Shutdown( void ) {
+
+void IN_Shutdown( void )
+{
 	mouse_avail = qfalse;
 }
 
-void IN_Frame( void ) {
 
+void IN_Frame( void )
+{
+
+#ifdef USE_JOYSTICK
 	// bk001130 - from cvs 1.17 (mkv)
 	IN_JoyMove(); // FIXME: disable if on desktop?
+#endif
 
-	if ( cls.keyCatchers & KEYCATCH_CONSOLE ) {
+	if ( Key_GetCatcher( ) & KEYCATCH_CONSOLE )
+	{
 		// temporarily deactivate if not in the game and
 		// running on the desktop
 		// voodoo always counts as full screen
-		if ( Cvar_VariableValue( "r_fullscreen" ) == 0
-			 && strcmp( Cvar_VariableString( "r_glDriver" ), _3DFX_DRIVER_NAME ) ) {
+		if ( Cvar_VariableIntegerValue( "r_fullscreen" ) == 0 )
+		{
 			IN_DeactivateMouse();
 			return;
 		}
@@ -2306,25 +2161,57 @@ void IN_Frame( void ) {
 	IN_ActivateMouse();
 }
 
-void IN_Activate( void ) {
+
+void IN_Activate( void )
+{
+
 }
 
-// bk001130 - cvs1.17 joystick code (mkv) was here, no linux_joystick.c
 
-void Sys_SendKeyEvents( void ) {
-	// XEvent event; // bk001204 - unused
+/*
+=================
+Sys_GetClipboardData
+=================
+*/
+char *Sys_GetClipboardData( void )
+{
+	const Atom xtarget = XInternAtom( dpy, "UTF8_STRING", 0 );
+	unsigned long nitems, rem;
+	unsigned char *data;
+	Atom type;
+	XEvent ev;
+	char *buf;
+	int format;
 
-	if ( !dpy ) {
-		return;
+	XConvertSelection( dpy, XA_PRIMARY, xtarget, XA_PRIMARY, win, CurrentTime );
+	XSync( dpy, False );
+	XNextEvent( dpy, &ev );
+	if ( !XFilterEvent( &ev, None ) && ev.type == SelectionNotify ) {
+		if ( XGetWindowProperty( dpy, win, XA_PRIMARY, 0, 8, False, AnyPropertyType,
+			&type, &format, &nitems, &rem, &data ) == 0 ) {
+			if ( format == 8 ) {
+				if ( nitems > 0 ) {
+					buf = Z_Malloc( nitems + 1 );
+					Q_strncpyz( buf, (char*)data, nitems + 1 );
+					strtok( buf, "\n\r\b" );
+					return buf;
+				}
+			} else {
+				fprintf( stderr, "Bad clipboard format %i\n", format );
+			}
+		} else {
+			fprintf( stderr, "Clipboard allocation failed\n" );
+		}
 	}
-	HandleEvents();
+	return NULL;
 }
 
-
+#ifdef USE_JOYSTICK
 // bk010216 - added stubs for non-Linux UNIXes here
 // FIXME - use NO_JOYSTICK or something else generic
 
-#if defined( __FreeBSD__ ) // rb010123
+#if (defined( __FreeBSD__ ) || defined( __sun)) // rb010123
 void IN_StartupJoystick( void ) {}
 void IN_JoyMove( void ) {}
+#endif
 #endif

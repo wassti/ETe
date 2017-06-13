@@ -118,10 +118,6 @@ void BotDrawDebugPolygons( BotPolyFunc drawPoly, int value ) {
 	int i, parm0;
 	static cvar_t   *debugSurface;
 
-#ifdef PRE_RELEASE_DEMO
-	return;
-#endif
-
 	if ( !bot_enable ) {
 		return;
 	}
@@ -545,11 +541,6 @@ SV_BotFrame
 ==================
 */
 void SV_BotFrame( int time ) {
-
-#ifdef PRE_RELEASE_DEMO
-	return;
-#endif
-
 	if ( !bot_enable ) {
 		return;
 	}
@@ -568,10 +559,6 @@ SV_BotLibSetup
 int SV_BotLibSetup( void ) {
 	static cvar_t *bot_norcd;
 	static cvar_t *bot_frameroutingupdates;
-
-#ifdef PRE_RELEASE_DEMO
-	return 0;
-#endif
 
 	if ( !bot_enable ) {
 		return 0;

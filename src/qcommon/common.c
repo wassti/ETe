@@ -401,12 +401,8 @@ void QDECL Com_Error( errorParm_t code, const char *fmt, ... ) {
 		FS_PureServerSetLoadedPaks( "", "" );
 
 		com_errorEntered = qfalse;
-		
-		if ( !Q_stricmpn( com_errorMessage, "Server is full", 14 ) && CL_NextUpdateServer() ) {
-			CL_GetAutoUpdate();
-		} else {
-			longjmp( abortframe, -1 );
-		}
+
+		longjmp( abortframe, -1 );
 	} else {
 		VM_Forced_Unload_Start();
 #ifndef DEDICATED

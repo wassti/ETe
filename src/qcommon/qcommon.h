@@ -49,10 +49,6 @@ If you have questions concerning this license or the applicable additional terms
 #endif
 
 
-//#define PRE_RELEASE_DEMO
-#ifdef PRE_RELEASE_DEMO
-#define PRE_RELEASE_DEMO_NODEVMAP
-#endif // PRE_RELEASE_DEMO
 
 //============================================================================
 
@@ -292,16 +288,11 @@ You or the server may be running older versions of the game. Press the auto-upda
  button if it appears on the Main Menu screen."
 
 #define GAMENAME_STRING "et"
-#ifndef PRE_RELEASE_DEMO
 // 2.56 - protocol 83
 // 2.4 - protocol 80
 // 1.33 - protocol 59
 // 1.4 - protocol 60
 #define PROTOCOL_VERSION    84
-#else
-// the demo uses a different protocol version for independant browsing
-#define PROTOCOL_VERSION    72
-#endif
 
 #define	NEW_PROTOCOL_VERSION	85
 
@@ -674,12 +665,7 @@ issues.
 ==============================================================
 */
 
-#ifndef PRE_RELEASE_DEMO
-//#define BASEGAME "main"
 #define BASEGAME "etmain"
-#else
-#define BASEGAME "ettest"
-#endif
 
 // referenced flags
 // these are in loop specific order so don't change the order
@@ -892,10 +878,6 @@ extern int cl_connectedToPureServer;
 qboolean FS_CL_ExtractFromPakFile( const char *path, const char *gamedir, const char *filename, const char *cvar_lastVersion );
 #endif
 
-#if defined( DO_LIGHT_DEDICATED )
-int FS_RandChecksumFeed();
-#endif
-
 char *FS_ShiftedStrStr( const char *string, const char *substring, int shift );
 char *FS_ShiftStr( const char *string, int shift );
 
@@ -904,10 +886,6 @@ void FS_CopyFile( char *fromOSPath, char *toOSPath );
 qboolean FS_CreatePath( char *OSPath );
 
 qboolean FS_VerifyPak( const char *pak );
-
-qboolean FS_IsPure( void );
-
-unsigned int FS_ChecksumOSPath( char *OSPath );
 
 /*
 ==============================================================
@@ -1210,15 +1188,11 @@ void CL_FlushMemory( void );
 void CL_StartHunkUsers( void );
 // start all the client stuff using the hunk
 
-void CL_Snd_Restart(void);
+//void CL_Snd_Restart(void);
 // Restart sound subsystem
 
 void Key_KeynameCompletion( void(*callback)(const char *s) );
 // for keyname autocompletion
-
-void CL_CheckAutoUpdate( void );
-qboolean CL_NextUpdateServer( void );
-void CL_GetAutoUpdate( void );
 
 void Key_WriteBindings( fileHandle_t f );
 // for writing the config files

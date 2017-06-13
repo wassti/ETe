@@ -574,7 +574,7 @@ void SCR_DrawScreenField( stereoFrame_t stereoFrame ) {
 
 			// also draw the connection information, so it doesn't
 			// flash away too briefly on local or lan games
-			//if (!com_sv_running->value || Cvar_VariableIntegerValue("sv_cheats"))	// Ridah, don't draw useless text if not in dev mode
+			// refresh to update the time
 			VM_Call( uivm, UI_REFRESH, cls.realtime );
 			VM_Call( uivm, UI_DRAW_CONNECT_SCREEN, qtrue );
 			break;

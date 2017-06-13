@@ -32,18 +32,17 @@ If you have questions concerning this license or the applicable additional terms
 // q_shared.h -- included first by ALL program modules.
 // A user mod should never modify this file
 
-//#define PRE_RELEASE_DEMO
-
-#ifndef PRE_RELEASE_DEMO
 #define Q3_VERSION      "ET 2.60d"
-#else
-#define Q3_VERSION      "ET 2.32"
+
 #ifndef GIT_VERSION
-  #define GIT_VERSION Q3_VERSION
+#define GIT_VERSION Q3_VERSION
 #endif
 #define CLIENT_WINDOW_TITLE   "Enemy Territory"
+#ifdef _WIN32
+#define CONSOLE_WINDOW_CLASS  "ET WinConsole"
+#endif
 #define CONSOLE_WINDOW_TITLE  "ET Console"
-#endif // PRE_RELEASE_DEMO
+
 // 2.60d: Mac OSX universal binaries
 // 2.60c: Mac OSX universal binaries
 // 2.60b: CVE-2006-2082 fix

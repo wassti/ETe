@@ -387,7 +387,7 @@ static qboolean directMap( const WPARAM chr ) {
 			return qtrue;
 	}
 
-	if ( chr < ' ' || chr > 127 )
+	if ( chr < ' ' || chr > 127 || in_forceCharset->integer > 1 )
 		return qfalse;
 	else
 		return qtrue;
@@ -403,6 +403,7 @@ Map input to ASCII charset
 */
 static int MapChar( WPARAM wParam, byte scancode ) 
 {
+	// TOOD language scan to chars as well?
 	static const int s_scantochar[ 128 ] = 
 	{ 
 //	0        1       2       3       4       5       6       7 
@@ -820,7 +821,7 @@ LRESULT WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM  wParam, LPARAM lParam 
 			return 0;
 
 		// simulate drag move to avoid ~500ms delay between DefWindowProc() and further WM_ENTERSIZEMOVE
-		if ( wParam == SC_MOVE + HTCAPTION ) 
+		if ( wParam == SC_MOVE + HTCAPTION )
 		{
 			mouse_event( MOUSEEVENTF_MOVE | MOUSEEVENTF_LEFTDOWN, 7, 0, 0, 0 );
 			mouse_event( MOUSEEVENTF_MOVE | MOUSEEVENTF_LEFTDOWN, (DWORD)-7, 0, 0, 0 );
@@ -851,14 +852,12 @@ LRESULT WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM  wParam, LPARAM lParam 
 		break;
 
 	case WM_SYSKEYDOWN:
-		if ( wParam == VK_RETURN )
-		{
+	case WM_KEYDOWN:
+		if ( wParam == VK_RETURN && ( uMsg == WM_SYSKEYDOWN || GetAsyncKeyState( VK_RMENU ) ) ) {
 			Cvar_SetValue( "r_fullscreen", glw_state.cdsFullscreen? 0 : 1 );
 				Cbuf_AddText( "vid_restart\n" );
 			return 0;
 		}
-		// fall through
-	case WM_KEYDOWN:
 		//Com_Printf( "^2k+^7 wParam:%08x lParam:%08x\n", wParam, lParam );
 		Sys_QueEvent( g_wv.sysMsgTime, SE_KEY, MapKey( wParam, lParam ), qtrue, 0, NULL );
 		break;

@@ -248,11 +248,17 @@ typedef struct {
 	char		gamedir[MAX_OSPATH];	// baseq3
 } directory_t;
 
+typedef enum {
+	DIR_STATIC = 0,	// always allowed, never changes
+	DIR_ALLOW,
+	DIR_DENY
+} dirPolicy_t;
+
 typedef struct searchpath_s {
 	struct searchpath_s *next;
-
 	pack_t		*pack;		// only one of pack / dir will be non NULL
 	directory_t	*dir;
+	dirPolicy_t	policy;
 } searchpath_t;
 
 //bani - made fs_gamedir non-static
@@ -1375,6 +1381,7 @@ int FS_FOpenFileRead( const char *filename, fileHandle_t *file, qboolean uniqueF
 	fileInPack_t	*pakFile;
 	directory_t		*dir;
 	long			hash;
+	long			fullHash;
 	unz_s			*zfi;
 	FILE			*temp;
 	int				length;
@@ -1401,6 +1408,10 @@ int FS_FOpenFileRead( const char *filename, fileHandle_t *file, qboolean uniqueF
 	if ( filename[0] == '/' || filename[0] == '\\' ) {
 		filename++;
 	}
+	
+	// we will calculate full hash only once then just mask it by current pack->hashSize
+	// we can do that as long as we know properties of our hash function
+	fullHash = FS_HashFileName( filename, 1<<31 );
 
 	if ( file == NULL ) {
 		// just wants to see if file is there
@@ -1409,7 +1420,7 @@ int FS_FOpenFileRead( const char *filename, fileHandle_t *file, qboolean uniqueF
 			if ( search->pack ) {
 				//if ( !( flags & FS_MATCH_PK3s ) ) // always true?
 				//	continue;
-				hash = FS_HashFileName( filename, search->pack->hashSize );
+				hash = fullHash & (search->pack->hashSize-1);
 			}
 			// is the element a pak file?
 			if ( search->pack && search->pack->hashTable[hash] ) {
@@ -1429,7 +1440,7 @@ int FS_FOpenFileRead( const char *filename, fileHandle_t *file, qboolean uniqueF
 					}
 					pakFile = pakFile->next;
 				} while ( pakFile != NULL );
-			} else if ( search->dir /*&& ( flags & FS_MATCH_EXTERN ) */ ) {
+			} else if ( search->dir /*&& ( flags & FS_MATCH_EXTERN ) */ && search->policy != DIR_DENY ) {
 				if ( fs_filter_flag & FS_EXCLUDE_DIR )
 					continue;
 				dir = search->dir;
@@ -1475,7 +1486,7 @@ int FS_FOpenFileRead( const char *filename, fileHandle_t *file, qboolean uniqueF
 		if ( search->pack ) {
 			//if ( !( flags & FS_MATCH_PK3s ) ) // always true?
 			//	continue;
-			hash = FS_HashFileName( filename, search->pack->hashSize );
+			hash = fullHash & (search->pack->hashSize-1);
 		}
 		// is the element a pak file?
 		if ( search->pack && search->pack->hashTable[hash] ) {
@@ -1565,7 +1576,7 @@ int FS_FOpenFileRead( const char *filename, fileHandle_t *file, qboolean uniqueF
 				}
 				pakFile = pakFile->next;
 			} while ( pakFile != NULL );
-		} else if ( search->dir /*&& ( flags & FS_MATCH_EXTERN ) */ ) {
+		} else if ( search->dir /*&& ( flags & FS_MATCH_EXTERN ) */ && search->policy != DIR_DENY ) {
 			if ( fs_filter_flag & FS_EXCLUDE_DIR ) {
 				continue;
 			}
@@ -2167,6 +2178,7 @@ qboolean FS_FileIsInPAK( const char *filename, int *pChecksum ) {
 	fileInPack_t	*pakFile;
 	int				flags;
 	long			hash = 0;
+	long			fullHash;
 
 	if ( !fs_searchpaths ) {
 		Com_Error( ERR_FATAL, "Filesystem call made without initialization" );
@@ -2192,6 +2204,8 @@ qboolean FS_FileIsInPAK( const char *filename, int *pChecksum ) {
 	else
 		flags = FS_MATCH_PK3s;
 
+	fullHash = FS_HashFileName( filename, 1<<31 );
+
 	//
 	// search through the path, one element at a time
 	//
@@ -2200,7 +2214,7 @@ qboolean FS_FileIsInPAK( const char *filename, int *pChecksum ) {
 		if ( search->pack ) {
 			//if ( !( flags & FS_MATCH_PK3s ) ) // always true?
 			//	continue;
-			hash = FS_HashFileName( filename, search->pack->hashSize );
+			hash = fullHash & (search->pack->hashSize-1);
 		}
 		// is the element a pak file?
 		if ( search->pack && search->pack->hashTable[hash] ) {
@@ -2232,6 +2246,7 @@ qboolean FS_FileIsInPAK( const char *filename, int *pChecksum ) {
 	}
 	return qfalse;
 }
+
 
 /*
 ============
@@ -2809,7 +2824,7 @@ char **FS_ListFilteredFiles( const char *path, const char *extension, const char
 					nfiles = FS_AddFileToList( name + temp, list, nfiles );
 				}
 			}
-		} else if ( search->dir && ( flags & FS_MATCH_EXTERN ) ) { // scan for files in the filesystem
+		} else if ( search->dir && ( flags & FS_MATCH_EXTERN ) && search->policy != DIR_DENY ) { // scan for files in the filesystem
 			char	*netpath;
 			int		numSysFiles;
 			char	**sysFiles;
@@ -2861,6 +2876,7 @@ char **FS_ListFilteredFiles( const char *path, const char *extension, const char
 
 	return listCopy;
 }
+
 
 /*
 =================
@@ -3449,6 +3465,7 @@ static void PakSort( char **a, int n ) {
   if ( n > i ) PakSort( a+i, n-i );
 }
 
+
 /*
 ================
 FS_AddGameDirectory
@@ -3580,6 +3597,7 @@ static void FS_AddGameDirectory( const char *path, const char *dir ) {
 			// add the directory to the search path
 			search = Z_Malloc(sizeof(searchpath_t));
 			search->dir = Z_Malloc(sizeof(*search->dir));
+			search->policy = DIR_ALLOW;
 
 			Q_strncpyz(search->dir->path, curpath, sizeof(search->dir->path));	// c:\quake3\baseq3
 			Q_strncpyz(search->dir->gamedir, pakdirs[pakdirsi], sizeof(search->dir->gamedir)); // mypak.pk3dir
@@ -4342,10 +4360,6 @@ Returns a space separated string containing the pure checksums of all referenced
 Servers with sv_pure set will get this string back from clients for pure validation 
 
 The string has a specific order, "cgame ui @ ref1 ref2 ref3 ..."
-
-NOTE TTimo - DO_LIGHT_DEDICATED
-this function is only used by the client to build the string sent back to server
-we don't have any need of overriding it for light, but it's useless in dedicated
 =====================
 */
 const char *FS_ReferencedPakPureChecksums( void ) {
@@ -4384,317 +4398,6 @@ const char *FS_ReferencedPakPureChecksums( void ) {
 
 	return info;
 }
-#else // DO_LIGHT_DEDICATED implementation follows
-
-/*
-=========================================================================================
-DO_LIGHT_DEDICATED, general notes
-we are going to fake the checksums sent to the clients
-that only matters to the pk3 we have replaced by their lighter version, currently:
-
-Cvar_Set2: sv_pakNames mp_pakmaps0 mp_pak2 mp_pak1 mp_pak0 pak0
-Cvar_Set2: sv_paks -1153491798 125907563 -1023558518 764840216 1886207346
-
-all the files above have their 'server required' content collapsed into a single pak0.pk3
-
-the other .pk3 files should be handled as usual
-
-more details are in unix/dedicated-only.txt
-
-=========================================================================================
-*/
-
-// our target faked checksums
-// those don't need to be encrypted or anything, that's what you see in the +set developer 1
-static const char* pak_checksums = "-137448799 131270674 125907563 -1023558518 764840216 1886207346";
-static const char* pak_names = "mp_pak4 mp_pak3 mp_pak2 mp_pak1 mp_pak0 pak0";
-
-/*
-this is the pure checksum string for a constant value of fs_checksumFeed we have choosen (see SV_SpawnServer)
-to obtain the new string for a different fs_checksumFeed value, run a regular server and enable the relevant
-verbosity code in SV_SpawnServer and FS_LoadedPakPureChecksums (the full server version of course)
-
-NOTE: if you have an mp_bin in the middle, you need to take out it's checksum
-  (we keep mp_bin out of the faked stuff because we don't want to have to update those feeds too often heh)
-
-once you have the clear versions, you can shift them by commenting out the code chunk in FS_RandChecksumFeed
-you need to use the right line in FS_LoadedPakPureChecksums wether you are running on clear strings, or shifted ones
-*/
-
-/*
-// clear checksums, rebuild those from a regular server and you will shift them next
-static const int feeds[5] = {
-  0x14d48835, 0xc44ed670, 0xd1c8da0d, 0x98df0626, 0xb4e51e7a
-};
-
-static const char* pak_purechecksums[5] = {
- "-631058236 1439191868 -1758535722 -1109639830 -756342425 -26055934",
- "420891163 -2077045804 -1212476885 273103692 1907819222 -1162012968",
- "724865970 393950398 1987220301 679766798 -966287476 -1045306141",
- "468836794 -690412926 -481399336 1089964294 -1538547350 394664641",
- "-1484520489 -1891368444 -510451918 -919424191 -1623567814 889557862"
-};
-*/
-
-static const int feeds[5] = {
-	0x14d48835, 0xc44ed670, 0xd1c8da0d, 0x98df0626, 0xb4e51e7a
-};
-
-// shifted strings, so that it's not directly scannable from exe
-// see FS_RandChecksumFeed to generate them
-static const char* pak_purechecksums[5] = {
-	// rain - escaped ?s to prevent parsing as trigraph
-	":C@>=BE?@C->A@F>F>ECE-:>DBEB@BD\?\?-:>>=FC@FE@=-:DBC@A?A?B-:?C=BBF@A",
-	"B@>FG??DA.;@>EE>BCF>B.;?@?@BEDFFC.@EA?>ADG@.?G>EF?G@@@.;??D@>?@GDF",
-	"FACGEDHF?/BHBHD?BHG/@HGFAA?B?@/EFHFEEFHG/<HEEAGFCFE/<@?CDB?E@C@",
-	"DFHHCFGID0=FI@DABIBF0=DHACIICCF0A@HIIFDBID0=AECHEDGCE@0CIDFFDFDA",
-	">BEIEFCAEIJ1>BIJBDGIEEE1>FBAEFBJBI1>JBJECEBJB1>BGCDFGHIBE1IIJFFHIGC"
-};
-
-// counter to walk through the randomized list
-static int feed_index = -1;
-
-static int lookup_randomized[5] = { 0, 1, 2, 3, 4 };
-
-/*
-=====================
-randomize the order of the 5 checksums we rely on
-5 random swaps of the table
-=====================
-*/
-void FS_InitRandomFeed() {
-	int i, swap, aux;
-	for ( i = 0; i < 5; i++ )
-	{
-		swap = (int)( 5.0 * rand() / ( RAND_MAX + 1.0 ) );
-		aux = lookup_randomized[i]; lookup_randomized[i] = lookup_randomized[swap]; lookup_randomized[swap] = aux;
-	}
-}
-
-/*
-=====================
-FS_RandChecksumFeed
-
-Return a random checksum feed among our list
-we keep the seed and use it when requested for the pure checksum
-=====================
-*/
-int FS_RandChecksumFeed() {
-	/*
-	// use this to dump shifted versions of the pure checksum strings
-	int i;
-	for(i=0;i<5;i++)
-	{
-	  Com_Printf("FS_RandChecksumFeed: %s\n", FS_ShiftStr(pak_purechecksums[i], 13+i));
-	}
-	*/
-	if ( feed_index == -1 ) {
-		FS_InitRandomFeed();
-	}
-	feed_index = ( feed_index + 1 ) % 5;
-	return feeds[lookup_randomized[feed_index]];
-}
-
-/*
-=====================
-FS_LoadedPakChecksums
-
-Returns a space separated string containing the checksums of all loaded pk3 files.
-Servers with sv_pure set will get this string and pass it to clients.
-
-DO_LIGHT_DEDICATED:
-drop lightweight pak0 checksum, put the faked pk3s checksums instead
-=====================
-*/
-const char *FS_LoadedPakChecksums( void ) {
-	static char info[BIG_INFO_STRING];
-	searchpath_t    *search;
-
-	info[0] = 0;
-
-	for ( search = fs_searchpaths ; search ; search = search->next ) {
-		// is the element a pak file?
-		if ( !search->pack ) {
-			continue;
-		}
-
-		if ( strcmp( search->pack->pakBasename,"pak0" ) ) {
-			// this is a regular pk3
-			Q_strcat( info, sizeof( info ), va( "%i ", search->pack->checksum ) );
-		} else
-		{
-			// this is the light pk3
-			Q_strcat( info, sizeof( info ), va( "%s ", pak_checksums ) );
-		}
-	}
-
-	return info;
-}
-
-/*
-=====================
-FS_LoadedPakNames
-
-Returns a space separated string containing the names of all loaded pk3 files.
-Servers with sv_pure set will get this string and pass it to clients.
-
-DO_LIGHT_DEDICATED:
-drop lightweight pak0 name, put the faked pk3s names instead
-=====================
-*/
-const char *FS_LoadedPakNames( void ) {
-	static char info[BIG_INFO_STRING];
-	searchpath_t    *search;
-
-	info[0] = 0;
-
-	for ( search = fs_searchpaths ; search ; search = search->next ) {
-		// is the element a pak file?
-		if ( !search->pack ) {
-			continue;
-		}
-
-		if ( *info ) {
-			Q_strcat( info, sizeof( info ), " " );
-		}
-		if ( strcmp( search->pack->pakBasename,"pak0" ) ) {
-			// regular pk3
-			Q_strcat( info, sizeof( info ), search->pack->pakBasename );
-		} else
-		{
-			// light pk3
-			Q_strcat( info, sizeof( info ), pak_names );
-		}
-	}
-
-	return info;
-}
-
-/*
-=====================
-FS_LoadedPakPureChecksums
-
-Returns a space separated string containing the pure checksums of all loaded pk3 files.
-Servers with sv_pure use these checksums to compare with the checksums the clients send
-back to the server.
-
-DO_LIGHT_DEDICATED:
-FS_LoadPakChecksums to send the pak string to the client
-FS_LoadPakPureChecksums is used locally to compare against what the client sends back
-
-the pure_checksums are computed by Com_MemoryBlockChecksum with a random key (fs_checksumFeed)
-since we can't do this on restricted server, we always use the same fs_checksumFeed value
-
-drop lightweight pak0 checksum, put the faked pk3s pure checksums instead
-
-=====================
-*/
-const char *FS_LoadedPakPureChecksums( void ) {
-	static char info[BIG_INFO_STRING];
-	searchpath_t    *search;
-
-	info[0] = 0;
-
-	for ( search = fs_searchpaths ; search ; search = search->next ) {
-		// is the element a pak file?
-		if ( !search->pack ) {
-			continue;
-		}
-
-		if ( strcmp( search->pack->pakBasename,"pak0" ) ) {
-			// this is a regular pk3
-			Q_strcat( info, sizeof( info ), va( "%i ", search->pack->pure_checksum ) );
-		} else
-		{
-			// this is the light pk3
-			// use this if you are running on shifted strings
-			Q_strcat( info, sizeof( info ), va( "%s ", FS_ShiftStr( pak_purechecksums[lookup_randomized[feed_index]], -13 - lookup_randomized[feed_index] ) ) );
-			// use this if you are running on clear checksum strings instead of shifted ones
-			//Q_strcat( info, sizeof( info ), va("%s ", pak_purechecksums[lookup_randomized[feed_index]] ) );
-		}
-	}
-
-	return info;
-}
-
-/*
-=====================
-FS_ReferencedPakChecksums
-
-Returns a space separated string containing the checksums of all referenced pk3 files.
-The server will send this to the clients so they can check which files should be auto-downloaded.
-
-DO_LIGHT_DEDICATED:
-don't send the checksum of pak0 (even if it's referenced)
-
-NOTE:
-do we need to fake referenced paks too?
-those are Id paks, so you can't download them
-mp_pakmaps0 would be a worthy candidate for download though, but we don't have it anyway
-the only thing if we omit sending of some referenced stuff, you don't get the console message that says "you're missing this"
-=====================
-*/
-const char *FS_ReferencedPakChecksums( void ) {
-	static char info[BIG_INFO_STRING];
-	searchpath_t *search;
-
-	info[0] = 0;
-
-	for ( search = fs_searchpaths ; search ; search = search->next ) {
-		// is the element a pak file?
-		if ( search->pack ) {
-			if ( search->pack->referenced ) {
-				if ( strcmp( search->pack->pakBasename, "pak0" ) ) {
-					// this is not the light pk3
-					Q_strcat( info, sizeof( info ), va( "%i ", search->pack->checksum ) );
-				}
-			}
-		}
-	}
-
-	return info;
-}
-
-/*
-=====================
-FS_ReferencedPakNames
-
-Returns a space separated string containing the names of all referenced pk3 files.
-The server will send this to the clients so they can check which files should be auto-downloaded.
-
-DO_LIGHT_DEDICATED:
-don't send pak0 see above for details
-=====================
-*/
-const char *FS_ReferencedPakNames( void ) {
-	static char info[BIG_INFO_STRING];
-	searchpath_t    *search;
-
-	info[0] = 0;
-
-	// we want to return ALL pk3's from the fs_game path
-	// and referenced one's from baseq3
-	for ( search = fs_searchpaths ; search ; search = search->next ) {
-		// is the element a pak file?
-		if ( search->pack ) {
-			if ( *info ) {
-				Q_strcat( info, sizeof( info ), " " );
-			}
-			if ( search->pack->referenced ) {
-				if ( strcmp( search->pack->pakBasename, "pak0" ) ) {
-					// this is not the light pk3
-					Q_strcat( info, sizeof( info ), search->pack->pakGamename );
-					Q_strcat( info, sizeof( info ), "/" );
-					Q_strcat( info, sizeof( info ), search->pack->pakBasename );
-				}
-			}
-		}
-	}
-
-	return info;
-}
-
-#endif
 
 /*
 =====================
@@ -4711,6 +4414,24 @@ void FS_ClearPakReferences( int flags ) {
 		// is the element a pak file and has it been referenced?
 		if ( search->pack ) {
 			search->pack->referenced &= ~flags;
+		}
+	}
+}
+
+
+/*
+=====================
+FS_ApplyDirPolicy
+
+Set access rights for non-regular (pk3dir) directories
+=====================
+*/
+static void FS_SetDirPolicy( dirPolicy_t policy ) {
+	searchpath_t	*search;
+
+	for ( search = fs_searchpaths ; search ; search = search->next ) {
+		if ( search->dir && search->policy != DIR_STATIC ) {
+			search->policy = policy;
 		}
 	}
 }
@@ -4737,6 +4458,8 @@ void FS_PureServerSetLoadedPaks( const char *pakSums, const char *pakNames ) {
 	}
 
 	fs_numServerPaks = c;
+
+	FS_SetDirPolicy( c ? DIR_DENY : DIR_ALLOW );
 
 	for ( i = 0 ; i < c ; i++ ) {
 		fs_serverPaks[i] = atoi( Cmd_Argv( i ) );

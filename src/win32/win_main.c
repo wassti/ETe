@@ -628,11 +628,7 @@ Used to load a development dll instead of a virtual machine
 extern int cl_connectedToPureServer;
 
 const char* Sys_GetDLLName( const char *name ) {
-#if idx64
-	return va( "%s_mp_x86_64.dll", name );
-#else
-	return va( "%s_mp_x86.dll", name );
-#endif
+	return va( "%s_mp_" ARCH_STRING DLL_EXT, name );
 }
 
 void * QDECL Sys_LoadDll( const char *name, dllSyscall_t *entryPoint, dllSyscall_t systemcalls ) {

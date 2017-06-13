@@ -38,6 +38,10 @@ If you have questions concerning this license or the applicable additional terms
 #include "../cgame/cg_public.h"
 #include "../game/bg_public.h"
 
+#ifdef USE_CURL
+#include "cl_curl.h"
+#endif /* USE_CURL */
+
 #define RETRANSMIT_TIMEOUT  3000    // time between connection packet retransmits
 
 #define LIMBOCHAT_WIDTH     140     // NERVE - SMF - NOTE TTimo buffer size indicator, not related to screen bbox
@@ -92,7 +96,8 @@ typedef struct {
 // the parseEntities array must be large enough to hold PACKET_BACKUP frames of
 // entities, so that when a delta compressed message arives from the server
 // it can be un-deltad from the original
-#define MAX_PARSE_ENTITIES  2048
+#define	MAX_PARSE_ENTITIES	( PACKET_BACKUP * MAX_SNAPSHOT_ENTITIES )
+// ENSI FIXME this was #define MAX_PARSE_ENTITIES  2048 in ET
 
 extern int g_console_field_width;
 
@@ -233,6 +238,8 @@ typedef struct {
 	fileHandle_t download;
 	char		downloadTempName[MAX_OSPATH];
 	char		downloadName[MAX_OSPATH];
+	int			sv_allowDownload;
+	char		sv_dlURL[MAX_CVAR_VALUE_STRING];
 	int downloadNumber;
 	int downloadBlock;          // block we are waiting for
 	int downloadCount;          // how many bytes we got
@@ -245,6 +252,14 @@ typedef struct {
 	qboolean bWWWDlAborting;    // disable the CL_WWWDownload until server gets us a gamestate (used for aborts)
 	char redirectedList[MAX_INFO_STRING];        // list of files that we downloaded through a redirect since last FS_ComparePaks
 	char badChecksumList[MAX_INFO_STRING];        // list of files for which wwwdl redirect is broken (wrong checksum)
+#ifdef USE_CURL
+	qboolean	cURLEnabled;
+	qboolean	cURLUsed;
+	qboolean	cURLDisconnected;
+	char		downloadURL[MAX_OSPATH];
+	CURL		*downloadCURL;
+	CURLM		*downloadCURLM;
+#endif /* USE_CURL */
 
 	// demo information
 	char		demoName[MAX_OSPATH];
@@ -395,12 +410,27 @@ typedef struct {
 	char downloadTempName[MAX_OSPATH];    // in wwwdl mode, this is OS path (it's a qpath otherwise)
 	char originalDownloadName[MAX_QPATH];    // if we get a redirect, keep a copy of the original file path
 	qboolean downloadRestart; // if true, we need to do another FS_Restart because we downloaded a pak
+
+	qboolean	startCgame;
+
 } clientStatic_t;
 
 extern	clientStatic_t		cls;
 
 extern	char		cl_oldGame[MAX_QPATH];
 extern	qboolean	cl_oldGameSet;
+
+#ifdef USE_CURL
+
+extern		download_t	download;
+qboolean	Com_DL_Perform( download_t *dl );
+void		Com_DL_Cleanup( download_t *dl );
+qboolean	Com_DL_Begin( download_t *dl, const char *localName, const char *remoteURL, qboolean headerCheck, qboolean autoDownload );
+qboolean	Com_DL_InProgress( const download_t *dl );
+qboolean	Com_DL_ValidFileName( const char *fileName );
+qboolean	CL_Download( const char *cmd, const char *pakname, qboolean autoDownload );
+
+#endif
 
 //=============================================================================
 
@@ -459,6 +489,9 @@ extern	cvar_t	*cl_aviMotionJpeg;
 extern	cvar_t	*cl_activeAction;
 
 extern	cvar_t	*cl_allowDownload;
+#ifdef USE_CURL
+extern	cvar_t	*cl_mapAutoDownload;
+#endif
 extern	cvar_t	*cl_conXOffset;
 extern	cvar_t	*cl_conColor;
 extern	cvar_t	*cl_inGameVideo;

@@ -84,6 +84,9 @@ cvar_t	*cl_motdString;
 
 cvar_t	*cl_allowDownload;
 cvar_t  *cl_wwwDownload;
+#ifdef USE_CURL
+cvar_t	*cl_mapAutoDownload;
+#endif
 cvar_t	*cl_conXOffset;
 cvar_t	*cl_conColor;
 cvar_t	*cl_inGameVideo;
@@ -118,7 +121,7 @@ cvar_t	*cl_lanForcePackets;
 
 //cvar_t	*cl_guidServerUniq;
 
-//cvar_t	*cl_dlURL;
+cvar_t	*cl_dlURL;
 
 clientActive_t		cl;
 clientConnection_t	clc;
@@ -131,6 +134,10 @@ char				cl_reconnectArgs[ MAX_OSPATH ];
 char				cl_oldGame[ MAX_QPATH ];
 qboolean			cl_oldGameSet;
 static	qboolean	noGameRestart = qfalse;
+
+#ifdef USE_CURL
+download_t			download;
+#endif
 
 // Structure containing functions exported from refresh DLL
 refexport_t	re;
@@ -163,6 +170,8 @@ static void CL_ShowIP_f( void );
 static void CL_ServerStatus_f( void );
 static void CL_ServerStatusResponse( const netadr_t *from, msg_t *msg );
 static void CL_ServerInfoPacket( const netadr_t *from, msg_t *msg );
+
+static void CL_Download_f( void );
 
 void CL_SaveTranslations_f( void );
 void CL_LoadTranslations_f( void );
@@ -962,7 +971,11 @@ static void CL_PlayDemo_f( void ) {
 		clc.compat = qfalse;
 
 	// read demo messages until connected
+#ifdef USE_CURL
+	while ( cls.state >= CA_CONNECTED && cls.state < CA_PRIMED && !Com_DL_InProgress( &download ) ) {
+#else
 	while ( cls.state >= CA_CONNECTED && cls.state < CA_PRIMED ) {
+#endif
 		CL_ReadDemoMessage();
 	}
 
@@ -1031,6 +1044,9 @@ CL_ShutdownAll
 */
 void CL_ShutdownAll( void ) {
 
+#ifdef USE_CURL
+	CL_cURL_Shutdown();
+#endif
 	// clear sounds
 	S_DisableSounds();
 
@@ -1832,12 +1848,16 @@ static void CL_Vid_Restart( void ) {
 	CL_StartHunkUsers();
 
 	// start the cgame if connected
-	if ( cls.state > CA_CONNECTED && cls.state != CA_CINEMATIC ) {
+	if ( ( cls.state > CA_CONNECTED && cls.state != CA_CINEMATIC ) || cls.startCgame ) {
 		cls.cgameStarted = qtrue;
 		CL_InitCGame();
 		// send pure checksums
-		CL_SendPureChecksums();
+		if ( !clc.demoplaying ) {
+			CL_SendPureChecksums();
+		}
 	}
+
+	cls.startCgame = qfalse;
 }
 
 
@@ -2139,9 +2159,11 @@ CL_NextDownload
 A download completed or failed
 =================
 */
-void CL_NextDownload( void ) {
+void CL_NextDownload( void )
+{
 	char *s;
 	char *remoteName, *localName;
+	qboolean useCURL = qfalse;
 
  	// A download has finished, check whether this matches a referenced checksum
  	if(*clc.downloadName)
@@ -2178,9 +2200,49 @@ void CL_NextDownload( void ) {
 		else
 			s = localName + strlen(localName); // point at the null byte
 
+#ifdef USE_CURL
+		if(!(cl_allowDownload->integer & DLF_NO_REDIRECT)) {
+			if(clc.sv_allowDownload & DLF_NO_REDIRECT) {
+				Com_Printf("WARNING: server does not "
+					"allow download redirection "
+					"(sv_allowDownload is %d)\n",
+					clc.sv_allowDownload);
+			}
+			else if(!*clc.sv_dlURL) {
+				Com_Printf("WARNING: server allows "
+					"download redirection, but does not "
+					"have sv_dlURL set\n");
+			}
+			else if(!CL_cURL_Init()) {
+				Com_Printf("WARNING: could not load "
+					"cURL library\n");
+			}
+			else {
+				CL_cURL_BeginDownload(localName, va("%s/%s",
+					clc.sv_dlURL, remoteName));
+				useCURL = qtrue;
+			}
+		}
+		else if(!(clc.sv_allowDownload & DLF_NO_REDIRECT)) {
+			Com_Printf("WARNING: server allows download "
+				"redirection, but it disabled by client "
+				"configuration (cl_allowDownload is %d)\n",
+				cl_allowDownload->integer);
+		}
+#endif /* USE_CURL */
 
-		CL_BeginDownload( localName, remoteName );
-
+		if( !useCURL ) {
+		if( (cl_allowDownload->integer & DLF_NO_UDP) ) {
+				Com_Error(ERR_DROP, "UDP Downloads are "
+					"disabled on your client. "
+					"(cl_allowDownload is %d)",
+					cl_allowDownload->integer);
+				return;	
+			}
+			else {
+				CL_BeginDownload( localName, remoteName );
+			}
+		}
 		clc.downloadRestart = qtrue;
 
 		// move over the rest
@@ -3134,9 +3196,35 @@ void CL_Frame( int msec ) {
 	float fps;
 	float frameDuration;
 
+#ifdef USE_CURL	
+	if ( download.cURL ) 
+	{
+		Com_DL_Perform( &download );
+	}
+#endif
+
 	if ( !com_cl_running->integer ) {
 		return;
 	}
+
+#ifdef USE_CURL
+	if(clc.downloadCURLM) {
+		CL_cURL_PerformDownload();
+		// we can't process frames normally when in disconnected
+		// download mode since the ui vm expects cls.state to be
+		// CA_CONNECTED
+		if(clc.cURLDisconnected) {
+			cls.realFrametime = msec;
+			cls.frametime = msec;
+			cls.realtime += cls.frametime;
+			SCR_UpdateScreen();
+			S_Update();
+			Con_RunConsole();
+			cls.framecount++;
+			return;
+		}
+	}
+#endif
 
 	if ( cls.cddialog ) {
 		// bring up the cd error dialog if needed
@@ -3963,6 +4051,7 @@ void CL_Init( void ) {
 	cl_showTimeDelta = Cvar_Get( "cl_showTimeDelta", "0", CVAR_TEMP );
 	cl_freezeDemo = Cvar_Get( "cl_freezeDemo", "0", CVAR_TEMP );
 	rcon_client_password = Cvar_Get( "rconPassword", "", CVAR_TEMP );
+	Cvar_SetDescription( rcon_client_password, "Password for remote console access" );
 	cl_activeAction = Cvar_Get( "activeAction", "", CVAR_TEMP );
 
 	cl_timedemo = Cvar_Get ("timedemo", "0", 0);
@@ -3974,6 +4063,7 @@ void CL_Init( void ) {
 	cl_forceavidemo = Cvar_Get ("cl_forceavidemo", "0", 0);
 
 	rconAddress = Cvar_Get( "rconAddress", "", 0 );
+	Cvar_SetDescription( rconAddress, "Alternate server address to remotely access via rcon protocol" );
 
 	cl_yawspeed = Cvar_Get ("cl_yawspeed", "140", CVAR_ARCHIVE_ND );
 	cl_pitchspeed = Cvar_Get ("cl_pitchspeed", "140", CVAR_ARCHIVE_ND );
@@ -3999,6 +4089,12 @@ void CL_Init( void ) {
 	cl_showMouseRate = Cvar_Get ("cl_showmouserate", "0", 0);
 
 	cl_allowDownload = Cvar_Get( "cl_allowDownload", "1", CVAR_ARCHIVE_ND );
+#ifdef USE_CURL
+	cl_mapAutoDownload = Cvar_Get( "cl_mapAutoDownload", "0", CVAR_ARCHIVE_ND );
+#ifdef USE_CURL_DLOPEN
+	cl_cURLLib = Cvar_Get( "cl_cURLLib", DEFAULT_CURL_LIB, 0 );
+#endif
+#endif
 	cl_wwwDownload = Cvar_Get( "cl_wwwDownload", "1", CVAR_USERINFO | CVAR_ARCHIVE_ND );
 
 	cl_profile = Cvar_Get( "cl_profile", "", CVAR_ROM );
@@ -4076,6 +4172,9 @@ void CL_Init( void ) {
 //	Cvar_Get( "mp_team", "0", 0 );
 //	Cvar_Get( "mp_currentTeam", "0", 0 );
 	// -NERVE - SMF
+
+	// ENSI NOTE need a URL for this
+	cl_dlURL = Cvar_Get( "cl_dlURL", ""/*"http://ws.q3df.org/getpk3bymapname.php/%1"*/, CVAR_ARCHIVE_ND );
 
 	// userinfo
 	Cvar_Get( "name", "ETPlayer", CVAR_USERINFO | CVAR_ARCHIVE_ND );
@@ -5940,3 +6039,89 @@ BotImport_DrawPolygon
 void BotImport_DrawPolygon( int color, int numpoints, float* points ) {
 	re.DrawDebugPolygon( color, numpoints, points );
 }
+
+#ifdef USE_CURL
+
+qboolean CL_Download( const char *cmd, const char *pakname, qboolean autoDownload ) 
+{
+	char url[MAX_CVAR_VALUE_STRING];
+	char name[MAX_CVAR_VALUE_STRING];
+	const char *s;
+	qboolean headerCheck;
+
+	if ( !cl_dlURL->string[0] ) 
+	{
+		Com_Printf( "cl_dlURL cvar is not set\n" );
+		return qfalse;
+	}
+
+	s = pakname;
+
+	// skip leading slashes
+	while ( *pakname == '/' || *pakname == '\\' )
+		pakname++;
+
+	// skip gamedir
+	s = Q_strrchr( pakname, '/' );
+	if ( s )
+		pakname = s+1;
+
+	if ( !Com_DL_ValidFileName( pakname ) ) 
+	{
+		Com_Printf( "invalid file name: '%s'.\n", pakname );
+		return qfalse;
+	}
+
+	if ( !Q_stricmp( cmd, "dlmap" ) ) 
+	{
+		Q_strncpyz( name, pakname, sizeof( name ) );
+		FS_StripExt( name, ".pk3" );
+		s = va( "maps/%s.bsp", name );
+		if ( FS_FileIsInPAK( s, NULL, url ) ) 
+		{
+			Com_Printf( S_COLOR_YELLOW " map %s already exists in %s.pk3\n", name, url );
+			return qfalse;
+		}
+	}
+
+	strcpy( url, cl_dlURL->string );
+ 
+	if ( !Q_replace( "%1", pakname, url, sizeof( url ) ) ) 
+	{
+		if ( url[strlen(url)] != '/' )
+			Q_strcat( url, sizeof( url ), "/" );
+		Q_strcat( url, sizeof( url ), pakname );
+		headerCheck = qfalse;
+	}
+	else 
+	{
+		headerCheck = qtrue;
+	}
+
+	return Com_DL_Begin( &download, pakname, url, headerCheck, autoDownload );
+}
+
+
+/*
+==================
+CL_Download_f
+==================
+*/
+static void CL_Download_f( void )
+{
+	if ( Cmd_Argc() < 2 || !*Cmd_Argv( 1 ) )
+	{
+		Com_Printf( "usage: %s <mapname>\n", Cmd_Argv( 0 ) );
+		return;
+	}
+
+	if ( !strcmp( Cmd_Argv(1), "-" ) )
+	{
+		Com_DL_Cleanup( &download );
+		return;
+	}
+
+	CL_Download( Cmd_Argv( 0 ), Cmd_Argv( 1 ), qfalse );
+}
+#endif // USE_CURL
+

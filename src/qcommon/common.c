@@ -2566,6 +2566,7 @@ void Com_ExecuteCfg(qboolean safeMode)
 
 	// skip the etconfig.cfg if "safe" is on the command line
 	if ( !safeMode ) {
+#ifndef DEDICATED
 		const char *cl_profileStr = Cvar_VariableString( "cl_profile" );
 
 		if ( com_gameInfo.usesProfiles ) {
@@ -2608,8 +2609,11 @@ void Com_ExecuteCfg(qboolean safeMode)
 				Cbuf_ExecuteText(EXEC_NOW, va( "exec profiles/%s/%s\n", cl_profileStr, CONFIG_NAME ) );
 				Cbuf_Execute();
 			}
-		} else {
-			Cbuf_ExecuteText(EXEC_NOW, "exec " CONFIG_NAME "\n");
+		}
+		else
+#endif
+		{
+			Cbuf_ExecuteText(EXEC_NOW, "exec " Q3CONFIG_CFG "\n");
 			Cbuf_Execute();
 		}
 
@@ -3245,69 +3249,6 @@ void Com_Init( char *commandLine ) {
 	safeMode = Com_SafeMode();
 	Com_ExecuteCfg(safeMode);
 
-#if 0
-	Cbuf_AddText( "exec default.cfg\n" );
-	Cbuf_AddText( "exec language.cfg\n" );     // NERVE - SMF
-
-	// skip the q3config.cfg if "safe" is on the command line
-	if ( !Com_SafeMode() ) {
-		char *cl_profileStr = Cvar_VariableString( "cl_profile" );
-
-		safeMode = qfalse;
-		if ( com_gameInfo.usesProfiles ) {
-			if ( !cl_profileStr[0] ) {
-				char *defaultProfile = NULL;
-
-				FS_ReadFile( "profiles/defaultprofile.dat", (void **)&defaultProfile );
-
-				if ( defaultProfile ) {
-					char *text_p = defaultProfile;
-					char *token = COM_Parse( &text_p );
-
-					if ( token && *token ) {
-						Cvar_Set( "cl_defaultProfile", token );
-						Cvar_Set( "cl_profile", token );
-					}
-
-					FS_FreeFile( defaultProfile );
-
-					cl_profileStr = Cvar_VariableString( "cl_defaultProfile" );
-				}
-			}
-
-			if ( cl_profileStr[0] ) {
-				// bani - check existing pid file and make sure it's ok
-				if ( !Com_CheckProfile( va( "profiles/%s/profile.pid", cl_profileStr ) ) ) {
-#ifndef _DEBUG
-					Com_Printf( "^3WARNING: profile.pid found for profile '%s' - system settings will revert to defaults\n", cl_profileStr );
-					// ydnar: set crashed state
-					Cbuf_AddText( "set com_crashed 1\n" );
-#endif
-				}
-
-				// bani - write a new one
-				if ( !Com_WriteProfile( va( "profiles/%s/profile.pid", cl_profileStr ) ) ) {
-					Com_Printf( "^3WARNING: couldn't write profiles/%s/profile.pid\n", cl_profileStr );
-				}
-
-				// exec the config
-				Cbuf_AddText( va( "exec profiles/%s/%s\n", cl_profileStr, CONFIG_NAME ) );
-			}
-		} else
-		{
-			Cbuf_AddText( va( "exec %s\n", CONFIG_NAME ) );
-		}
-	}
-
-	Cbuf_AddText( "exec autoexec.cfg\n" );
-
-	// ydnar: reset crashed state
-	Cbuf_AddText( "set com_crashed 0\n" );
-
-	// execute the queued commands
-	Cbuf_Execute();
-#endif
-
 	// override anything from the config files with command line args
 	Com_StartupVariable( NULL );
 
@@ -3528,7 +3469,7 @@ void Com_WriteConfiguration( void ) {
 	if ( com_gameInfo.usesProfiles && cl_profileStr[0] ) {
 		Com_WriteConfigToFile( va( "profiles/%s/%s", cl_profileStr, CONFIG_NAME ) );
 	} else {
-		Com_WriteConfigToFile( CONFIG_NAME );
+		Com_WriteConfigToFile( Q3CONFIG_CFG );
 	}
 
 #ifndef DEDICATED

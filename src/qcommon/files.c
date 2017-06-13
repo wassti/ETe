@@ -710,13 +710,14 @@ static void FS_CheckFilenameIsNotAllowed( const char *filename, const char *func
 	}
 }
 
+
 /*
 ===========
 FS_Remove
 
 ===========
 */
-void FS_Remove( const char *osPath )
+void FS_Remove( const char *osPath ) 
 {
 	FS_CheckFilenameIsNotAllowed( osPath, __func__, qtrue );
 
@@ -763,6 +764,7 @@ qboolean FS_FileExists( const char *file )
 	return qfalse;
 }
 
+
 /*
 ================
 FS_SV_FileExists
@@ -796,16 +798,6 @@ qboolean FS_SV_FileExists( const char *file )
 	return qfalse;
 }
 
-
-qboolean FS_OS_FileExists( const char *file ) {
-	FILE *f;
-	f = fopen( file, "rb" );
-	if ( f ) {
-		fclose( f );
-		return qtrue;
-	}
-	return qfalse;
-}
 
 /*
 ===========
@@ -962,7 +954,6 @@ void FS_SV_Rename( const char *from, const char *to ) {
 }
 
 
-
 /*
 ===========
 FS_Rename
@@ -994,6 +985,7 @@ void FS_Rename( const char *from, const char *to ) {
 		FS_Remove( from_ospath );
 	}
 }
+
 
 /*
 ==============
@@ -1083,10 +1075,10 @@ fileHandle_t FS_FOpenFileWrite( const char *filename ) {
 	return f;
 }
 
+
 /*
 ===========
 FS_FOpenFileAppend
-
 ===========
 */
 fileHandle_t FS_FOpenFileAppend( const char *filename ) {
@@ -3656,69 +3648,6 @@ qboolean FS_CheckDirTraversal(const char *checkdir)
 	return qfalse;
 }
 
-#if 0
-typedef struct {
-	char pakname[MAX_QPATH];
-	qboolean ok;
-} officialpak_t;
-
-/*
-================
-FS_VerifyOfficialPaks
-================
-*/
-qboolean FS_VerifyOfficialPaks( void ) {
-	int i, j;
-	searchpath_t    *sp;
-	int numOfficialPaksOnServer = 0;
-	int numOfficialPaksLocal = 0;
-	officialpak_t officialpaks[64];
-
-	if ( !fs_numServerPaks ) {
-		return qtrue;
-	}
-
-	for ( i = 0; i < fs_numServerPaks; i++ ) {
-		if ( FS_idPak( fs_serverPakNames[i], BASEGAME ) ) {
-			Q_strncpyz( officialpaks[numOfficialPaksOnServer].pakname, fs_serverPakNames[i], sizeof( officialpaks[0].pakname ) );
-			officialpaks[numOfficialPaksOnServer].ok = qfalse;
-			numOfficialPaksOnServer++;
-		}
-	}
-
-	for ( i = 0; i < fs_numServerPaks; i++ ) {
-		for ( sp = fs_searchpaths ; sp ; sp = sp->next ) {
-			if ( sp->pack && sp->pack->checksum == fs_serverPaks[i] ) {
-				char packPath[MAX_QPATH];
-
-				Com_sprintf( packPath, sizeof( packPath ), "%s/%s", sp->pack->pakGamename, sp->pack->pakBasename );
-
-				if ( FS_idPak( packPath, BASEGAME ) ) {
-					for ( j = 0; j < numOfficialPaksOnServer; j++ ) {
-						if ( !Q_stricmp( packPath, officialpaks[j].pakname ) ) {
-							officialpaks[j].ok = qtrue;
-						}
-					}
-					numOfficialPaksLocal++;
-				}
-				break;
-			}
-		}
-	}
-
-	if ( numOfficialPaksOnServer != numOfficialPaksLocal ) {
-		for ( i = 0; i < numOfficialPaksOnServer; i++ ) {
-			if ( officialpaks[i].ok != qtrue ) {
-				Com_Printf( "ERROR: Missing/corrupt official pak file %s\n", officialpaks[i].pakname );
-			}
-		}
-		return qfalse;
-	} else {
-		return qtrue;
-	}
-}
-#endif
-
 /*
 ================
 FS_ComparePaks
@@ -4076,7 +4005,7 @@ FS_CheckIdPaks
 
 Checks that pak0.pk3 is present and its checksum is correct
 Note: If you're building a game that doesn't depend on the
-Q3 media pak0.pk3, you'll want to remove this function
+ET media pak0.pk3, you'll want to remove this function
 ===================
 */
 static void FS_CheckIdPaks( void )
@@ -4197,7 +4126,6 @@ static void FS_CheckIdPaks( void )
 }
 
 
-#if !defined( DO_LIGHT_DEDICATED )
 /*
 =====================
 FS_LoadedPakChecksums
@@ -4291,6 +4219,7 @@ const char *FS_LoadedPakPureChecksums( void ) {
 	return info;
 }
 
+
 /*
 =====================
 FS_ReferencedPakChecksums
@@ -4328,20 +4257,22 @@ The server will send this to the clients so they can check which files should be
 =====================
 */
 const char *FS_ReferencedPakNames( void ) {
-	static char info[BIG_INFO_STRING];
-	searchpath_t    *search;
+	static char	info[BIG_INFO_STRING];
+	searchpath_t	*search;
+	size_t	len;
 
 	info[0] = 0;
+	len = strlen( fs_basegame->string );
 
 	// we want to return ALL pk3's from the fs_game path
 	// and referenced one's from baseq3
 	for ( search = fs_searchpaths ; search ; search = search->next ) {
 		// is the element a pak file?
 		if ( search->pack ) {
-			if ( *info ) {
-				Q_strcat( info, sizeof( info ), " " );
-			}
-			if ( search->pack->referenced || Q_stricmpn( search->pack->pakGamename, BASEGAME, strlen( BASEGAME ) ) ) {
+			if ( search->pack->referenced || Q_stricmpn( search->pack->pakGamename, fs_basegame->string, len ) ) {
+				if ( *info ) {
+					Q_strcat( info, sizeof( info ), " " );
+				}
 				Q_strcat( info, sizeof( info ), search->pack->pakGamename );
 				Q_strcat( info, sizeof( info ), "/" );
 				Q_strcat( info, sizeof( info ), search->pack->pakBasename );
@@ -4646,6 +4577,7 @@ void FS_Restart( int checksumFeed ) {
 	if ( Q_stricmp( fs_gamedirvar->string, lastValidGame ) && execConfig ) {
 		// skip the wolfconfig.cfg if "safe" is on the command line
 		if ( !Com_SafeMode() ) {
+#ifndef DEDICATED
 			const char *cl_profileStr = Cvar_VariableString( "cl_profile" );
 
 			if ( com_gameInfo.usesProfiles && cl_profileStr[0] ) {
@@ -4666,8 +4598,11 @@ void FS_Restart( int checksumFeed ) {
 				// exec the config
 				Cbuf_AddText( va( "exec profiles/%s/%s\n", cl_profileStr, CONFIG_NAME ) );
 
-			} else {
-				Cbuf_AddText( va( "exec %s\n", CONFIG_NAME ) );
+			}
+			else
+#endif
+			{
+				Cbuf_AddText( va( "exec %s\n", Q3CONFIG_CFG ) );
 			}
 		}
 	}
@@ -4968,35 +4903,9 @@ qboolean FS_VerifyPak( const char *pak ) {
 	return qfalse;
 }
 
-qboolean FS_IsPure( void ) {
-	return fs_numServerPaks != 0;
-}
 
-unsigned int FS_ChecksumOSPath( char *OSPath ) {
-	FILE    *f;
-	int len;
-	byte    *buf;
-	unsigned int checksum;
 
-	f = fopen( OSPath, "rb" );
-	if ( !f ) {
-		return (unsigned int)-1;
-	}
-	fseek( f, 0, SEEK_END );
-	len = ftell( f );
-	fseek( f, 0, SEEK_SET );
 
-	buf = malloc( len );
-	if ( fread( buf, 1, len, f ) != len ) {
-		Com_Error( ERR_FATAL, "short read in FS_ChecksumOSPath\n" );
-	}
-	fclose( f );
 
-	// Com_BlockChecksum returns an indian-dependent value
-	// (better fix would have to be doing the LittleLong inside that function..)
-	checksum = LittleLong( Com_BlockChecksum( buf, len ) );
 
-	free( buf );
-	return checksum;
-}
 

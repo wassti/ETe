@@ -45,7 +45,7 @@ jmemmgr.c
 jmemnobs.c
 jutils.c"""
 
-jpeg_list = scons_utils.BuildList( 'jpeg-6', jpeg_string )
+jpeg_list = scons_utils.BuildList( 'jpeg-8c', jpeg_string )
 
 renderer_string = """
 tr_animation_mdm.c

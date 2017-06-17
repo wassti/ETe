@@ -50,7 +50,9 @@ jpeg_list = scons_utils.BuildList( 'jpeg-8c', jpeg_string )
 renderer_string = """
 tr_animation_mdm.c
 tr_animation_mds.c
+tr_arb.c
 tr_backend.c
+tr_bloom.c
 tr_bsp.c
 tr_cmds.c
 tr_cmesh.c
@@ -59,6 +61,11 @@ tr_decals.c
 tr_flares.c
 tr_font.c
 tr_image.c
+tr_image_bmp.c
+tr_image_jpg.c
+tr_image_pcx.c
+tr_image_png.c
+tr_image_tga.c
 tr_init.c
 tr_light.c
 tr_main.c
@@ -100,16 +107,17 @@ cmd.c
 common.c
 cvar.c
 files.c
+gameinfo.c
 huffman.c
+huffman_static.c
+keys.c
 md4.c
+md5.c
 msg.c
 net_chan.c
+net_ip.c
 unzip.c
-vm.c
-vm_interpreted.c"""
-
-if ( cpu == 'x86' ):
-	qcommon_string += " vm_x86.c"
+vm.c"""
 
 qcommon_list = scons_utils.BuildList( 'qcommon', qcommon_string )
 
@@ -127,6 +135,7 @@ util_str.cpp"""
 splines_list = scons_utils.BuildList( 'splines', splines_string )
 
 client_string = """
+cl_avi.c
 cl_cgame.c
 cl_cin.c
 cl_console.c
@@ -138,7 +147,10 @@ cl_parse.c
 cl_scrn.c
 cl_ui.c
 snd_adpcm.c
+snd_codec.c
+snd_codec_wav.c
 snd_dma.c
+snd_main.c
 snd_mem.c
 snd_mix.c
 snd_wavelet.c"""
@@ -148,19 +160,16 @@ client_list = scons_utils.BuildList( 'client', client_string )
 linux_sources = [
         'unix/linux_signals.c',
         'unix/unix_main.c',
-#        'unix/unix_net.c',
         'unix/unix_shared.c',
         'qcommon/q_shared.c',
-        'qcommon/q_math.c',
-#        'unix/matha.S'
+        'qcommon/q_math.c'
 ]
 
 linux_full_sources = [
         'unix/linux_glimp.c',
         'unix/linux_qgl.c',
         'unix/linux_snd.c',
-        'unix/linux_joystick.c',
-#        'unix/snd_mixa.S'
+        'unix/linux_joystick.c'
 ]
 
 mac_sources = [
@@ -188,12 +197,11 @@ mac_sources = [
 
 win32_sources = [
 	'win32/win_main.c',
-#	'win32/win_net.c',
 	'win32/win_shared.c',
 	'win32/win_wndproc.c',
 	'win32/win_syscon.c',
-        'qcommon/q_shared.c',
-        'qcommon/q_math.c',
+    'qcommon/q_shared.c',
+    'qcommon/q_math.c',
 ]
 
 win32_full_sources = [
@@ -201,6 +209,7 @@ win32_full_sources = [
 	'win32/win_glimp.c',
 	'win32/win_qgl.c',
 	'win32/win_gamma.c',
+	'win32/win_minimize.c',
 	'win32/win_snd.c',
 ]
 
@@ -252,14 +261,11 @@ else:
 if ( g_os == 'Linux' ):
 	nasm_env = Environment( tools = [ 'nasm' ] )
 	nasm_env['ASFLAGS'] = '-f elf'
-#	snapvector = nasm_env.StaticObject( 'unix/snapvector.asm' )
 
 	# gas assembly, with preprocessing
 	gas_env = Environment( tools = [ 'gcc', 'gas' ] )
 	gas_env.Append( CPPDEFINES = [ 'ELF' ] )
 	gas_env.Append( ASFLAGS = [ '-m32', '-x', 'assembler-with-cpp' ] )
-#	matha = gas_env.StaticObject( 'unix/matha.spp' )
-        snd_mixa = gas_env.StaticObject( 'unix/snd_mixa.spp' )
 
 splines_env = g_env.Clone()
 splines_lib = splines_env.StaticLibrary( splines_list )

@@ -1823,13 +1823,11 @@ static qboolean SV_ClientCommand( client_t *cl, msg_t *msg, qboolean premapresta
 	// We don't do this when the client hasn't been active yet since its
 	// normal to spam a lot of commands when downloading
 #ifndef DEDICATED
-	if ( !com_cl_running->integer && cl->state >= CS_ACTIVE &&
+	if ( !com_cl_running->integer && cl->state >= CS_ACTIVE && sv_floodProtect->integer && svs.time < cl->nextReliableTime && floodprotect ) {
 #else
-		 cl->state >= CS_ACTIVE &&      // (SA) this was commented out in Wolf.  Did we do that?
+	// (SA) this was commented out in Wolf.  Did we do that?
+	if ( cl->state >= CS_ACTIVE && sv_floodProtect->integer && svs.time < cl->nextReliableTime && floodprotect ) {
 #endif
-		 sv_floodProtect->integer &&
-		 svs.time < cl->nextReliableTime &&
-		 floodprotect ) {
 		// ignore any other text messages from this client but let them keep playing
 		// TTimo - moved the ignored verbose to the actual processing in SV_ExecuteClientCommand, only printing if the core doesn't intercept
 		clientOk = qfalse;

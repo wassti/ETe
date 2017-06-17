@@ -25,6 +25,7 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
+#include "q_shared.h"
 
 #ifndef _DL_PUBLIC_H_
 #define _DL_PUBLIC_H_

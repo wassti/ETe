@@ -148,10 +148,10 @@ client_list = scons_utils.BuildList( 'client', client_string )
 linux_sources = [
         'unix/linux_signals.c',
         'unix/unix_main.c',
-        'unix/unix_net.c',
+#        'unix/unix_net.c',
         'unix/unix_shared.c',
-        'game/q_shared.c',
-        'game/q_math.c',
+        'qcommon/q_shared.c',
+        'qcommon/q_math.c',
 #        'unix/matha.S'
 ]
 
@@ -164,8 +164,8 @@ linux_full_sources = [
 ]
 
 mac_sources = [
-	'game/q_shared.c',
-	'game/q_math.c',
+	'qcommon/q_shared.c',
+	'qcommon/q_math.c',
 	'mac/mac_main.cpp',
 	'mac/mac_input.cpp',
 	'mac/mac_glimp.cpp',
@@ -192,8 +192,8 @@ win32_sources = [
 	'win32/win_shared.c',
 	'win32/win_wndproc.c',
 	'win32/win_syscon.c',
-        'game/q_shared.c',
-        'game/q_math.c',
+        'qcommon/q_shared.c',
+        'qcommon/q_math.c',
 ]
 
 win32_full_sources = [
@@ -252,13 +252,13 @@ else:
 if ( g_os == 'Linux' ):
 	nasm_env = Environment( tools = [ 'nasm' ] )
 	nasm_env['ASFLAGS'] = '-f elf'
-	snapvector = nasm_env.StaticObject( 'unix/snapvector.asm' )
+#	snapvector = nasm_env.StaticObject( 'unix/snapvector.asm' )
 
 	# gas assembly, with preprocessing
 	gas_env = Environment( tools = [ 'gcc', 'gas' ] )
 	gas_env.Append( CPPDEFINES = [ 'ELF' ] )
 	gas_env.Append( ASFLAGS = [ '-m32', '-x', 'assembler-with-cpp' ] )
-	matha = gas_env.StaticObject( 'unix/matha.spp' )
+#	matha = gas_env.StaticObject( 'unix/matha.spp' )
         snd_mixa = gas_env.StaticObject( 'unix/snd_mixa.spp' )
 
 splines_env = g_env.Clone()
@@ -297,7 +297,8 @@ if ( MASTER != '' ):
 
 source_list = server_list + qcommon_list
 if ( g_os == 'Linux' ):
-	source_list += linux_sources + snapvector + matha
+#	source_list += linux_sources + snapvector + matha
+	source_list += linux_sources
 elif ( g_os == 'win32' ):
 	source_list += win32_sources
 elif ( g_os == 'Darwin' ):

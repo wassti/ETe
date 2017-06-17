@@ -326,7 +326,7 @@ static qboolean CG_RegisterAcc( const char *modelName, int *model, const char* s
 		return qfalse;
 	}
 
-	COM_StripExtension( modelName, filename );
+	COM_StripExtension( modelName, filename, sizeof( filename ) );
 	Q_strcat( filename, sizeof( filename ), va( "_%s.skin", skinname ) );
 	*skin = trap_R_RegisterSkin( filename );
 
@@ -382,7 +382,7 @@ qboolean CG_RegisterCharacter( const char *characterFile, bg_character_t *charac
 	}
 
 	// Register Skin
-	COM_StripExtension( characterDef.mesh, buf );
+	COM_StripExtension( characterDef.mesh, buf, sizeof( buf ) );
 	filename = va( "%s_%s.skin", buf, characterDef.skin );
 	if ( !( character->skin = trap_R_RegisterSkin( filename ) ) ) {
 		CG_Printf( S_COLOR_YELLOW "WARNING: failed to register skin '%s' referenced from '%s'\n", filename, characterFile );
@@ -412,7 +412,7 @@ qboolean CG_RegisterCharacter( const char *characterFile, bg_character_t *charac
 		}
 
 		// Register Undressed Corpse Skin
-		COM_StripExtension( characterDef.undressedCorpseModel, buf );
+		COM_StripExtension( characterDef.undressedCorpseModel, buf, sizeof( buf ) );
 		filename = va( "%s_%s.skin", buf, characterDef.undressedCorpseSkin );
 		if ( !( character->undressedCorpseSkin = trap_R_RegisterSkin( filename ) ) ) {
 			CG_Printf( S_COLOR_YELLOW "WARNING: failed to register undressed corpse skin '%s' referenced from '%s'\n", filename, characterFile );

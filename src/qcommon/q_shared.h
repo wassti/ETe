@@ -229,6 +229,12 @@ typedef int		clipHandle_t;
 #define	MAX_QINT			0x7fffffff
 #define	MIN_QINT			(-MAX_QINT-1)
 
+// TTimo gcc: was missing, added from Q3 source
+#ifndef max
+#define max( x, y ) ( ( ( x ) > ( y ) ) ? ( x ) : ( y ) )
+#define min( x, y ) ( ( ( x ) < ( y ) ) ? ( x ) : ( y ) )
+#endif
+
 #define	MAX_UINT			((unsigned)(~0))
 
 #define ARRAY_LEN(x)		(sizeof(x) / sizeof(*(x)))
@@ -944,6 +950,7 @@ float	LittleFloat (const float *l);
 void	Swap_Init (void);
 */
 const char *QDECL va( const char *format, ... ) __attribute__ ((format( printf, 1, 2 )));
+float   *tv( float x, float y, float z );
 
 #define TRUNCATE_LENGTH	64
 void Com_TruncateLongString( char *buffer, const char *s );

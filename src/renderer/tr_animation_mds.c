@@ -138,8 +138,8 @@ static float ProjectRadius( float r, vec3_t location ) {
 R_CullModel
 =============
 */
-static int R_CullModel( mdsHeader_t *header, trRefEntity_t *ent ) {
-	vec3_t bounds[2];
+static int R_CullModel( mdsHeader_t *header, trRefEntity_t *ent, vec3_t bounds[] ) {
+	//vec3_t bounds[2];
 	mdsFrame_t  *oldFrame, *newFrame;
 	int i, frameSize;
 
@@ -300,11 +300,18 @@ R_AddAnimSurfaces
 ==============
 */
 void R_AddAnimSurfaces( trRefEntity_t *ent ) {
+	vec3_t			bounds[2];
 	mdsHeader_t     *header;
 	mdsSurface_t    *surface;
 	shader_t        *shader = 0;
 	int i, fogNum, cull;
 	qboolean personalModel;
+#ifdef USE_PMLIGHT
+	dlight_t		*dl;
+	int				n;
+	dlight_t		*dlights[ARRAY_LEN( backEndData->dlights )];
+	int				numDlights;
+#endif
 
 	// don't add third_person objects if not in a portal
 	personalModel = ( ent->e.renderfx & RF_THIRD_PERSON ) && !tr.viewParms.isPortal;
@@ -315,7 +322,7 @@ void R_AddAnimSurfaces( trRefEntity_t *ent ) {
 	// cull the entire model if merged bounding box of both frames
 	// is outside the view frustum.
 	//
-	cull = R_CullModel( header, ent );
+	cull = R_CullModel( header, ent, bounds );
 	if ( cull == CULL_OUT ) {
 		return;
 	}
@@ -326,6 +333,18 @@ void R_AddAnimSurfaces( trRefEntity_t *ent ) {
 	if ( !personalModel || r_shadows->integer > 1 ) {
 		R_SetupEntityLighting( &tr.refdef, ent );
 	}
+
+#ifdef USE_PMLIGHT
+	numDlights = 0;
+	if ( r_dlightMode->integer >= 2 && ( !personalModel || tr.viewParms.isPortal ) ) {
+		R_TransformDlights( tr.viewParms.num_dlights, tr.viewParms.dlights, &tr.orientation );
+		for ( n = 0; n < tr.viewParms.num_dlights; n++ ) {
+			dl = &tr.viewParms.dlights[ n ];
+			if ( !R_LightCullBounds( dl, bounds[0], bounds[1] ) ) 
+				dlights[ numDlights++ ] = dl;
+		}
+	}
+#endif
 
 	//
 	// see if we are in a fog volume

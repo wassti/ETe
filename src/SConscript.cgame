@@ -59,8 +59,8 @@ cg_window.c
 ../game/bg_sscript.c
 ../game/bg_stats.c
 ../game/bg_tracemap.c
-../game/q_math.c
-../game/q_shared.c
+../qcommon/q_math.c
+../qcommon/q_shared.c
 ../ui/ui_shared.c
 """
 

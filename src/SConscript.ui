@@ -21,8 +21,8 @@ ui_util.c
 ../game/bg_campaign.c
 ../game/bg_classes.c
 ../game/bg_misc.c
-../game/q_math.c
-../game/q_shared.c
+../qcommon/q_math.c
+../qcommon/q_shared.c
 """
 
 ui_list = scons_utils.BuildList( 'ui', ui_string )

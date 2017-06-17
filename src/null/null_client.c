@@ -33,7 +33,7 @@ cvar_t *cl_shownet;
 // TTimo: win32 dedicated
 cvar_t  *cl_language;
 
-void CL_Shutdown( void ) {
+void CL_Shutdown( const char *finalmsg, qboolean quit ) {
 }
 
 void CL_Init( void ) {
@@ -51,7 +51,7 @@ void Key_WriteBindings( fileHandle_t f ) {
 void CL_Frame( int msec ) {
 }
 
-void CL_PacketEvent( netadr_t from, msg_t *msg ) {
+void CL_PacketEvent( const netadr_t *from, msg_t *msg ) {
 }
 
 void CL_CharEvent( int key ) {
@@ -77,7 +77,7 @@ qboolean UI_GameCommand( void ) {
 void CL_ForwardCommandToServer( const char *string ) {
 }
 
-void CL_ConsolePrint( char *txt ) {
+void CL_ConsolePrint( const char *text ) {
 }
 
 void CL_JoystickEvent( int axis, int value, int time ) {

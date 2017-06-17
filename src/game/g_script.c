@@ -1161,7 +1161,7 @@ void SP_script_mover( gentity_t *ent ) {
 	}
 
 	if ( G_SpawnString( "model2", "", &modelname ) ) {
-		COM_StripExtension( modelname, tagname );
+		COM_StripExtension( modelname, tagname, sizeof( tagname ) );
 		Q_strcat( tagname, MAX_QPATH, ".tag" );
 
 		ent->tagNumber = trap_LoadTag( tagname );

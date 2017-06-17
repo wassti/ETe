@@ -904,9 +904,11 @@ void *Sys_LoadDll( const char *name, dllSyscall_t *entryPoint, dllSyscall_t syst
 	char		currpath[MAX_OSPATH];
 #endif
 	char		fname[MAX_OSPATH];
-	const char	*basepath;
+	const char	*pwdpath;
 	const char	*homepath;
+	const char	*basepath;
 	const char	*gamedir;
+	const char	*fn;
 	const char	*err = NULL;
 
 	assert( name ); // let's have some paranoia
@@ -916,7 +918,7 @@ void *Sys_LoadDll( const char *name, dllSyscall_t *entryPoint, dllSyscall_t syst
 // bk001129 - was RTLD_LAZY
 #define Q_RTLD    RTLD_NOW
 
-	pwdpath = Sys_Cwd();
+	pwdpath = Sys_Pwd();
 	homepath = Cvar_VariableString( "fs_homepath" );
 	basepath = Cvar_VariableString( "fs_basepath" );
 	gamedir = Cvar_VariableString( "fs_game" );
@@ -1027,8 +1029,6 @@ void *Sys_LoadDll( const char *name, dllSyscall_t *entryPoint, dllSyscall_t syst
 	Com_Printf( "ok\n" );
 }
 #endif
-
-	Q_strncpyz( fqpath, fn, MAX_QPATH ) ;           // added 2/15/02 by T.Ray
 
 	dllEntry = dlsym( libHandle, "dllEntry" );
 	*entryPoint = dlsym( libHandle, "vmMain" );
@@ -1312,7 +1312,7 @@ void Sys_OpenURL( const char *url, qboolean doexit ) {
 	// search procedure taken from Sys_LoadDll
 	Q_strncpyz( fname, "openurl.sh", 20 );
 
-	pwdpath = Sys_Cwd();
+	pwdpath = Sys_Pwd();
 	Com_sprintf( fn, MAX_OSPATH, "%s/%s", pwdpath, fname );
 	if ( access( fn, X_OK ) == -1 ) {
 		Com_DPrintf( "%s not found\n", fn );

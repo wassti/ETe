@@ -970,9 +970,11 @@ void MSG_WriteDeltaEntity( msg_t *msg, const entityState_t *from, const entitySt
 		if ( from == NULL ) {
 			return;
 		}
+#ifndef DEDICATED
 		if ( cl_shownet && ( cl_shownet->integer >= 2 || cl_shownet->integer == -1 ) ) {
 			Com_Printf( "W|%3i: #%-3i remove\n", msg->cursize, from->number );
 		}
+#endif
 		MSG_WriteBits( msg, from->number, GENTITYNUM_BITS );
 		MSG_WriteBits( msg, 1, 1 );
 		return;
@@ -1123,9 +1125,11 @@ void MSG_ReadDeltaEntity( msg_t *msg, const entityState_t *from, entityState_t *
 	if ( MSG_ReadBits( msg, 1 ) == 1 ) {
 		memset( to, 0, sizeof( *to ) );
 		to->number = MAX_GENTITIES - 1;
+#ifndef DEDICATED
 		if ( cl_shownet && ( cl_shownet->integer >= 2 || cl_shownet->integer == -1 ) ) {
 			Com_Printf( "%3i: #%-3i remove\n", msg->readcount, number );
 		}
+#endif
 		return;
 	}
 
@@ -1145,10 +1149,13 @@ void MSG_ReadDeltaEntity( msg_t *msg, const entityState_t *from, entityState_t *
 
 	// shownet 2/3 will interleave with other printed info, -1 will
 	// just print the delta records`
+#ifndef DEDICATED
 	if ( cl_shownet && ( cl_shownet->integer >= 2 || cl_shownet->integer == -1 ) ) {
 		print = 1;
 		Com_Printf( "%3i: #%-3i ", msg->readcount, to->number );
-	} else {
+	} else
+#endif
+	{
 		print = 0;
 	}
 
@@ -1381,10 +1388,13 @@ void MSG_WriteDeltaPlayerstate( msg_t *msg, const playerState_t *from, const pla
 
 	// shownet 2/3 will interleave with other printed info, -2 will
 	// just print the delta records
+#ifndef DEDICATED
 	if ( cl_shownet && ( cl_shownet->integer >= 2 || cl_shownet->integer == -2 ) ) {
 		print = 1;
 		Com_Printf( "W|%3i: playerstate ", msg->cursize );
-	} else {
+	} else
+#endif
+	{
 		print = 0;
 	}
 
@@ -1722,10 +1732,13 @@ void MSG_ReadDeltaPlayerstate( msg_t *msg, const playerState_t *from, playerStat
 
 	// shownet 2/3 will interleave with other printed info, -2 will
 	// just print the delta records
+#ifndef DEDICATED
 	if ( cl_shownet && ( cl_shownet->integer >= 2 || cl_shownet->integer == -2 ) ) {
 		print = 1;
 		Com_Printf( "%3i: playerstate ", msg->readcount );
-	} else {
+	} else
+#endif
+	{
 		print = 0;
 	}
 

@@ -34,7 +34,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 
-#include "q_shared.h"
+#include "../qcommon/q_shared.h"
 #include "bg_public.h"
 #include "../../etmain/ui/menudef.h"
 
@@ -5322,7 +5322,7 @@ returns -1 on failure or if the buffer would be overflowed.
 copied over from common.c implementation
 ============
 */
-int Q_vsnprintf( char *dest, int size, const char *fmt, va_list argptr ) {
+int Q_vsnprintf( char *dest, size_t size, const char *fmt, va_list argptr ) {
 	int ret;
 
 #ifdef _WIN32

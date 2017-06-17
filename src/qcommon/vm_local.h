@@ -176,6 +176,7 @@ struct vm_s {
 	int breakCount;
 };
 
+extern vm_t    *currentVM;
 extern	int		vm_debugLevel;
 
 void VM_Compile( vm_t *vm, vmHeader_t *header );

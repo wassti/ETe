@@ -1,0 +1,8 @@
+language: c
+
+script: scons
+
+#compiler: gcc
+
+notifications:
+  email: false

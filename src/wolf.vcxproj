@@ -81,8 +81,8 @@
     <OutDir>.\Release\</OutDir>
     <IntDir>.\Release\</IntDir>
     <LinkIncremental>false</LinkIncremental>
-    <GenerateManifest>false</GenerateManifest>
-    <EmbedManifest>false</EmbedManifest>
+    <GenerateManifest>true</GenerateManifest>
+    <EmbedManifest>true</EmbedManifest>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release Dedicated|Win32'">
     <OutDir>.\Release_Dedicated\</OutDir>
@@ -239,7 +239,9 @@ nmake /f Makefile.vc6 CFG=release
       <DataExecutionPrevention />
     </Link>
     <Manifest>
-      <InputResourceManifests>wolfet.manifest</InputResourceManifests>
+      <InputResourceManifests>
+      </InputResourceManifests>
+      <AdditionalManifestFiles>$(SolutionDir)win32\wolfet.manifest</AdditionalManifestFiles>
     </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release Dedicated|Win32'">

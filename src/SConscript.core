@@ -326,7 +326,6 @@ if ( local_dedicated == 0 ):
 	source_list += [ 'qcommon/dl_main_curl.c' ]
 	source_list += curl_lib
 	if ( g_os == 'Linux' ):
-		source_list += snd_mixa
 		source_list += linux_full_sources
 		source_list += staticx11_libs
 	if ( g_os == 'win32' ):

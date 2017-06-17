@@ -188,7 +188,7 @@ mac_sources = [
 
 win32_sources = [
 	'win32/win_main.c',
-	'win32/win_net.c',
+#	'win32/win_net.c',
 	'win32/win_shared.c',
 	'win32/win_wndproc.c',
 	'win32/win_syscon.c',

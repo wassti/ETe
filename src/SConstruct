@@ -53,13 +53,13 @@ TARGET_CORE (default 1)
 TARGET_BSPC (default 0)
 	Build bspc utility
 
-TARGET_GAME (default 1)
+TARGET_GAME (default 0)
 	Build game module
 
-TARGET_CGAME (default 1)
+TARGET_CGAME (default 0)
 	Build cgame module
 
-TARGET_UI (default 1)
+TARGET_UI (default 0)
 	Build ui module
 
 BUILD_ROOT (default 'build')
@@ -123,9 +123,9 @@ JOBS = '1'
 BUILD = 'debug'
 DEDICATED = '2'
 TARGET_CORE = '1'
-TARGET_GAME = '1'
-TARGET_CGAME = '1'
-TARGET_UI = '1'
+TARGET_GAME = '0'
+TARGET_CGAME = '0'
+TARGET_UI = '0'
 TARGET_BSPC = '0'
 BUILD_ROOT = 'build'
 NOCONF = '0'

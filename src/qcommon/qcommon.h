@@ -1137,9 +1137,6 @@ CLIENT / SERVER SYSTEMS
 //
 // client interface
 //
-void CL_InitKeyCommands( void );
-// the keyboard binding interface must be setup before execing
-// config files, but the rest of client startup will happen later
 
 void CL_Init( void );
 void CL_ClearStaticDownload( void );

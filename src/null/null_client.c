@@ -45,9 +45,6 @@ void CL_Init( void ) {
 void CL_MouseEvent( int dx, int dy, int time ) {
 }
 
-void Key_WriteBindings( fileHandle_t f ) {
-}
-
 void CL_Frame( int msec ) {
 }
 
@@ -81,9 +78,6 @@ void CL_ConsolePrint( const char *text ) {
 }
 
 void CL_JoystickEvent( int axis, int value, int time ) {
-}
-
-void CL_InitKeyCommands( void ) {
 }
 
 void CL_CDDialog( void ) {

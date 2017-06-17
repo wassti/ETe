@@ -1200,6 +1200,8 @@ typedef struct {
 	int		screenshotMask;		// tga | jpg
 	char	screenshotTGA[ MAX_OSPATH ];
 	char	screenshotJPG[ MAX_OSPATH ];
+	qboolean screenShotTGAsilent;
+	qboolean screenShotJPGsilent;
 	videoFrameCommand_t	vcmd;	// avi capture
 
 } backEndState_t;

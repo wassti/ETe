@@ -3794,21 +3794,23 @@ static void CL_AddFavorite_f( void ) {
 		return;
 	}
 
-	const char *server = (argc == 2) ? Cmd_Argv( 1 ) : NET_AdrToString( &clc.serverAddress );
-	const int status = LAN_AddFavAddr( server );
-	switch ( status ) {
-	case -1:
-		Com_Printf( "error adding favorite server: too many favorite servers\n" );
-		break;
-	case 0:
-		Com_Printf( "error adding favorite server: server already exists\n" );
-		break;
-	case 1:
-		Com_Printf( "successfully added favorite server \"%s\"\n", server );
-		break;
-	default:
-		Com_Printf( "unknown error (%i) adding favorite server\n", status );
-		break;
+	{
+		const char *server = ( argc == 2 ) ? Cmd_Argv( 1 ) : NET_AdrToString( &clc.serverAddress );
+		const int status = LAN_AddFavAddr( server );
+		switch ( status ) {
+		case -1:
+			Com_Printf( "error adding favorite server: too many favorite servers\n" );
+			break;
+		case 0:
+			Com_Printf( "error adding favorite server: server already exists\n" );
+			break;
+		case 1:
+			Com_Printf( "successfully added favorite server \"%s\"\n", server );
+			break;
+		default:
+			Com_Printf( "unknown error (%i) adding favorite server\n", status );
+			break;
+		}
 	}
 }
 

@@ -199,6 +199,7 @@ static int LAN_AddServer(int source, const char *name, const char *address) {
 int LAN_AddFavAddr( const char *address ) {
 	if ( cls.numfavoriteservers < MAX_OTHER_SERVERS ) {
 		netadr_t adr;
+		int i;
 		if ( !NET_StringToAdr( address, &adr, NA_UNSPEC ) ) {
 			return 2;
 		}
@@ -206,7 +207,7 @@ int LAN_AddFavAddr( const char *address ) {
 			return 3;
 		}
 
-		for ( int i = 0; i < cls.numfavoriteservers; i++ ) {
+		for ( i = 0; i < cls.numfavoriteservers; i++ ) {
 			if ( NET_CompareAdr( &cls.favoriteServers[i].adr, &adr ) ) {
 				return 0;
 			}

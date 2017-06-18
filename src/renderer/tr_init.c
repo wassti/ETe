@@ -114,11 +114,6 @@ cvar_t  *r_ext_NV_fog_dist;
 cvar_t  *r_nv_fogdist_mode;
 
 cvar_t	*r_ext_max_anisotropy;
-
-cvar_t  *r_ext_ATI_pntriangles;
-cvar_t  *r_ati_truform_tess;        //
-cvar_t  *r_ati_truform_normalmode;  // linear/quadratic
-cvar_t  *r_ati_truform_pointmode;   // linear/cubic
 //----(SA)	end
 
 cvar_t  *r_ignoreGLErrors;
@@ -223,47 +218,6 @@ void ( APIENTRY * qglClientActiveTextureARB )( GLenum texture );
 
 void ( APIENTRY * qglLockArraysEXT )( GLint, GLint );
 void ( APIENTRY * qglUnlockArraysEXT )( void );
-
-//----(SA)	added
-void ( APIENTRY * qglPNTrianglesiATI )( GLenum pname, GLint param );
-void ( APIENTRY * qglPNTrianglesfATI )( GLenum pname, GLfloat param );
-/*
-The tessellation level and normal generation mode are specified with:
-
-	void qglPNTriangles{if}ATI(enum pname, T param)
-
-	If <pname> is:
-		GL_PN_TRIANGLES_NORMAL_MODE_ATI -
-			<param> must be one of the symbolic constants:
-				- GL_PN_TRIANGLES_NORMAL_MODE_LINEAR_ATI or
-				- GL_PN_TRIANGLES_NORMAL_MODE_QUADRATIC_ATI
-			which will select linear or quadratic normal interpolation respectively.
-		GL_PN_TRIANGLES_POINT_MODE_ATI -
-			<param> must be one of the symbolic  constants:
-				- GL_PN_TRIANGLES_POINT_MODE_LINEAR_ATI or
-				- GL_PN_TRIANGLES_POINT_MODE_CUBIC_ATI
-			which will select linear or cubic interpolation respectively.
-		GL_PN_TRIANGLES_TESSELATION_LEVEL_ATI -
-			<param> should be a value specifying the number of evaluation points on each edge.  This value must be
-			greater than 0 and less than or equal to the value given by GL_MAX_PN_TRIANGLES_TESSELATION_LEVEL_ATI.
-
-	An INVALID_VALUE error will be generated if the value for <param> is less than zero or greater than the max value.
-
-Associated 'gets':
-Get Value                               Get Command Type     Minimum Value								Attribute
----------                               ----------- ----     ------------								---------
-PN_TRIANGLES_ATI						IsEnabled   B		False                                       PN Triangles/enable
-PN_TRIANGLES_NORMAL_MODE_ATI			GetIntegerv Z2		PN_TRIANGLES_NORMAL_MODE_QUADRATIC_ATI		PN Triangles
-PN_TRIANGLES_POINT_MODE_ATI				GetIntegerv Z2		PN_TRIANGLES_POINT_MODE_CUBIC_ATI			PN Triangles
-PN_TRIANGLES_TESSELATION_LEVEL_ATI		GetIntegerv Z+		1											PN Triangles
-MAX_PN_TRIANGLES_TESSELATION_LEVEL_ATI	GetIntegerv Z+		1											-
-
-
-
-
-*/
-//----(SA)	end
-
 
 
 /*
@@ -895,28 +849,6 @@ void GL_SetDefaultState( void )
 	qglEnable( GL_SCISSOR_TEST );
 	qglDisable( GL_CULL_FACE );
 	qglDisable( GL_BLEND );
-
-//----(SA)	added.
-	// ATI pn_triangles
-	if ( qglPNTrianglesiATI ) {
-		int maxtess;
-		// get max supported tesselation
-		qglGetIntegerv( GL_MAX_PN_TRIANGLES_TESSELATION_LEVEL_ATI, (GLint*)&maxtess );
-#ifdef __MACOS__
-		glConfig.ATIMaxTruformTess = 7;
-#else
-		glConfig.ATIMaxTruformTess = maxtess;
-#endif
-		// cap if necessary
-		if ( r_ati_truform_tess->value > maxtess ) {
-			ri.Cvar_Set( "r_ati_truform_tess", va( "%d", maxtess ) );
-		}
-
-		// set Wolf defaults
-		qglPNTrianglesiATI( GL_PN_TRIANGLES_TESSELATION_LEVEL_ATI, r_ati_truform_tess->value );
-	}
-
-//----(SA)	end
 }
 
 /*
@@ -1101,10 +1033,6 @@ void R_Register( void )
 	r_ext_compiled_vertex_array = ri.Cvar_Get( "r_ext_compiled_vertex_array", "1", CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE );
 
 //----(SA)	added
-	r_ext_ATI_pntriangles           = ri.Cvar_Get( "r_ext_ATI_pntriangles", "0", CVAR_ARCHIVE | CVAR_LATCH | CVAR_UNSAFE ); //----(SA)	default to '0'
-	r_ati_truform_tess              = ri.Cvar_Get( "r_ati_truform_tess", "1", CVAR_ARCHIVE | CVAR_UNSAFE );
-	r_ati_truform_normalmode        = ri.Cvar_Get( "r_ati_truform_normalmode", "GL_PN_TRIANGLES_NORMAL_MODE_LINEAR", CVAR_ARCHIVE | CVAR_UNSAFE );
-	r_ati_truform_pointmode         = ri.Cvar_Get( "r_ati_truform_pointmode", "GL_PN_TRIANGLES_POINT_MODE_LINEAR", CVAR_ARCHIVE | CVAR_UNSAFE );
 
 	r_ext_texture_filter_anisotropic    = ri.Cvar_Get( "r_ext_texture_filter_anisotropic", "0", CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE );
 	r_ext_max_anisotropy = ri.Cvar_Get( "r_ext_max_anisotropy", "2", CVAR_ARCHIVE_ND | CVAR_LATCH );

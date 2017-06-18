@@ -909,6 +909,7 @@ void *Sys_LoadDll( const char *name, dllSyscall_t *entryPoint, dllSyscall_t syst
 	const char	*basepath;
 	const char	*gamedir;
 	const char	*fn;
+	const char	*cvar_name;
 	const char	*err = NULL;
 
 	assert( name ); // let's have some paranoia

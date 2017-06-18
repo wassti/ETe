@@ -728,6 +728,87 @@ void RB_CalcAlphaFromOneMinusEntity( unsigned char *dstColors ) {
 }
 
 /*
+** RB_CalcNormalZFade
+*/
+void RB_CalcNormalZFade( const byte constantColorAlpha, const float zFadeBounds[2], unsigned char *dstColors ) {
+	int i;
+	float alpha, range, lowest, highest, dot;
+	vec3_t worldUp;
+	qboolean zombieEffect = qfalse;
+
+	if ( !backEnd.currentEntity ) {
+		return;
+	}
+
+	if ( VectorCompare( backEnd.currentEntity->e.fireRiseDir, vec3_origin ) ) {
+		VectorSet( backEnd.currentEntity->e.fireRiseDir, 0, 0, 1 );
+	}
+
+	if ( backEnd.currentEntity->e.hModel ) {    // world surfaces dont have an axis
+		VectorRotate( backEnd.currentEntity->e.fireRiseDir, backEnd.currentEntity->e.axis, worldUp );
+	} else {
+		VectorCopy( backEnd.currentEntity->e.fireRiseDir, worldUp );
+	}
+
+	lowest = zFadeBounds[0];
+	if ( lowest == -1000 ) {    // use entity alpha
+		lowest = backEnd.currentEntity->e.shaderTime.f; // FIXME support intShader correctly from tess.shaderTime or something
+		zombieEffect = qtrue;
+	}
+	highest = zFadeBounds[1];
+	if ( highest == -1000 ) {   // use entity alpha
+		highest = backEnd.currentEntity->e.shaderTime.f; // FIXME support intShader correctly from tess.shaderTime or something
+		zombieEffect = qtrue;
+	}
+	range = highest - lowest;
+
+	dstColors += 3;
+
+	for ( i = 0; i < tess.numVertexes; i++, dstColors += 4 ) {
+		dot = DotProduct( tess.normal[i], worldUp );
+
+		// special handling for Zombie fade effect
+		if ( zombieEffect ) {
+			alpha = (float)backEnd.currentEntity->e.shaderRGBA[3] * ( dot + 1.0 ) / 2.0;
+			alpha += ( 2.0 * (float)backEnd.currentEntity->e.shaderRGBA[3] ) * ( 1.0 - ( dot + 1.0 ) / 2.0 );
+			if ( alpha > 255.0 ) {
+				alpha = 255.0;
+			} else if ( alpha < 0.0 ) {
+				alpha = 0.0;
+			}
+			*dstColors = (byte)alpha;
+			continue;
+		}
+
+		if ( dot < highest ) {
+			if ( dot > lowest ) {
+				if ( dot < lowest + range / 2 ) {
+					alpha = ( (float)constantColorAlpha * ( ( dot - lowest ) / ( range / 2 ) ) );
+				} else {
+					alpha = ( (float)constantColorAlpha * ( 1.0 - ( ( dot - lowest - range / 2 ) / ( range / 2 ) ) ) );
+				}
+				if ( alpha > 255.0 ) {
+					alpha = 255.0;
+				} else if ( alpha < 0.0 ) {
+					alpha = 0.0;
+				}
+
+				// finally, scale according to the entity's alpha
+				if ( backEnd.currentEntity->e.hModel ) {
+					alpha *= (float)backEnd.currentEntity->e.shaderRGBA[3] / 255.0;
+				}
+
+				*dstColors = (byte)( alpha );
+			} else {
+				*dstColors = 0;
+			}
+		} else {
+			*dstColors = 0;
+		}
+	}
+}
+
+/*
 ** RB_CalcWaveColor
 */
 void RB_CalcWaveColor( const waveForm_t *wf, unsigned char *dstColors ) {

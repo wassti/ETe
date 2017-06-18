@@ -164,6 +164,7 @@
     <ClCompile Include="tr_marks.c" />
     <ClCompile Include="tr_mesh.c" />
     <ClCompile Include="tr_model.c" />
+    <ClCompile Include="tr_model_iqm.c" />
     <ClCompile Include="tr_noise.c" />
     <ClCompile Include="tr_scene.c" />
     <ClCompile Include="tr_shade.c" />

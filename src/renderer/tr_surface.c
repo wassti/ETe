@@ -1701,6 +1701,7 @@ void( *rb_surfaceTable[SF_NUM_SURFACE_TYPES] ) ( void * ) = {
 	( void( * ) ( void* ) )RB_SurfaceCMesh,        // SF_MDC,
 	( void( * ) ( void* ) )RB_SurfaceAnim,         // SF_MDS,
 	( void( * ) ( void* ) )RB_MDM_SurfaceAnim,     // SF_MDM,
+	( void( * ) ( void* ) )RB_IQMSurfaceAnim,      // SF_IQM,
 	( void( * ) ( void* ) )RB_SurfaceFlare,        // SF_FLARE,
 	( void( * ) ( void* ) )RB_SurfaceEntity,       // SF_ENTITY
 	( void( * ) ( void* ) )RB_SurfacePolyBuffer,   // SF_POLYBUFFER

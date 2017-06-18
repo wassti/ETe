@@ -152,7 +152,9 @@ typedef struct {
 	// misc
 	byte shaderRGBA[4];             // colors used by rgbgen entity shaders
 	float shaderTexCoord[2];        // texture coordinates used by tcMod entity modifiers
-	float shaderTime;               // subtracted from refdef time to control effect start times
+
+	// subtracted from refdef time to control effect start times
+	floatint_t shaderTime;          // -EC- set to union
 
 	// extra sprite information
 	float radius;

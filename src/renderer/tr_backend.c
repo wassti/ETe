@@ -660,11 +660,10 @@ void RB_RenderDrawSurfList( drawSurf_t *drawSurfs, int numDrawSurfs ) {
 
 			if ( entityNum != REFENTITYNUM_WORLD ) {
 				backEnd.currentEntity = &backEnd.refdef.entities[entityNum];
-				//if ( backEnd.floatfix ) // -EC-
-				//	backEnd.refdef.floatTime = originalTime - (double)(backEnd.currentEntity->e.shaderTime.i) * 0.001;
-				//else
-				//	backEnd.refdef.floatTime = originalTime - (double)backEnd.currentEntity->e.shaderTime.f;
-				backEnd.refdef.floatTime = originalTime - (double)backEnd.currentEntity->e.shaderTime;
+				if ( backEnd.currentEntity->intShaderTime )
+					backEnd.refdef.floatTime = originalTime - (double)(backEnd.currentEntity->e.shaderTime.i) * 0.001;
+				else
+					backEnd.refdef.floatTime = originalTime - (double)backEnd.currentEntity->e.shaderTime.f;
 
 				// we have to reset the shaderTime as well otherwise image animations start
 				// from the wrong frame
@@ -912,11 +911,10 @@ static void RB_RenderLitSurfList( dlight_t* dl ) {
 
 			if ( entityNum != REFENTITYNUM_WORLD ) {
 				backEnd.currentEntity = &backEnd.refdef.entities[entityNum];
-				//if ( backEnd.floatfix ) // -EC-
-				//	backEnd.refdef.floatTime = originalTime - (double)(backEnd.currentEntity->e.shaderTime.i) * 0.001;
-				//else
-				//	backEnd.refdef.floatTime = originalTime - (double)backEnd.currentEntity->e.shaderTime.f;
-				backEnd.refdef.floatTime = originalTime - (double)backEnd.currentEntity->e.shaderTime;
+				if ( backEnd.currentEntity->intShaderTime )
+					backEnd.refdef.floatTime = originalTime - (double)(backEnd.currentEntity->e.shaderTime.i) * 0.001;
+				else
+					backEnd.refdef.floatTime = originalTime - (double)backEnd.currentEntity->e.shaderTime.f;
 
 				// we have to reset the shaderTime as well otherwise image animations start
 				// from the wrong frame
@@ -1747,12 +1745,6 @@ void RB_ExecuteRenderCommands( const void *data ) {
 	int		t1, t2;
 
 	t1 = ri.Milliseconds ();
-
-	if ( r_floatfix->integer ) { // -EC-
-		backEnd.floatfix = qtrue;
-	} else {
-		backEnd.floatfix = qfalse;
-	}
 
 	while ( 1 ) {
 		data = PADP(data, sizeof(void *));

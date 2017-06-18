@@ -373,6 +373,12 @@ void *GVM_ArgPtr( intptr_t intValue )
 }
 
 
+static qboolean SV_GetValue( char* value, int valueSize, const char* key )
+{
+	return qfalse;
+}
+
+
 /*
 ====================
 SV_GameSystemCalls
@@ -1022,6 +1028,9 @@ intptr_t SV_GameSystemCalls( intptr_t *args ) {
 		return 0;
 	case G_MESSAGESTATUS:
 		return SV_BinaryMessageStatus( args[1] );
+
+	case G_TRAP_GETVALUE:
+		return SV_GetValue( VMA(1), args[2], VMA(3) );
 
 	default:
 		Com_Error( ERR_DROP, "Bad game system trap: %ld", (long int) args[0] );

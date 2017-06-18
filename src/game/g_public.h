@@ -455,6 +455,10 @@ typedef enum {
 	G_SENDMESSAGE,
 	G_MESSAGESTATUS,
 	// -zinx
+
+	// engine extensions
+	G_TRAP_GETVALUE = COM_TRAP_GETVALUE
+
 } gameImport_t;
 
 

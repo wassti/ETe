@@ -828,7 +828,7 @@ void CG_RailTrail2( clientInfo_t *ci, vec3_t start, vec3_t end ) {
 	le->endTime = cg.time + cg_railTrailTime.value;
 	le->lifeRate = 1.0 / ( le->endTime - le->startTime );
 
-	re->shaderTime = cg.time / 1000.0f;
+	re->shaderTime.f = cg.time / 1000.0f;
 	re->reType = RT_RAIL_CORE;
 	re->customShader = cgs.media.railCoreShader;
 
@@ -4970,7 +4970,7 @@ void CG_WaterRipple( qhandle_t shader, vec3_t loc, vec3_t dir, int size, int lif
 
 	re = &le->refEntity;
 	VectorCopy( loc, re->origin );
-	re->shaderTime      = cg.time / 1000.0f;
+	re->shaderTime.f    = cg.time / 1000.0f;
 	re->reType          = RT_SPLASH;
 	re->radius          = size;
 	re->customShader    = shader;

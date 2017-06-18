@@ -82,6 +82,7 @@ typedef struct {
 #ifdef USE_PMLIGHT
 	vec3_t		shadowLightDir;	// normalized direction towards light
 #endif
+	qboolean	intShaderTime;
 } trRefEntity_t;
 
 
@@ -1195,8 +1196,6 @@ typedef struct {
 	qboolean	doneBloom2fbo;
 	trRefEntity_t	entity2D;	// currentEntity will point at this when doing 2D rendering
 
-	qboolean	floatfix;		// -EC- frameloss bug fix
-
 	int		screenshotMask;		// tga | jpg
 	char	screenshotTGA[ MAX_OSPATH ];
 	char	screenshotJPG[ MAX_OSPATH ];
@@ -1468,8 +1467,6 @@ extern cvar_t   *r_wolffog;
 // done
 
 extern cvar_t  *r_highQualityVideo;
-
-extern	cvar_t	*r_floatfix;
 
 //====================================================================
 
@@ -1886,7 +1883,7 @@ SCENE GENERATION
 void R_InitNextFrame( void );
 
 void RE_ClearScene( void );
-void RE_AddRefEntityToScene( const refEntity_t *ent );
+void RE_AddRefEntityToScene( const refEntity_t *ent, qboolean intShaderTime );
 void RE_AddPolyToScene( qhandle_t hShader, int numVerts, const polyVert_t *verts );
 // Ridah
 void RE_AddPolysToScene( qhandle_t hShader, int numVerts, const polyVert_t *verts, int numPolys );

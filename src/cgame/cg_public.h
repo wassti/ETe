@@ -265,6 +265,12 @@ typedef enum {
 	// bani
 	CG_R_FINISH,
 	// -bani
+
+	// engine extensions
+	CG_R_ADDREFENTITYTOSCENE2,
+	CG_R_FORCEFIXEDDLIGHTS,
+	CG_TRAP_GETVALUE = COM_TRAP_GETVALUE,
+
 } cgameImport_t;
 
 

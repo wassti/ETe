@@ -167,7 +167,11 @@ typedef enum {
 	UI_SQRT,
 	UI_FLOOR,
 	UI_CEIL,
-	UI_GETHUNKDATA
+	UI_GETHUNKDATA,
+
+	// engine extensions
+	UI_R_ADDREFENTITYTOSCENE2,
+	UI_TRAP_GETVALUE = COM_TRAP_GETVALUE,
 
 } uiImport_t;
 

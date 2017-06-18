@@ -212,8 +212,6 @@ cvar_t  *r_highQualityVideo;
 cvar_t	*r_aviMotionJpegQuality;
 cvar_t	*r_screenshotJpegQuality;
 
-cvar_t	*r_floatfix; // -EC-
-
 cvar_t  *r_maxpolys;
 int max_polys;
 cvar_t  *r_maxpolyverts;
@@ -1299,8 +1297,6 @@ void R_Register( void )
 	r_maxpolyverts = ri.Cvar_Get( "r_maxpolyverts", va( "%d", MAX_POLYVERTS ), 0 );
 
 	r_highQualityVideo = ri.Cvar_Get( "r_highQualityVideo", "1", CVAR_ARCHIVE );
-	
-	r_floatfix = ri.Cvar_Get( "r_floatfix", "0", 0 ); // -EC-
 
 	// make sure all the commands added here are also
 	// removed in R_Shutdown

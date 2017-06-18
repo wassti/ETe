@@ -1363,6 +1363,9 @@ void Com_GetHunkInfo( int* hunkused, int* hunkexpected );
 #define	DLF_NO_UDP		4
 #define	DLF_NO_DISCONNECT 8
 
+// functional gate syscall number
+#define COM_TRAP_GETVALUE 700
+
 // TTimo
 // dll checksuming stuff, centralizing OS-dependent parts
 // *_SHIFT is the shifting we applied to the reference string

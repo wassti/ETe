@@ -805,6 +805,7 @@ void QGL_Shutdown( void )
 	qfxMesaGetCurrentContext     = NULL;
 	qfxMesaSwapBuffers           = NULL;
 #endif
+#endif // !USE_STATIC_GL
 
 	qglXChooseVisual             = NULL;
 	qglXCreateContext            = NULL;
@@ -1231,6 +1232,7 @@ qboolean QGL_Init( const char *dllname )
 	qfxMesaGetCurrentContext     =  GPA( "fxMesaGetCurrentContext" );
 	qfxMesaSwapBuffers           =  GPA( "fxMesaSwapBuffers" );
 #endif
+#endif // !USE_STATIC_GL
 
 	if ( glErrorCount ) 
 	{

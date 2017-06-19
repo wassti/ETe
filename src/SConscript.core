@@ -10,14 +10,15 @@ Import( 'GLOBALS' )
 Import( GLOBALS )
 
 jpeg_string = """
+jaricom.c
 jcapimin.c
-jchuff.c
-jcinit.c
+jcapistd.c
+jcarith.c
 jccoefct.c
 jccolor.c
-jfdctflt.c
 jcdctmgr.c
-jcphuff.c
+jchuff.c
+jcinit.c
 jcmainct.c
 jcmarker.c
 jcmaster.c
@@ -25,8 +26,11 @@ jcomapi.c
 jcparam.c
 jcprepct.c
 jcsample.c
+jctrans.c
 jdapimin.c
 jdapistd.c
+jdarith.c
+jdatadst.c
 jdatasrc.c
 jdcoefct.c
 jdcolor.c
@@ -36,13 +40,21 @@ jdinput.c
 jdmainct.c
 jdmarker.c
 jdmaster.c
+jdmerge.c
 jdpostct.c
 jdsample.c
 jdtrans.c
 jerror.c
+jfdctflt.c
+jfdctfst.c
+jfdctint.c
 jidctflt.c
+jidctfst.c
+jidctint.c
 jmemmgr.c
 jmemnobs.c
+jquant1.c
+jquant2.c
 jutils.c"""
 
 jpeg_list = scons_utils.BuildList( 'jpeg-8c', jpeg_string )

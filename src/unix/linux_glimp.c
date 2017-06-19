@@ -1652,9 +1652,9 @@ int GLW_SetMode( const char *drivername, int mode, const char *modeFS, qboolean 
 qboolean GLimp_HaveExtension( const char *ext )
 {
 	const char *ptr = NULL;
-	if( strlen(ext) > 3 && ext[0] == 'G' && ext[1] == 'L' && ext[2] == 'X')
-		ptr = Q_stristr( glx_extensions_string, ext );
-	else
+//	if( strlen(ext) > 3 && ext[0] == 'G' && ext[1] == 'L' && ext[2] == 'X')
+//		ptr = Q_stristr( glx_extensions_string, ext );
+//	else
 		ptr = Q_stristr( glConfigExt.originalExtensionString, ext );
 	if (ptr == NULL)
 		return qfalse;
@@ -1716,9 +1716,9 @@ static void GLW_InitExtensions( void )
 	Q_strncpyz( glConfig.extensions_string, TruncateGLExtensionsString( glConfigExt.originalExtensionString, 128 ), sizeof( glConfig.extensions_string ) );
 
 	//bani - glx extensions string
-	if ( qglXQueryExtensionsString ) {
-		glx_extensions_string = qglXQueryExtensionsString( dpy, scrnum );
-	}
+	//if ( qglXQueryExtensionsString ) {
+	//	glx_extensions_string = qglXQueryExtensionsString( dpy, scrnum );
+	//}
 
 	if ( !r_allowExtensions->integer )
 	{

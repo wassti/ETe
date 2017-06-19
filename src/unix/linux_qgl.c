@@ -822,14 +822,23 @@ void QGL_Shutdown( void )
 	qwglGetProcAddress           =  NULL;
 }
 
-#define GPA( a ) dlsym( glw_state.OpenGLLib, a )
+static int glErrorCount = 0;
 
-void *qwglGetProcAddress( char *symbol ) {
-	if ( glw_state.OpenGLLib ) {
-		return GPA( symbol );
+static void *glGetProcAddress( const char *symbol )
+{
+	void *sym;
+
+	sym = dlsym( glw_state.OpenGLLib, symbol );
+	if ( !sym )
+	{
+		glErrorCount++;
 	}
-	return NULL;
+
+	return sym;
 }
+
+char *do_dlerror( void );
+
 
 /*
 ** QGL_Init

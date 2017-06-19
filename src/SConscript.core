@@ -268,7 +268,7 @@ staticx11_libs = [ 'libXxf86dga.a', 'libXxf86vm.a' ]
 if ( os.path.exists( os.path.join( '/usr/lib', staticx11_libs[0] ) ) ):
 	staticx11_libs = [ os.path.join( '/usr/lib', i ) for i in staticx11_libs ]
 else:
-	staticx11_libs = [ os.path.join( '/usr/X11R6/lib', i ) for i in staticx11_libs ]
+	staticx11_libs = [ os.path.join( '/usr/X11R7/lib', i ) for i in staticx11_libs ]
 
 if ( g_os == 'Linux' ):
 	nasm_env = Environment( tools = [ 'nasm' ] )
@@ -288,7 +288,7 @@ if ( g_os == 'Linux' ):
 	local_env.Append( LIBS = [ 'dl' ] )
 	if ( local_dedicated == 0 ):
 		local_env.Append( LIBS = [ 'X11', 'Xext', 'm' ] )
-		local_env.Append( LIBPATH = [ '/usr/X11R6/lib' ] )
+		local_env.Append( LIBPATH = [ '/usr/X11R7/lib' ] )
 		local_env.Append( CPPPATH = [ 'curl-7.12.2/include' ] )
 	else:
 		local_env.Append( CPPDEFINES = [ 'DEDICATED' ] )

@@ -900,13 +900,13 @@ void *Sys_LoadDll( const char *name, dllSyscall_t *entryPoint, dllSyscall_t syst
 {
 	void		*libHandle;
 	dllEntry_t	dllEntry;
-#ifdef DEBUG
-	char		currpath[MAX_OSPATH];
-#endif
+//#ifdef DEBUG
+//	char		currpath[MAX_OSPATH];
+//#endif
 	char		fname[MAX_OSPATH];
 	const char	*pwdpath;
-	const char	*homepath;
 	const char	*basepath;
+	const char	*homepath;
 	const char	*gamedir;
 	const char	*fn;
 	const char	*cvar_name;
@@ -915,14 +915,15 @@ void *Sys_LoadDll( const char *name, dllSyscall_t *entryPoint, dllSyscall_t syst
 	assert( name ); // let's have some paranoia
 
 	Q_strncpyz( fname, Sys_GetDLLName( name ), sizeof( fname ) );
-
-// bk001129 - was RTLD_LAZY
-#define Q_RTLD    RTLD_NOW
-
 	pwdpath = Sys_Pwd();
-	homepath = Cvar_VariableString( "fs_homepath" );
 	basepath = Cvar_VariableString( "fs_basepath" );
+	homepath = Cvar_VariableString( "fs_homepath" );
 	gamedir = Cvar_VariableString( "fs_game" );
+	if ( !*gamedir ) {
+		gamedir = Cvar_VariableString( "fs_basegame" );
+	}
+
+	cvar_name = va( "cl_lastVersion%s", name );
 
 	// this is relevant to client only
 	// this code is in for full client hosting a game, but it's not affected by it
@@ -930,7 +931,7 @@ void *Sys_LoadDll( const char *name, dllSyscall_t *entryPoint, dllSyscall_t syst
 	// do a first scan to identify what we are going to dlopen
 	// we need to pass this to FS_ExtractFromPakFile so that it checksums the right file
 	// NOTE: if something fails (not found, or file operation failed), we will ERR_FATAL (in the checksum itself, we only ERR_DROP)
-#ifndef NDEBUG
+#ifdef _DEBUG
 	fn = FS_BuildOSPath( pwdpath, gamedir, fname );
 	if ( access( fn, R_OK ) == -1 ) {
 #endif
@@ -940,7 +941,6 @@ void *Sys_LoadDll( const char *name, dllSyscall_t *entryPoint, dllSyscall_t syst
 		// we use a persistent variable in config.cfg to make sure
 		// this is set in FS_CL_ExtractFromPakFile when the file is extracted
 		cvar_t *lastVersion;
-		cvar_name = va( "cl_lastVersion%s", name );
 		lastVersion = Cvar_Get( cvar_name, "(uninitialized)", CVAR_ARCHIVE );
 		if ( Q_stricmp( Cvar_VariableString( "version" ), lastVersion->string ) ) {
 			Com_DPrintf( "clearing non matching version of %s .so: %s\n", name, fn );
@@ -966,7 +966,7 @@ void *Sys_LoadDll( const char *name, dllSyscall_t *entryPoint, dllSyscall_t syst
 			}
 		}
 	}
-#ifndef NDEBUG
+#ifdef _DEBUG
 }
 #endif
 
@@ -981,55 +981,30 @@ void *Sys_LoadDll( const char *name, dllSyscall_t *entryPoint, dllSyscall_t syst
 	}
 #endif
 
-#ifndef NDEBUG
+#ifdef _DEBUG
 	// current directory
 	// NOTE: only for debug build, see Sys_LoadDll discussion
-	fn = FS_BuildOSPath( pwdpath, gamedir, fname );
-	Com_Printf( "Sys_LoadDll(%s)... ", fn );
-	libHandle = dlopen( fn, Q_RTLD );
-
-	if ( !libHandle ) {
-		Com_Printf( "\nSys_LoadDll(%s) failed:\n\"%s\"\n", fn, dlerror() );
+	libHandle = try_dlopen( pwdpath, gamedir, fname );
+#else
+	libHandle = NULL;
 #endif
 
 	// homepath
-	fn = FS_BuildOSPath( homepath, gamedir, fname );
-	Com_Printf( "Sys_LoadDll(%s)... ", fn );
-	libHandle = dlopen( fn, Q_RTLD );
+	if ( !libHandle && homepath && homepath[0] )
+		libHandle = try_dlopen( homepath, gamedir, fname );
+		
+	if( !libHandle && basepath && basepath[0] )
+		libHandle = try_dlopen( basepath, gamedir, fname );
 
-	if ( !libHandle ) {
-		Com_Printf( "\nSys_LoadDll(%s) failed:\n\"%s\"\n", fn, dlerror() );
-
-		// basepath
-		fn = FS_BuildOSPath( basepath, gamedir, fname );
-		Com_Printf( "Sys_LoadDll(%s)... ", fn );
-		libHandle = dlopen( fn, Q_RTLD );
-		if ( !libHandle ) {
-			// report any problem
-			Com_Printf( "\nSys_LoadDll(%s) failed:\n\"%s\"\n", fn, dlerror() );
-		} else {
-			Com_Printf( "ok\n" );
-		}
-
-		// not found, bail
-		if ( !libHandle ) {
+	if ( !libHandle ) 
+	{
 #ifndef NDEBUG // in debug abort on failure
-			Com_Error( ERR_FATAL, "Sys_LoadDll(%s) failed dlopen() completely!\n", name  );
+		Com_Error( ERR_FATAL, "Sys_LoadDll(%s) failed dlopen() completely!\n", name  );
 #else
-			Com_Printf( "Sys_LoadDll(%s) failed dlopen() completely!\n", name );
+		Com_Printf( "Sys_LoadDll(%s) failed dlopen() completely!\n", name );
 #endif
-			return NULL;
-		}
-
-	} else {
-		Com_Printf( "ok\n" );
+		return NULL;
 	}
-
-#ifndef NDEBUG
-} else {
-	Com_Printf( "ok\n" );
-}
-#endif
 
 	dllEntry = dlsym( libHandle, "dllEntry" );
 	*entryPoint = dlsym( libHandle, "vmMain" );
@@ -1037,7 +1012,7 @@ void *Sys_LoadDll( const char *name, dllSyscall_t *entryPoint, dllSyscall_t syst
 	if ( !*entryPoint || !dllEntry )
 	{
 		err = do_dlerror();
-#ifndef NDEBUG // bk001206 - in debug abort on failure
+#ifdef _DEBUG
 		Com_Error ( ERR_FATAL, "Sys_LoadDll(%s) failed dlsym(vmMain):\n\"%s\" !\n", name, err );
 #else
 		Com_Printf ( "Sys_LoadDll(%s) failed dlsym(vmMain):\n\"%s\" !\n", name, err );
@@ -1206,7 +1181,8 @@ void Sys_PrintBinVersion( const char* name )
 #else
 	fprintf( stdout, "Linux %s Full Executable  [%s %s]\n", Q3_VERSION, date, time );
 #endif
-	fprintf( stdout, "\n" );
+	fprintf( stdout, " local install: %s\n", name );
+	fprintf( stdout, "%s\n\n", sep );
 }
 
 /*

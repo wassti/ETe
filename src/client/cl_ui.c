@@ -738,36 +738,7 @@ CLUI_GetCDKey
 ====================
 */
 static void CLUI_GetCDKey( char *buf, int buflen ) {
-	cvar_t  *fs;
-	fs = Cvar_Get( "fs_game", "", CVAR_INIT | CVAR_SYSTEMINFO );
-	if ( UI_usesUniqueCDKey() && fs && fs->string[0] != 0 ) {
-		memcpy( buf, &cl_cdkey[16], 16 );
-		buf[16] = 0;
-	} else {
-		memcpy( buf, cl_cdkey, 16 );
-		buf[16] = 0;
-	}
-}
-
-
-/*
-====================
-CLUI_SetCDKey
-====================
-*/
-static void CLUI_SetCDKey( char *buf ) {
-	cvar_t  *fs;
-	fs = Cvar_Get( "fs_game", "", CVAR_INIT | CVAR_SYSTEMINFO );
-	if ( UI_usesUniqueCDKey() && fs && fs->string[0] != 0 ) {
-		memcpy( &cl_cdkey[16], buf, 16 );
-		cl_cdkey[32] = 0;
-		// set the flag so the fle will be written at the next opportunity
-		cvar_modifiedFlags |= CVAR_ARCHIVE;
-	} else {
-		memcpy( cl_cdkey, buf, 16 );
-		// set the flag so the fle will be written at the next opportunity
-		cvar_modifiedFlags |= CVAR_ARCHIVE;
-	}
+	*buf = 0;
 }
 
 
@@ -1177,7 +1148,6 @@ intptr_t CL_UISystemCalls( intptr_t *args ) {
 		return 0;
 
 	case UI_SET_CDKEY:
-		CLUI_SetCDKey( VMA( 1 ) );
 		return 0;
 
 	case UI_R_REGISTERFONT:
@@ -1265,7 +1235,7 @@ intptr_t CL_UISystemCalls( intptr_t *args ) {
 		return 0;
 
 	case UI_VERIFY_CDKEY:
-		return CL_CDKeyValidate( VMA( 1 ), VMA( 2 ) );
+		return qtrue;
 
 		// NERVE - SMF
 	case UI_CL_GETLIMBOSTRING:

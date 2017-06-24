@@ -3961,12 +3961,6 @@ static void FS_Startup( void ) {
 		}
 	}
 
-	Com_ReadCDKey( fs_basegame->string );
-
-	if ( fs_gamedirvar->string[0] && Q_stricmp( fs_gamedirvar->string, fs_basegame->string ) ) {
-		Com_AppendCDKey( fs_gamedirvar->string );
-	}
-
 	// add our commands
 	Cmd_AddCommand( "path", FS_Path_f );
 	Cmd_AddCommand( "dir", FS_Dir_f );

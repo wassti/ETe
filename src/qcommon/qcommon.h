@@ -932,12 +932,6 @@ MISC
 ==============================================================
 */
 
-// centralizing the declarations for cl_cdkey
-// (old code causing buffer overflows)
-extern char cl_cdkey[34];
-void Com_AppendCDKey( const char *filename );
-void Com_ReadCDKey( const char *filename );
-
 extern	int	CPU_Flags;
 
 #define CPU_FCOM   0x01
@@ -984,7 +978,10 @@ int			Com_Milliseconds( void );	// will be journaled properly
 unsigned	Com_BlockChecksum( const void *buffer, int length );
 char		*Com_MD5File(const char *filename, int length, const char *prefix, int prefix_len);
 char		*Com_MD5Buf( const char *data, int length, const char *data2, int length2 );
-qboolean    Com_CDKeyValidate( const char *key, const char *checksum );
+#ifdef USE_PBMD5
+char		*Com_PBMD5File( char *key );
+#endif
+
 qboolean	Com_EarlyParseCmdLine( char *commandLine, char *con_title, int title_size, int *vid_xpos, int *vid_ypos );
 int			Com_Split( char *in, char **out, int outsz, int delim );
 

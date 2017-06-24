@@ -47,6 +47,9 @@ If you have questions concerning this license or the applicable additional terms
 #define LIMBOCHAT_WIDTH     140     // NERVE - SMF - NOTE TTimo buffer size indicator, not related to screen bbox
 #define LIMBOCHAT_HEIGHT    7       // NERVE - SMF
 
+#define ETKEY_FILE "etkey"
+#define ETKEY_SIZE 28
+
 // snapshots are a view of the server at a given time
 typedef struct {
 	qboolean valid;                 // cleared if delta parsing was invalid
@@ -531,7 +534,6 @@ int CL_GetPingQueueCount( void );
 
 void CL_ShutdownRef( void );
 void CL_InitRef( void );
-qboolean CL_CDKeyValidate( const char *key, const char *checksum );
 int CL_ServerStatus( char *serverAddress, char *serverStatusString, int maxLen );
 
 void CL_AddToLimboChat( const char *str );                  // NERVE - SMF

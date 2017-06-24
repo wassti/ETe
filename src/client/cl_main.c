@@ -1157,6 +1157,102 @@ void CL_MapLoading( void ) {
 
 /*
 =====================
+CL_UpdateGUID
+
+Update cl_guid using the etkey file
+=====================
+*/
+static void CL_UpdateGUID(void)
+{
+	fileHandle_t f;
+	int          len;
+	char		*buffer = NULL;
+
+	len = FS_SV_FOpenFileRead(BASEGAME "/" ETKEY_FILE, &f);
+	if ( !f || len <= 0 ) {
+		Com_Printf(S_COLOR_RED "ERROR: Could not find valid etkey, skipping cl_guid.\n");
+		Cvar_Set("cl_guid", "");
+		return;
+	}
+
+	buffer = malloc( len + 1 );
+
+	if ( !buffer ) {
+		Com_Printf( S_COLOR_RED "ERROR: Ran out of memory attempting to parse etkey, skipping cl_guid.\n" );
+		FS_FCloseFile( f );
+		return;
+	}
+
+	FS_Read(buffer, len, f);
+	buffer[len] = '\0';
+	FS_FCloseFile(f);
+
+	if (len < ETKEY_SIZE)
+	{
+		Com_Printf(S_COLOR_RED "ERROR: Could not set etkey (size mismatch).\n");
+		Cvar_Set("cl_guid", "");
+	}
+	else
+	{
+		char *guid = Com_PBMD5File(buffer);
+
+		if (guid)
+		{
+			Cvar_Set("cl_guid", guid);
+		}
+	}
+	free( buffer );
+	buffer = NULL;
+}
+
+/*
+=====================
+CL_GenerateETKey
+
+Test for the existence of a valid etkey and generate a new one
+if it doesn't exist
+=====================
+*/
+static void CL_GenerateETKey(void)
+{
+	int          len = 0;
+	char         buff[ETKEY_SIZE];
+	fileHandle_t f;
+
+	len = FS_SV_FOpenFileRead(BASEGAME "/" ETKEY_FILE, &f);
+	FS_FCloseFile(f);
+	if (len > 0)
+	{
+		Com_DPrintf("ETKEY found.\n");
+		return;
+	}
+	else
+	{
+		time_t    tt;
+		struct tm *t;
+		int       last;
+
+		tt = time(NULL);
+		t  = localtime(&tt);
+		srand(Sys_Milliseconds());
+		last = rand() % 9999;
+
+		Com_sprintf(buff, sizeof(buff), "0000001002%04i%02i%02i%02i%02i%02i%04i", t->tm_year, t->tm_mon, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, last);
+
+		f = FS_SV_FOpenFileWrite(BASEGAME "/" ETKEY_FILE);
+		if (!f)
+		{
+			Com_Printf(S_COLOR_RED "ERROR: Could not open %s for write\n", ETKEY_FILE);
+			return;
+		}
+		(void) FS_Write(buff, sizeof(buff), f);
+		FS_FCloseFile(f);
+		(void) Com_Printf(S_COLOR_CYAN "ETKEY file generated.\n");
+	}
+}
+
+/*
+=====================
 CL_ClearState
 
 Called before parsing a gamestate
@@ -1379,94 +1475,6 @@ void CL_RequestMotd( void ) {
 
 	NET_OutOfBandPrint( NS_CLIENT, &cls.updateServer, "getmotd \"%s\"\n", info );
 }
-
-#ifdef AUTHORIZE_SUPPORT
-
-/*
-===================
-CL_RequestAuthorization
-
-Authorization server protocol
------------------------------
-
-All commands are text in Q3 out of band packets (leading 0xff 0xff 0xff 0xff).
-
-Whenever the client tries to get a challenge from the server it wants to
-connect to, it also blindly fires off a packet to the authorize server:
-
-getKeyAuthorize <challenge> <cdkey>
-
-cdkey may be "demo"
-
-
-#OLD The authorize server returns a:
-#OLD
-#OLD keyAthorize <challenge> <accept | deny>
-#OLD
-#OLD A client will be accepted if the cdkey is valid and it has not been used by any other IP
-#OLD address in the last 15 minutes.
-
-
-The server sends a:
-
-getIpAuthorize <challenge> <ip>
-
-The authorize server returns a:
-
-ipAuthorize <challenge> <accept | deny | demo | unknown >
-
-A client will be accepted if a valid cdkey was sent by that ip (only) in the last 15 minutes.
-If no response is received from the authorize server after two tries, the client will be let
-in anyway.
-===================
-*/
-void CL_RequestAuthorization( void ) {
-	char nums[64];
-	int i, j, l;
-	cvar_t  *fs;
-
-	if ( !cls.authorizeServer.port ) {
-		Com_Printf( "Resolving %s\n", AUTHORIZE_SERVER_NAME );
-		if ( !NET_StringToAdr( AUTHORIZE_SERVER_NAME, &cls.authorizeServer, NA_IP ) ) {
-			Com_Printf( "Couldn't resolve address\n" );
-			return;
-		}
-
-		cls.authorizeServer.port = BigShort( PORT_AUTHORIZE );
-		Com_Printf( "%s resolved to %i.%i.%i.%i:%i\n", AUTHORIZE_SERVER_NAME,
-					cls.authorizeServer.ip[0], cls.authorizeServer.ip[1],
-					cls.authorizeServer.ip[2], cls.authorizeServer.ip[3],
-					BigShort( cls.authorizeServer.port ) );
-	}
-	if ( cls.authorizeServer.type == NA_BAD ) {
-		return;
-	}
-
-	if ( Cvar_VariableValue( "fs_restrict" ) ) {
-		Q_strncpyz( nums, "ettest", sizeof( nums ) );
-	} else {
-		// only grab the alphanumeric values from the cdkey, to avoid any dashes or spaces
-		j = 0;
-		l = strlen( cl_cdkey );
-		if ( l > 32 ) {
-			l = 32;
-		}
-		for ( i = 0 ; i < l ; i++ ) {
-			if ( ( cl_cdkey[i] >= '0' && cl_cdkey[i] <= '9' )
-				 || ( cl_cdkey[i] >= 'a' && cl_cdkey[i] <= 'z' )
-				 || ( cl_cdkey[i] >= 'A' && cl_cdkey[i] <= 'Z' )
-				 ) {
-				nums[j] = cl_cdkey[i];
-				j++;
-			}
-		}
-		nums[j] = 0;
-	}
-
-	fs = Cvar_Get( "cl_anonymous", "0", CVAR_INIT | CVAR_SYSTEMINFO );
-	NET_OutOfBandPrint( NS_CLIENT, &cls.authorizeServer, "getKeyAuthorize %i %s", fs->integer, nums );
-}
-#endif // AUTHORIZE_SUPPORT
 
 /*
 ======================================================================
@@ -4086,6 +4094,10 @@ void CL_Init( void ) {
 
 	Cvar_Set( "cl_running", "1" );
 
+	CL_GenerateETKey();
+	Cvar_Get( "cl_guid", "", CVAR_USERINFO | CVAR_ROM );
+	CL_UpdateGUID();
+
 #ifndef __MACOS__  //DAJ USA
 	CL_InitTranslation();       // NERVE - SMF - localization
 #endif
@@ -5020,71 +5032,6 @@ CL_ShowIP_f
 */
 static void CL_ShowIP_f(void) {
 	Sys_ShowIP();
-}
-
-/*
-=================
-bool CL_CDKeyValidate
-=================
-*/
-qboolean CL_CDKeyValidate( const char *key, const char *checksum ) {
-	char ch;
-	byte sum;
-	char chs[3];
-	int i, len;
-
-	len = strlen( key );
-	if ( len != CDKEY_LEN ) {
-		return qfalse;
-	}
-
-	if ( checksum && strlen( checksum ) != CDCHKSUM_LEN ) {
-		return qfalse;
-	}
-
-	sum = 0;
-	// for loop gets rid of conditional assignment warning
-	for ( i = 0; i < len; i++ ) {
-		ch = *key++;
-		if ( ch >= 'a' && ch <= 'z' ) {
-			ch -= 32;
-		}
-		switch ( ch ) {
-		case '2':
-		case '3':
-		case '7':
-		case 'A':
-		case 'B':
-		case 'C':
-		case 'D':
-		case 'G':
-		case 'H':
-		case 'J':
-		case 'L':
-		case 'P':
-		case 'R':
-		case 'S':
-		case 'T':
-		case 'W':
-			sum = ( sum << 1 ) ^ ch;
-			continue;
-		default:
-			return qfalse;
-		}
-	}
-
-
-	sprintf( chs, "%02x", sum );
-
-	if ( checksum && !Q_stricmp( chs, checksum ) ) {
-		return qtrue;
-	}
-
-	if ( !checksum ) {
-		return qtrue;
-	}
-
-	return qfalse;
 }
 
 // NERVE - SMF

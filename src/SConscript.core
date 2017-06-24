@@ -128,6 +128,7 @@ md5.c
 msg.c
 net_chan.c
 net_ip.c
+pbmd5.c
 unzip.c
 vm.c"""
 
@@ -312,6 +313,8 @@ elif ( g_os == 'Darwin' ):
 
 if ( MASTER != '' ):
 	local_env.Append( CPPDEFINES = [ 'MASTER_SERVER_NAME=\\"%s\\"' % MASTER ] )
+
+local_env.Append( CPPDEFINES = [ 'USE_PBMD5' ] )
 
 source_list = server_list + qcommon_list
 if ( g_os == 'Linux' ):

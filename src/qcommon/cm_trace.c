@@ -82,34 +82,9 @@ void TransposeMatrix( /*const*/ vec3_t matrix[3], vec3_t transpose[3] ) {
 CreateRotationMatrix
 ================
 */
-void CreateRotationMatrix( const vec3_t angles, vec3_t matrix[3] ) {
-	float angle;
-	static float sr, sp, sy, cr, cp, cy;
-	// static to help MS compiler fp bugs
-
-	angle = angles[YAW] * ( M_PI * 2 / 360 );
-	sy = sin( angle );
-	cy = cos( angle );
-
-	angle = angles[PITCH] * ( M_PI * 2 / 360 );
-	sp = sin( angle );
-	cp = cos( angle );
-
-	angle = angles[ROLL] * ( M_PI * 2 / 360 );
-	sr = sin( angle );
-	cr = cos( angle );
-
-	matrix[0][0] = cp * cy;
-	matrix[0][1] = cp * sy;
-	matrix[0][2] = -sp;
-
-	matrix[1][0] = ( sr * sp * cy + cr * -sy );
-	matrix[1][1] = ( sr * sp * sy + cr * cy );
-	matrix[1][2] = sr * cp;
-
-	matrix[2][0] = ( cr * sp * cy + - sr * -sy );
-	matrix[2][1] = ( cr * sp * sy + - sr * cy );
-	matrix[2][2] = cr * cp;
+void CreateRotationMatrix(const vec3_t angles, vec3_t matrix[3]) {
+	AngleVectors(angles, matrix[0], matrix[1], matrix[2]);
+	VectorInverse(matrix[1]);
 }
 
 /*
@@ -170,15 +145,14 @@ SquareRootFloat
 ================
 */
 float SquareRootFloat( float number ) {
-	long i;
+	floatint_t t;
 	float x, y;
 	const float f = 1.5F;
 
 	x = number * 0.5F;
-	y  = number;
-	i  = *( long * ) &y;
-	i  = 0x5f3759df - ( i >> 1 );
-	y  = *( float * ) &i;
+	t.f  = number;
+	t.i  = 0x5f3759df - ( t.i >> 1 );
+	y  = t.f;
 	y  = y * ( f - ( x * y * y ) );
 	y  = y * ( f - ( x * y * y ) );
 	return number * y;
@@ -326,7 +300,7 @@ void CM_TestInLeaf( traceWork_t *tw, cLeaf_t *leaf ) {
 			if ( CM_PositionTestInPatchCollide( tw, patch->pc ) ) {
 				tw->trace.startsolid = tw->trace.allsolid = qtrue;
 				tw->trace.fraction = 0;
-
+				tw->trace.contents = patch->contents;
 				return;
 			}
 		}
@@ -774,6 +748,7 @@ static void CM_TraceThroughBrush( traceWork_t *tw, cbrush_t *brush ) {
 		if ( !getout ) {
 			tw->trace.allsolid = qtrue;
 			tw->trace.fraction = 0;
+			tw->trace.contents = brush->contents;
 		}
 		return;
 	}
@@ -784,8 +759,12 @@ static void CM_TraceThroughBrush( traceWork_t *tw, cbrush_t *brush ) {
 				enterFrac = 0;
 			}
 			tw->trace.fraction = enterFrac;
+			if ( clipplane != NULL ) {
 			tw->trace.plane = *clipplane;
+			}
+			if ( leadside != NULL ) {
 			tw->trace.surfaceFlags = leadside->surfaceFlags;
+			}
 			tw->trace.contents = brush->contents;
 		}
 	}
@@ -905,7 +884,8 @@ get the first intersection of the ray with the sphere
 */
 static void CM_TraceThroughSphere( traceWork_t *tw, vec3_t origin, float radius, vec3_t start, vec3_t end ) {
 	float l1, l2, length, scale, fraction;
-	float a, b, c, d, sqrtd;
+	//float a;
+	float b, c, d, sqrtd;
 	vec3_t v1, dir, intersection;
 
 	// if inside the sphere
@@ -941,7 +921,7 @@ static void CM_TraceThroughSphere( traceWork_t *tw, vec3_t origin, float radius,
 	//
 	VectorSubtract( start, origin, v1 );
 	// dir is normalized so a = 1
-	a = 1.0f; //dir[0] * dir[0] + dir[1] * dir[1] + dir[2] * dir[2];
+	//a = 1.0f;//dir[0] * dir[0] + dir[1] * dir[1] + dir[2] * dir[2];
 	b = 2.0f * ( dir[0] * v1[0] + dir[1] * v1[1] + dir[2] * v1[2] );
 	c = v1[0] * v1[0] + v1[1] * v1[1] + v1[2] * v1[2] - ( radius + RADIUS_EPSILON ) * ( radius + RADIUS_EPSILON );
 
@@ -991,7 +971,8 @@ the cylinder extends halfheight above and below the origin
 */
 static void CM_TraceThroughVerticalCylinder( traceWork_t *tw, vec3_t origin, float radius, float halfheight, vec3_t start, vec3_t end ) {
 	float length, scale, fraction, l1, l2;
-	float a, b, c, d, sqrtd;
+	//float a;
+	float b, c, d, sqrtd;
 	vec3_t v1, dir, start2d, end2d, org2d, intersection;
 
 	// 2d coordinates
@@ -1037,7 +1018,7 @@ static void CM_TraceThroughVerticalCylinder( traceWork_t *tw, vec3_t origin, flo
 	//
 	VectorSubtract( start, origin, v1 );
 	// dir is normalized so we can use a = 1
-	a = 1.0f; // * (dir[0] * dir[0] + dir[1] * dir[1]);
+	//a = 1.0f;// * (dir[0] * dir[0] + dir[1] * dir[1]);
 	b = 2.0f * ( v1[0] * dir[0] + v1[1] * dir[1] );
 	c = v1[0] * v1[0] + v1[1] * v1[1] - ( radius + RADIUS_EPSILON ) * ( radius + RADIUS_EPSILON );
 

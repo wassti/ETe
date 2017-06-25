@@ -452,7 +452,7 @@ static int numPlanes;
 static patchPlane_t planes[MAX_PATCH_PLANES];
 
 static int numFacets;
-static facet_t facets[MAX_PATCH_PLANES];          //maybe MAX_FACETS ??
+static facet_t facets[MAX_FACETS];          //maybe MAX_FACETS ??
 
 #define NORMAL_EPSILON  0.0001
 #define DIST_EPSILON    0.02
@@ -659,6 +659,9 @@ static int CM_EdgePlaneNum( cGrid_t *grid, int gridPlanes[MAX_GRID_SIZE][MAX_GRI
 		p1 = grid->points[i][j];
 		p2 = grid->points[i + 1][j];
 		p = CM_GridPlane( gridPlanes, i, j, 0 );
+		if ( p == -1 ) {
+			return -1;
+		}
 		VectorMA( p1, 4, planes[ p ].plane, up );
 		return CM_FindPlane( p1, p2, up );
 
@@ -666,6 +669,9 @@ static int CM_EdgePlaneNum( cGrid_t *grid, int gridPlanes[MAX_GRID_SIZE][MAX_GRI
 		p1 = grid->points[i][j + 1];
 		p2 = grid->points[i + 1][j + 1];
 		p = CM_GridPlane( gridPlanes, i, j, 1 );
+		if ( p == -1 ) {
+			return -1;
+		}
 		VectorMA( p1, 4, planes[ p ].plane, up );
 		return CM_FindPlane( p2, p1, up );
 
@@ -673,6 +679,9 @@ static int CM_EdgePlaneNum( cGrid_t *grid, int gridPlanes[MAX_GRID_SIZE][MAX_GRI
 		p1 = grid->points[i][j];
 		p2 = grid->points[i][j + 1];
 		p = CM_GridPlane( gridPlanes, i, j, 1 );
+		if ( p == -1 ) {
+			return -1;
+		}
 		VectorMA( p1, 4, planes[ p ].plane, up );
 		return CM_FindPlane( p2, p1, up );
 
@@ -680,6 +689,9 @@ static int CM_EdgePlaneNum( cGrid_t *grid, int gridPlanes[MAX_GRID_SIZE][MAX_GRI
 		p1 = grid->points[i + 1][j];
 		p2 = grid->points[i + 1][j + 1];
 		p = CM_GridPlane( gridPlanes, i, j, 0 );
+		if ( p == -1 ) {
+			return -1;
+		}
 		VectorMA( p1, 4, planes[ p ].plane, up );
 		return CM_FindPlane( p1, p2, up );
 
@@ -687,6 +699,9 @@ static int CM_EdgePlaneNum( cGrid_t *grid, int gridPlanes[MAX_GRID_SIZE][MAX_GRI
 		p1 = grid->points[i + 1][j + 1];
 		p2 = grid->points[i][j];
 		p = CM_GridPlane( gridPlanes, i, j, 0 );
+		if ( p == -1 ) {
+			return -1;
+		}
 		VectorMA( p1, 4, planes[ p ].plane, up );
 		return CM_FindPlane( p1, p2, up );
 
@@ -694,6 +709,9 @@ static int CM_EdgePlaneNum( cGrid_t *grid, int gridPlanes[MAX_GRID_SIZE][MAX_GRI
 		p1 = grid->points[i][j];
 		p2 = grid->points[i + 1][j + 1];
 		p = CM_GridPlane( gridPlanes, i, j, 1 );
+		if ( p == -1 ) {
+			return -1;
+		}
 		VectorMA( p1, 4, planes[ p ].plane, up );
 		return CM_FindPlane( p1, p2, up );
 
@@ -752,8 +770,7 @@ static void CM_SetBorderInward( facet_t *facet, cGrid_t *grid, int gridPlanes[MA
 			side = CM_PointOnPlaneSide( points[l], facet->borderPlanes[k] );
 			if ( side == SIDE_FRONT ) {
 				front++;
-			}
-			if ( side == SIDE_BACK ) {
+			} else if ( side == SIDE_BACK ) {
 				back++;
 			}
 		}
@@ -891,7 +908,9 @@ void CM_AddFacetBevels( facet_t *facet ) {
 			}
 			// see if the plane is allready present
 			for ( i = 0; i < facet->numBorders; i++ ) {
-				if ( dir > 0 ) {
+				if (CM_PlaneEqual(&planes[facet->borderPlanes[i]], plane, &flipped))
+					break;
+				/*if ( dir > 0 ) {
 					if ( planes[facet->borderPlanes[i]].plane[axis] >= 0.9999f ) {
 						break;
 					}
@@ -899,12 +918,13 @@ void CM_AddFacetBevels( facet_t *facet ) {
 					if ( planes[facet->borderPlanes[i]].plane[axis] <= -0.9999f ) {
 						break;
 					}
-				}
+				}*/
 			}
 
 			if ( i == facet->numBorders ) {
 				if ( facet->numBorders > 4 + 6 + 16 ) {
 					Com_Printf( "ERROR: too many bevels\n" );
+					continue;
 				}
 				facet->borderPlanes[facet->numBorders] = CM_FindPlane2( plane, &flipped );
 				facet->borderNoAdjust[facet->numBorders] = 0;
@@ -986,6 +1006,7 @@ void CM_AddFacetBevels( facet_t *facet ) {
 				if ( i == facet->numBorders ) {
 					if ( facet->numBorders > 4 + 6 + 16 ) {
 						Com_Printf( "ERROR: too many bevels\n" );
+						continue;
 					}
 					facet->borderPlanes[facet->numBorders] = CM_FindPlane2( plane, &flipped );
 
@@ -1024,6 +1045,10 @@ void CM_AddFacetBevels( facet_t *facet ) {
 
 #ifndef BSPC
 	//add opposite plane
+	if ( facet->numBorders >= 4 + 6 + 16 ) {
+		Com_Printf( "ERROR: too many bevels\n" );
+		return;
+	}
 	facet->borderPlanes[facet->numBorders] = facet->surfacePlane;
 	facet->borderNoAdjust[facet->numBorders] = 0;
 	facet->borderInward[facet->numBorders] = qtrue;
@@ -1296,105 +1321,6 @@ TRACE TESTING
 
 /*
 ====================
-CM_TraceThroughPatchCollide
-
-Modifies tr->tr if any of the facets effect the trace
-====================
-*/
-
-/*
-void CM_TraceThroughPatchCollide( traceWork_t *tw, const struct patchCollide_s *pc )
-{
-	int i, j, n;
-	float d1, d2, offset, planedist, fraction;
-	vec3_t v1, v2, normal, point;
-	patchPlane_t *planes;
-	facet_t	*facet;
-	//
-	facet = pc->facets;
-	for ( i = 0 ; i < pc->numFacets ; i++, facet++ )
-	{
-		planes = &pc->planes[ facet->surfacePlane ];
-		VectorCopy(planes->plane, normal);
-		for (n = 0; n < 3; n++)
-		{
-			if (normal[n] > 0) v1[n] = tw->size[0][n];
-			else v1[n] = tw->size[1][n];
-		} //end for
-		VectorNegate(normal, v2);
-		offset = DotProduct(v1, v2);
-		//offset = 0;
-		//
-		planedist = planes->plane[3] + offset;
-		//
-		d1 = DotProduct( tw->start, normal ) - planedist;
-		d2 = DotProduct( tw->end, normal ) - planedist;
-
-		// if completely in front of face, no intersection with the entire patch
-		if (d1 > 0 && ( d2 >= SURFACE_CLIP_EPSILON || d2 >= d1 )  ) {
-			continue;
-		}
-
-		// if it doesn't cross the plane, the plane isn't relevent
-		if (d1 <= 0 && d2 <= 0 ) {
-			continue;
-		}
-
-		// crosses face
-		if (d1 > d2) {	// enter
-			fraction = (d1-SURFACE_CLIP_EPSILON) / (d1-d2);
-			if ( fraction < 0 ) {
-				fraction = 0;
-			}
-			for (j = 0; j < 3; j++)
-				point[j] = tw->start[j] + (tw->end[j] - tw->start[j]) * fraction;
-		}
-		else {
-			continue;
-		}
-		//
-		for (j = 0; j < facet->numBorders; j++)
-		{
-			planes = &pc->planes[ facet->borderPlanes[j] ];
-			if (!facet->borderInward[j])
-			{
-				VectorNegate(planes->plane, normal);
-				planedist = -planes->plane[3];
-			} //end if
-			else
-			{
-				VectorCopy(planes->plane, normal);
-				planedist = planes->plane[3];
-			} //end else
-			for (n = 0; n < 3; n++)
-			{
-				if (normal[n] > 0) v1[n] = tw->size[0][n];
-				else v1[n] = tw->size[1][n];
-			} //end for
-			VectorNegate(normal, v2);
-			offset = DotProduct(v1, v2);
-			//offset = 0;
-			planedist -= offset;
-			//the hit point should be in front of the (inward facing) border plane
-			if (DotProduct(point, normal) - planedist < -ON_EPSILON) break;
-		} //end for
-		if (j < facet->numBorders) continue;
-		//
-		if (fraction < tw->trace.fraction)
-		{
-			debugPatchCollide = pc;
-			debugFacet = facet;
-
-			tw->trace.fraction = fraction;
-			planes = &pc->planes[ facet->surfacePlane ];
-			VectorCopy( planes->plane, tw->trace.plane.normal );
-			tw->trace.plane.dist = planes->plane[3];
-		} //end if
-	} //end for
-} //end of the function CM_TraceThroughPatchCollide*/
-
-/*
-====================
 CM_TracePointThroughPatchCollide
 
   special case for point traces because the patch collide "brushes" have no volume
@@ -1552,7 +1478,7 @@ void CM_TraceThroughPatchCollide( traceWork_t *tw, const struct patchCollide_s *
 	float offset, enterFrac, leaveFrac, t;
 	patchPlane_t *planes;
 	facet_t *facet;
-	float plane[4], bestplane[4];
+	float plane[4] = {0, 0, 0, 0}, bestplane[4] = {0, 0, 0, 0};
 	vec3_t startp, endp;
 #ifndef BSPC
 	static cvar_t *cv;

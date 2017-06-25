@@ -6,8 +6,8 @@
 import sys, os
 import scons_utils
 
-Import( 'GLOBALS' )
-Import( GLOBALS )
+Import('GLOBALS')
+Import(GLOBALS)
 
 jpeg_string = """
 jaricom.c
@@ -57,7 +57,7 @@ jquant1.c
 jquant2.c
 jutils.c"""
 
-jpeg_list = scons_utils.BuildList( 'jpeg-8c', jpeg_string )
+jpeg_list = scons_utils.BuildList('jpeg-8c', jpeg_string)
 
 renderer_string = """
 tr_animation_mdm.c
@@ -94,7 +94,7 @@ tr_sky.c
 tr_surface.c
 tr_world.c"""
 
-renderer_list = scons_utils.BuildList( 'renderer', renderer_string )
+renderer_list = scons_utils.BuildList('renderer', renderer_string)
 
 server_string = """
 sv_bot.c
@@ -107,7 +107,7 @@ sv_net_chan.c
 sv_snapshot.c
 sv_world.c"""
 
-server_list = scons_utils.BuildList( 'server', server_string )
+server_list = scons_utils.BuildList('server', server_string)
 
 qcommon_string = """
 cm_load.c
@@ -132,7 +132,7 @@ pbmd5.c
 unzip.c
 vm.c"""
 
-qcommon_list = scons_utils.BuildList( 'qcommon', qcommon_string )
+qcommon_list = scons_utils.BuildList('qcommon', qcommon_string)
 
 splines_string = """
 math_angles.cpp
@@ -145,7 +145,7 @@ splines.cpp
 util_str.cpp"""
 
 
-splines_list = scons_utils.BuildList( 'splines', splines_string )
+splines_list = scons_utils.BuildList('splines', splines_string)
 
 client_string = """
 cl_avi.c
@@ -168,94 +168,94 @@ snd_mem.c
 snd_mix.c
 snd_wavelet.c"""
 
-client_list = scons_utils.BuildList( 'client', client_string )
+client_list = scons_utils.BuildList('client', client_string)
 
 linux_sources = [
-        'unix/linux_signals.c',
-        'unix/unix_main.c',
-        'unix/unix_shared.c',
-        'qcommon/q_shared.c',
-        'qcommon/q_math.c'
+'unix/linux_signals.c',
+'unix/unix_main.c',
+'unix/unix_shared.c',
+'qcommon/q_shared.c',
+'qcommon/q_math.c'
 ]
 
 linux_full_sources = [
-        'unix/linux_glimp.c',
-        'unix/linux_qgl.c',
-        'unix/linux_snd.c',
-        'unix/linux_joystick.c'
+'unix/linux_glimp.c',
+'unix/linux_qgl.c',
+'unix/linux_snd.c',
+'unix/linux_joystick.c'
 ]
 
 mac_sources = [
-	'qcommon/q_shared.c',
-	'qcommon/q_math.c',
-	'mac/mac_main.cpp',
-	'mac/mac_input.cpp',
-	'mac/mac_glimp.cpp',
-	'mac/mac_files.cpp',
-	'mac/mac_net.cpp',
-	'mac/mac_console.c',
-	'mac/mac_snddma.c',
-	'mac/CarbonMouse.cpp',
-	'mac/mac_event.cpp',
-#	'mac/HID Manager/HID_Configure.c',
-#	'mac/HID Manager/HID_CFM.c',
-	'mac/MacPrefs.cpp',
-	'mac/PickMonitor/pickmonitor.cpp',
-	'mac/PickMonitor/userpane.cpp',
-	'mac/mac_qgl.c',
-	'mac/mac_specific.cpp',
-	'mac/AGLUtils.cpp',
-	'mac/CDrawSprocket.cpp'
+'qcommon/q_shared.c',
+'qcommon/q_math.c',
+'mac/mac_main.cpp',
+'mac/mac_input.cpp',
+'mac/mac_glimp.cpp',
+'mac/mac_files.cpp',
+'mac/mac_net.cpp',
+'mac/mac_console.c',
+'mac/mac_snddma.c',
+'mac/CarbonMouse.cpp',
+'mac/mac_event.cpp',
+#'mac/HID Manager/HID_Configure.c',
+#'mac/HID Manager/HID_CFM.c',
+'mac/MacPrefs.cpp',
+'mac/PickMonitor/pickmonitor.cpp',
+'mac/PickMonitor/userpane.cpp',
+'mac/mac_qgl.c',
+'mac/mac_specific.cpp',
+'mac/AGLUtils.cpp',
+'mac/CDrawSprocket.cpp'
 ]
 
 win32_sources = [
-	'win32/win_main.c',
-	'win32/win_shared.c',
-	'win32/win_wndproc.c',
-	'win32/win_syscon.c',
-    'qcommon/q_shared.c',
-    'qcommon/q_math.c',
+'win32/win_main.c',
+'win32/win_shared.c',
+'win32/win_wndproc.c',
+'win32/win_syscon.c',
+'qcommon/q_shared.c',
+'qcommon/q_math.c',
 ]
 
 win32_full_sources = [
-	'win32/win_input.c',
-	'win32/win_glimp.c',
-	'win32/win_qgl.c',
-	'win32/win_gamma.c',
-	'win32/win_minimize.c',
-	'win32/win_snd.c',
+'win32/win_input.c',
+'win32/win_glimp.c',
+'win32/win_qgl.c',
+'win32/win_gamma.c',
+'win32/win_minimize.c',
+'win32/win_snd.c',
 ]
 
 botlib_list = [
-	'be_aas_bspq3.c',
-	'be_aas_cluster.c',
-	'be_aas_debug.c',
-	'be_aas_entity.c',
-	'be_aas_file.c',
-	'be_aas_main.c',
-	'be_aas_move.c',
-	'be_aas_optimize.c',
-	'be_aas_reach.c',
-	'be_aas_route.c',
-	'be_aas_routealt.c',
-	'be_aas_routetable.c',
-	'be_aas_sample.c',
-	'be_ai_char.c',
-	'be_ai_chat.c',
-	'be_ai_gen.c',
-	'be_ai_goal.c',
-	'be_ai_move.c',
-	'be_ai_weap.c',
-	'be_ai_weight.c',
-	'be_ea.c',
-	'be_interface.c',
-	'l_crc.c',
-	'l_libvar.c',
-	'l_log.c',
-	'l_memory.c',
-	'l_precomp.c',
-	'l_script.c',
-	'l_struct.c'
+'be_aas_bspq3.c',
+'be_aas_cluster.c',
+'be_aas_debug.c',
+'be_aas_entity.c',
+'be_aas_file.c',
+'be_aas_main.c',
+'be_aas_move.c',
+'be_aas_optimize.c',
+'be_aas_reach.c',
+'be_aas_route.c',
+'be_aas_routealt.c',
+'be_aas_routetable.c',
+'be_aas_sample.c',
+'be_ai_char.c',
+'be_ai_chat.c',
+'be_ai_gen.c',
+'be_ai_goal.c',
+'be_ai_move.c',
+'be_ai_weap.c',
+'be_ai_weight.c',
+'be_ea.c',
+'be_interface.c',
+'l_crc.c',
+'l_libvar.c',
+'l_log.c',
+'l_memory.c',
+'l_precomp.c',
+'l_script.c',
+'l_struct.c'
 ]
 
 botlib_env = g_env.Clone()
@@ -281,6 +281,8 @@ if ( g_os == 'Linux' ):
 	gas_env.Append( ASFLAGS = [ '-m32', '-x', 'assembler-with-cpp' ] )
 
 splines_env = g_env.Clone()
+splines_env.Append( LIBS = [ 'libstdc++' ] )
+
 splines_lib = splines_env.StaticLibrary( splines_list )
 
 local_env = g_env.Clone()
@@ -301,7 +303,7 @@ if ( g_os == 'Linux' ):
 	#	local_env['ENV']['CC'] = g_env['CC']
 	#	local_env['LINK'] = 'unix/staticlinkcpp.sh'
 elif ( g_os == 'win32' ):
-	local_env.Append( LIBS = [ 'm', 'winmm', 'wsock32', 'gdi32', 'ole32', 'iphlpapi' ] )
+	local_env.Append( LIBS = [ 'm', 'winmm', 'wsock32', 'ws2_32', 'gdi32', 'ole32', 'iphlpapi', 'comctl32' ] )
 	if ( local_dedicated == 0 ):
 		local_env.Append( LIBS = [ 'dinput', 'dsound' ] )
 		local_env.Append( CPPPATH = [ 'curl-7.12.2/include' ] )

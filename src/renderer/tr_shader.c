@@ -3794,6 +3794,16 @@ static int loadShaderBuffers( char **shaderFiles, const int numShaderFiles, char
 
 		if ( !buffers[i] )
 			ri.Error( ERR_DROP, "Couldn't load %s", filename );
+
+		// comment broken buggy shader in old etf_gfx.shader
+		if ( summand == 25640 && strcmp( shaderFiles[i], "etf_gfx.shader" ) == 0 ) {
+			if( memcmp( buffers[i] + 0x53C5, "gf", 2 ) == 0 )
+			{
+				memcpy( buffers[i] + 0x53C5, "/*", 2 );
+				memcpy( buffers[i] + 0x5459, "*/", 2 );
+				ri.Printf( PRINT_ALL, "Found broken bullet mark shader, replacing...\n" );
+			}
+		}
 		
 		// comment some buggy shaders from pak0
 		//if ( summand == 35910 && strcmp( shaderFiles[i], "sky.shader" ) == 0) 

@@ -429,7 +429,7 @@ void Bot_ScriptParseAllCharacters() {
 			// not a bot, skip this whole entry
 			SkipRestOfLine( &pScript );
 			// skip this section
-			SkipBracedSection( &pScript );
+			SkipBracedSection( &pScript, 0 ); // ENSI TODO not sure if this is right to use no depth here
 			//
 			continue;
 		}

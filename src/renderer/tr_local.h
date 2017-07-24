@@ -1241,7 +1241,9 @@ typedef struct {
 	qboolean	vertexes2D;		// shader needs to be finished
 	qboolean	doneBloom;		// done bloom this frame
 	qboolean	doneSurfaces;   // done any 3d surfaces already
+#ifdef USE_PMLIGHT
 	qboolean	doneBloom2fbo;
+#endif
 	trRefEntity_t	entity2D;	// currentEntity will point at this when doing 2D rendering
 
 	int		screenshotMask;		// tga | jpg
@@ -1520,7 +1522,7 @@ extern cvar_t  *r_highQualityVideo;
 
 void R_SwapBuffers( int );
 
-void R_RenderView( viewParms_t *parms );
+void R_RenderView( const viewParms_t *parms );
 
 void R_AddMD3Surfaces( trRefEntity_t *e );
 void R_AddNullModelSurfaces( trRefEntity_t *e );

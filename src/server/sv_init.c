@@ -351,7 +351,10 @@ static void SV_Startup( void ) {
 
 	// RF, avoid trying to allocate large chunk on a fragmented zone
 	svs.clients = calloc( sizeof( client_t ) * sv_maxclients->integer, 1 );
-	//svs.clients = Z_Malloc (sizeof(client_t) * sv_maxclients->integer );
+	if ( !svs.clients ) {
+		Com_Error( ERR_FATAL, "SV_Startup: unable to allocate svs.clients" );
+	}
+
 	SV_SetSnapshotParams();
 	svs.initialized = qtrue;
 
@@ -414,7 +417,10 @@ void SV_ChangeMaxClients( void ) {
 	// allocate new clients
 	// RF, avoid trying to allocate large chunk on a fragmented zone
 	svs.clients = calloc( sizeof( client_t ) * sv_maxclients->integer, 1 );
-	//svs.clients = Z_Malloc ( sv_maxclients->integer * sizeof(client_t) );
+	if ( !svs.clients ) {
+		Com_Error( ERR_FATAL, "SV_Startup: unable to allocate svs.clients" );
+	}
+
 	Com_Memset( svs.clients, 0, sv_maxclients->integer * sizeof(client_t) );
 
 	// copy the clients over

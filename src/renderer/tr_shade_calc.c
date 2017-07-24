@@ -1103,6 +1103,50 @@ void RB_CalcFogTexCoords( float *st ) {
 }
 
 
+#if 0 // breaks some legacy shaders like battle suit
+/*
+========================
+RB_CalcEnvironmentTexCoordsFP
+
+Special version for first-person models, borrowed from OpenArena
+========================
+*/
+static void RB_CalcEnvironmentTexCoordsFP( float *st ) {
+	int			i;
+	const float	*v, *normal;
+	vec3_t		viewer, reflected, where, what, why, who;
+	float		d; 
+
+	v = tess.xyz[0];
+	normal = tess.normal[0];
+
+	for ( i = 0 ; i < tess.numVertexes ; i++, v += 4, normal += 4, st += 2 ) 
+	{
+		VectorSubtract( backEnd.orientation.axis[0], v, what );
+		VectorSubtract( backEnd.orientation.axis[1], v, why );
+		VectorSubtract( backEnd.orientation.axis[2], v, who );
+
+		VectorSubtract( backEnd.orientation.origin, v, where );
+		VectorSubtract( backEnd.orientation.viewOrigin, v, viewer );
+
+		VectorNormalizeFast( viewer );
+		VectorNormalizeFast( where );
+		VectorNormalizeFast( what );
+		VectorNormalizeFast( why );
+		VectorNormalizeFast( who );
+
+		d = DotProduct( normal, viewer );
+
+		//reflected[0] = normal[0]*2*d - viewer[0] - (where[0] * 5) + (what[0] * 4);
+		reflected[1] = normal[1]*2*d - viewer[1] - (where[1] * 5) + (why[1] * 4);
+		reflected[2] = normal[2]*2*d - viewer[2] - (where[2] * 5) + (who[2] * 4);
+
+		st[0] = 0.33 + reflected[1] * 0.33;
+		st[1] = 0.33 - reflected[2] * 0.33;
+	}
+}
+#endif
+
 
 /*
 ** RB_CalcEnvironmentTexCoords
@@ -1115,6 +1159,13 @@ void RB_CalcEnvironmentTexCoords( float *st ) {
 	float d2, *v, *normal, sAdjust, tAdjust;
 	vec3_t viewOrigin, ia1, ia2, viewer, reflected;
 
+#if 0 // breaks some legacy shaders like battle suit
+	if ( backEnd.currentEntity && ( backEnd.currentEntity->e.renderfx & RF_FIRST_PERSON ) )
+	{
+		RB_CalcEnvironmentTexCoordsFP( st );
+		return;
+	}
+#endif
 
 	// setup
 	v = tess.xyz[ 0 ];

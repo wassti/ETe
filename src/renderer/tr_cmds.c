@@ -639,7 +639,7 @@ void RE_EndFrame( int *frontEndMsec, int *backEndMsec ) {
 		RB_ShowImages();
 	}
 
-	if ( !glState.finishCalled ) {
+	if ( r_finish->integer == 1 && !glState.finishCalled ) {
 		qglFinish();
 	}
 
@@ -675,6 +675,9 @@ void RE_EndFrame( int *frontEndMsec, int *backEndMsec ) {
 
 	backEnd.projection2D = qfalse;
 	backEnd.doneBloom = qfalse;
+#ifdef USE_PMLIGHT
+	backEnd.doneBloom2fbo = qfalse;
+#endif
 	backEnd.doneSurfaces = qfalse; // for bloom
 
 	R_InitNextFrame();

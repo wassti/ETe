@@ -1389,6 +1389,10 @@ void CL_Disconnect( qboolean showMainMenu ) {
 		SCR_UpdateScreen();
 		CL_CloseAVI();
 	}
+	
+	CL_UpdateGUID();
+
+	Cmd_RemoveCommand( "callvote" );
 
 	// show_bug.cgi?id=589
 	// don't try a restart if uivm is NULL, as we might be in the middle of a restart already
@@ -1643,6 +1647,7 @@ void CL_Connect_f( void ) {
 
 	Com_Printf( "%s resolved to %s\n", cls.servername, serverString);
 
+	CL_UpdateGUID();
 	// if we aren't playing on a lan, we need to authenticate
 	// with the cd key
 	if ( NET_IsLocalAddress( &clc.serverAddress ) ) {
@@ -1993,6 +1998,18 @@ void CL_Clientinfo_f( void ) {
 	Com_Printf( "--------------------------------------\n" );
 }
 
+static void CL_CompleteCallvote( char *args, int argNum )
+{
+	if( argNum >= 2 )
+	{
+		// Skip "callvote "
+		char *p = Com_SkipTokens( args, 1, " " );
+
+		if ( p > args )
+			Field_CompleteCommand( p, qtrue, qtrue );
+	}
+}
+
 /*
 ==============
 CL_EatMe_f
@@ -2078,6 +2095,11 @@ void CL_DownloadsComplete( void ) {
 	// initialize the CGame
 	cls.cgameStarted = qtrue;
 	CL_InitCGame();
+
+	if ( clc.demofile == FS_INVALID_HANDLE ) {
+		Cmd_AddCommand( "callvote", NULL );
+		Cmd_SetCommandCompletionFunc( "callvote", CL_CompleteCallvote );
+	}
 
 	// set pure checksums
 	CL_SendPureChecksums();

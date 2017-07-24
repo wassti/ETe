@@ -186,6 +186,70 @@ void COM_DefaultExtension( char *path, int maxSize, const char *extension )
 }
 
 
+/*
+==================
+COM_GenerateHashValue
+
+used in renderer and filesystem
+==================
+*/
+// ASCII lowcase conversion table with '\\' turned to '/' and '.' to '\0'
+static const byte q_locase[ 256 ] =
+{
+	0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,
+	0x08,0x09,0x0a,0x0b,0x0c,0x0d,0x0e,0x0f,
+	0x10,0x11,0x12,0x13,0x14,0x15,0x16,0x17,
+	0x18,0x19,0x1a,0x1b,0x1c,0x1d,0x1e,0x1f,
+	0x20,0x21,0x22,0x23,0x24,0x25,0x26,0x27,
+	0x28,0x29,0x2a,0x2b,0x2c,0x2d,0x00,0x2f,
+	0x30,0x31,0x32,0x33,0x34,0x35,0x36,0x37,
+	0x38,0x39,0x3a,0x3b,0x3c,0x3d,0x3e,0x3f,
+	0x40,0x61,0x62,0x63,0x64,0x65,0x66,0x67,
+	0x68,0x69,0x6a,0x6b,0x6c,0x6d,0x6e,0x6f,
+	0x70,0x71,0x72,0x73,0x74,0x75,0x76,0x77,
+	0x78,0x79,0x7a,0x5b,0x2f,0x5d,0x5e,0x5f,
+	0x60,0x61,0x62,0x63,0x64,0x65,0x66,0x67,
+	0x68,0x69,0x6a,0x6b,0x6c,0x6d,0x6e,0x6f,
+	0x70,0x71,0x72,0x73,0x74,0x75,0x76,0x77,
+	0x78,0x79,0x7a,0x7b,0x7c,0x7d,0x7e,0x7f,
+	0x80,0x81,0x82,0x83,0x84,0x85,0x86,0x87,
+	0x88,0x89,0x8a,0x8b,0x8c,0x8d,0x8e,0x8f,
+	0x90,0x91,0x92,0x93,0x94,0x95,0x96,0x97,
+	0x98,0x99,0x9a,0x9b,0x9c,0x9d,0x9e,0x9f,
+	0xa0,0xa1,0xa2,0xa3,0xa4,0xa5,0xa6,0xa7,
+	0xa8,0xa9,0xaa,0xab,0xac,0xad,0xae,0xaf,
+	0xb0,0xb1,0xb2,0xb3,0xb4,0xb5,0xb6,0xb7,
+	0xb8,0xb9,0xba,0xbb,0xbc,0xbd,0xbe,0xbf,
+	0xc0,0xc1,0xc2,0xc3,0xc4,0xc5,0xc6,0xc7,
+	0xc8,0xc9,0xca,0xcb,0xcc,0xcd,0xce,0xcf,
+	0xd0,0xd1,0xd2,0xd3,0xd4,0xd5,0xd6,0xd7,
+	0xd8,0xd9,0xda,0xdb,0xdc,0xdd,0xde,0xdf,
+	0xe0,0xe1,0xe2,0xe3,0xe4,0xe5,0xe6,0xe7,
+	0xe8,0xe9,0xea,0xeb,0xec,0xed,0xee,0xef,
+	0xf0,0xf1,0xf2,0xf3,0xf4,0xf5,0xf6,0xf7,
+	0xf8,0xf9,0xfa,0xfb,0xfc,0xfd,0xfe,0xff
+};
+
+long Com_GenerateHashValue( const char *fname, const int size ) 
+{
+	const byte *s;
+	long	hash;
+	int		c;
+
+	s = (byte*)fname;
+	hash = 0;
+	
+	while ( (c = q_locase[*s++]) != '\0' ) {
+		hash = hash * 101 + c;
+	}
+	
+	hash = (hash ^ (hash >> 10) ^ (hash >> 20));
+	hash &= (size-1);
+
+	return hash;
+}
+
+
 //============================================================================
 /*
 ==================
@@ -409,57 +473,81 @@ static char com_token[MAX_TOKEN_CHARS];
 static char com_parsename[MAX_TOKEN_CHARS];
 static int com_lines;
 
+static  int		com_tokenline;
+
 static int backup_lines;
+static int backup_tokenline;
 static char    *backup_text;
 
-void COM_BeginParseSession( const char *name ) {
-	com_lines = 0;
-	Com_sprintf( com_parsename, sizeof( com_parsename ), "%s", name );
+void COM_BeginParseSession( const char *name )
+{
+	com_lines = 1;
+	com_tokenline = 0;
+	Com_sprintf(com_parsename, sizeof(com_parsename), "%s", name);
 }
 
-void COM_BackupParseSession( char **data_p ) {
+
+
+void COM_BackupParseSession( char **data_p )
+{
 	backup_lines = com_lines;
+	backup_tokenline = com_tokenline;
 	backup_text = *data_p;
 }
 
-void COM_RestoreParseSession( char **data_p ) {
+void COM_RestoreParseSession( char **data_p )
+{
 	com_lines = backup_lines;
+	com_tokenline = backup_tokenline;
 	*data_p = backup_text;
 }
 
-void COM_SetCurrentParseLine( int line ) {
+/*void COM_SetCurrentParseLine( int line )
+{
 	com_lines = line;
-}
+}*/
 
-int COM_GetCurrentParseLine( void ) {
+int COM_GetCurrentParseLine( void )
+{
+	if ( com_tokenline )
+	{
+		return com_tokenline;
+	}
+
 	return com_lines;
 }
 
-char *COM_Parse( char **data_p ) {
+char *COM_Parse( char **data_p )
+{
 	return COM_ParseExt( data_p, qtrue );
 }
 
-void COM_ParseError( char *format, ... ) {
+
+void COM_ParseError( char *format, ... )
+{
 	va_list argptr;
 	static char string[4096];
 
 	va_start( argptr, format );
-	Q_vsnprintf( string, sizeof( string ), format, argptr );
+	Q_vsnprintf (string, sizeof(string), format, argptr);
 	va_end( argptr );
 
-	Com_Printf( "ERROR: %s, line %d: %s\n", com_parsename, com_lines, string );
+	Com_Printf( "ERROR: %s, line %d: %s\n", com_parsename, COM_GetCurrentParseLine(), string );
 }
 
-void COM_ParseWarning( char *format, ... ) {
+
+void COM_ParseWarning( char *format, ... )
+{
 	va_list argptr;
 	static char string[4096];
 
 	va_start( argptr, format );
-	Q_vsnprintf( string, sizeof( string ), format, argptr );
+	Q_vsnprintf (string, sizeof(string), format, argptr);
 	va_end( argptr );
 
-	Com_Printf( "WARNING: %s, line %d: %s\n", com_parsename, com_lines, string );
+	Com_Printf( "WARNING: %s, line %d: %s\n", com_parsename, COM_GetCurrentParseLine(), string );
 }
+
 
 /*
 ==============
@@ -491,68 +579,89 @@ static char *SkipWhitespace( char *data, qboolean *hasNewLines ) {
 }
 
 int COM_Compress( char *data_p ) {
-	char *datai, *datao;
-	int c, pc, size;
-	qboolean ws = qfalse;
+	char *in, *out;
+	int c;
+	qboolean newline = qfalse, whitespace = qfalse;
 
-	size = 0;
-	pc = 0;
-	datai = datao = data_p;
-	if ( datai ) {
-		while ( ( c = *datai ) != 0 ) {
-			if ( c == 13 || c == 10 ) {
-				*datao = c;
-				datao++;
-				ws = qfalse;
-				pc = c;
-				datai++;
-				size++;
-				// skip double slash comments
-			} else if ( c == '/' && datai[1] == '/' ) {
-				while ( *datai && *datai != '\n' ) {
-					datai++;
+	in = out = data_p;
+	if (in) {
+		while ((c = *in) != 0) {
+			// skip double slash comments
+			if ( c == '/' && in[1] == '/' ) {
+				while (*in && *in != '\n') {
+					in++;
 				}
-				ws = qfalse;
-				// skip /* */ comments
-			} else if ( c == '/' && datai[1] == '*' ) {
-				datai += 2; // Arnout: skip over '/*'
-				while ( *datai && ( *datai != '*' || datai[1] != '/' ) )
-				{
-					datai++;
-				}
-				if ( *datai ) {
-					datai += 2;
-				}
-				ws = qfalse;
+			// skip /* */ comments
+			} else if ( c == '/' && in[1] == '*' ) {
+				while ( *in && ( *in != '*' || in[1] != '/' ) ) 
+					in++;
+				if ( *in ) 
+					in += 2;
+				// record when we hit a newline
+			} else if ( c == '\n' || c == '\r' ) {
+				newline = qtrue;
+				in++;
+				// record when we hit whitespace
+			} else if ( c == ' ' || c == '\t') {
+				whitespace = qtrue;
+				in++;
+				// an actual token
 			} else {
-				if ( ws ) {
-					*datao = ' ';
-					datao++;
+				// if we have a pending newline, emit it (and it counts as whitespace)
+				if (newline) {
+					*out++ = '\n';
+					newline = qfalse;
+					whitespace = qfalse;
+				} else if (whitespace) {
+					*out++ = ' ';
+					whitespace = qfalse;
 				}
-				*datao = c;
-				datao++;
-				datai++;
-				ws = qfalse;
-				pc = c;
-				size++;
+
+				// copy quoted strings unmolested
+				if (c == '"') {
+					*out++ = c;
+					in++;
+					while (1) {
+						c = *in;
+						if (c && c != '"') {
+							*out++ = c;
+							in++;
+						} else {
+							break;
+						}
+					}
+					if (c == '"') {
+						*out++ = c;
+						in++;
+					}
+				} else {
+					*out++ = c;
+					in++;
+				}
 			}
 		}
+
+		*out = '\0';
 	}
-	*datao = 0;
-	return size;
+
+	return out - data_p;
 }
 
-char *COM_ParseExt( char **data_p, qboolean allowLineBreaks ) {
+
+char *COM_ParseExt( char **data_p, qboolean allowLineBreaks )
+{
 	int c = 0, len;
 	qboolean hasNewLines = qfalse;
 	char *data;
 
 	data = *data_p;
 	len = 0;
-	com_token[0] = 0;
+	com_token[0] = '\0';
+	com_tokenline = 0;
 
 	// make sure incoming data is valid
-	if ( !data ) {
+	if ( !data )
+	{
 		*data_p = NULL;
 		return com_token;
 	}
@@ -564,11 +673,13 @@ char *COM_ParseExt( char **data_p, qboolean allowLineBreaks ) {
 	{
 		// skip whitespace
 		data = SkipWhitespace( data, &hasNewLines );
-		if ( !data ) {
+		if ( !data )
+		{
 			*data_p = NULL;
 			return com_token;
 		}
-		if ( hasNewLines && !allowLineBreaks ) {
+		if ( hasNewLines && !allowLineBreaks )
+		{
 			*data_p = data;
 			return com_token;
 		}
@@ -576,76 +687,97 @@ char *COM_ParseExt( char **data_p, qboolean allowLineBreaks ) {
 		c = *data;
 
 		// skip double slash comments
-		if ( c == '/' && data[1] == '/' ) {
+		if ( c == '/' && data[1] == '/' )
+		{
 			data += 2;
-			while ( *data && *data != '\n' ) {
+			while (*data && *data != '\n') {
 				data++;
 			}
-//			com_lines++;
 		}
 		// skip /* */ comments
-		else if ( c == '/' && data[1] == '*' ) {
+		else if ( c=='/' && data[1] == '*' ) 
+		{
 			data += 2;
-			while ( *data && ( *data != '*' || data[1] != '/' ) )
+			while ( *data && ( *data != '*' || data[1] != '/' ) ) 
 			{
-				data++;
-				if ( *data == '\n' ) {
-//					com_lines++;
+				if ( *data == '\n' )
+				{
+					com_lines++;
 				}
+				data++;
 			}
-			if ( *data ) {
+			if ( *data ) 
+			{
 				data += 2;
 			}
-		} else
+		}
+		else
 		{
 			break;
 		}
 	}
 
+	// token starts on this line
+	com_tokenline = com_lines;
+
 	// handle quoted strings
-	if ( c == '\"' ) {
+	if ( c == '\"' )
+	{
 		data++;
-		while ( 1 )
+		while (1)
 		{
 			c = *data++;
-			if ( c == '\\' && *( data ) == '\"' ) {
+			if ( c == '\\' && *( data ) == '\"' )
+			{
 				// Arnout: string-in-string
-				if ( len < MAX_TOKEN_CHARS ) {
-					com_token[len] = '\"';
+				if ( len < MAX_TOKEN_CHARS - 1 )
+				{
+					com_token[ len ] = '\"';
 					len++;
 				}
 				data++;
 
-				while ( 1 ) {
+				while ( 1 )
+				{
 					c = *data++;
 
-					if ( !c ) {
-						com_token[len] = 0;
+					if ( !c )
+					{
+						com_token[ len ] = '\0';
 						*data_p = ( char * ) data;
 						break;
 					}
-					if ( ( c == '\\' && *( data ) == '\"' ) ) {
-						if ( len < MAX_TOKEN_CHARS ) {
-							com_token[len] = '\"';
+					if ( ( c == '\\' && *( data ) == '\"' ) )
+					{
+						if ( len < MAX_TOKEN_CHARS - 1 )
+						{
+							com_token[ len ] = '\"';
 							len++;
 						}
 						data++;
 						c = *data++;
 						break;
 					}
-					if ( len < MAX_TOKEN_CHARS ) {
-						com_token[len] = c;
+					if ( len < MAX_TOKEN_CHARS - 1 )
+					{
+						com_token[ len ] = c;
 						len++;
 					}
 				}
 			}
-			if ( c == '\"' || !c ) {
-				com_token[len] = 0;
+			if ( c == '\"' || c == '\0' )
+			{
+				com_token[ len ] = '\0';
 				*data_p = ( char * ) data;
 				return com_token;
 			}
-			if ( len < MAX_TOKEN_CHARS ) {
-				com_token[len] = c;
+			if ( c == '\n' )
+			{
+				com_lines++;
+			}
+			if ( len < MAX_TOKEN_CHARS - 1 )
+			{
+				com_token[ len ] = c;
 				len++;
 			}
 		}
@@ -654,28 +786,20 @@ char *COM_ParseExt( char **data_p, qboolean allowLineBreaks ) {
 	// parse a regular word
 	do
 	{
-		if ( len < MAX_TOKEN_CHARS ) {
-			com_token[len] = c;
+		if ( len < MAX_TOKEN_CHARS - 1 )
+		{
+			com_token[ len ] = c;
 			len++;
 		}
 		data++;
 		c = *data;
-		if ( c == '\n' ) {
-			com_lines++;
-		}
-	} while ( c > 32 );
+	} while ( c > ' ' );
 
-	if ( len == MAX_TOKEN_CHARS ) {
-//		Com_Printf ("Token exceeded %i chars, discarded.\n", MAX_TOKEN_CHARS);
-		len = 0;
-	}
-	com_token[len] = 0;
+	com_token[ len ] = '\0';
 
 	*data_p = ( char * ) data;
 	return com_token;
 }
-
-
 
 
 /*
@@ -684,7 +808,7 @@ COM_MatchToken
 ==================
 */
 void COM_MatchToken( char **buf_p, char *match ) {
-	char    *token;
+	char	*token;
 
 	token = COM_Parse( buf_p );
 	if ( strcmp( token, match ) ) {
@@ -692,52 +816,34 @@ void COM_MatchToken( char **buf_p, char *match ) {
 	}
 }
 
-/*
-=================
-SkipBracedSection_Depth
-
-=================
-*/
-void SkipBracedSection_Depth( char **program, int depth ) {
-	char            *token;
-
-	do {
-		token = COM_ParseExt( program, qtrue );
-		if ( token[1] == 0 ) {
-			if ( token[0] == '{' ) {
-				depth++;
-			} else if ( token[0] == '}' )     {
-				depth--;
-			}
-		}
-	} while ( depth && *program );
-}
 
 /*
 =================
 SkipBracedSection
 
-The next token should be an open brace.
+The next token should be an open brace or set depth to 1 if already parsed it.
 Skips until a matching close brace is found.
 Internal brace depths are properly skipped.
 =================
 */
-void SkipBracedSection( char **program ) {
-	char            *token;
-	int depth;
+qboolean SkipBracedSection( char **program, int depth ) {
+	char			*token;
 
-	depth = 0;
 	do {
 		token = COM_ParseExt( program, qtrue );
-		if ( token[1] == 0 ) {
-			if ( token[0] == '{' ) {
+		if( token[1] == 0 ) {
+			if( token[0] == '{' ) {
 				depth++;
-			} else if ( token[0] == '}' )     {
+			}
+			else if( token[0] == '}' ) {
 				depth--;
 			}
 		}
-	} while ( depth && *program );
+	} while( depth && *program );
+
+	return ( depth == 0 );
 }
+
 
 /*
 =================
@@ -745,11 +851,16 @@ SkipRestOfLine
 =================
 */
 void SkipRestOfLine( char **data ) {
-	char    *p;
-	int c;
+	char	*p;
+	int		c;
 
 	p = *data;
-	while ( ( c = *p++ ) != 0 ) {
+
+	if ( !*p )
+		return;
+
+	while ( (c = *p) != '\0' ) {
+		p++;
 		if ( c == '\n' ) {
 			com_lines++;
 			break;

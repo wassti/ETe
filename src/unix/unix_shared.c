@@ -44,15 +44,6 @@ If you have questions concerning this license or the applicable additional terms
 
 //=============================================================================
 
-// Used to determine CD Path
-static char cdPath[MAX_OSPATH];
-
-// Used to determine local installation path
-static char installPath[MAX_OSPATH];
-
-// Used to determine where to store user-specific files
-static char homePath[MAX_OSPATH];
-
 /*
 ================
 Sys_Milliseconds

@@ -1096,6 +1096,7 @@ void SV_PacketEvent( const netadr_t *from, msg_t *msg ) {
 
 	// if we received a sequenced packet from an address we don't recognize,
 	// send an out of band disconnect packet to it
+	// ENSI NOTE disabled because it was removed in ioq3 after protocol upgrades
 	////NET_OutOfBandPrint( NS_SERVER, from, "disconnect" );
 }
 

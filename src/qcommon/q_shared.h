@@ -800,6 +800,7 @@ void	COM_StripExtension(const char *in, char *out, int destsize);
 qboolean COM_CompareExtension(const char *in, const char *ext);
 void	COM_DefaultExtension( char *path, int maxSize, const char *extension );
 
+long	Com_GenerateHashValue( const char *fname, const int size );
 
 void    COM_BeginParseSession( const char *name );
 void    COM_RestoreParseSession( char **data_p );
@@ -842,8 +843,7 @@ typedef struct pc_token_s
 
 void    COM_MatchToken( char**buf_p, char *match );
 
-void SkipBracedSection( char **program );
-void SkipBracedSection_Depth( char **program, int depth ); // start at given depth if already
+qboolean SkipBracedSection( char **program, int depth );
 void SkipRestOfLine( char **data );
 
 void Parse1DMatrix( char **buf_p, int x, float *m );

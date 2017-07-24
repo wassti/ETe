@@ -377,31 +377,8 @@ int FS_LoadStack( void )
 return a hash value for the filename
 ================
 */
-static long FS_HashFileName( const char *fname, int hashSize ) {
-	int i;
-	long hash;
-	char letter;
+#define FS_HashFileName Com_GenerateHashValue
 
-	hash = 0;
-	i = 0;
-	while ( fname[i] != '\0' ) {
-		letter = tolower( fname[i] );
-		if ( letter == '.' ) {
-			break;                          // don't include extension
-		}
-		if ( letter == '\\' ) {
-			letter = '/';                   // damn path names
-		}
-		if ( letter == PATH_SEP ) {
-			letter = '/';                           // damn path names
-		}
-		hash += (long)( letter ) * ( i + 119 );
-		i++;
-	}
-	hash = ( hash ^ ( hash >> 10 ) ^ ( hash >> 20 ) );
-	hash &= ( hashSize - 1 );
-	return hash;
-}
 
 /*
 =================
@@ -880,7 +857,7 @@ int FS_SV_FOpenFileRead( const char *filename, fileHandle_t *fp ) {
 
 #ifndef DEDICATED
 	// don't let sound shutter
-	S_ClearSoundBuffer( qfalse );
+	//S_ClearSoundBuffer( qfalse );
 #endif
 
 	// search homepath
@@ -936,7 +913,7 @@ void FS_SV_Rename( const char *from, const char *to ) {
 
 #ifndef DEDICATED
 	// don't let sound stutter
-	S_ClearSoundBuffer( qfalse );
+	//S_ClearSoundBuffer( qfalse );
 #endif
 
 	from_ospath = FS_BuildOSPath( fs_homepath->string, from, NULL );
@@ -969,7 +946,7 @@ void FS_Rename( const char *from, const char *to ) {
 
 #ifndef DEDICATED
 	// don't let sound stutter
-	S_ClearSoundBuffer( qfalse );
+	//S_ClearSoundBuffer( qfalse );
 #endif
 
 	from_ospath = FS_BuildOSPath( fs_homepath->string, fs_gamedir, from );
@@ -1095,7 +1072,7 @@ fileHandle_t FS_FOpenFileAppend( const char *filename ) {
 	}
 #ifndef DEDICATED
 	// don't let sound stutter
-	S_ClearSoundBuffer( qfalse );
+	//S_ClearSoundBuffer( qfalse );
 #endif
 
 	ospath = FS_BuildOSPath( fs_homepath->string, fs_gamedir, filename );
@@ -4205,10 +4182,6 @@ const char *FS_LoadedPakPureChecksums( void ) {
 
 		Q_strcat( info, sizeof( info ), va("%i ", search->pack->pure_checksum ) );
 	}
-
-	// DO_LIGHT_DEDICATED
-	// only comment out when you need a new pure checksums string
-	//Com_DPrintf("FS_LoadPakPureChecksums: %s\n", info);
 
 	return info;
 }

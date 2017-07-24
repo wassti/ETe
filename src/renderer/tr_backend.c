@@ -1083,8 +1083,10 @@ void RE_StretchRaw( int x, int y, int w, int h, int cols, int rows, const byte *
 		RB_EndSurface();
 	}
 
-	// we definately want to sync every frame for the cinematics
-	qglFinish();
+	// sync with gl if needed
+	if ( r_finish->integer == 1 ) {
+		qglFinish();
+	}
 
 	start = 0;
 	if ( r_speeds->integer ) {
@@ -1568,7 +1570,9 @@ void RB_ShowImages( void ) {
 
 	qglClear( GL_COLOR_BUFFER_BIT );
 
-	qglFinish();
+	if ( r_finish->integer == 1 ) {
+		qglFinish();
+	}
 
 	start = ri.Milliseconds();
 
@@ -1600,7 +1604,9 @@ void RB_ShowImages( void ) {
 		qglEnd();
 	}
 
-	qglFinish();
+	if ( r_finish->integer == 1 ) {
+		qglFinish();
+	}
 
 	end = ri.Milliseconds();
 	ri.Printf( PRINT_ALL, "%i msec to draw all images\n", end - start );
@@ -1731,7 +1737,11 @@ const void  *RB_Finish( const void *data ) {
 
 	cmd = (const renderFinishCommand_t *)data;
 
-	qglFinish();
+	// sync with gl if needed
+	// ENSI NOTE ET didn't have r_finish check
+	if ( r_finish->integer == 1 ) {
+		qglFinish();
+	}
 
 	return (const void *)( cmd + 1 );
 }

@@ -973,7 +973,6 @@ void R_SetupProjectionZ(viewParms_t *dest)
 		zFar	= dest->zFar;
 	}
 
-	zFar	= dest->zFar;
 	depth	= zFar - zNear;
 
 	dest->projectionMatrix[2] = 0;
@@ -1806,7 +1805,7 @@ void R_SortDrawSurfs( drawSurf_t *drawSurfs, int numDrawSurfs ) {
 			if ( r_portalOnly->integer ) {
 				return;
 			}
-			break;		// only one mirror view at a time
+			//break;	// only one mirror view at a time
 		}
 	}
 
@@ -2067,7 +2066,7 @@ A view may be either the actual camera view,
 or a mirror / remote location
 ================
 */
-void R_RenderView (viewParms_t *parms) {
+void R_RenderView( const viewParms_t *parms ) {
 	int		firstDrawSurf;
 	int		numDrawSurfs;
 

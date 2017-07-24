@@ -365,7 +365,7 @@ typedef struct cmd_function_s
 	struct cmd_function_s	*next;
 	char					*name;
 	xcommand_t				function;
-	completionFunc_t	complete;
+	completionFunc_t		complete;
 } cmd_function_t;
 
 
@@ -690,15 +690,17 @@ cmd_function_t *Cmd_FindCommand( const char *cmd_name )
 Cmd_AddCommand
 ============
 */
-void	Cmd_AddCommand( const char *cmd_name, xcommand_t function ) {
+void Cmd_AddCommand( const char *cmd_name, xcommand_t function ) {
 	cmd_function_t	*cmd;
 	
 	// fail if the command already exists
-	if( Cmd_FindCommand( cmd_name ) )
+	if( (cmd = Cmd_FindCommand( cmd_name )) != NULL )
 	{
 		// allow completion-only commands to be silently doubled
-		if( function != NULL )
+		if ( function != NULL )
 			Com_Printf( "Cmd_AddCommand: %s already defined\n", cmd_name );
+		// update function
+		cmd->function = function;
 		return;
 	}
 
@@ -742,7 +744,7 @@ void	Cmd_RemoveCommand( const char *cmd_name ) {
 			// command wasn't active
 			return;
 		}
-		if ( !strcmp( cmd_name, cmd->name ) ) {
+		if ( !Q_stricmp( cmd_name, cmd->name ) ) {
 			*back = cmd->next;
 			if (cmd->name) {
 				Z_Free(cmd->name);

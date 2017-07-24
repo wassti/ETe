@@ -1568,7 +1568,8 @@ int SV_SendQueuedPackets( void )
 				deltaT = Sys_Milliseconds() - dlStart;
 
 				delayT = 1000 * numBlocks * MAX_DOWNLOAD_BLKSIZE;
-				delayT /= sv_dl_maxRate->integer * 1024;
+				delayT /= sv_dl_maxRate->integer;
+				//delayT /= sv_dl_maxRate->integer * 1024;
 
 				if(delayT <= deltaT + 1)
 				{

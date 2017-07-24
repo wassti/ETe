@@ -698,11 +698,12 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 
 			if ( svs.clients[i].netchan.remoteAddress.type == NA_BOT ) {
 				if ( killBots || SV_GameIsSinglePlayer() || SV_GameIsCoop() ) {
-					SV_DropClient( &svs.clients[i], "" );
+					SV_DropClient( &svs.clients[i], "was kicked" );
 					continue;
 				}
 				isBot = qtrue;
-			} else {
+			}
+			else {
 				isBot = qfalse;
 			}
 

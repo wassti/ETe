@@ -1679,6 +1679,17 @@ void SV_UserinfoChanged( client_t *cl ) {
 	}
 	
 	// TTimo
+	// download prefs of the client
+	val = Info_ValueForKey( cl->userinfo, "cl_wwwDownload" );
+	cl->bDlOK = qfalse;
+	if ( strlen( val ) ) {
+		i = atoi( val );
+		if ( i != 0 ) {
+			cl->bDlOK = qtrue;
+		}
+	}
+
+	// TTimo
 	// maintain the IP information
 	// the banning code relies on this being consistently present
 	if ( NET_IsLocalAddress( &cl->netchan.remoteAddress ) )
@@ -1693,19 +1704,6 @@ void SV_UserinfoChanged( client_t *cl ) {
 		SV_DropClient( cl, "userinfo string length exceeded" );
 	else
 		Info_SetValueForKey( cl->userinfo, "ip", ip );
-
-
-	// TTimo
-	// download prefs of the client
-	val = Info_ValueForKey( cl->userinfo, "cl_wwwDownload" );
-	cl->bDlOK = qfalse;
-	if ( strlen( val ) ) {
-		i = atoi( val );
-		if ( i != 0 ) {
-			cl->bDlOK = qtrue;
-		}
-	}
-
 }
 
 

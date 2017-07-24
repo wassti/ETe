@@ -12,12 +12,12 @@
     <Filter Include="FreeType2">
       <UniqueIdentifier>{de2c38dd-358a-4164-97bf-c9d265bde127}</UniqueIdentifier>
     </Filter>
-    <Filter Include="FreeType2\Source Files No. 2">
-      <UniqueIdentifier>{7cb1339c-86ac-41c6-847c-8582131c329d}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="FreeType2\Header Files No. 2">
+    <Filter Include="FreeType2\Header Files">
       <UniqueIdentifier>{d9e166b5-6ea1-48f8-8c18-3360d2e9cf0f}</UniqueIdentifier>
       <Extensions>.h</Extensions>
+    </Filter>
+    <Filter Include="FreeType2\Source Files">
+      <UniqueIdentifier>{7cb1339c-86ac-41c6-847c-8582131c329d}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -114,103 +114,103 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ft2\ahangles.c">
-      <Filter>FreeType2\Source Files No. 2</Filter>
+      <Filter>FreeType2\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ft2\ahglobal.c">
-      <Filter>FreeType2\Source Files No. 2</Filter>
+      <Filter>FreeType2\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ft2\ahglyph.c">
-      <Filter>FreeType2\Source Files No. 2</Filter>
+      <Filter>FreeType2\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ft2\ahhint.c">
-      <Filter>FreeType2\Source Files No. 2</Filter>
+      <Filter>FreeType2\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ft2\ahmodule.c">
-      <Filter>FreeType2\Source Files No. 2</Filter>
+      <Filter>FreeType2\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ft2\ahoptim.c">
-      <Filter>FreeType2\Source Files No. 2</Filter>
+      <Filter>FreeType2\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ft2\ftcalc.c">
-      <Filter>FreeType2\Source Files No. 2</Filter>
+      <Filter>FreeType2\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ft2\ftdebug.c">
-      <Filter>FreeType2\Source Files No. 2</Filter>
+      <Filter>FreeType2\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ft2\ftextend.c">
-      <Filter>FreeType2\Source Files No. 2</Filter>
+      <Filter>FreeType2\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ft2\ftglyph.c">
-      <Filter>FreeType2\Source Files No. 2</Filter>
+      <Filter>FreeType2\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ft2\ftgrays.c">
-      <Filter>FreeType2\Source Files No. 2</Filter>
+      <Filter>FreeType2\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ft2\ftinit.c">
-      <Filter>FreeType2\Source Files No. 2</Filter>
+      <Filter>FreeType2\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ft2\ftlist.c">
-      <Filter>FreeType2\Source Files No. 2</Filter>
+      <Filter>FreeType2\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ft2\ftmm.c">
-      <Filter>FreeType2\Source Files No. 2</Filter>
+      <Filter>FreeType2\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ft2\ftnames.c">
-      <Filter>FreeType2\Source Files No. 2</Filter>
+      <Filter>FreeType2\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ft2\ftobjs.c">
-      <Filter>FreeType2\Source Files No. 2</Filter>
+      <Filter>FreeType2\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ft2\ftoutln.c">
-      <Filter>FreeType2\Source Files No. 2</Filter>
+      <Filter>FreeType2\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ft2\ftraster.c">
-      <Filter>FreeType2\Source Files No. 2</Filter>
+      <Filter>FreeType2\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ft2\ftrend1.c">
-      <Filter>FreeType2\Source Files No. 2</Filter>
+      <Filter>FreeType2\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ft2\ftsmooth.c">
-      <Filter>FreeType2\Source Files No. 2</Filter>
+      <Filter>FreeType2\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ft2\ftstream.c">
-      <Filter>FreeType2\Source Files No. 2</Filter>
+      <Filter>FreeType2\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ft2\ftsystem.c">
-      <Filter>FreeType2\Source Files No. 2</Filter>
+      <Filter>FreeType2\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ft2\sfdriver.c">
-      <Filter>FreeType2\Source Files No. 2</Filter>
+      <Filter>FreeType2\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ft2\sfobjs.c">
-      <Filter>FreeType2\Source Files No. 2</Filter>
+      <Filter>FreeType2\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ft2\ttcmap.c">
-      <Filter>FreeType2\Source Files No. 2</Filter>
+      <Filter>FreeType2\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ft2\ttdriver.c">
-      <Filter>FreeType2\Source Files No. 2</Filter>
+      <Filter>FreeType2\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ft2\ttgload.c">
-      <Filter>FreeType2\Source Files No. 2</Filter>
+      <Filter>FreeType2\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ft2\ttinterp.c">
-      <Filter>FreeType2\Source Files No. 2</Filter>
+      <Filter>FreeType2\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ft2\ttload.c">
-      <Filter>FreeType2\Source Files No. 2</Filter>
+      <Filter>FreeType2\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ft2\ttobjs.c">
-      <Filter>FreeType2\Source Files No. 2</Filter>
+      <Filter>FreeType2\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ft2\ttpload.c">
-      <Filter>FreeType2\Source Files No. 2</Filter>
+      <Filter>FreeType2\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ft2\ttpost.c">
-      <Filter>FreeType2\Source Files No. 2</Filter>
+      <Filter>FreeType2\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ft2\ttsbit.c">
-      <Filter>FreeType2\Source Files No. 2</Filter>
+      <Filter>FreeType2\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="tr_image_bmp.c">
       <Filter>Source Files</Filter>
@@ -281,163 +281,163 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\ahangles.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\ahglobal.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\ahglyph.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\ahhint.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\ahloader.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\ahmodule.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\ahoptim.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\ahtypes.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\autohint.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\freetype.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\ftcalc.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\ftconfig.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\ftdebug.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\ftdriver.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\fterrors.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\ftextend.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\ftglyph.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\ftgrays.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\ftimage.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\ftlist.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\ftmemory.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\ftmm.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\ftmodule.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\ftnames.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\ftobjs.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\ftoption.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\ftoutln.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\ftraster.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\ftrend1.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\ftrender.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\ftsmooth.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\ftstream.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\ftsystem.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\fttypes.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\psnames.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\sfdriver.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\sfnt.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\sfobjs.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\t1tables.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\ttcmap.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\ttdriver.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\tterrors.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\ttgload.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\ttinterp.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\ttload.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\ttnameid.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\ttobjs.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\ttpload.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\ttpost.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\ttsbit.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\tttables.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\tttags.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ft2\tttypes.h">
-      <Filter>FreeType2\Header Files No. 2</Filter>
+      <Filter>FreeType2\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\qcommon\q_shared.h">
       <Filter>Header Files</Filter>

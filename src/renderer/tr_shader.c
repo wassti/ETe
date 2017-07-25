@@ -3801,7 +3801,6 @@ static int loadShaderBuffers( char **shaderFiles, const int numShaderFiles, char
 			{
 				memcpy( buffers[i] + 0x53C5, "/*", 2 );
 				memcpy( buffers[i] + 0x5459, "*/", 2 );
-				ri.Printf( PRINT_ALL, "Found broken bullet mark shader, replacing...\n" );
 			}
 		}
 		

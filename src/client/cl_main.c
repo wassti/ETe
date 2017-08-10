@@ -355,7 +355,7 @@ CL_WriteGamestate
 */
 static void CL_WriteGamestate( qboolean initial ) 
 {
-	byte		bufData[MAX_MSGLEN];
+	byte		bufData[ MAX_MSGLEN_BUF ];
 	char		*s;
 	msg_t		msg;
 	int			i;
@@ -364,7 +364,7 @@ static void CL_WriteGamestate( qboolean initial )
 	entityState_t	nullstate;
 
 	// write out the gamestate message
-	MSG_Init( &msg, bufData, sizeof(bufData));
+	MSG_Init( &msg, bufData, MAX_MSGLEN );
 	MSG_Bitstream( &msg );
 
 	// NOTE, MRE: all server->client messages now acknowledge
@@ -509,7 +509,7 @@ static void CL_WriteSnapshot( void ) {
 	static entityState_t saved_ents[ MAX_SNAPSHOT_ENTITIES ]; 
 
 	clSnapshot_t *snap, *oldSnap; 
-	byte	bufData[MAX_MSGLEN];
+	byte	bufData[ MAX_MSGLEN_BUF ];
 	msg_t	msg;
 	int		i, len;
 
@@ -523,7 +523,7 @@ static void CL_WriteSnapshot( void ) {
 		oldSnap = &saved_snap;
 	}
 
-	MSG_Init( &msg, bufData, sizeof( bufData ) );
+	MSG_Init( &msg, bufData, MAX_MSGLEN );
 	MSG_Bitstream( &msg );
 
 	// NOTE, MRE: all server->client messages now acknowledge
@@ -736,7 +736,7 @@ CL_ReadDemoMessage
 void CL_ReadDemoMessage( void ) {
 	int			r;
 	msg_t		buf;
-	byte		bufData[ MAX_MSGLEN ];
+	byte		bufData[ MAX_MSGLEN_BUF ];
 	int			s;
 
 	if ( clc.demofile == FS_INVALID_HANDLE ) {
@@ -753,7 +753,7 @@ void CL_ReadDemoMessage( void ) {
 	clc.serverMessageSequence = LittleLong( s );
 
 	// init the message
-	MSG_Init( &buf, bufData, sizeof( bufData ) );
+	MSG_Init( &buf, bufData, MAX_MSGLEN );
 
 	// get the length
 	r = FS_Read( &buf.cursize, 4, clc.demofile );
@@ -1769,13 +1769,16 @@ CL_SendPureChecksums
 =================
 */
 void CL_SendPureChecksums( void ) {
-	char cMsg[MAX_INFO_VALUE];
+	char cMsg[ MAX_STRING_CHARS ];
+	int len;
 
 	// if we are pure we need to send back a command with our referenced pk3 checksums
-	Com_sprintf(cMsg, sizeof(cMsg), "cp %d %s", cl.serverId, FS_ReferencedPakPureChecksums());
+	len = sprintf( cMsg, "cp %d ", cl.serverId );
+	strcpy( cMsg + len, FS_ReferencedPakPureChecksums( sizeof( cMsg ) - len - 1 ) );
 
-	CL_AddReliableCommand(cMsg, qfalse);
+	CL_AddReliableCommand( cMsg, qfalse );
 }
+
 
 /*
 =================
@@ -1952,6 +1955,7 @@ void CL_OpenedPK3List_f( void ) {
 	Com_Printf("Opened PK3 Names: %s\n", FS_LoadedPakNames());
 }
 
+
 /*
 ==================
 CL_PureList_f
@@ -1960,6 +1964,7 @@ CL_PureList_f
 void CL_ReferencedPK3List_f( void ) {
 	Com_Printf("Referenced PK3 Names: %s\n", FS_ReferencedPakNames());
 }
+
 
 /*
 ==================
@@ -2322,8 +2327,8 @@ Resend a connect message if the last one has timed out
 */
 static void CL_CheckForResend( void ) {
 	int		port, len;
-	char	info[MAX_INFO_STRING];
-	char	data[MAX_INFO_STRING + 10];
+	char	info[MAX_INFO_STRING+128]; // larger buffer to detect overflows
+	char	data[MAX_INFO_STRING];
 
 	// don't send anything if playing back a demo
 	if ( clc.demoplaying ) {
@@ -2359,20 +2364,22 @@ static void CL_CheckForResend( void ) {
 
 		Q_strncpyz( info, Cvar_InfoString( CVAR_USERINFO ), sizeof( info ) );
 		
-		// if(com_legacyprotocol->integer == com_protocol->integer)
-		//	clc.compat = qtrue;
-
 		if ( clc.compat )
-			Info_SetValueForKey(info, "protocol", va("%i", PROTOCOL_VERSION ));
+			Info_SetValueForKey( info, "protocol", va( "%i", PROTOCOL_VERSION ) );
 		else
-			Info_SetValueForKey(info, "protocol", va("%i", NEW_PROTOCOL_VERSION ));
+			Info_SetValueForKey( info, "protocol", va( "%i", NEW_PROTOCOL_VERSION ) );
 
 		Info_SetValueForKey( info, "qport", va( "%i", port ) );
 		Info_SetValueForKey( info, "challenge", va( "%i", clc.challenge ) );
 
+		len = strlen( info );
+		if ( len > MAX_USERINFO_LENGTH ) {
+			Com_Printf( S_COLOR_YELLOW "WARNING: oversize userinfo (%i), you might be not able to join remote server!\n", len );
+		}
+
 		len = Com_sprintf( data, sizeof( data ), "connect \"%s\"", info );
 		// NOTE TTimo don't forget to set the right data length!
-		NET_OutOfBandData( NS_CLIENT, &clc.serverAddress, (byte *) &data[0], len );
+		NET_OutOfBandCompress( NS_CLIENT, &clc.serverAddress, (byte *) &data[0], len );
 		// the most current userinfo has been sent, so watch for any
 		// newer changes to userinfo variables
 		cvar_modifiedFlags &= ~CVAR_USERINFO;
@@ -3071,8 +3078,17 @@ void CL_CheckUserinfo( void ) {
 	// send a reliable userinfo update if needed
 	if( cvar_modifiedFlags & CVAR_USERINFO )
 	{
+		char *info;
+		int len;
+
 		cvar_modifiedFlags &= ~CVAR_USERINFO;
-		CL_AddReliableCommand( va("userinfo \"%s\"", Cvar_InfoString( CVAR_USERINFO ) ), qfalse );
+
+		info = Cvar_InfoString( CVAR_USERINFO );
+		if ( (len = strlen( info )) > MAX_USERINFO_LENGTH ) {
+			Com_Printf( S_COLOR_YELLOW "WARNING: oversize userinfo (%i), you might be not able to play on remote server!\n", len );
+		}
+
+		CL_AddReliableCommand( va( "userinfo \"%s\"", info ), qfalse );
 	}
 }
 

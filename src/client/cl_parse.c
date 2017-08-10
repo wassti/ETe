@@ -466,6 +466,17 @@ void CL_ParseSnapshot( msg_t *msg ) {
 int cl_connectedToPureServer;
 int cl_connectedToCheatServer;
 
+static const char *ignoredCvars[] = {
+	"sv_pure",
+	"sv_paks",
+	"sv_pakNames",
+	"sv_referencedPaks",
+	"sv_referencedPakNames",
+	"sv_serverid"
+};
+
+static const size_t numIgnoredCvars = ARRAY_LEN( ignoredCvars );
+
 /*
 ==================
 CL_SystemInfoChanged
@@ -513,19 +524,29 @@ void CL_SystemInfoChanged( void ) {
 	t = Info_ValueForKey( systemInfo, "sv_referencedPakNames" );
 	FS_PureServerSetReferencedPaks( s, t );
 
+	s = Info_ValueForKey( systemInfo, "sv_pure" );
+	pureSv = atoi( s );
+
 	gameSet = qfalse;
 	// scan through all the variables in the systeminfo and locally set cvars to match
 	s = systemInfo;
 	while ( s ) {
 		int cvar_flags;
+		const char *foundkey = NULL;
 		
 		Info_NextPair( &s, key, value );
 		if ( !key[0] ) {
 			break;
 		}
+
+		// we don't really need any of these server cvars to be set on client-side
+		foundkey = (const char *)Q_LinearSearch( key, ignoredCvars, numIgnoredCvars, sizeof( ignoredCvars[0] ), Q_stricmp );
+		if ( foundkey ) {
+			continue;
+		}
 		
 		// ehw!
-		if (!Q_stricmp(key, "fs_game"))
+		if ( !Q_stricmp( key, "fs_game" ) )
 		{
 			if(FS_CheckDirTraversal(value))
 			{
@@ -562,7 +583,6 @@ void CL_SystemInfoChanged( void ) {
 	}
 
 	// Arnout: big hack to clear the image cache on a pure change
-	pureSv = Cvar_VariableIntegerValue( "sv_pure" );
 	if ( pureSv ) {
 		if ( !cl_connectedToPureServer && cls.state <= CA_CONNECTED )
 			CL_PurgeCache();
@@ -753,7 +773,7 @@ A download message has been received from the server
 */
 void CL_ParseDownload( msg_t *msg ) {
 	int		size;
-	unsigned char data[MAX_MSGLEN];
+	unsigned char data[ MAX_MSGLEN ];
 	int block;
 
 	if (!*clc.downloadTempName) {
@@ -875,10 +895,10 @@ void CL_ParseDownload( msg_t *msg ) {
 	// So UI gets access to it
 	Cvar_SetValue( "cl_downloadCount", clc.downloadCount );
 
-	if ( !size ) { // A zero length block means EOF
-		if ( clc.download ) {
+	if (!size) { // A zero length block means EOF
+		if ( clc.download != FS_INVALID_HANDLE ) {
 			FS_FCloseFile( clc.download );
-			clc.download = 0;
+			clc.download = FS_INVALID_HANDLE;
 
 			// rename the file
 			FS_SV_Rename( cls.downloadTempName, cls.downloadName );
@@ -895,9 +915,10 @@ void CL_ParseDownload( msg_t *msg ) {
 		CL_WritePacket();
 
 		// get another file if needed
-		CL_NextDownload();
+		CL_NextDownload ();
 	}
 }
+
 
 /*
 =====================

@@ -67,26 +67,27 @@ static void CL_Netchan_Encode( msg_t *msg ) {
 	msg->oob = soob;
 	msg->bit = sbit;
 	msg->readcount = srdc;
-
-	string = (byte *)clc.serverCommands[ reliableAcknowledge & ( MAX_RELIABLE_COMMANDS - 1 ) ];
+        
+	string = (byte *)clc.serverCommands[ reliableAcknowledge & (MAX_RELIABLE_COMMANDS-1) ];
 	index = 0;
 	//
 	key = clc.challenge ^ serverId ^ messageAcknowledge;
-	for ( i = CL_ENCODE_START; i < msg->cursize; i++ ) {
+	for (i = CL_ENCODE_START; i < msg->cursize; i++) {
 		// modify the key with the last received now acknowledged server command
-		if ( !string[index] ) {
+		if (!string[index])
 			index = 0;
+		if (string[index] > 127 || string[index] == '%') {
+			key ^= '.' << (i & 1);
 		}
-		if ( string[index] > 127 || string[index] == '%' ) {
-			key ^= '.' << ( i & 1 );
-		} else {
-			key ^= string[index] << ( i & 1 );
+		else {
+			key ^= string[index] << (i & 1);
 		}
 		index++;
 		// encode the data with this key
-		*( msg->data + i ) = ( *( msg->data + i ) ) ^ key;
+		*(msg->data + i) = (*(msg->data + i)) ^ key;
 	}
 }
+
 
 /*
 ==============
@@ -100,13 +101,14 @@ CL_Netchan_Decode
 static void CL_Netchan_Decode( msg_t *msg ) {
 	long reliableAcknowledge, i, index;
 	byte key, *string;
-	int srdc, sbit, soob;
+	int	srdc, sbit;
+	qboolean soob;
 
 	srdc = msg->readcount;
 	sbit = msg->bit;
 	soob = msg->oob;
 
-	msg->oob = 0;
+	msg->oob = qfalse;
 
 	reliableAcknowledge = MSG_ReadLong( msg );
 
@@ -118,21 +120,22 @@ static void CL_Netchan_Decode( msg_t *msg ) {
 	index = 0;
 	// xor the client challenge with the netchan sequence number (need something that changes every message)
 	key = clc.challenge ^ LittleLong( *(unsigned *)msg->data );
-	for ( i = msg->readcount + CL_DECODE_START; i < msg->cursize; i++ ) {
+	for (i = msg->readcount + CL_DECODE_START; i < msg->cursize; i++) {
 		// modify the key with the last sent and with this message acknowledged client command
-		if ( !string[index] ) {
+		if (!string[index])
 			index = 0;
+		if (string[index] > 127 || string[index] == '%') {
+			key ^= '.' << (i & 1);
 		}
-		if ( string[index] > 127 || string[index] == '%' ) {
-			key ^= '.' << ( i & 1 );
-		} else {
-			key ^= string[index] << ( i & 1 );
+		else {
+			key ^= string[index] << (i & 1);
 		}
 		index++;
 		// decode the data with this key
-		*( msg->data + i ) = *( msg->data + i ) ^ key;
+		*(msg->data + i) = *(msg->data + i) ^ key;
 	}
 }
+
 
 /*
 =================

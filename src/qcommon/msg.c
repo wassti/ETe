@@ -39,19 +39,18 @@ int wastedbits = 0;
 Handles byte ordering and avoids alignment errors
 ==============================================================================
 */
-
-int oldsize = 0;
-
 void MSG_Init( msg_t *buf, byte *data, int length ) {
 	Com_Memset (buf, 0, sizeof(*buf));
 	buf->data = data;
 	buf->maxsize = length;
+	buf->maxbits = length * 8;
 }
 
 void MSG_InitOOB( msg_t *buf, byte *data, int length ) {
 	Com_Memset (buf, 0, sizeof(*buf));
 	buf->data = data;
 	buf->maxsize = length;
+	buf->maxbits = length * 8;
 	buf->oob = qtrue;
 }
 
@@ -111,19 +110,14 @@ bit functions
 void MSG_WriteBits( msg_t *msg, int value, int bits ) {
 	int	i;
 
-	oldsize += bits;
-
 	msg->uncompsize += bits;            // NERVE - SMF - net debugging
-
-	// this isn't an exact overflow check, but close enough
-	if ( msg->maxsize - msg->cursize < 4 ) {
-		msg->overflowed = qtrue;
-		return;
-	}
 
 	if ( bits == 0 || bits < -31 || bits > 32 ) {
 		Com_Error( ERR_DROP, "MSG_WriteBits: bad bits %i", bits );
 	}
+
+	if ( msg->overflowed != qfalse )
+		return;
 
 	if ( bits < 0 ) {
 		bits = -bits;
@@ -166,6 +160,10 @@ void MSG_WriteBits( msg_t *msg, int value, int bits ) {
 		}
 		msg->cursize = (msg->bit>>3)+1;
 	}
+
+	if ( msg->bit > msg->maxbits ) {
+		msg->overflowed = qtrue;
+	}
 }
 
 
@@ -175,6 +173,9 @@ int MSG_ReadBits( msg_t *msg, int bits ) {
 	int			i;
 	int			sym;
 	const byte *buffer = msg->data; // dereference optimization
+
+	if ( msg->bit >= msg->maxbits )
+		return 0;
 
 	value = 0;
 
@@ -423,8 +424,8 @@ const char *MSG_ReadString( msg_t *msg ) {
 	
 	l = 0;
 	do {
-		c = MSG_ReadByte( msg );      // use ReadByte so -1 is out of bounds
-		if ( c == -1 || c == 0 ) {
+		c = MSG_ReadByte(msg);		// use ReadByte so -1 is out of bounds
+		if ( c <=0 /*c == -1 || c == 0 */ ) {
 			break;
 		}
 		// translate all fmt spec to avoid crash bugs
@@ -452,8 +453,8 @@ const char *MSG_ReadBigString( msg_t *msg ) {
 	
 	l = 0;
 	do {
-		c = MSG_ReadByte( msg );      // use ReadByte so -1 is out of bounds
-		if ( c == -1 || c == 0 ) {
+		c = MSG_ReadByte(msg);		// use ReadByte so -1 is out of bounds
+		if ( c <= 0 /*c == -1 || c == 0*/ ) {
 			break;
 		}
 		// translate all fmt spec to avoid crash bugs
@@ -481,8 +482,8 @@ const char *MSG_ReadStringLine( msg_t *msg ) {
 
 	l = 0;
 	do {
-		c = MSG_ReadByte( msg );      // use ReadByte so -1 is out of bounds
-		if ( c == -1 || c == 0 || c == '\n' ) {
+		c = MSG_ReadByte(msg);		// use ReadByte so -1 is out of bounds
+		if ( c <= 0 /*c == -1 || c == 0*/ || c == '\n') {
 			break;
 		}
 		// translate all fmt spec to avoid crash bugs
@@ -737,7 +738,6 @@ void MSG_WriteDeltaUsercmdKey( msg_t *msg, int key, usercmd_t *from, usercmd_t *
 		 from->doubleTap == to->doubleTap &&
 		 from->identClient == to->identClient ) {   // NERVE - SMF
 		MSG_WriteBits( msg, 0, 1 );                 // no change
-		oldsize += 7;
 		return;
 	}
 	key ^= to->serverTime;
@@ -774,8 +774,14 @@ void MSG_ReadDeltaUsercmdKey( msg_t *msg, int key, usercmd_t *from, usercmd_t *t
 		to->angles[1] = MSG_ReadDeltaKey( msg, key, from->angles[1], 16 );
 		to->angles[2] = MSG_ReadDeltaKey( msg, key, from->angles[2], 16 );
 		to->forwardmove = MSG_ReadDeltaKey( msg, key, from->forwardmove, 8 );
+		if( to->forwardmove == -128 )
+			to->forwardmove = -127;
 		to->rightmove = MSG_ReadDeltaKey( msg, key, from->rightmove, 8 );
+		if( to->rightmove == -128 )
+			to->rightmove = -127;
 		to->upmove = MSG_ReadDeltaKey( msg, key, from->upmove, 8 );
+		if( to->upmove == -128 )
+			to->upmove = -127;
 		to->buttons = MSG_ReadDeltaKey( msg, key, from->buttons, 8 );
 		to->wbuttons = MSG_ReadDeltaKey( msg, key, from->wbuttons, 8 );
 		to->weapon = MSG_ReadDeltaKey( msg, key, from->weapon, 8 );
@@ -1023,8 +1029,6 @@ void MSG_WriteDeltaEntity( msg_t *msg, const entityState_t *from, const entitySt
 
 	MSG_WriteByte( msg, lc );   // # of changes
 
-	oldsize += numFields;
-
 //	Com_Printf( "Delta for ent %i: ", to->number );
 
 	for ( i = 0, field = entityStateFields ; i < lc ; i++, field++ ) {
@@ -1048,7 +1052,6 @@ void MSG_WriteDeltaEntity( msg_t *msg, const entityState_t *from, const entitySt
 
 			if ( fullFloat == 0.0f ) {
 				MSG_WriteBits( msg, 0, 1 );
-				oldsize += FLOAT_INT_BITS;
 			} else {
 				MSG_WriteBits( msg, 1, 1 );
 				if ( trunc == fullFloat && trunc + FLOAT_INT_BIAS >= 0 &&
@@ -1425,8 +1428,6 @@ void MSG_WriteDeltaPlayerstate( msg_t *msg, const playerState_t *from, const pla
 
 	MSG_WriteByte( msg, lc );   // # of changes
 
-	oldsize += numFields - lc;
-
 	for ( i = 0, field = playerStateFields ; i < lc ; i++, field++ ) {
 		fromF = ( int * )( (byte *)from + field->offset );
 		toF = ( int * )( (byte *)to + field->offset );
@@ -1557,7 +1558,6 @@ void MSG_WriteDeltaPlayerstate( msg_t *msg, const playerState_t *from, const pla
 		}
 	} else {
 		MSG_WriteBits( msg, 0, 1 ); // no change to any
-		oldsize += 4;
 	}
 
 

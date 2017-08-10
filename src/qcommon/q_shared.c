@@ -1322,6 +1322,16 @@ void Q_strcat( char *dest, int size, const char *src ) {
 }
 
 
+char *Q_stradd( char *dst, const char *src )
+{
+	char c;
+	while ( (c = *src++) != '\0' ) 
+		*dst++ = c;
+	*dst = '\0';
+	return dst;
+}
+
+
 /*
 * Find the first occurrence of find in s.
 */
@@ -2049,3 +2059,16 @@ char *Com_SkipTokens( char *s, int numTokens, char *sep )
 	else
 		return s;
 }
+
+void *Q_LinearSearch( const void *key, const void *ptr, size_t count,
+	size_t size, cmpFunc_t cmp )
+{
+	size_t i;
+	for ( i = 0; i < count; i++ )
+	{
+		if ( cmp( key, ptr ) == 0 ) return (void *)ptr;
+		ptr = (const char *)ptr + size;
+	}
+	return NULL;
+}
+

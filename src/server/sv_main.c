@@ -632,14 +632,15 @@ the simple info query.
 ================
 */
 static void SVC_Status( const netadr_t *from ) {
-	char	player[1024];
-	char	status[MAX_MSGLEN];
+	char	player[MAX_NAME_LENGTH + 32]; // score + ping + name
+	char	status[1400]; // MAX_PACKETLEN
+	char	*s;
 	int		i;
 	client_t	*cl;
 	playerState_t	*ps;
 	int		statusLength;
 	int		playerLength;
-	char	infostring[MAX_INFO_STRING];
+	char	infostring[MAX_INFO_STRING+160]; // add some space for challenge string
 
 	// ignore if we are in single player
 	if ( SV_GameIsSinglePlayer() ) {
@@ -663,7 +664,7 @@ static void SVC_Status( const netadr_t *from ) {
 	}
 
 	// A maximum challenge length of 128 should be more than plenty.
-	if(strlen(Cmd_Argv(1)) > 128)
+	if ( strlen( Cmd_Argv( 1 ) ) > 128 )
 		return;
 
 	//bani - bugtraq 12534
@@ -671,26 +672,28 @@ static void SVC_Status( const netadr_t *from ) {
 		return;
 	}
 
-	strcpy( infostring, Cvar_InfoString( CVAR_SERVERINFO | CVAR_SERVERINFO_NOUPDATE ) );
+	Q_strncpyz( infostring, Cvar_InfoString( CVAR_SERVERINFO | CVAR_SERVERINFO_NOUPDATE ), sizeof( infostring ) );
 
 	// echo back the parameter to status. so master servers can use it as a challenge
 	// to prevent timed spoofed reply packets that add ghost servers
 	Info_SetValueForKey( infostring, "challenge", Cmd_Argv( 1 ) );
 
-	status[0] = 0;
-	statusLength = 0;
+	s = status;
+	status[0] = '\0';
+	statusLength = strlen( infostring ) + 16; // strlen( "statusResponse\n\n" )
 
 	for ( i = 0 ; i < sv_maxclients->integer ; i++ ) {
 		cl = &svs.clients[i];
 		if ( cl->state >= CS_CONNECTED ) {
+
 			ps = SV_GameClientNum( i );
-			Com_sprintf( player, sizeof( player ), "%i %i \"%s\"\n",
-						 ps->persistant[PERS_SCORE], cl->ping, cl->name );
-			playerLength = strlen( player );
-			if ( statusLength + playerLength >= sizeof( status ) ) {
-				break;      // can't hold any more
-			}
-			strcpy( status + statusLength, player );
+			playerLength = Com_sprintf( player, sizeof( player ), "%i %i \"%s\"\n", 
+				ps->persistant[ PERS_SCORE ], cl->ping, cl->name );
+			
+			if ( statusLength + playerLength >= 1400-4 ) // MAX_PACKETLEN-4
+				break; // can't hold any more
+			
+			s = Q_stradd( s, player );
 			statusLength += playerLength;
 		}
 	}
@@ -816,7 +819,7 @@ static void SVC_Info( const netadr_t *from ) {
 	 */
 
 	// A maximum challenge length of 128 should be more than plenty.
-	if(strlen(Cmd_Argv(1)) > 128)
+	if ( strlen( Cmd_Argv ( 1 ) ) > 128 )
 		return;
 
 	//bani - bugtraq 12534
@@ -996,8 +999,14 @@ static void SV_ConnectionlessPacket( const netadr_t *from, msg_t *msg ) {
 	MSG_BeginReadingOOB( msg );
 	MSG_ReadLong( msg );		// skip the -1 marker
 
-	if (!Q_strncmp("connect", (char *) &msg->data[4], 7)) {
-		Huff_Decompress(msg, 12);
+	if ( !Q_strncmp( "connect", (char *) &msg->data[4], 7 ) ) {
+		if ( msg->cursize > MAX_INFO_STRING*2 ) { // if we assume 200% compression ratio on userinfo
+			if ( com_developer->integer ) {
+				Com_Printf( "%s : connect packet is too long - %i\n", NET_AdrToString( from ), msg->cursize );
+			}
+			return;
+		}
+		Huff_Decompress( msg, 12 );
 	}
 
 	s = MSG_ReadStringLine( msg );

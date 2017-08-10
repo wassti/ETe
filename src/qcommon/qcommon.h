@@ -58,9 +58,10 @@ If you have questions concerning this license or the applicable additional terms
 typedef struct {
 	qboolean	allowoverflow;	// if false, do a Com_Error
 	qboolean	overflowed;		// set to true if the buffer size failed (with allowoverflow set)
-	qboolean	oob;			// set to true if the buffer size failed (with allowoverflow set)
+	qboolean	oob;			// raw out-of-band operation, no static huffman encoding/decoding
 	byte	*data;
 	int		maxsize;
+	int		maxbits;			// maxsize in bits, for overflow checks
 	int		cursize;
 	int		uncompsize;			// NERVE - SMF - net debugging
 	int		readcount;
@@ -197,7 +198,7 @@ void		NET_Config( qboolean enableNetworking );
 void		NET_FlushPacketQueue(void);
 void		NET_SendPacket( netsrc_t sock, int length, const void *data, const netadr_t *to );
 void		QDECL NET_OutOfBandPrint( netsrc_t net_socket, const netadr_t *adr, const char *format, ...) __attribute__ ((format (printf, 3, 4)));
-void		QDECL NET_OutOfBandData( netsrc_t sock, const netadr_t *adr, const byte *data, int len );
+void		NET_OutOfBandCompress( netsrc_t sock, const netadr_t *adr, const byte *data, int len );
 
 qboolean	NET_CompareAdr( const netadr_t *a, const netadr_t *b );
 qboolean	NET_CompareBaseAdrMask( const netadr_t *a, const netadr_t *b, int netmask );
@@ -213,9 +214,13 @@ void		NET_Sleep( int msec );
 
 
 //----(SA)	increased for larger submodel entity counts
-#define MAX_MSGLEN              32768       // max length of a message, which may
-//#define	MAX_MSGLEN				16384		// max length of a message, which may
-// be fragmented into multiple packets
+#define MAX_MSGLEN		32768       // max length of a message, which may
+//#define	MAX_MSGLEN		16384		// max length of a message, which may
+								// be fragmented into multiple packets
+
+#define	MAX_MSGLEN_BUF	(MAX_MSGLEN+8)	// real buffer size that we need to allocate
+										// to safely handle overflows
+
 #define MAX_DOWNLOAD_WINDOW		48	// ACK window of 48 download chunks. Cannot set this higher, or clients
 						// will overflow the reliable commands buffer
 #define MAX_DOWNLOAD_BLKSIZE		1024	// 896 byte block chunks
@@ -821,7 +826,7 @@ const char *FS_LoadedPakPureChecksums( void );
 
 const char *FS_ReferencedPakNames( void );
 const char *FS_ReferencedPakChecksums( void );
-const char *FS_ReferencedPakPureChecksums( void );
+const char *FS_ReferencedPakPureChecksums( int maxlen );
 // Returns a space separated string containing the checksums of all loaded 
 // AND referenced pk3 files. Servers with sv_pure set will get this string 
 // back from clients for pure validation 
@@ -1036,6 +1041,8 @@ extern	cvar_t	*com_yieldCPU;
 #endif
 
 extern	cvar_t	*com_affinityMask;
+
+extern	cvar_t	*sv_leanPakRefs;
 
 // com_speeds times
 extern	int		time_game;

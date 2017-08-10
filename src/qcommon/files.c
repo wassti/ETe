@@ -4215,12 +4215,70 @@ const char *FS_ReferencedPakChecksums( void ) {
 	return info;
 }
 
+
+/*
+=====================
+FS_ReferencedPakPureChecksums
+
+Returns a space separated string containing the pure checksums of all referenced pk3 files.
+Servers with sv_pure set will get this string back from clients for pure validation 
+
+The string has a specific order, "cgame ui @ ref1 ref2 ref3 ..."
+=====================
+*/
+const char *FS_ReferencedPakPureChecksums( int maxlen ) {
+	static char	info[ MAX_STRING_CHARS*2 ];
+	char *s, *max;
+	searchpath_t	*search;
+	int nFlags, numPaks, checksum;
+
+	max = info + maxlen; // maxlen is always smaller than MAX_STRING_CHARS so we can overflow a bit
+	s = info;
+	*s = '\0';
+
+	checksum = fs_checksumFeed;
+	numPaks = 0;
+	for ( nFlags = FS_CGAME_REF; nFlags; nFlags = nFlags >> 1 ) {
+		if ( nFlags & FS_GENERAL_REF ) {
+			// add a delimter between must haves and general refs
+			s = Q_stradd( s, "@ " );
+			if ( s > max ) // client-side overflow
+				break;
+		}
+		for ( search = fs_searchpaths ; search ; search = search->next ) {
+			// is the element a pak file and has it been referenced based on flag?
+			if ( search->pack && (search->pack->referenced & nFlags)) {
+				s = Q_stradd( s, va( "%i ", search->pack->pure_checksum ) );
+				if ( s > max ) // client-side overflow
+					break;
+				if ( nFlags & (FS_CGAME_REF | FS_UI_REF) ) {
+					break;
+				}
+				checksum ^= search->pack->pure_checksum;
+				numPaks++;
+			}
+		}
+	}
+
+	// last checksum is the encoded number of referenced pk3s
+	checksum ^= numPaks;
+	s = Q_stradd( s, va( "%i ", checksum ) );
+	if ( s > max ) { 
+		// client-side overflow
+		Com_Printf( S_COLOR_YELLOW "WARNING: pure checksum list is too long (%i), you might be not able to play on remote server!\n", s - info );
+		*max = '\0';
+	}
+	
+	return info;
+}
+
+
 /*
 =====================
 FS_ReferencedPakNames
 
 Returns a space separated string containing the names of all referenced pk3 files.
-The server will send this to the clients so they can check which files should be auto-downloaded.
+The server will send this to the clients so they can check which files should be auto-downloaded. 
 =====================
 */
 const char *FS_ReferencedPakNames( void ) {
@@ -4250,52 +4308,6 @@ const char *FS_ReferencedPakNames( void ) {
 	return info;
 }
 
-/*
-=====================
-FS_ReferencedPakPureChecksums
-
-Returns a space separated string containing the pure checksums of all referenced pk3 files.
-Servers with sv_pure set will get this string back from clients for pure validation 
-
-The string has a specific order, "cgame ui @ ref1 ref2 ref3 ..."
-=====================
-*/
-const char *FS_ReferencedPakPureChecksums( void ) {
-	static char	info[BIG_INFO_STRING];
-	searchpath_t	*search;
-	int nFlags, numPaks, checksum;
-
-	info[0] = 0;
-
-	checksum = fs_checksumFeed;
-	numPaks = 0;
-	for (nFlags = FS_CGAME_REF; nFlags; nFlags = nFlags >> 1) {
-		if (nFlags & FS_GENERAL_REF) {
-			// add a delimter between must haves and general refs
-			//Q_strcat(info, sizeof(info), "@ ");
-			info[strlen(info)+1] = '\0';
-			info[strlen(info)+2] = '\0';
-			info[strlen(info)] = '@';
-			info[strlen(info)] = ' ';
-		}
-		for ( search = fs_searchpaths ; search ; search = search->next ) {
-			// is the element a pak file and has it been referenced based on flag?
-			if ( search->pack && (search->pack->referenced & nFlags)) {
-				Q_strcat( info, sizeof( info ), va("%i ", search->pack->pure_checksum ) );
-				if (nFlags & (FS_CGAME_REF | FS_UI_REF)) {
-					break;
-				}
-				checksum ^= search->pack->pure_checksum;
-				numPaks++;
-			}
-		}
-	}
-	// last checksum is the encoded number of referenced pk3s
-	checksum ^= numPaks;
-	Q_strcat( info, sizeof( info ), va("%i ", checksum ) );
-
-	return info;
-}
 
 /*
 =====================
@@ -4397,6 +4409,7 @@ void FS_PureServerSetLoadedPaks( const char *pakSums, const char *pakNames ) {
 		}
 	}
 }
+
 
 /*
 =====================
@@ -4542,36 +4555,7 @@ void FS_Restart( int checksumFeed ) {
 
 	// new check before safeMode
 	if ( Q_stricmp( fs_gamedirvar->string, lastValidGame ) && execConfig ) {
-		// skip the wolfconfig.cfg if "safe" is on the command line
-		if ( !Com_SafeMode() ) {
-#ifndef DEDICATED
-			const char *cl_profileStr = Cvar_VariableString( "cl_profile" );
-
-			if ( com_gameInfo.usesProfiles && cl_profileStr[0] ) {
-				// bani - check existing pid file and make sure it's ok
-				if ( !Com_CheckProfile( va( "profiles/%s/profile.pid", cl_profileStr ) ) ) {
-#ifndef _DEBUG
-					Com_Printf( "^3WARNING: profile.pid found for profile '%s' - system settings will revert to defaults\n", cl_profileStr );
-					// ydnar: set crashed state
-					Cbuf_AddText( "set com_crashed 1\n" );
-#endif
-				}
-
-				// bani - write a new one
-				if ( !Com_WriteProfile( va( "profiles/%s/profile.pid", cl_profileStr ) ) ) {
-					Com_Printf( "^3WARNING: couldn't write profiles/%s/profile.pid\n", cl_profileStr );
-				}
-
-				// exec the config
-				Cbuf_AddText( va( "exec profiles/%s/%s\n", cl_profileStr, CONFIG_NAME ) );
-
-			}
-			else
-#endif
-			{
-				Cbuf_AddText( va( "exec %s\n", Q3CONFIG_CFG ) );
-			}
-		}
+		Com_ExecuteCfg( Com_SafeMode() );
 	}
 	execConfig = qfalse;
 
@@ -4648,10 +4632,6 @@ int	FS_FOpenFileByMode( const char *qpath, fileHandle_t *f, fsMode_t mode ) {
 		if ( f == NULL )
 			return -1;
 		*f = FS_FOpenFileWrite( qpath );
-		r = 0;
-		if ( *f == 0 ) {
-			r = -1;
-		}
 		break;
 	case FS_APPEND_SYNC:
 		sync = qtrue;
@@ -4659,10 +4639,6 @@ int	FS_FOpenFileByMode( const char *qpath, fileHandle_t *f, fsMode_t mode ) {
 		if ( f == NULL )
 			return -1;
 		*f = FS_FOpenFileAppend( qpath );
-		r = 0;
-		if ( *f == 0 ) {
-			r = -1;
-		}
 		break;
 	default:
 		Com_Error( ERR_FATAL, "FSH_FOpenFile: bad mode %i", mode );

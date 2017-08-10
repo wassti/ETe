@@ -26,7 +26,6 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-
 /* This is based on the Adaptive Huffman algorithm described in Sayood's Data
  * Compression book.  The ranks are not actually stored, but implicitly defined
  * by the location of a node within a doubly-linked list */
@@ -368,7 +367,6 @@ void Huff_Decompress(msg_t *mbuf, int offset) {
 	Com_Memcpy(mbuf->data + offset, seq, cch);
 }
 
-extern 	int oldsize;
 
 void Huff_Compress(msg_t *mbuf, int offset) {
 	int			i, ch, size;

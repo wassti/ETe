@@ -812,10 +812,10 @@ So we send them "idle" packets with the bare minimum required to keep them on th
 =======================
 */
 void SV_SendClientIdle( client_t *client ) {
-	byte msg_buf[MAX_MSGLEN];
-	msg_t msg;
+	byte		msg_buf[ MAX_MSGLEN_BUF ];
+	msg_t		msg;
 
-	MSG_Init( &msg, msg_buf, sizeof( msg_buf ) );
+	MSG_Init( &msg, msg_buf, MAX_MSGLEN );
 	msg.allowoverflow = qtrue;
 
 	// NOTE, MRE: all server->client messages now acknowledge
@@ -856,8 +856,8 @@ Also called by SV_FinalCommand
 =======================
 */
 void SV_SendClientSnapshot( client_t *client ) {
-	byte msg_buf[MAX_MSGLEN];
-	msg_t msg;
+	byte		msg_buf[ MAX_MSGLEN_BUF ];
+	msg_t		msg;
 
 	//bani
 	if ( client->state < CS_ACTIVE ) {
@@ -878,7 +878,7 @@ void SV_SendClientSnapshot( client_t *client ) {
 		return;
 	}
 
-	MSG_Init (&msg, msg_buf, sizeof(msg_buf));
+	MSG_Init( &msg, msg_buf, MAX_MSGLEN );
 	msg.allowoverflow = qtrue;
 
 	// NOTE, MRE: all server->client messages now acknowledge

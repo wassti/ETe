@@ -569,7 +569,6 @@ void QDECL NET_OutOfBandPrint( netsrc_t sock, const netadr_t *adr, const char *f
 	va_list		argptr;
 	char		string[MAX_MSGLEN];
 
-
 	// set the header
 	string[0] = -1;
 	string[1] = -1;
@@ -584,17 +583,18 @@ void QDECL NET_OutOfBandPrint( netsrc_t sock, const netadr_t *adr, const char *f
 	NET_SendPacket( sock, strlen( string ), string, adr );
 }
 
+
 /*
 ===============
-NET_OutOfBandPrint
+NET_OutOfBandCompress
 
-Sends a data message in an out-of-band datagram (only used for "connect")
+Sends a compressed message in an out-of-band datagram (only used for "connect")
 ================
 */
-void QDECL NET_OutOfBandData( netsrc_t sock, const netadr_t *adr, const byte *data, int len ) {
-	byte string[MAX_MSGLEN * 2]; // MAX_INFO_STRING*2 in Q3e
-	int i;
-	msg_t mbuf;
+void NET_OutOfBandCompress( netsrc_t sock, const netadr_t *adr, const byte *data, int len ) {
+	byte		string[MAX_INFO_STRING*2];
+	int			i;
+	msg_t		mbuf;
 
 	// TODO not used in Q3e
 	MSG_InitOOB( &mbuf, string, sizeof( string ) );
@@ -634,7 +634,7 @@ int NET_StringToAdr( const char *s, netadr_t *a, netadrtype_t family )
 	if (!strcmp (s, "localhost")) {
 		Com_Memset (a, 0, sizeof(*a));
 		a->type = NA_LOOPBACK;
-// as NA_LOOPBACK doesn't require ports report port was given.
+		// as NA_LOOPBACK doesn't require ports report port was given.
 		return 1;
 	}
 

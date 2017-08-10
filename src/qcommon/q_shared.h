@@ -258,6 +258,8 @@ typedef int		clipHandle_t;
 #define	MAX_INFO_KEY		  1024
 #define	MAX_INFO_VALUE		1024
 
+#define MAX_USERINFO_LENGTH (MAX_INFO_STRING-12-19) // incl. length of 'connect ""' or 'userinfo ""' and '\ip\255.255.255.255' key on server side
+													
 #define	BIG_INFO_STRING		8192  // used for system info key only
 #define	BIG_INFO_KEY		  8192
 #define	BIG_INFO_VALUE		8192
@@ -906,6 +908,8 @@ void    Q_strncpyz( char *dest, const char *src, int destsize );
 void    Q_strcat( char *dest, int size, const char *src );
 
 int     Q_replace( const char *str1, const char *str2, char *src, int max_len );
+
+char	*Q_stradd( char *dst, const char *src );
 
 // strlen that discounts Quake color sequences
 int Q_PrintStrlen( const char *string );
@@ -1822,5 +1826,10 @@ typedef enum {
 #define LUMA( red, green, blue ) ( 0.2126f * ( red ) + 0.7152f * ( green ) + 0.0722f * ( blue ) )
 
 #define SQR( a ) ( ( a ) * ( a ) )
+
+typedef int( *cmpFunc_t )( const void *a, const void *b );
+
+void *Q_LinearSearch( const void *key, const void *ptr, size_t count,
+	size_t size, cmpFunc_t cmp );
 
 #endif  // __Q_SHARED_H

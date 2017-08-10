@@ -426,7 +426,7 @@ void SV_DirectConnect( const netadr_t *from ) {
 	if ( NET_IsLocalAddress( from ) )
 		ip = "localhost";
 	else
-		ip = (char *)NET_AdrToString( from );
+		ip = NET_AdrToString( from );
 	if( ( strlen( ip ) + strlen( userinfo ) + 4 ) >= MAX_INFO_STRING ) {
 		NET_OutOfBandPrint( NS_SERVER, from, "print\nUserinfo string length exceeded.  "
 			"Try removing setu cvars from your config.\n" );
@@ -542,21 +542,23 @@ void SV_DirectConnect( const netadr_t *from ) {
 			count = 0;
 			for ( i = startIndex; i < sv_maxclients->integer ; i++ ) {
 				cl = &svs.clients[i];
-				if ( cl->netchan.remoteAddress.type == NA_BOT ) {
+				if (cl->netchan.remoteAddress.type == NA_BOT) {
 					count++;
 				}
 			}
 			// if they're all bots
-			if ( count >= sv_maxclients->integer - startIndex ) {
-				SV_DropClient( &svs.clients[sv_maxclients->integer - 1], "only bots on server" );
+			if (count >= sv_maxclients->integer - startIndex) {
+				SV_DropClient(&svs.clients[sv_maxclients->integer - 1], "only bots on server");
 				newcl = &svs.clients[sv_maxclients->integer - 1];
-			} else {
-				Com_Error( ERR_FATAL, "server is full on local connect\n" );
+			}
+			else {
+				Com_Error( ERR_FATAL, "server is full on local connect" );
 				return;
 			}
-		} else {
-			NET_OutOfBandPrint( NS_SERVER, from, va( "print\n%s\n", sv_fullmsg->string ) );
-			Com_DPrintf( "Rejected a connection.\n" );
+		}
+		else {
+			NET_OutOfBandPrint( NS_SERVER, from, "print\n%s\n", sv_fullmsg->string );
+			Com_DPrintf ("Rejected a connection.\n");
 			return;
 		}
 	}
@@ -587,7 +589,7 @@ gotnewcl:
 	newcl->netchan_end_queue = &newcl->netchan_start_queue;
 
 	// save the userinfo
-	Q_strncpyz( newcl->userinfo, userinfo, sizeof( newcl->userinfo ) );
+	Q_strncpyz( newcl->userinfo, userinfo, sizeof(newcl->userinfo) );
 
 	// get the game a chance to reject this connection or modify the userinfo
 	denied = VM_Call( gvm, GAME_CLIENT_CONNECT, clientNum, qtrue, qfalse ); // firstTime = qtrue
@@ -623,7 +625,7 @@ gotnewcl:
 	// if this was the first client on the server, or the last client
 	// the server can hold, send a heartbeat to the master.
 	count = 0;
-	for ( i = 0,cl = svs.clients ; i < sv_maxclients->integer ; i++,cl++ ) {
+	for (i=0,cl=svs.clients ; i < sv_maxclients->integer ; i++,cl++) {
 		if ( svs.clients[i].state >= CS_CONNECTED ) {
 			count++;
 		}
@@ -749,9 +751,9 @@ static void SV_SendClientGameState( client_t *client ) {
 	entityState_t nullstate;
 	const svEntity_t *svEnt;
 	msg_t		msg;
-	byte		msgBuffer[MAX_MSGLEN];
+	byte		msgBuffer[ MAX_MSGLEN_BUF ];
 
- 	Com_DPrintf ("SV_SendClientGameState() for %s\n", client->name);
+ 	Com_DPrintf( "SV_SendClientGameState() for %s\n", client->name );
 	Com_DPrintf( "Going from CS_CONNECTED to CS_PRIMED for %s\n", client->name );
 	client->state = CS_PRIMED;
 	client->pureAuthentic = 0;
@@ -765,7 +767,7 @@ static void SV_SendClientGameState( client_t *client ) {
 	// gamestate message was not just sent, forcing a retransmit
 	client->gamestateMessageNum = client->netchan.outgoingSequence;
 
-	MSG_Init( &msg, msgBuffer, sizeof( msgBuffer ) );
+	MSG_Init( &msg, msgBuffer, MAX_MSGLEN );
 
 	// NOTE, MRE: all server->client messages now acknowledge
 	// let the client know which reliable clientCommands we have received
@@ -1395,23 +1397,23 @@ int SV_SendDownloadMessages(void)
 	int i, numDLs = 0, retval;
 	client_t *cl;
 	msg_t msg;
-	byte msgBuffer[MAX_MSGLEN];
+	byte msgBuffer[ MAX_MSGLEN_BUF ];
 	
-	for(i=0; i < sv_maxclients->integer; i++)
+	for( i = 0; i < sv_maxclients->integer; i++ )
 	{
 		cl = &svs.clients[i];
 		
-		if(cl->state && *cl->downloadName)
+		if ( cl->state >= CS_CONNECTED && *cl->downloadName )
 		{
-			MSG_Init(&msg, msgBuffer, sizeof(msgBuffer));
-			MSG_WriteLong(&msg, cl->lastClientCommand);
+			MSG_Init( &msg, msgBuffer, MAX_MSGLEN );
+			MSG_WriteLong( &msg, cl->lastClientCommand );
 			
-			retval = SV_WriteDownloadToClient(cl, &msg);
+			retval = SV_WriteDownloadToClient( cl, &msg );
 				
-			if(retval)
+			if ( retval )
 			{
-				MSG_WriteByte(&msg, svc_EOF);
-				SV_Netchan_Transmit(cl, &msg);
+				MSG_WriteByte( &msg, svc_EOF );
+				SV_Netchan_Transmit( cl, &msg );
 				numDLs += retval;
 			}
 		}
@@ -1619,9 +1621,9 @@ into a more C friendly form.
 =================
 */
 void SV_UserinfoChanged( client_t *cl ) {
-	char	*val;
-	char	*ip;
-	int		i;
+	const char *val;
+	const char *ip;
+	int	i;
 	int	len;
 	const int maxRate = 100000;
 
@@ -1695,15 +1697,16 @@ void SV_UserinfoChanged( client_t *cl ) {
 	if ( NET_IsLocalAddress( &cl->netchan.remoteAddress ) )
 		ip = "localhost";
 	else
-		ip = (char*)NET_AdrToString( &cl->netchan.remoteAddress );
+		ip = NET_AdrToString( &cl->netchan.remoteAddress );
 
 	val = Info_ValueForKey( cl->userinfo, "ip" );
 	len = strlen( ip ) - strlen( val ) + strlen( cl->userinfo ) + 14;
 
-	if( len >= MAX_INFO_STRING )
+	if ( len >= MAX_INFO_STRING )
 		SV_DropClient( cl, "userinfo string length exceeded" );
 	else
 		Info_SetValueForKey( cl->userinfo, "ip", ip );
+
 }
 
 
@@ -1727,21 +1730,21 @@ static void SV_UpdateUserinfo_f( client_t *cl ) {
 }
 
 typedef struct {
-	char        *name;
-	void ( *func )( client_t *cl );
+	const char *name;
+	void (*func)( client_t *cl );
 	qboolean allowedpostmapchange;
 } ucmd_t;
 
 static ucmd_t ucmds[] = {
-	{"userinfo", SV_UpdateUserinfo_f,    qfalse },
-	{"disconnect",   SV_Disconnect_f,        qtrue },
-	{"cp",           SV_VerifyPaks_f,        qfalse },
-	{"vdr",          SV_ResetPureClient_f,   qfalse },
-	{"download", SV_BeginDownload_f,     qfalse },
-	{"nextdl",       SV_NextDownload_f,      qfalse },
-	{"stopdl",       SV_StopDownload_f,      qfalse },
-	{"donedl",       SV_DoneDownload_f,      qfalse },
-	{"wwwdl",        SV_WWWDownload_f,       qfalse },
+	{"userinfo",	SV_UpdateUserinfo_f,	qfalse },
+	{"disconnect",	SV_Disconnect_f,		qtrue },
+	{"cp",			SV_VerifyPaks_f,		qfalse },
+	{"vdr",			SV_ResetPureClient_f,	qfalse },
+	{"download",	SV_BeginDownload_f,		qfalse },
+	{"nextdl",		SV_NextDownload_f,		qfalse },
+	{"stopdl",		SV_StopDownload_f,		qfalse },
+	{"donedl",		SV_DoneDownload_f,		qfalse },
+	{"wwwdl",		SV_WWWDownload_f,		qfalse },
 	{NULL, NULL}
 };
 
@@ -2127,7 +2130,7 @@ void SV_ExecuteClientMessage( client_t *cl, msg_t *msg ) {
 		SV_UserMove( cl, msg, qfalse );
 		c = MSG_ReadByte( msg );
 	} else if ( c != clc_EOF ) {
-		Com_Printf( "WARNING: bad command byte for client %i\n", (int)(cl - svs.clients) );
+		Com_Printf( "WARNING: bad command byte %i for client %i\n", c, (int) (cl - svs.clients) );
 	}
 
 	SV_ParseBinaryMessage( cl, msg );

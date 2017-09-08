@@ -33,7 +33,7 @@ typedef struct {
 } keyname_t;
 
 // names not in this list can either be lowercase ascii, or '0xnn' hex sequences
-keyname_t keynames[] =
+static const keyname_t keynames[] =
 {
 	{"TAB", K_TAB},
 	{"ENTER", K_ENTER},
@@ -272,13 +272,13 @@ keyname_t keynames[] =
 	{NULL,0}
 };
 
-keyname_t keynames_d[] =    //deutsch
+static const keyname_t keynames_d[] =    //deutsch
 {
 	{"TAB", K_TAB},
 	{"EINGABETASTE", K_ENTER},
 	{"ESC", K_ESCAPE},
 	{"LEERTASTE", K_SPACE},
-	{"RÜCKTASTE", K_BACKSPACE},
+	{"Rï¿½CKTASTE", K_BACKSPACE},
 	{"PFEILT.AUF", K_UPARROW},
 	{"PFEILT.UNTEN", K_DOWNARROW},
 	{"PFEILT.LINKS", K_LEFTARROW},
@@ -394,7 +394,7 @@ keyname_t keynames_d[] =    //deutsch
 	{NULL,0}
 };  //end german
 
-keyname_t keynames_f[] =    //french
+static const keyname_t keynames_f[] =    //french
 {
 	{"TAB", K_TAB},
 	{"ENTREE",   K_ENTER},
@@ -517,7 +517,7 @@ keyname_t keynames_f[] =    //french
 	{NULL,0}
 };  //end french
 
-keyname_t keynames_s[] =  //Spanish
+static const keyname_t keynames_s[] =  //Spanish
 {
 	{"TABULADOR", K_TAB},
 	{"INTRO", K_ENTER},
@@ -531,9 +531,9 @@ keyname_t keynames_s[] =  //Spanish
 
 	{"ALT", K_ALT},
 	{"CTRL", K_CTRL},
-	{"MAYÚS", K_SHIFT},
+	{"MAYï¿½S", K_SHIFT},
 
-	{"BLOQ_MAYÚS", K_CAPSLOCK},
+	{"BLOQ_MAYï¿½S", K_CAPSLOCK},
 
 	{"F1", K_F1},
 	{"F2", K_F2},
@@ -550,16 +550,16 @@ keyname_t keynames_s[] =  //Spanish
 
 	{"INSERT", K_INS},
 	{"SUPR", K_DEL},
-	{"AV_PÁG", K_PGDN},
-	{"RE_PÁG", K_PGUP},
+	{"AV_Pï¿½G", K_PGDN},
+	{"RE_Pï¿½G", K_PGUP},
 	{"INICIO", K_HOME},
 	{"FIN", K_END},
 
-	{"RATÓN1", K_MOUSE1},
-	{"RATÓN2", K_MOUSE2},
-	{"RATÓN3", K_MOUSE3},
-	{"RATÓN4", K_MOUSE4},
-	{"RATÓN5", K_MOUSE5},
+	{"RATï¿½N1", K_MOUSE1},
+	{"RATï¿½N2", K_MOUSE2},
+	{"RATï¿½N3", K_MOUSE3},
+	{"RATï¿½N4", K_MOUSE4},
+	{"RATï¿½N5", K_MOUSE5},
 
 	{"RUEDA_HACIA_ARRIBA",   K_MWHEELUP },
 	{"RUEDA_HACIA_ABAJO",    K_MWHEELDOWN },
@@ -616,13 +616,13 @@ keyname_t keynames_s[] =  //Spanish
 
 	{"INICIO(NUM)",          K_KP_HOME },
 	{"ARRIBA(NUM)",      K_KP_UPARROW },
-	{"RE_PÁG(NUM)",          K_KP_PGUP },
+	{"RE_Pï¿½G(NUM)",          K_KP_PGUP },
 	{"IZQUIERDA(NUM)",   K_KP_LEFTARROW },
 	{"5(NUM)",           K_KP_5 },
 	{"DERECHA(NUM)", K_KP_RIGHTARROW },
 	{"FIN(NUM)",         K_KP_END },
 	{"ABAJO(NUM)",   K_KP_DOWNARROW },
-	{"AV_PÁG(NUM)",          K_KP_PGDN },
+	{"AV_Pï¿½G(NUM)",          K_KP_PGDN },
 	{"INTRO(NUM)",       K_KP_ENTER },
 	{"INS(NUM)",         K_KP_INS },
 	{"SUPR(NUM)",            K_KP_DEL },
@@ -642,7 +642,7 @@ keyname_t keynames_s[] =  //Spanish
 	{NULL,0}
 };
 
-keyname_t keynames_i[] =  //Italian
+static const keyname_t keynames_i[] =  //Italian
 {
 	{"TAB", K_TAB},
 	{"INVIO", K_ENTER},
@@ -650,7 +650,7 @@ keyname_t keynames_i[] =  //Italian
 	{"SPAZIO", K_SPACE},
 	{"BACKSPACE", K_BACKSPACE},
 	{"FRECCIASU", K_UPARROW},
-	{"FRECCIAGIÙ", K_DOWNARROW},
+	{"FRECCIAGIï¿½", K_DOWNARROW},
 	{"FRECCIASX", K_LEFTARROW},
 	{"FRECCIADX", K_RIGHTARROW},
 
@@ -675,7 +675,7 @@ keyname_t keynames_i[] =  //Italian
 
 	{"INS", K_INS},
 	{"CANC", K_DEL},
-	{"PAGGIÙ", K_PGDN},
+	{"PAGGIï¿½", K_PGDN},
 	{"PAGGSU", K_PGUP},
 	{"HOME", K_HOME},
 	{"FINE", K_END},
@@ -687,7 +687,7 @@ keyname_t keynames_i[] =  //Italian
 	{"MOUSE5", K_MOUSE5},
 
 	{"ROTELLASU",    K_MWHEELUP },
-	{"ROTELLAGIÙ",   K_MWHEELDOWN },
+	{"ROTELLAGIï¿½",   K_MWHEELDOWN },
 
 	{"JOY1", K_JOY1},
 	{"JOY2", K_JOY2},
@@ -746,8 +746,8 @@ keyname_t keynames_i[] =  //Italian
 	{"TN_5",         K_KP_5 },
 	{"TN_FRECCIA_DX",    K_KP_RIGHTARROW },
 	{"TN_FINE",          K_KP_END },
-	{"TN_FRECCIAGIÙ",    K_KP_DOWNARROW },
-	{"TN_PAGGIÙ",            K_KP_PGDN },
+	{"TN_FRECCIAGIï¿½",    K_KP_DOWNARROW },
+	{"TN_PAGGIï¿½",            K_KP_PGDN },
 	{"TN_INVIO",     K_KP_ENTER },
 	{"TN_INS",           K_KP_INS },
 	{"TN_CANC",          K_KP_DEL },
@@ -760,7 +760,7 @@ keyname_t keynames_i[] =  //Italian
 
 	{"PAUSA", K_PAUSE},
 
-	{"ò", ';'},   // because a raw semicolon seperates commands
+	{"ï¿½", ';'},   // because a raw semicolon seperates commands
 
 	{"COMMAND", K_COMMAND},  //mac
 
@@ -894,10 +894,10 @@ Returns a string (either a single ascii char, a K_* name, or a 0x11 hex string) 
 given keynum.
 ===================
 */
-char *Key_KeynumToString( int keynum, qboolean bTranslate ) {
-	keyname_t	*kn;	
-	static	char	tinystr[5];
-	int			i, j;
+const char *Key_KeynumToString( int keynum, qboolean bTranslate ) {
+	const keyname_t *kn;
+	static char tinystr[5];
+	int i, j;
 
 	if ( keynum == -1 ) {
 		return "<KEY NOT FOUND>";
@@ -985,7 +985,7 @@ void Key_SetBinding( int keynum, const char *binding ) {
 Key_GetBinding
 ===================
 */
-char *Key_GetBinding( int keynum ) {
+const char *Key_GetBinding( int keynum ) {
 	if ( keynum < 0 || keynum >= MAX_KEYS ) {
 		return "";
 	}

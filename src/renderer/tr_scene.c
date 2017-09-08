@@ -469,13 +469,49 @@ void RE_AddLightToScene( const vec3_t org, float radius, float intensity, float 
 		dl->shader = NULL;
 	}
 	dl->flags = flags;
+	dl->linear = qfalse;
+}
+
+
+/*
+=====================
+RE_AddLinearLightToScene
+=====================
+*/
+void RE_AddLinearLightToScene( const vec3_t start, const vec3_t end, float intensity, float r, float g, float b  ) {
+	dlight_t	*dl;
+	if ( VectorCompare( start, end ) ) {
+		RE_AddLightToScene( start, intensity, intensity, r, g, b, 0, 0 );
+		return;
+	}
+	if ( !tr.registered ) {
+		return;
+	}
+	if ( r_numdlights >= ARRAY_LEN( backEndData->dlights ) ) {
+		return;
+	}
+	if ( intensity <= 0 ) {
+		return;
+	}
 #ifdef USE_PMLIGHT
-#ifndef USE_LIGHT_COUNT
-	dl->mask = 1 << (r_numdlights - 1);
-	dl->head = NULL;
-	dl->tail = NULL;
+	if ( r_dlightMode->integer ) {
+		r *= r_dlightIntensity->value;
+		g *= r_dlightIntensity->value;
+		b *= r_dlightIntensity->value;
+	}
 #endif
-#endif // USE_PMLIGHT
+	dl = &backEndData->dlights[ r_numdlights++ ];
+	VectorCopy( start, dl->origin );
+	VectorCopy( end, dl->origin2 );
+	dl->radius = intensity;
+	dl->radiusInverseCubed = ( 1.0 / dl->radius );
+	dl->radiusInverseCubed = dl->radiusInverseCubed * dl->radiusInverseCubed * dl->radiusInverseCubed;
+	dl->intensity = intensity;
+	dl->color[0] = r;
+	dl->color[1] = g;
+	dl->color[2] = b;
+	dl->shader = NULL;
+	dl->linear = qtrue;
 }
 
 

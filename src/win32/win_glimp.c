@@ -1317,7 +1317,7 @@ static void GLW_InitExtensions( void )
 	if ( GLimp_HaveExtension("GL_ARB_texture_compression") &&
 		 GLimp_HaveExtension("GL_EXT_texture_compression_s3tc") )
 	{
-		if ( r_ext_compressed_textures->value ){ 
+		if ( r_ext_compressed_textures->integer ){ 
 			glConfig.textureCompression = TC_S3TC_ARB;
 			ri.Printf( PRINT_ALL, "...using GL_EXT_texture_compression_s3tc\n" );
 		} else {
@@ -1748,7 +1748,7 @@ void GLimp_Init( void )
 	qglClearColor( 0.0, 0.0, 0.0, 1.0 );
 	qglClear( GL_COLOR_BUFFER_BIT );
 
-	GLimp_SwapBuffers();
+	//GLimp_SwapBuffers();
 }
 
 

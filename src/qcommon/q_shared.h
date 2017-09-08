@@ -802,18 +802,40 @@ void	COM_StripExtension(const char *in, char *out, int destsize);
 qboolean COM_CompareExtension(const char *in, const char *ext);
 void	COM_DefaultExtension( char *path, int maxSize, const char *extension );
 
-long	Com_GenerateHashValue( const char *fname, const int size );
+unsigned long Com_GenerateHashValue( const char *fname, const unsigned int size );
 
 void    COM_BeginParseSession( const char *name );
-void    COM_RestoreParseSession( char **data_p );
+void    COM_RestoreParseSession( const char **data_p );
 void    COM_SetCurrentParseLine( int line );
 int     COM_GetCurrentParseLine( void );
-char    *COM_Parse( char **data_p );
-char    *COM_ParseExt( char **data_p, qboolean allowLineBreak );
+char	*COM_Parse( const char **data_p );
+char	*COM_ParseExt( const char **data_p, qboolean allowLineBreak );
 int     COM_Compress( char *data_p );
 void    COM_ParseError( char *format, ... ) __attribute__ ( ( format( printf,1,2 ) ) );
 void    COM_ParseWarning( char *format, ... ) __attribute__ ( ( format( printf,1,2 ) ) );
 int Com_ParseInfos( char *buf, int max, char infos[][MAX_INFO_STRING] );
+
+char	*COM_ParseComplex( const char **data_p, qboolean allowLineBreak );
+
+typedef enum {
+	TK_GENEGIC = 0, // for single-char tokens
+	TK_STRING,
+	TK_QUOTED,
+	TK_EQ,
+	TK_NEQ,
+	TK_GT,
+	TK_GTE,
+	TK_LT,
+	TK_LTE,
+	TK_OR,
+	TK_AND,
+	TK_SCOPE_OPEN,
+	TK_SCOPE_CLOSE,
+	TK_NEWLINE,
+	TK_EOF,
+} tokenType_t;
+
+extern tokenType_t com_tokentype;
 
 qboolean COM_BitCheck( const int array[], int bitNum );
 void COM_BitSet( int array[], int bitNum );
@@ -843,14 +865,14 @@ typedef struct pc_token_s
 
 // data is an in/out parm, returns a parsed out token
 
-void    COM_MatchToken( char**buf_p, char *match );
+void COM_MatchToken( const char**buf_p, const char *match );
 
-qboolean SkipBracedSection( char **program, int depth );
-void SkipRestOfLine( char **data );
+qboolean SkipBracedSection( const char **program, int depth );
+void SkipRestOfLine( const char **data );
 
-void Parse1DMatrix( char **buf_p, int x, float *m );
-void Parse2DMatrix( char **buf_p, int y, int x, float *m );
-void Parse3DMatrix( char **buf_p, int z, int y, int x, float *m );
+void Parse1DMatrix( const char **buf_p, int x, float *m);
+void Parse2DMatrix( const char **buf_p, int y, int x, float *m);
+void Parse3DMatrix( const char **buf_p, int z, int y, int x, float *m);
 
 int  QDECL Com_sprintf( char *dest, int size, const char *fmt, ... ) __attribute__ ( ( format( printf,3,4 ) ) );
 
@@ -1037,6 +1059,11 @@ default values.
 #define CVAR_MODIFIED		0x40000000	// Cvar was modified
 #define CVAR_NONEXISTENT	0x80000000	// Cvar doesn't exist.
 
+typedef enum {
+	CV_NONE = 0,
+	CV_FLOAT,
+	CV_INTEGER
+} cvarValidator_t;
 
 // nothing outside the Cvar_*() functions should modify these fields!
 typedef struct cvar_s cvar_t;
@@ -1051,10 +1078,9 @@ struct cvar_s {
 	int			modificationCount;	// incremented each time the cvar is changed
 	float		value;				// atof( string )
 	int			integer;			// atoi( string )
-	qboolean	validate;
-	qboolean	integral;
-	float		min;
-	float		max;
+	cvarValidator_t validator;
+	char		*mins;
+	char		*maxs;
 	char		*description;
 
 	cvar_t *next;

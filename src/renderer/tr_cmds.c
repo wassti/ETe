@@ -690,6 +690,16 @@ void RE_EndFrame( int *frontEndMsec, int *backEndMsec ) {
 		*backEndMsec = backEnd.pc.msec;
 	}
 	backEnd.pc.msec = 0;
+
+#ifdef USE_PMLIGHT
+	// recompile GPU shaders if needed
+	if ( r_dlightSpecPower->modified || r_dlightSpecColor->modified || r_greyscale->modified ) {
+		ARB_UpdatePrograms();
+		r_dlightSpecPower->modified = qfalse;
+		r_dlightSpecColor->modified = qfalse;
+		r_greyscale->modified = qfalse;
+	}
+#endif
 }
 
 

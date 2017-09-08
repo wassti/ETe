@@ -444,7 +444,7 @@ SV_SetExpectedHunkUsage
   Sets com_expectedhunkusage, so the client knows how to draw the percentage bar
 ====================
 */
-void SV_SetExpectedHunkUsage( char *mapname ) {
+static void SV_SetExpectedHunkUsage( const char *mapname ) {
 	int handle;
 	char *memlistfile = "hunkusage.dat";
 	char *buf;
@@ -630,22 +630,9 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 	// make sure we are not paused
 	Cvar_Set( "cl_paused", "0" );
 
-#if !defined( DO_LIGHT_DEDICATED )
 	// get a new checksum feed and restart the file system
 	srand( Com_Milliseconds() );
-	sv.checksumFeed = ( ( (int) rand() << 16 ) ^ rand() ) ^ Com_Milliseconds();
-
-	// DO_LIGHT_DEDICATED
-	// only comment out when you need a new pure checksum string and it's associated random feed
-	//Com_DPrintf("SV_SpawnServer checksum feed: %p\n", sv.checksumFeed);
-
-#else // DO_LIGHT_DEDICATED implementation below
-	// we are not able to randomize the checksum feed since the feed is used as key for pure_checksum computations
-	// files.c 1776 : pack->pure_checksum = Com_BlockChecksumKey( fs_headerLongs, 4 * fs_numHeaderLongs, LittleLong(fs_checksumFeed) );
-	// we request a fake randomized feed, files.c knows the answer
-	srand( Com_Milliseconds() );
-	sv.checksumFeed = FS_RandChecksumFeed();
-#endif
+	Com_RandomBytes( (byte*)&sv.checksumFeed, sizeof( sv.checksumFeed ) );
 	FS_Restart( sv.checksumFeed );
 
 	Sys_SetStatus( "Loading map %s", mapname );
@@ -854,7 +841,7 @@ void SV_Init( void ) {
 	sv_rconPassword = Cvar_Get( "rconPassword", "", CVAR_TEMP );
 	sv_privatePassword = Cvar_Get( "sv_privatePassword", "", CVAR_TEMP );
 	sv_fps = Cvar_Get( "sv_fps", "20", CVAR_TEMP );
-	Cvar_CheckRange( sv_fps, 10, 125, qtrue );
+	Cvar_CheckRange( sv_fps, "10", "125", CV_INTEGER );
 	sv_timeout = Cvar_Get( "sv_timeout", "240", CVAR_TEMP );
 	sv_zombietime = Cvar_Get( "sv_zombietime", "2", CVAR_TEMP );
 	Cvar_Get( "nextmap", "", CVAR_TEMP );
@@ -1017,14 +1004,13 @@ void SV_Shutdown( const char *finalmsg ) {
 	SV_ClearServer();
 
 	// free server static data
-	if(svs.clients)
-	{
+	if ( svs.clients ) {
 		int index;
+
+		for ( index = 0; index < sv_maxclients->integer; index++ )
+			SV_FreeClient( &svs.clients[ index ] );
 		
-		for(index = 0; index < sv_maxclients->integer; index++)
-			SV_FreeClient(&svs.clients[index]);
-		
-		//Z_Free(svs.clients);
+		//Z_Free( svs.clients );
 		free( svs.clients );    // RF, avoid trying to allocate large chunk on a fragmented zone
 	}
 	Com_Memset( &svs, 0, sizeof( svs ) );
@@ -1037,9 +1023,15 @@ void SV_Shutdown( const char *finalmsg ) {
 
 #ifndef DEDICATED
 	// disconnect any local clients
-	if( sv_killserver->integer != 2 )
+	if ( sv_killserver->integer != 2 )
 		CL_Disconnect( qfalse );
 #endif
+
+	// clean some server cvars
+	Cvar_Set( "sv_referencedPaks", "" );
+	Cvar_Set( "sv_referencedPakNames", "" );
+	Cvar_Set( "sv_mapChecksum", "" );
+	Cvar_Set( "sv_serverid", "0" );
 
 	Sys_SetStatus( "Server is not running" );
 }

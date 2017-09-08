@@ -372,6 +372,48 @@ int R_CullPointAndRadius( vec3_t pt, float radius )
 
 
 /*
+** R_CullDlight
+*/
+int R_CullDlight( const dlight_t* dl )
+{
+	int		i;
+	float	dist, dist2;
+	cplane_t	*frust;
+	qboolean mightBeClipped = qfalse;
+
+	if ( r_nocull->integer )
+		return CULL_CLIP;
+
+	if ( dl->linear ) {
+		for ( i = 0 ; i < 5 ; i++ ) {
+			frust = &tr.viewParms.frustum[i];
+			dist = DotProduct( dl->transformed, frust->normal) - frust->dist;
+			dist2 = DotProduct( dl->transformed2, frust->normal) - frust->dist;
+			if ( dist < -dl->radius && dist2 < -dl->radius )
+				return CULL_OUT;
+			else if ( dist <= dl->radius || dist2 <= dl->radius ) 
+				mightBeClipped = qtrue;
+		}
+	} 
+	else
+	// check against frustum planes
+	for ( i = 0 ; i < 5 ; i++ ) {
+		frust = &tr.viewParms.frustum[i];
+		dist = DotProduct( dl->transformed, frust->normal) - frust->dist;
+		if ( dist < -dl->radius )
+			return CULL_OUT;
+		else if ( dist <= dl->radius ) 
+			mightBeClipped = qtrue;
+	}
+
+	if ( mightBeClipped )
+		return CULL_CLIP;
+
+	return CULL_IN;	// completely inside frustum
+}
+
+
+/*
 =================
 R_LocalNormalToWorld
 

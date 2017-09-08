@@ -259,7 +259,8 @@ int Export_BotLibShutdown( void ) {
 // Returns:					-
 // Changes Globals:		-
 //===========================================================================
-int Export_BotLibVarSet( char *var_name, char *value ) {
+int Export_BotLibVarSet( const char *var_name, const char *value )
+{
 	LibVarSet( var_name, value );
 	return BLERR_NOERROR;
 } //end of the function Export_BotLibVarSet
@@ -269,12 +270,12 @@ int Export_BotLibVarSet( char *var_name, char *value ) {
 // Returns:					-
 // Changes Globals:		-
 //===========================================================================
-int Export_BotLibVarGet( char *var_name, char *value, int size ) {
-	char *varvalue;
+int Export_BotLibVarGet( const char *var_name, char *value, int size )
+{
+	const char *varvalue;
 
 	varvalue = LibVarGetString( var_name );
-	strncpy( value, varvalue, size - 1 );
-	value[size - 1] = '\0';
+	Q_strncpyz( value, varvalue, size );
 	return BLERR_NOERROR;
 } //end of the function Export_BotLibVarGet
 //===========================================================================

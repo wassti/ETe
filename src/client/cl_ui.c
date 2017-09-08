@@ -721,16 +721,17 @@ Key_GetBindingBuf
 ====================
 */
 void Key_GetBindingBuf( int keynum, char *buf, int buflen ) {
-	char	*value;
+	const char *value;
 
 	value = Key_GetBinding( keynum );
 	if ( value ) {
 		Q_strncpyz( buf, value, buflen );
 	}
 	else {
-		*buf = 0;
+		*buf = '\0';
 	}
 }
+
 
 /*
 ====================
@@ -801,6 +802,11 @@ static qboolean UI_GetValue( char* value, int valueSize, const char* key ) {
 
 	if ( !Q_stricmp( key, "trap_R_AddRefEntityToScene2" ) ) {
 		Com_sprintf( value, valueSize, "%i", UI_R_ADDREFENTITYTOSCENE2 );
+		return qtrue;
+	}
+
+	if ( !Q_stricmp( key, "trap_R_AddLinearLightToScene" ) && re.AddLinearLightToScene ) {
+		Com_sprintf( value, valueSize, "%i", UI_R_ADDLINEARLIGHTTOSCENE );
 		return qtrue;
 	}
 
@@ -1265,6 +1271,11 @@ intptr_t CL_UISystemCalls( intptr_t *args ) {
 	// engine extensions
 	case UI_R_ADDREFENTITYTOSCENE2:
 		re.AddRefEntityToScene( VMA(1), qtrue );
+		return 0;
+
+	// engine extensions
+	case UI_R_ADDLINEARLIGHTTOSCENE:
+		re.AddLinearLightToScene( VMA(1), VMA(2), VMF(3), VMF(4), VMF(5), VMF(6) );
 		return 0;
 
 	case UI_TRAP_GETVALUE:

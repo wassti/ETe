@@ -582,6 +582,11 @@ static qboolean CL_GetValue( char* value, int valueSize, const char* key ) {
 		return qtrue;
 	}
 
+	if ( !Q_stricmp( key, "trap_R_AddLinearLightToScene" ) && re.AddLinearLightToScene ) {
+		Com_sprintf( value, valueSize, "%i", CG_R_ADDLINEARLIGHTTOSCENE );
+		return qtrue;
+	}
+
 	return qfalse;
 }
 
@@ -591,7 +596,7 @@ static void CL_ForceFixedDlights( void ) {
 
 	cv = Cvar_Get( "r_dlightMode", "1", 0 );
 	if ( cv ) {
-		Cvar_CheckRange( cv, 1, 2, qtrue );
+		Cvar_CheckRange( cv, "1", "2", CV_INTEGER );
 	}
 }
 
@@ -1079,6 +1084,10 @@ intptr_t CL_CgameSystemCalls( intptr_t *args ) {
 	// engine extensions
 	case CG_R_ADDREFENTITYTOSCENE2:
 		re.AddRefEntityToScene( VMA(1), qtrue );
+		return 0;
+
+	case CG_R_ADDLINEARLIGHTTOSCENE:
+		re.AddLinearLightToScene( VMA(1), VMA(2), VMF(3), VMF(4), VMF(5), VMF(6) );
 		return 0;
 
 	case CG_R_FORCEFIXEDDLIGHTS:

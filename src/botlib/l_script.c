@@ -235,7 +235,8 @@ char *PunctuationFromNum( script_t *script, int num ) {
 // Returns:					-
 // Changes Globals:		-
 //===========================================================================
-void QDECL ScriptError( script_t *script, char *str, ... ) {
+void QDECL ScriptError(script_t *script, const char *fmt, ...)
+{
 	char text[1024];
 	va_list ap;
 
@@ -243,9 +244,9 @@ void QDECL ScriptError( script_t *script, char *str, ... ) {
 		return;
 	}
 
-	va_start( ap, str );
-	Q_vsnprintf( text, sizeof( text ), str, ap );
-	va_end( ap );
+	va_start(ap, fmt);
+	Q_vsnprintf(text, sizeof(text), fmt, ap);
+	va_end(ap);
 #ifdef BOTLIB
 	botimport.Print( PRT_ERROR, "file %s, line %d: %s\n", script->filename, script->line, text );
 #endif //BOTLIB
@@ -262,7 +263,8 @@ void QDECL ScriptError( script_t *script, char *str, ... ) {
 // Returns:					-
 // Changes Globals:		-
 //===========================================================================
-void QDECL ScriptWarning( script_t *script, char *str, ... ) {
+void QDECL ScriptWarning(script_t *script, const char *fmt, ...)
+{
 	char text[1024];
 	va_list ap;
 
@@ -270,9 +272,9 @@ void QDECL ScriptWarning( script_t *script, char *str, ... ) {
 		return;
 	}
 
-	va_start( ap, str );
-	Q_vsnprintf( text, sizeof( text ), str, ap );
-	va_end( ap );
+	va_start(ap, fmt);
+	Q_vsnprintf(text, sizeof(text), fmt, ap);
+	va_end(ap);
 #ifdef BOTLIB
 	botimport.Print( PRT_WARNING, "file %s, line %d: %s\n", script->filename, script->line, text );
 #endif //BOTLIB
@@ -1347,9 +1349,9 @@ script_t *LoadScriptFile( const char *filename ) {
 
 	buffer = GetClearedMemory( sizeof( script_t ) + length + 1 );
 	script = (script_t *) buffer;
-	memset( script, 0, sizeof( script_t ) );
-	strcpy( script->filename, filename );
-	script->buffer = (char *) buffer + sizeof( script_t );
+	Com_Memset(script, 0, sizeof(script_t));
+	Q_strncpyz(script->filename, filename, sizeof(script->filename));
+	script->buffer = (char *) buffer + sizeof(script_t);
 	script->buffer[length] = 0;
 	script->length = length;
 	//pointer in script buffer
@@ -1386,15 +1388,16 @@ script_t *LoadScriptFile( const char *filename ) {
 // Returns:				-
 // Changes Globals:		-
 //============================================================================
-script_t *LoadScriptMemory( char *ptr, int length, char *name ) {
+script_t *LoadScriptMemory(const char *ptr, int length, const char *name)
+{
 	void *buffer;
 	script_t *script;
 
-	buffer = GetClearedMemory( sizeof( script_t ) + length + 1 );
+	buffer = GetClearedMemory(sizeof(script_t) + length + 1);
 	script = (script_t *) buffer;
-	memset( script, 0, sizeof( script_t ) );
-	strcpy( script->filename, name );
-	script->buffer = (char *) buffer + sizeof( script_t );
+	Com_Memset(script, 0, sizeof(script_t));
+	Q_strncpyz(script->filename, name, sizeof(script->filename));
+	script->buffer = (char *) buffer + sizeof(script_t);
 	script->buffer[length] = 0;
 	script->length = length;
 	//pointer in script buffer
@@ -1435,10 +1438,11 @@ void FreeScript( script_t *script ) {
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-void PS_SetBaseFolder( char *path ) {
+void PS_SetBaseFolder(const char *path)
+{
 #ifdef BSPC
-	sprintf( basefolder, path );
+	sprintf(basefolder, path);
 #else
-	Com_sprintf( basefolder, sizeof( basefolder ), path );
+	Com_sprintf(basefolder, sizeof(basefolder), "%s", path);
 #endif
 } //end of the function PS_SetBaseFolder

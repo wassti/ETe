@@ -39,6 +39,8 @@ const char* g_Version = NULL;
 
 typedef int fileHandle_t;
 
+typedef enum { qfalse = 0, qtrue } qboolean;
+
 typedef enum {
 	FS_READ,
 	FS_WRITE,
@@ -47,7 +49,7 @@ typedef enum {
 } fsMode_t;
 
 extern "C" {
-void Com_Frame( void );
+void Com_Frame( qboolean demoPlaying );
 void Q_strcat( char *dest, int size, const char *src );
 void __cdecl Com_sprintf( char *dest, int size, const char *fmt, ... );
 int FS_FOpenFileByMode( const char *qpath, fileHandle_t * f, fsMode_t mode );
@@ -205,7 +207,7 @@ void WinExceptionHandler( UINT nSeCode, _EXCEPTION_POINTERS* pExcPointers ) {
 void RunFrame( void ) {
 	try {
 		// run the game
-		Com_Frame();
+		Com_Frame( qfalse );
 	}
 	catch ( CWolfException* we ) {
 		char buffer[2048];

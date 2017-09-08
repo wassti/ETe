@@ -1030,30 +1030,8 @@ static void ComputeColors( shaderStage_t *pStage ) {
 			break;
 		}
 	}
-	
-	// if in greyscale rendering mode turn all color values into greyscale.
-	if(r_greyscale->integer)
-	{
-		int scale;
-		for(i = 0; i < tess.numVertexes; i++)
-		{
-			scale = LUMA(tess.svars.colors[i][0], tess.svars.colors[i][1], tess.svars.colors[i][2]);
- 			tess.svars.colors[i][0] = tess.svars.colors[i][1] = tess.svars.colors[i][2] = scale;
-		}
-	}
-	else if(r_greyscale->value)
-	{
-		float scale;
-		
-		for(i = 0; i < tess.numVertexes; i++)
-		{
-			scale = LUMA(tess.svars.colors[i][0], tess.svars.colors[i][1], tess.svars.colors[i][2]);
-			tess.svars.colors[i][0] = LERP(tess.svars.colors[i][0], scale, r_greyscale->value);
-			tess.svars.colors[i][1] = LERP(tess.svars.colors[i][1], scale, r_greyscale->value);
-			tess.svars.colors[i][2] = LERP(tess.svars.colors[i][2], scale, r_greyscale->value);
-		}
-	}
 }
+
 
 /*
 ===============
@@ -1098,6 +1076,9 @@ void R_ComputeTexCoords( const shaderStage_t *pStage ) {
 			break;
 		case TCGEN_ENVIRONMENT_MAPPED:
 			RB_CalcEnvironmentTexCoords( ( float * ) tess.svars.texcoords[b] );
+			break;
+		case TCGEN_ENVIRONMENT_MAPPED_FP:
+			RB_CalcEnvironmentTexCoordsFP( ( float * ) tess.svars.texcoords[b] );
 			break;
 		case TCGEN_FIRERISEENV_MAPPED:
 			RB_CalcFireRiseEnvTexCoords( ( float * ) tess.svars.texcoords[b] );

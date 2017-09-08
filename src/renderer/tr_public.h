@@ -81,6 +81,7 @@ typedef struct {
 	void ( *AddPolysToScene )( qhandle_t hShader, int numVerts, const polyVert_t *verts, int numPolys );
 	// done.
 	void ( *AddLightToScene )( const vec3_t org, float radius, float intensity, float r, float g, float b, qhandle_t hShader, int flags );
+		void	(*AddLinearLightToScene)( const vec3_t start, const vec3_t end, float intensity, float r, float g, float b );
 //----(SA)
 	void ( *AddCoronaToScene )( const vec3_t org, float r, float g, float b, float scale, int id, qboolean visible );
 	void ( *SetFog )( int fogvar, int var1, int var2, float r, float g, float b, float density );
@@ -175,7 +176,7 @@ typedef struct {
 	cvar_t	*(*Cvar_Get)( const char *name, const char *value, int flags );
 	void	(*Cvar_Set)( const char *name, const char *value );
 	void	(*Cvar_SetValue) (const char *name, float value);
-	void	(*Cvar_CheckRange)( cvar_t *cv, float minVal, float maxVal, qboolean shouldBeIntegral );
+	void	(*Cvar_CheckRange)( cvar_t *cv, const char *minVal, const char *maxVal, cvarValidator_t type );
 	void	(*Cvar_SetDescription)( cvar_t *cv, const char *description );
 
 	int		(*Cvar_VariableIntegerValue) (const char *var_name);

@@ -621,7 +621,7 @@ void Field_Draw( field_t *edit, int x, int y, int width, qboolean showCursor, qb
 void Field_BigDraw( field_t *edit, int x, int y, int width, qboolean showCursor, qboolean noColorEscape );
 
 float CL_KeyState( kbutton_t *key );
-char *Key_KeynumToString( int keynum, qboolean bTranslate );
+const char *Key_KeynumToString( int keynum, qboolean bTranslate );
 
 //
 // cl_parse.c

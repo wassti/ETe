@@ -1380,7 +1380,7 @@ int FS_FOpenFileRead( const char *filename, fileHandle_t *file, qboolean uniqueF
 	
 	// we will calculate full hash only once then just mask it by current pack->hashSize
 	// we can do that as long as we know properties of our hash function
-	fullHash = FS_HashFileName( filename, 1<<31 );
+	fullHash = FS_HashFileName( filename, 1U<<31 );
 
 	if ( file == NULL ) {
 		// just wants to see if file is there
@@ -2173,7 +2173,7 @@ qboolean FS_FileIsInPAK( const char *filename, int *pChecksum ) {
 	else
 		flags = FS_MATCH_PK3s;
 
-	fullHash = FS_HashFileName( filename, 1<<31 );
+	fullHash = FS_HashFileName( filename, 1U<<31 );
 
 	//
 	// search through the path, one element at a time
@@ -2418,6 +2418,7 @@ static pack_t *FS_LoadZipFile(const char *zipfile, const char *basename)
 	long			hash;
 	int				fs_numHeaderLongs;
 	int				*fs_headerLongs;
+	int				filecount;
 	char			*namePtr;
 
 	fs_numHeaderLongs = 0;
@@ -2429,27 +2430,38 @@ static pack_t *FS_LoadZipFile(const char *zipfile, const char *basename)
 		return NULL;
 
 	len = 0;
-	unzGoToFirstFile(uf);
+	filecount = 0;
+	unzGoToFirstFile( uf );
 	for (i = 0; i < gi.number_entry; i++)
 	{
 		err = unzGetCurrentFileInfo(uf, &file_info, filename_inzip, sizeof(filename_inzip), NULL, 0, NULL, 0);
+		filename_inzip[sizeof(filename_inzip)-1] = '\0';
 		if (err != UNZ_OK) {
 			break;
 		}
-		filename_inzip[sizeof(filename_inzip)-1] = '\0';
-		len += strlen(filename_inzip) + 1;
-		unzGoToNextFile(uf);
+		if ( file_info.compression_method != 0 && file_info.compression_method != 8 /*Z_DEFLATED*/ ) {
+			Com_Printf( S_COLOR_YELLOW "%s|%s: unsupported compression method %i\n", basename, filename_inzip, (int)file_info.compression_method );
+			continue;
+		} 
+		len += strlen( filename_inzip ) + 1;
+		unzGoToNextFile( uf );
+		filecount++;
 	}
 
-	buildBuffer = Z_Malloc( (gi.number_entry * sizeof( fileInPack_t )) + len );
-	namePtr = ((char *) buildBuffer) + gi.number_entry * sizeof( fileInPack_t );
-	fs_headerLongs = Z_Malloc( ( gi.number_entry + 1 ) * sizeof(int) );
+	if ( !filecount ) {
+		unzClose( uf );
+		return NULL;
+	}
+
+	buildBuffer = Z_Malloc( ( filecount * sizeof( fileInPack_t )) + len );
+	namePtr = ((char *) buildBuffer) + filecount * sizeof( fileInPack_t );
+	fs_headerLongs = Z_Malloc( ( filecount + 1 ) * sizeof(int) );
 	fs_headerLongs[ fs_numHeaderLongs++ ] = LittleLong( fs_checksumFeed );
 
 	// get the hash table size from the number of files in the zip
 	// because lots of custom pk3 files have less than 32 or 64 files
 	for ( i = 2; i < MAX_FILEHASH_SIZE; i <<= 1 ) {
-		if ( i >= gi.number_entry ) {
+		if ( i >= filecount ) {
 			break;
 		}
 	}
@@ -2468,31 +2480,35 @@ static pack_t *FS_LoadZipFile(const char *zipfile, const char *basename)
 	FS_StripExt( pack->pakBasename, ".pk3" );
 
 	pack->handle = uf;
-	pack->numfiles = gi.number_entry;
-	unzGoToFirstFile(uf);
-
-	for (i = 0; i < gi.number_entry; i++)
+	pack->numfiles = filecount;
+	unzGoToFirstFile( uf );
+	filecount = 0;
+	for ( i = 0; i < gi.number_entry; i++ )
 	{
-		err = unzGetCurrentFileInfo(uf, &file_info, filename_inzip, sizeof(filename_inzip), NULL, 0, NULL, 0);
+		err = unzGetCurrentFileInfo( uf, &file_info, filename_inzip, sizeof(filename_inzip), NULL, 0, NULL, 0 );
+		filename_inzip[sizeof(filename_inzip)-1] = '\0';
 		if (err != UNZ_OK) {
 			break;
 		}
-		filename_inzip[sizeof(filename_inzip)-1] = '\0';
+		if ( file_info.compression_method != 0 && file_info.compression_method != 8 /*Z_DEFLATED*/ ) {
+			continue;
+		} 
 		if (file_info.uncompressed_size > 0) {
-			fs_headerLongs[fs_numHeaderLongs++] = LittleLong(file_info.crc);
-			buildBuffer[i].size = file_info.uncompressed_size;
+			fs_headerLongs[fs_numHeaderLongs++] = LittleLong( file_info.crc );
+			buildBuffer[ filecount ].size = file_info.uncompressed_size;
 		}
 		Q_strlwr( filename_inzip );
-		hash = FS_HashFileName(filename_inzip, pack->hashSize);
-		buildBuffer[i].name = namePtr;
-		strcpy( buildBuffer[i].name, filename_inzip );
-		namePtr += strlen(filename_inzip) + 1;
+		hash = FS_HashFileName( filename_inzip, pack->hashSize );
+		buildBuffer[ filecount ].name = namePtr;
+		strcpy( buildBuffer[ filecount ].name, filename_inzip );
+		namePtr += strlen( filename_inzip ) + 1;
 		// store the file position in the zip
-		unzGetCurrentFileInfoPosition(uf, &buildBuffer[i].pos);
+		unzGetCurrentFileInfoPosition( uf, &buildBuffer[ filecount ].pos );
 		//
-		buildBuffer[i].next = pack->hashTable[hash];
-		pack->hashTable[hash] = &buildBuffer[i];
-		unzGoToNextFile(uf);
+		buildBuffer[ filecount ].next = pack->hashTable[ hash ];
+		pack->hashTable[ hash ] = &buildBuffer[ filecount ];
+		unzGoToNextFile( uf );
+		filecount++;
 	}
 
 	pack->checksum = Com_BlockChecksum( &fs_headerLongs[ 1 ], sizeof(*fs_headerLongs) * ( fs_numHeaderLongs - 1 ) );
@@ -2612,7 +2628,7 @@ static int FS_ReturnPath( const char *zname, char *zpath, int *depth ) {
 FS_AddFileToList
 ==================
 */
-static int FS_AddFileToList( char *name, char *list[MAX_FOUND_FILES], int nfiles ) {
+static int FS_AddFileToList( const char *name, char *list[MAX_FOUND_FILES], int nfiles ) {
 	int		i;
 
 	if ( nfiles == MAX_FOUND_FILES - 1 ) {
@@ -2620,10 +2636,10 @@ static int FS_AddFileToList( char *name, char *list[MAX_FOUND_FILES], int nfiles
 	}
 	for ( i = 0 ; i < nfiles ; i++ ) {
 		if ( !Q_stricmp( name, list[i] ) ) {
-			return nfiles;		// allready in list
+			return nfiles; // allready in list
 		}
 	}
-	list[nfiles] = CopyString( name );
+	list[ nfiles ] = CopyString( name );
 	nfiles++;
 
 	return nfiles;
@@ -2794,10 +2810,10 @@ char **FS_ListFilteredFiles( const char *path, const char *extension, const char
 				}
 			}
 		} else if ( search->dir && ( flags & FS_MATCH_EXTERN ) && search->policy != DIR_DENY ) { // scan for files in the filesystem
-			char	*netpath;
+			const char *netpath;
 			int		numSysFiles;
 			char	**sysFiles;
-			char	*name;
+			const char *name;
 
 			netpath = FS_BuildOSPath( search->dir->path, search->dir->gamedir, path );
 			sysFiles = Sys_ListFiles( netpath, extension, filter, &numSysFiles, qfalse );
@@ -2887,7 +2903,7 @@ void FS_FreeFileList( char **list ) {
 FS_GetFileList
 ================
 */
-int	FS_GetFileList(  const char *path, const char *extension, char *listbuf, int bufsize ) {
+int	FS_GetFileList( const char *path, const char *extension, char *listbuf, int bufsize ) {
 	int		nFiles, i, nTotal, nLen;
 	char **pFiles = NULL;
 
@@ -2930,54 +2946,58 @@ bk001129 - from cvs1.17 (mkv)
 FIXME TTimo those two should move to common.c next to Sys_ListFiles
 =======================
  */
-static unsigned int Sys_CountFileList(char **list)
+static unsigned int Sys_CountFileList( char **list )
 {
-  int i = 0;
+	int i = 0;
 
-  if (list)
-  {
-    while (*list)
-    {
-      list++;
-      i++;
-    }
-  }
-  return i;
+	if ( list )
+	{
+		while ( *list )
+		{
+			list++;
+			i++;
+		}
+	}
+
+	return i;
 }
+
 
 static char** Sys_ConcatenateFileLists( char **list0, char **list1 )
 {
-  int totalLength = 0;
-  char** cat = NULL, **dst, **src;
+	int totalLength;
+	char **src, **dst, **cat;
 
-  totalLength += Sys_CountFileList(list0);
-  totalLength += Sys_CountFileList(list1);
+	totalLength = Sys_CountFileList( list0 );
+	totalLength += Sys_CountFileList( list1 );
 
-  /* Create new list. */
-  dst = cat = Z_Malloc( ( totalLength + 1 ) * sizeof( char* ) );
+	/* Create new list. */
+	dst = cat = Z_Malloc( ( totalLength + 1 ) * sizeof( char* ) );
 
-  /* Copy over lists. */
-  if (list0)
-  {
-    for (src = list0; *src; src++, dst++)
-      *dst = *src;
-  }
-  if (list1)
-  {
-    for (src = list1; *src; src++, dst++)
-      *dst = *src;
-  }
+	/* Copy over lists. */
+	if ( list0 )
+	{
+		for (src = list0; *src; src++, dst++)
+			*dst = *src;
+	}
 
-  // Terminate the list
-  *dst = NULL;
+	if ( list1 )
+	{
+		for ( src = list1; *src; src++, dst++ )
+			*dst = *src;
+	}
 
-  // Free our old lists.
-  // NOTE: not freeing their content, it's been merged in dst and still being used
-  if (list0) Z_Free( list0 );
-  if (list1) Z_Free( list1 );
+	// Terminate the list
+	*dst = NULL;
 
-  return cat;
+	// Free our old lists.
+	// NOTE: not freeing their content, it's been merged in dst and still being used
+	if ( list0 ) Z_Free( list0 );
+	if ( list1 ) Z_Free( list1 );
+
+	return cat;
 }
+
 
 /*
 ================
@@ -3024,7 +3044,7 @@ int	FS_GetModList( char *listbuf, int bufsize ) {
 	char **pFiles = NULL;
 	char **pPaks = NULL;
 	char **pDirs = NULL;
-	char *name, *path;
+	const char *name, *path;
 	char description[ MAX_OSPATH ];
 
 	int dummy;
@@ -3127,11 +3147,11 @@ FS_Dir_f
 ================
 */
 void FS_Dir_f( void ) {
-	char	*path;
-	char	*extension;
-	char	**dirnames;
-	int		ndirs;
-	int		i;
+	const char *path;
+	const char *extension;
+	char **dirnames;
+	int ndirs;
+	int i;
 
 	if ( Cmd_Argc() < 2 || Cmd_Argc() > 3 ) {
 		Com_Printf( "usage: dir <directory> [extension]\n" );
@@ -3218,7 +3238,7 @@ int FS_PathCmp( const char *s1, const char *s2 ) {
 FS_SortFileList
 ================
 */
-void FS_SortFileList(char **filelist, int numfiles) {
+static void FS_SortFileList( char **filelist, int numfiles ) {
 	int i, j, k, numsortedfiles;
 	char **sortedlist;
 
@@ -3237,9 +3257,10 @@ void FS_SortFileList(char **filelist, int numfiles) {
 		sortedlist[j] = filelist[i];
 		numsortedfiles++;
 	}
-	Com_Memcpy(filelist, sortedlist, numfiles * sizeof( *filelist ) );
-	Z_Free(sortedlist);
+	Com_Memcpy( filelist, sortedlist, numfiles * sizeof( *filelist ) );
+	Z_Free( sortedlist );
 }
+
 
 /*
 ================
@@ -3247,8 +3268,9 @@ FS_NewDir_f
 ================
 */
 void FS_NewDir_f( void ) {
-	char	*filter;
+	const char *filter;
 	char	**dirnames;
+	char	dirname[ MAX_STRING_CHARS ];
 	int		ndirs;
 	int		i;
 
@@ -3264,15 +3286,18 @@ void FS_NewDir_f( void ) {
 
 	dirnames = FS_ListFilteredFiles( "", "", filter, &ndirs, qfalse );
 
-	FS_SortFileList(dirnames, ndirs);
+	FS_SortFileList( dirnames, ndirs );
 
 	for ( i = 0; i < ndirs; i++ ) {
-		FS_ConvertPath(dirnames[i]);
-		Com_Printf( "%s\n", dirnames[i] );
+		Q_strncpyz( dirname, dirnames[i], sizeof( dirname ) );
+		FS_ConvertPath( dirname );
+		Com_Printf( "%s\n", dirname );
 	}
+
 	Com_Printf( "%d files listed\n", ndirs );
 	FS_FreeFileList( dirnames );
 }
+
 
 /*
 ============
@@ -4512,6 +4537,7 @@ FS_Restart
 ================
 */
 //void CL_PurgeCache( void );
+void Com_ExecuteCfg( qboolean safeMode );
 void FS_Restart( int checksumFeed ) {
 
 	static qboolean execConfig = qfalse;
@@ -4678,18 +4704,19 @@ void FS_Flush( fileHandle_t f )
 
 void	FS_FilenameCompletion( const char *dir, const char *ext,
 		qboolean stripExt, void(*callback)(const char *s), int flags ) {
+	char	filename[ MAX_STRING_CHARS ];
 	char	**filenames;
 	int		nfiles;
 	int		i;
-	char	filename[ MAX_STRING_CHARS ];
 
 	filenames = FS_ListFilteredFiles( dir, ext, NULL, &nfiles, flags );
 
 	FS_SortFileList( filenames, nfiles );
 
 	for( i = 0; i < nfiles; i++ ) {
-		FS_ConvertPath( filenames[ i ] );
+
 		Q_strncpyz( filename, filenames[ i ], sizeof( filename ) );
+		FS_ConvertPath( filename );
 
 		if ( stripExt ) {
 			COM_StripExtension( filename, filename, sizeof( filename ) );

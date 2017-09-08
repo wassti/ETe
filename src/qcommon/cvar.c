@@ -73,20 +73,20 @@ Cvar_ValidateString
 ============
 */
 static qboolean Cvar_ValidateString( const char *s ) {
+	int c;
+	
 	if ( !s ) {
 		return qfalse;
 	}
-	if ( strchr( s, '\\' ) ) {
-		return qfalse;
+
+	while ( (c = *s++) != '\0' ) {
+		if ( c == '\\' || c == '\"' || c == ';' )
+			return qfalse;
 	}
-	if ( strchr( s, '\"' ) ) {
-		return qfalse;
-	}
-	if ( strchr( s, ';' ) ) {
-		return qfalse;
-	}
+
 	return qtrue;
 }
+
 
 /*
 ============
@@ -253,107 +253,94 @@ char *Cvar_ClearForeignCharacters( const char *value ) {
 	return clean;
 }
 
+
+static qboolean Cvar_IsIntegral( const char *s ) {
+
+	if ( *s == '-' && *(s+1) != '\0' )
+		s++;
+
+	while ( *s != '\0' ) {
+		if ( *s < '0' || *s > '9' ) {
+			return qfalse;
+		}
+		s++;
+	}
+
+	return qtrue;
+}
+
+
 /*
 ============
 Cvar_Validate
 ============
 */
-static const char *Cvar_Validate( cvar_t *var,
-    const char *value, qboolean warn )
+static const char *Cvar_Validate( cvar_t *var, const char *value, qboolean warn )
 {
-	static char s[ MAX_CVAR_VALUE_STRING ];
+	static char intbuf[ 32 ];
+	const char *limit;
 	float valuef;
-	qboolean changed = qfalse;
+	int	  valuei;
 
-	if( !var->validate )
+	if ( var->validator == CV_NONE )
 		return value;
 
-	if( !value )
+	if ( !value )
 		return value;
 
-	if( Q_isanumber( value ) )
-	{
-		valuef = atof( value );
+	limit = NULL;
 
-		if( var->integral )
-		{
-			if( !Q_isintegral( valuef ) )
-			{
-				if( warn )
-					Com_Printf( "WARNING: cvar '%s' must be integral", var->name );
-
-				valuef = (int)valuef;
-				changed = qtrue;
+	if ( var->validator == CV_INTEGER || var->validator == CV_FLOAT ) {
+		if ( !Q_isanumber( value ) ) {
+			if ( warn )
+				Com_Printf( "WARNING: cvar '%s' must be numeric", var->name );
+			limit = var->resetString;
+		} else {
+			if ( var->validator == CV_INTEGER ) {
+				if ( !Cvar_IsIntegral( value ) ) {
+					if ( warn )
+						Com_Printf( "WARNING: cvar '%s' must be integral", var->name );
+					sprintf( intbuf, "%i", atoi( value ) );
+					value = intbuf; // new value
+				}
+				valuei = atoi( value );
+				if ( var->mins && valuei < atoi( var->mins ) ) {
+					limit = var->mins;
+				} else if ( var->maxs && valuei > atoi( var->maxs ) ) {
+					limit = var->maxs;
+				}
+			} else { // CV_FLOAT
+				valuef = atof( value );
+				if ( var->mins && valuef < atof( var->mins ) ) {
+					limit = var->mins;
+				} else if ( var->maxs && valuef > atof( var->maxs ) ) {
+					limit = var->maxs;
+				}
 			}
-		}
-	}
-	else
-	{
-		if( warn )
-			Com_Printf( "WARNING: cvar '%s' must be numeric", var->name );
 
-		valuef = atof( var->resetString );
-		changed = qtrue;
-	}
+			if ( warn ) {
+				if ( limit == var->mins || limit == var->maxs ) {
+					if ( value == intbuf ) { // cast to integer
+						Com_Printf( " and" ); 
+					} else {
+						Com_Printf( "WARNING: cvar '%s'", var->name );
+					}
+					Com_Printf( " is out of range (%s '%s')", (limit == var->mins) ? "min" : "max", limit );
+				}
+			}
+		} // Q_isanumber
+	} // CV_INTEGER || CV_FLOAT
+	// TODO: stringlist
 
-	if( valuef < var->min )
-	{
-		if( warn )
-		{
-			if( changed )
-				Com_Printf( " and is" );
-			else
-				Com_Printf( "WARNING: cvar '%s'", var->name );
-
-			if( Q_isintegral( var->min ) )
-				Com_Printf( " out of range (min %d)", (int)var->min );
-			else
-				Com_Printf( " out of range (min %f)", var->min );
-		}
-
-		valuef = var->min;
-		changed = qtrue;
-	}
-	else if( valuef > var->max )
-	{
-		if( warn )
-		{
-			if( changed )
-				Com_Printf( " and is" );
-			else
-				Com_Printf( "WARNING: cvar '%s'", var->name );
-
-			if( Q_isintegral( var->max ) )
-				Com_Printf( " out of range (max %d)", (int)var->max );
-			else
-				Com_Printf( " out of range (max %f)", var->max );
-		}
-
-		valuef = var->max;
-		changed = qtrue;
-	}
-
-	if( changed )
-	{
-		if( Q_isintegral( valuef ) )
-		{
-			Com_sprintf( s, sizeof( s ), "%d", (int)valuef );
-
-			if( warn )
-				Com_Printf( ", setting to %d\n", (int)valuef );
-		}
-		else
-		{
-			Com_sprintf( s, sizeof( s ), "%f", valuef );
-
-			if( warn )
-				Com_Printf( ", setting to %f\n", valuef );
-		}
-
-		return s;
-	}
-	else
+	if ( limit || value == intbuf ) {
+		if ( !limit )
+			limit = value;
+		if ( warn )
+			Com_Printf( ", setting to %s\n", limit );
+		return limit;
+	} else {
 		return value;
+	}
 }
 
 
@@ -505,7 +492,7 @@ cvar_t *Cvar_Get( const char *var_name, const char *var_value, int flags ) {
 	var->value = atof (var->string);
 	var->integer = atoi(var->string);
 	var->resetString = CopyString( var_value );
-	var->validate = qfalse;
+	var->validator = CV_NONE;
 	var->description = NULL;
 
 	// link the variable in
@@ -1128,6 +1115,245 @@ void Cvar_Reset_f( void ) {
 	Cvar_Reset( Cmd_Argv( 1 ) );
 }
 
+
+// returns NULL for non-existent "-" agrument
+const char *GetValue( int index, int *ival, float *fval ) 
+{
+	static char buf[ MAX_CVAR_VALUE_STRING ];
+	const char *cmd;
+	cvar_t	*var;
+
+	cmd = Cmd_Argv( index );
+
+	if ( ( *cmd == '-' && *(cmd+1) == '\0' ) || *cmd == '\0' ) {
+		*ival = 0;
+		*fval = 0.0f;
+		buf[0] = '\0';
+		return NULL;
+	}
+
+	var = Cvar_FindVar( cmd );
+	if ( !var ) // cvar not found, return string
+	{
+		*ival = atoi( cmd );
+		*fval = atof( cmd );
+		strcpy( buf, cmd );
+		return buf;
+	}
+	else // found cvar, extract values
+	{
+		*ival = var->integer;
+		*fval = var->value;
+		strcpy( buf, var->string );
+		return buf;
+	}
+}
+
+
+typedef enum {
+	FT_BAD = 0,
+	FT_ADD,
+	FT_SUB,
+	FT_MUL,
+	FT_DIV,
+	FT_MOD,
+	FT_SIN,
+	FT_COS,
+	FT_RAND,
+} funcType_t;
+
+
+static funcType_t GetFuncType( void ) 
+{
+	const char *cmd;
+	cmd = Cmd_Argv( 1 );
+	if ( !Q_stricmp( cmd, "add" ) )
+		return FT_ADD;
+	if ( !Q_stricmp( cmd, "sub" ) )
+		return FT_SUB;
+	if ( !Q_stricmp( cmd, "mul" ) )
+		return FT_MUL;
+	if ( !Q_stricmp( cmd, "div" ) )
+		return FT_DIV;
+	if ( !Q_stricmp( cmd, "mod" ) )
+		return FT_MOD;
+	if ( !Q_stricmp( cmd, "sin" ) )
+		return FT_SIN;
+	if ( !Q_stricmp( cmd, "cos" ) )
+		return FT_COS;
+	if ( !Q_stricmp( cmd, "rand" ) )
+		return FT_RAND;
+
+	return FT_BAD;
+}
+
+
+static qboolean AllowEmptyCvar( funcType_t ftype ) 
+{
+	switch ( ftype ) {
+		case FT_ADD:
+		case FT_SUB:
+		case FT_MUL:
+		case FT_DIV:
+		case FT_MOD:
+			return qfalse;
+		default:
+			return qtrue;
+	};
+}
+
+
+static void Cvar_Op( funcType_t ftype, int *ival, float *fval ) 
+{
+	int icap, imod;
+	float fcap, fmod;
+
+	GetValue( 3, &imod, &fmod ); // index 3: value
+
+	switch ( ftype ) {
+		case FT_ADD:
+			*ival += imod;
+			*fval += fmod;
+			break;
+		case FT_SUB:
+			*ival -= imod;
+			*fval -= fmod;
+			break;
+		case FT_MUL:
+			*ival *= imod;
+			*fval *= fmod;
+			break;
+		case FT_DIV:
+			if ( imod )
+				*ival /= imod;
+			if ( fmod )
+				*fval /= fmod;
+			break;
+		case FT_MOD:
+			if ( imod )
+				*ival %= imod;
+			if ( imod )
+				*fval = (float)( (int)*fval % imod ); // FIXME: use float
+			break;
+
+		case FT_SIN:
+				*ival = sin( imod );
+				*fval = sin( fmod );
+				break;
+
+		case FT_COS:
+				*ival = cos( imod );
+				*fval = cos( fmod );
+				break;
+		default: 
+			break;
+	}
+
+	if ( Cmd_Argc() > 4 ) { // low bound
+		if ( GetValue( 4, &icap, &fcap ) ) {
+			if ( *ival < icap ) *ival = icap;
+			if ( *fval < fcap ) *fval = fcap;
+		}
+	}
+	if ( Cmd_Argc() > 5 ) { // high bound
+		if ( GetValue( 5, &icap, &fcap ) ) {
+			if ( *ival > icap ) *ival = icap;
+			if ( *fval > fcap ) *fval = fcap;
+		}
+	}
+}
+
+
+static void Cvar_Rand( int *ival, float *fval ) 
+{
+	int icap;
+	float fcap;
+
+	*ival = rand();
+	*fval = *ival;
+
+	if ( Cmd_Argc() > 3 ) { // base
+		if ( GetValue( 3, &icap, &fcap ) ) {
+			*ival += icap;
+			*fval = *ival;
+		}
+	}
+	if ( Cmd_Argc() > 4 ) { // modulus
+		if ( GetValue( 4, &icap, &fcap ) ) {
+			if ( icap ) {
+				*ival %= icap;
+				*fval = *ival;
+			}
+		}
+	}
+}
+
+
+void Cvar_Func_f( void ) {
+
+	funcType_t	ftype;
+	const char	*cvar_name;
+	char		value[ 32 ];
+	cvar_t		*cvar;
+	int			ival;
+	float		fval;
+
+	if ( Cmd_Argc() < 3 ) {
+		Com_Printf( "usage: \n" \
+			"  \\varfunc <add|sub|mul|div|mod|sin|cos> <cvar> <value> [lo.cap] [hi.cap]\n" \
+			"  \\varfunc rand <cvar> [base] [modulus]\n" );
+		return;
+	}
+
+	//     0     1     2      3      4        5
+	// \varfunc <op> <cvar> <val> [lo-cap] [hi-cap]
+	
+	// \varfunc rand <cvar> [base] [modulus]
+
+	ftype = GetFuncType(); // index 1: function type
+	if ( ftype == FT_BAD ) {
+		Com_Printf( "%s: unknown function %s\n", Cmd_Argv( 0 ), Cmd_Argv( 1 ) );
+		return;
+	}
+
+	cvar_name = Cmd_Argv( 2 ); // index 2: cvar name
+	cvar = Cvar_FindVar( cvar_name );
+	if ( !cvar ) {
+		if ( !AllowEmptyCvar( ftype ) )	{
+			Com_Printf( "Cvar '%s' does not exist.\n", cvar_name );
+			return; // FIXME: allow cvar creation for some functions?
+		}
+	} else if ( cvar->flags & ( CVAR_INIT | CVAR_ROM | CVAR_PROTECTED ) ) {
+		Com_Printf( "Cvar '%s' is write-protected.\n", cvar_name );
+		return;
+	}
+	
+	if ( cvar ) {
+		fval = cvar->value;
+		ival = cvar->integer;
+	} else {
+		fval = 0.0;
+		ival = 0;
+	}
+
+	if ( ftype == FT_RAND )
+		Cvar_Rand( &ival, &fval );
+	else
+		Cvar_Op( ftype, &ival, &fval ); // apply modification
+	
+	if ( cvar && cvar->validator == CV_INTEGER ) {
+		sprintf( value, "%i", ival );
+	} else {
+		if ( (int)fval == fval )
+			sprintf( value, "%i", (int)fval );
+		else
+			sprintf( value, "%f", fval );
+	}
+
+	Cvar_Set2( cvar_name, value, qfalse );
+}
+
+
 /*
 ============
 Cvar_WriteVariables
@@ -1271,8 +1497,8 @@ Cvar_ListModified_f
 void Cvar_ListModified_f( void ) {
 	cvar_t	*var;
 	int		totalModified;
-	char	*value;
-	char	*match;
+	const char *value;
+	const char *match;
 
 	if ( Cmd_Argc() > 1 ) {
 		match = Cmd_Argv( 1 );
@@ -1347,6 +1573,7 @@ void Cvar_ListModified_f( void ) {
 	Com_Printf ("\n%i total modified cvars\n", totalModified);
 }
 
+
 /*
 ============
 Cvar_Unset
@@ -1372,6 +1599,10 @@ cvar_t *Cvar_Unset( cvar_t *cv )
 		Z_Free( cv->resetString );
 	if ( cv->description )
 		Z_Free( cv->description );
+	if ( cv->mins )
+		Z_Free( cv->mins );
+	if ( cv->maxs )
+		Z_Free( cv->maxs );
 
 	if ( cv->prev )
 		cv->prev->next = cv->next;
@@ -1472,6 +1703,7 @@ void Cvar_Restart_f(void)
 	Cvar_Restart(qfalse);
 }
 
+
 /*
 =====================
 Cvar_InfoString
@@ -1526,17 +1758,33 @@ void Cvar_InfoStringBuffer( int bit, char* buff, int buffsize ) {
 	Q_strncpyz(buff,Cvar_InfoString(bit),buffsize);
 }
 
+
 /*
 =====================
 Cvar_CheckRange
 =====================
 */
-void Cvar_CheckRange( cvar_t *var, float min, float max, qboolean integral )
+void Cvar_CheckRange( cvar_t *var, const char *mins, const char *maxs, cvarValidator_t type )
 {
-	var->validate = qtrue;
-	var->min = min;
-	var->max = max;
-	var->integral = integral;
+	if ( var->mins ) {
+		Z_Free( var->mins );
+		var->mins = NULL;
+	}
+	if ( var->maxs ) {
+		Z_Free( var->maxs );
+		var->maxs = NULL;
+	}
+
+	var->validator = type;
+
+	if ( type == CV_NONE )
+		return;
+
+	if ( mins )
+		var->mins = CopyString( mins );
+	
+	if ( maxs )
+		var->maxs = CopyString( maxs );
 
 	// Force an initial range check
 	Cvar_Set( var->name, var->string );
@@ -1681,6 +1929,8 @@ void Cvar_Init (void)
 	Cmd_SetCommandCompletionFunc( "reset", Cvar_CompleteCvarName );
 	Cmd_AddCommand ("unset", Cvar_Unset_f);
 	Cmd_SetCommandCompletionFunc("unset", Cvar_CompleteCvarName);
+
+	Cmd_AddCommand( "varfunc", Cvar_Func_f );
 
 	Cmd_AddCommand ("cvarlist", Cvar_List_f);
 	Cmd_AddCommand ("cvar_modified", Cvar_ListModified_f);

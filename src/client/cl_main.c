@@ -1347,12 +1347,21 @@ void CL_Disconnect( qboolean showMainMenu ) {
 		*clc.downloadTempName = *clc.downloadName = '\0';
 		Cvar_Set( "cl_downloadName", "" );
 	}
-	if ( uivm && showMainMenu ) {
-		VM_Call( uivm, UI_SET_ACTIVE_MENU, UIMENU_NONE );
+
+	// Stop recording any video
+	if ( CL_VideoRecording() ) {
+		// Finish rendering current frame
+		SCR_UpdateScreen();
+		CL_CloseAVI();
 	}
 
 	SCR_StopCinematic();
-	S_ClearSoundBuffer( qtrue );  //----(SA)	modified
+	S_StopAllSounds();
+	Key_ClearStates();
+
+	if ( uivm && showMainMenu ) {
+		VM_Call( uivm, UI_SET_ACTIVE_MENU, UIMENU_NONE );
+	}
 
 	// send a disconnect message to the server
 	// send it a few times in case one is dropped
@@ -1382,14 +1391,7 @@ void CL_Disconnect( qboolean showMainMenu ) {
 
 	// not connected to a pure server anymore
 	cl_connectedToPureServer = qfalse;
-	
-	// Stop recording any video
-	if( CL_VideoRecording() ) {
-		// Finish rendering current frame
-		SCR_UpdateScreen();
-		CL_CloseAVI();
-	}
-	
+
 	CL_UpdateGUID();
 
 	Cmd_RemoveCommand( "callvote" );
@@ -1989,12 +1991,13 @@ void CL_Configstrings_f( void ) {
 	}
 }
 
+
 /*
 ==============
 CL_Clientinfo_f
 ==============
 */
-void CL_Clientinfo_f( void ) {
+static void CL_Clientinfo_f( void ) {
 	Com_Printf( "--------- Client Information ---------\n" );
 	Com_Printf( "state: %i\n", cls.state );
 	Com_Printf( "Server: %s\n", cls.servername );
@@ -2002,6 +2005,41 @@ void CL_Clientinfo_f( void ) {
 	Info_Print( Cvar_InfoString( CVAR_USERINFO ) );
 	Com_Printf( "--------------------------------------\n" );
 }
+
+
+/*
+==============
+CL_Serverinfo_f
+==============
+*/
+static void CL_Serverinfo_f( void ) {
+	int		ofs;
+
+	ofs = cl.gameState.stringOffsets[ CS_SERVERINFO ];
+	if ( !ofs )
+		return;
+
+	Com_Printf( "Server info settings:\n" );
+	Info_Print( cl.gameState.stringData + ofs );
+}
+
+
+/*
+===========
+CL_Systeminfo_f
+===========
+*/
+static void CL_Systeminfo_f( void ) {
+	int ofs;
+
+	ofs = cl.gameState.stringOffsets[ CS_SYSTEMINFO ];
+	if ( !ofs )
+		return;
+
+	Com_Printf( "System info settings:\n" );
+	Info_Print( cl.gameState.stringData + ofs );
+}
+
 
 static void CL_CompleteCallvote( char *args, int argNum )
 {
@@ -3201,11 +3239,6 @@ CL_Frame
 
 ==================
 */
-//#ifdef USE_PMLIGHT
-extern cvar_t *r_dlightSpecPower;
-extern cvar_t *r_dlightSpecColor;
-extern qboolean ARB_UpdatePrograms( void );
-//#endif
 void CL_Frame( int msec ) {
 	float fps;
 	float frameDuration;
@@ -3351,13 +3384,7 @@ void CL_Frame( int msec ) {
 	SCR_RunCinematic();
 
 	Con_RunConsole();
-//#ifdef USE_PMLIGHT
-	if ( r_dlightSpecPower->modified || r_dlightSpecColor->modified ) {
-		ARB_UpdatePrograms();
-		r_dlightSpecPower->modified = qfalse;
-		r_dlightSpecColor->modified = qfalse;
-	}
-//#endif
+
 	cls.framecount++;
 }
 
@@ -3890,7 +3917,7 @@ void CL_Init( void ) {
 	cl_wavefilerecord = Cvar_Get( "cl_wavefilerecord", "0", CVAR_TEMP );
 
 	cl_timeNudge = Cvar_Get( "cl_timeNudge", "0", CVAR_TEMP );
-	Cvar_CheckRange( cl_timeNudge, -30, 30, qtrue );
+	Cvar_CheckRange( cl_timeNudge, "-30", "30", CV_INTEGER );
 	cl_shownet = Cvar_Get( "cl_shownet", "0", CVAR_TEMP );
 	cl_shownuments = Cvar_Get( "cl_shownuments", "0", CVAR_TEMP );
 	cl_visibleClients = Cvar_Get( "cl_visibleClients", "0", CVAR_TEMP );
@@ -3906,7 +3933,7 @@ void CL_Init( void ) {
 	cl_autoRecordDemo = Cvar_Get ("cl_autoRecordDemo", "0", CVAR_ARCHIVE);
 
 	cl_aviFrameRate = Cvar_Get ("cl_aviFrameRate", "25", CVAR_ARCHIVE);
-	Cvar_CheckRange( cl_aviFrameRate, 1, 1000, qtrue );
+	Cvar_CheckRange( cl_aviFrameRate, "1", "1000", CV_INTEGER );
 	cl_aviMotionJpeg = Cvar_Get ("cl_aviMotionJpeg", "1", CVAR_ARCHIVE);
 	cl_forceavidemo = Cvar_Get ("cl_forceavidemo", "0", 0);
 
@@ -3918,8 +3945,9 @@ void CL_Init( void ) {
 	cl_anglespeedkey = Cvar_Get ("cl_anglespeedkey", "1.5", 0);
 
 	cl_maxpackets = Cvar_Get ("cl_maxpackets", "60", CVAR_ARCHIVE );
-	Cvar_CheckRange( cl_maxpackets, 15, 125, qtrue );
+	Cvar_CheckRange( cl_maxpackets, "15", "125", CV_INTEGER );
 	cl_packetdup = Cvar_Get ("cl_packetdup", "1", CVAR_ARCHIVE_ND );
+	Cvar_CheckRange( cl_packetdup, "0", "5", CV_INTEGER );
 
 	cl_run = Cvar_Get( "cl_run", "1", CVAR_ARCHIVE_ND );
 	cl_sensitivity = Cvar_Get ("sensitivity", "5", CVAR_ARCHIVE);
@@ -3932,7 +3960,7 @@ void CL_Init( void ) {
 	// offset for the power function (for style 1, ignored otherwise)
 	// this should be set to the max rate value
 	cl_mouseAccelOffset = Cvar_Get( "cl_mouseAccelOffset", "5", CVAR_ARCHIVE_ND );
-	Cvar_CheckRange(cl_mouseAccelOffset, 0.001f, 50000.0f, qfalse);
+	Cvar_CheckRange( cl_mouseAccelOffset, "0.001", "50000", CV_FLOAT );
 
 	cl_showMouseRate = Cvar_Get ("cl_showmouserate", "0", 0);
 
@@ -4089,6 +4117,8 @@ void CL_Init( void ) {
 	Cmd_AddCommand ("video", CL_Video_f );
 	Cmd_SetCommandCompletionFunc( "video", CL_CompleteVideoName );
 	Cmd_AddCommand ("stopvideo", CL_StopVideo_f );
+	Cmd_AddCommand ("serverinfo", CL_Serverinfo_f );
+	Cmd_AddCommand ("systeminfo", CL_Systeminfo_f );
 
 	// Ridah, startup-caching system
 	Cmd_AddCommand( "cache_startgather", CL_Cache_StartGather_f );
@@ -4204,6 +4234,8 @@ void CL_Shutdown( const char *finalmsg, qboolean quit ) {
 	//Cmd_RemoveCommand( "model" );
 	Cmd_RemoveCommand ("video");
 	Cmd_RemoveCommand ("stopvideo");
+	Cmd_RemoveCommand ("serverinfo");
+	Cmd_RemoveCommand ("systeminfo");
 
 	// Ridah, startup-caching system
 	Cmd_RemoveCommand( "cache_startgather" );

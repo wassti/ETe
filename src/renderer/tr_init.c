@@ -1051,16 +1051,16 @@ void R_Register( void )
 	r_allowNonPo2 = ri.Cvar_Get( "r_allowNonPo2", "0", CVAR_ARCHIVE_ND | CVAR_LATCH );
 	ri.Cvar_SetDescription( r_allowNonPo2, "Toggle to allow non power of two textures. Default is off like ETmain" );
 	r_colorMipLevels = ri.Cvar_Get( "r_colorMipLevels", "0", CVAR_LATCH );
-	ri.Cvar_CheckRange( r_picmip, -16, 16, qtrue );
+	ri.Cvar_CheckRange( r_picmip, "-16", "16", CV_INTEGER );
 	r_detailTextures = ri.Cvar_Get( "r_detailtextures", "1", CVAR_ARCHIVE_ND | CVAR_LATCH );
 	r_texturebits = ri.Cvar_Get( "r_texturebits", "0", CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE );
 	r_colorbits = ri.Cvar_Get( "r_colorbits", "0", CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE );
 	r_stencilbits = ri.Cvar_Get( "r_stencilbits", "0", CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE );
 	r_depthbits = ri.Cvar_Get( "r_depthbits", "0", CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE );
 	r_ext_multisample = ri.Cvar_Get( "r_ext_multisample", "0", CVAR_ARCHIVE_ND | CVAR_LATCH );
-	ri.Cvar_CheckRange( r_ext_multisample, 0, 8, qtrue );
+	ri.Cvar_CheckRange( r_ext_multisample, "0", "8", CV_INTEGER );
 	r_overBrightBits = ri.Cvar_Get( "r_overBrightBits", "0", CVAR_ARCHIVE_ND | CVAR_LATCH ); // Arnout: disable overbrightbits by default
-	ri.Cvar_CheckRange( r_overBrightBits, 0, 1, qtrue );                                   // ydnar: limit to overbrightbits 1 (sorry 1337 players)
+	ri.Cvar_CheckRange( r_overBrightBits, "0", "1", CV_INTEGER );                                   // ydnar: limit to overbrightbits 1 (sorry 1337 players)
 	r_ignorehwgamma = ri.Cvar_Get( "r_ignorehwgamma", "0", CVAR_ARCHIVE_ND | CVAR_LATCH );        // ydnar: use hw gamma by default
 	r_mode = ri.Cvar_Get( "r_mode", "4", CVAR_ARCHIVE | CVAR_LATCH | CVAR_UNSAFE );
 	r_modeFullscreen = ri.Cvar_Get( "r_modeFullscreen", "-2", CVAR_ARCHIVE | CVAR_LATCH );
@@ -1074,20 +1074,20 @@ void R_Register( void )
 	r_subdivisions = ri.Cvar_Get( "r_subdivisions", "4", CVAR_ARCHIVE_ND | CVAR_LATCH );
 	r_stereoEnabled = ri.Cvar_Get( "r_stereoEnabled", "0", CVAR_ARCHIVE_ND | CVAR_LATCH );
 	r_ignoreFastPath = ri.Cvar_Get( "r_ignoreFastPath", "0", CVAR_ARCHIVE_ND | CVAR_LATCH ); // ydnar: use fast path by default
-	r_greyscale = ri.Cvar_Get( "r_greyscale", "0", CVAR_ARCHIVE_ND | CVAR_LATCH );
-	ri.Cvar_CheckRange( r_greyscale, 0, 1, qfalse );
+	r_greyscale = ri.Cvar_Get( "r_greyscale", "0", CVAR_ARCHIVE_ND );
+	ri.Cvar_CheckRange( r_greyscale, "-1", "1", CV_INTEGER );
 	r_mapGrayScale = ri.Cvar_Get( "r_mapGrayScale", "0", CVAR_ARCHIVE_ND | CVAR_LATCH );
-	ri.Cvar_CheckRange( r_mapGrayScale, 0, 1, qfalse );
+	ri.Cvar_CheckRange( r_mapGrayScale, "0", "1", CV_FLOAT );
 
 	//
 	// temporary latched variables that can only change over a restart
 	//
 	r_displayRefresh = ri.Cvar_Get( "r_displayRefresh", "0", CVAR_LATCH | CVAR_UNSAFE );
-	ri.Cvar_CheckRange( r_displayRefresh, 0, 250, qtrue );
+	ri.Cvar_CheckRange( r_displayRefresh, "0", "250", CV_INTEGER );
 	r_mapOverBrightBits = ri.Cvar_Get( "r_mapOverBrightBits", "2", CVAR_ARCHIVE_ND | CVAR_LATCH );
-	ri.Cvar_CheckRange( r_mapOverBrightBits, 0, 3, qtrue );
+	ri.Cvar_CheckRange( r_mapOverBrightBits, "0", "3", CV_INTEGER );
 	r_intensity = ri.Cvar_Get( "r_intensity", "1", CVAR_LATCH );
-	ri.Cvar_CheckRange( r_intensity, 1.0f, 1.5f, qfalse ); // ri.Cvar_CheckRange( r_intensity, 1.0f, 255.0f, qfalse );
+	ri.Cvar_CheckRange( r_intensity, "1", "1.5", CV_FLOAT ); // ri.Cvar_CheckRange( r_intensity, "1", "255", CV_FLOAT );
 	r_singleShader = ri.Cvar_Get( "r_singleShader", "0", CVAR_CHEAT | CVAR_LATCH );
 
 	//
@@ -1097,7 +1097,7 @@ void R_Register( void )
 	r_lodbias = ri.Cvar_Get( "r_lodbias", "0", CVAR_ARCHIVE_ND );
 	r_flares = ri.Cvar_Get( "r_flares", "1", CVAR_ARCHIVE_ND | CVAR_LATCH );
 	r_znear = ri.Cvar_Get( "r_znear", "3", CVAR_CHEAT );  // ydnar: changed it to 3 (from 4) because of lean/fov cheats
-	ri.Cvar_CheckRange( r_znear, 0.001f, 200, qfalse );
+	ri.Cvar_CheckRange( r_znear, "0.001", "200", CV_FLOAT );
 //----(SA)	added
 	r_zfar = ri.Cvar_Get( "r_zfar", "0", CVAR_CHEAT );
 //----(SA)	end
@@ -1111,18 +1111,18 @@ void R_Register( void )
 #ifdef USE_PMLIGHT
 	r_dlightMode = ri.Cvar_Get( "r_dlightMode", "1", CVAR_ARCHIVE );
 #ifdef USE_LEGACY_DLIGHTS
-	ri.Cvar_CheckRange( r_dlightMode, 0, 2, qtrue );
+	ri.Cvar_CheckRange( r_dlightMode, "0", "2", CV_INTEGER );
 #else
-	ri.Cvar_CheckRange( r_dlightMode, 1, 2, qtrue );
+	ri.Cvar_CheckRange( r_dlightMode, "1", "2", CV_INTEGER );
 #endif
 	r_dlightScale = ri.Cvar_Get( "r_dlightScale", "1.0", CVAR_ARCHIVE_ND );
-	ri.Cvar_CheckRange( r_dlightScale, 0.1f, 1.0f, qfalse );
+	ri.Cvar_CheckRange( r_dlightScale, "0.1", "1", CV_FLOAT );
 	r_dlightSpecPower = ri.Cvar_Get( "r_dlightSpecPower", "8.0", CVAR_ARCHIVE_ND );
-	ri.Cvar_CheckRange( r_dlightSpecPower, 1.0f, 32.0f, qfalse );
+	ri.Cvar_CheckRange( r_dlightSpecPower, "1", "32", CV_FLOAT );
 	r_dlightSpecColor = ri.Cvar_Get( "r_dlightSpecColor", "-0.25", CVAR_ARCHIVE_ND );
-	ri.Cvar_CheckRange( r_dlightSpecColor, -1.0f, 1.0f, qfalse );
+	ri.Cvar_CheckRange( r_dlightSpecColor, "-1", "1", CV_FLOAT );
 	r_dlightIntensity = ri.Cvar_Get( "r_dlightIntensity", "1.0", CVAR_ARCHIVE_ND );
-	ri.Cvar_CheckRange( r_dlightIntensity, 0.1f, 1.0f, qfalse );
+	ri.Cvar_CheckRange( r_dlightIntensity, "0.1", "1", CV_FLOAT );
 
 	r_fbo = ri.Cvar_Get( "r_fbo", "0", CVAR_ARCHIVE | CVAR_LATCH );
 #endif
@@ -1135,7 +1135,7 @@ void R_Register( void )
 #else
 	r_gamma = ri.Cvar_Get( "r_gamma", "1.3", CVAR_ARCHIVE_ND );
 #endif
-	Cvar_CheckRange( r_gamma, 0.5f, 3.0f, qfalse );
+	ri.Cvar_CheckRange( r_gamma, "0.5", "3", CV_FLOAT );
 	r_facePlaneCull = ri.Cvar_Get( "r_facePlaneCull", "1", CVAR_ARCHIVE_ND );
 
 	r_railWidth = ri.Cvar_Get( "r_railWidth", "16", CVAR_ARCHIVE_ND );
@@ -1482,6 +1482,7 @@ refexport_t *GetRefAPI ( int apiVersion, refimport_t *rimp ) {
 	re.AddPolysToScene  = RE_AddPolysToScene;
 	// done.
 	re.AddLightToScene  = RE_AddLightToScene;
+	re.AddLinearLightToScene = RE_AddLinearLightToScene;
 //----(SA)
 	re.AddCoronaToScene = RE_AddCoronaToScene;
 	re.SetFog           = R_SetFog;

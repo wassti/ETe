@@ -230,10 +230,10 @@ static const byte q_locase[ 256 ] =
 	0xf8,0xf9,0xfa,0xfb,0xfc,0xfd,0xfe,0xff
 };
 
-long Com_GenerateHashValue( const char *fname, const int size ) 
+unsigned long Com_GenerateHashValue( const char *fname, const unsigned int size )
 {
 	const byte *s;
-	long	hash;
+	unsigned long hash;
 	int		c;
 
 	s = (byte*)fname;
@@ -475,9 +475,13 @@ static int com_lines;
 
 static  int		com_tokenline;
 
+// for complex parser
+tokenType_t		com_tokentype;
+
 static int backup_lines;
 static int backup_tokenline;
-static char    *backup_text;
+static const char    *backup_text;
+static tokenType_t		backup_tokentype;
 
 void COM_BeginParseSession( const char *name )
 {
@@ -488,18 +492,20 @@ void COM_BeginParseSession( const char *name )
 
 
 
-void COM_BackupParseSession( char **data_p )
+void COM_BackupParseSession( const char **data_p )
 {
 	backup_lines = com_lines;
 	backup_tokenline = com_tokenline;
 	backup_text = *data_p;
+	backup_tokentype = com_tokentype;
 }
 
-void COM_RestoreParseSession( char **data_p )
+void COM_RestoreParseSession( const char **data_p )
 {
 	com_lines = backup_lines;
 	com_tokenline = backup_tokenline;
 	*data_p = backup_text;
+	com_tokentype = backup_tokentype;
 }
 
 /*void COM_SetCurrentParseLine( int line )
@@ -517,7 +523,8 @@ int COM_GetCurrentParseLine( void )
 	return com_lines;
 }
 
-char *COM_Parse( char **data_p )
+
+char *COM_Parse( const char **data_p )
 {
 	return COM_ParseExt( data_p, qtrue );
 }
@@ -561,7 +568,7 @@ string will be returned if the next token is
 a newline.
 ==============
 */
-static char *SkipWhitespace( char *data, qboolean *hasNewLines ) {
+static const char *SkipWhitespace( const char *data, qboolean *hasNewLines ) {
 	int c;
 
 	while ( ( c = *data ) <= ' ' ) {
@@ -648,11 +655,11 @@ int COM_Compress( char *data_p ) {
 }
 
 
-char *COM_ParseExt( char **data_p, qboolean allowLineBreaks )
+char *COM_ParseExt( const char **data_p, qboolean allowLineBreaks )
 {
 	int c = 0, len;
 	qboolean hasNewLines = qfalse;
-	char *data;
+	const char *data;
 
 	data = *data_p;
 	len = 0;
@@ -800,6 +807,222 @@ char *COM_ParseExt( char **data_p, qboolean allowLineBreaks )
 	*data_p = ( char * ) data;
 	return com_token;
 }
+	
+
+/*
+==============
+COM_ParseComplex
+==============
+*/
+char *COM_ParseComplex( const char **data_p, qboolean allowLineBreaks )
+{
+	static const byte is_separator[ 256 ] =
+	{
+	// \0 . . . . . . .\b\t\n . .\r . .
+		1,0,0,0,0,0,0,0,0,1,1,0,0,1,0,0,
+	//  . . . . . . . . . . . . . . . .
+		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	//    ! " # $ % & ' ( ) * + , - . /
+		1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0, // excl. '-' '.' '/'
+	//  0 1 2 3 4 5 6 7 8 9 : ; < = > ?
+		0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,
+	//  @ A B C D E F G H I J K L M N O
+		1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	//  P Q R S T U V W X Y Z [ \ ] ^ _
+		0,0,0,0,0,0,0,0,0,0,0,1,0,1,1,0, // excl. '\\' '_'
+	//  ` a b c d e f g h i j k l m n o
+		1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	//  p q r s t u v w x y z { | } ~ 
+		0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1
+	};
+
+	int c, len, shift;
+	const byte *str;
+
+	str = (byte*)*data_p;
+	len = 0; 
+	shift = 0; // token line shift relative to com_lines
+	com_tokentype = TK_GENEGIC;
+	
+__reswitch:
+	switch ( *str )
+	{
+	case '\0':
+		com_tokentype = TK_EOF;
+		break;
+
+	// whitespace
+	case ' ':
+	case '\t':
+		str++;
+		while ( (c = *str) == ' ' || c == '\t' )
+			str++;
+		goto __reswitch;
+
+	// newlines
+	case '\n':
+	case '\r':
+	com_lines++;
+		if ( *str == '\r' && str[1] == '\n' )
+			str += 2; // CR+LF
+		else
+			str++;
+		if ( !allowLineBreaks ) {
+			com_tokentype = TK_NEWLINE;
+			break;
+		}
+		goto __reswitch;
+
+	// comments, single slash
+	case '/':
+		// until end of line
+		if ( str[1] == '/' ) {
+			str += 2;
+			while ( (c = *str) != '\0' && c != '\n' && c != '\r' )
+				str++;
+			goto __reswitch;
+		}
+
+		// comment
+		if ( str[1] == '*' ) {
+			str += 2;
+			while ( (c = *str) != '\0' && ( c != '*' || str[1] != '/' ) ) {
+				if ( c == '\n' || c == '\r' ) {
+					com_lines++;
+					if ( c == '\r' && str[1] == '\n' ) // CR+LF?
+						str++;
+				}
+				str++;
+			}
+			if ( c != '\0' && str[1] != '\0' ) {
+				str += 2;
+			} else {
+				// FIXME: unterminated comment?
+			}
+			goto __reswitch;
+		}
+
+		// single slash
+		com_token[ len++ ] = *str++;
+		break;
+	
+	// quoted string?
+	case '"':
+		str++; // skip leading '"'
+		//com_tokenline = com_lines;
+		while ( (c = *str) != '\0' && c != '"' ) {
+			if ( c == '\n' || c == '\r' ) {
+				com_lines++; // FIXME: unterminated quoted string?
+				shift++;
+			}
+			if ( len < MAX_TOKEN_CHARS-1 ) // overflow check
+				com_token[ len++ ] = c;
+		}
+		if ( c != '\0' ) {
+			str++; // skip enging '"'
+		} else {
+			// FIXME: unterminated quoted string?
+		}
+		com_tokentype = TK_QUOTED;
+		break;
+
+	// single tokens:
+	case '+': case '`':
+	case '*': case '~':
+	case '{': case '}':
+	case '[': case ']':
+	case '?': case ',':
+	case ':': case ';':
+	case '%': case '^':
+		com_token[ len++ ] = *str++;
+		break;
+
+	case '(':
+		com_token[ len++ ] = *str++;
+		com_tokentype = TK_SCOPE_OPEN;
+		break;
+
+	case ')':
+		com_token[ len++ ] = *str++;
+		com_tokentype = TK_SCOPE_CLOSE;
+		break;
+
+	// !, !=
+	case '!':
+		com_token[ len++ ] = *str++;
+		if ( *str == '=' ) {
+			com_token[ len++ ] = *str++;
+			com_tokentype = TK_NEQ;
+		}
+		break;
+
+	// =, ==
+	case '=':
+		com_token[ len++ ] = *str++;
+		if ( *str == '=' ) {
+			com_token[ len++ ] = *str++;
+			com_tokentype = TK_EQ;
+		}
+		break;
+
+	// >, >=
+	case '>':
+		com_token[ len++ ] = *str++;
+		if ( *str == '=' ) {
+			com_token[ len++ ] = *str++;
+			com_tokentype = TK_GTE;
+		} else {
+			com_tokentype = TK_GT;
+		}
+		break;
+
+	//  <, <=
+	case '<':
+		com_token[ len++ ] = *str++;
+		if ( *str == '=' ) {
+			com_token[ len++ ] = *str++;
+			com_tokentype = TK_LTE;
+		} else {
+			com_tokentype = TK_LT;
+		}
+		break;
+
+	// |, ||
+	case '|':
+		com_token[ len++ ] = *str++;
+		if ( *str == '|' ) {
+			com_token[ len++ ] = *str++;
+			com_tokentype = TK_OR;
+		}
+		break;
+
+	// &, &&
+	case '&':
+		com_token[ len++ ] = *str++;
+		if ( *str == '&' ) {
+			com_token[ len++ ] = *str++;
+			com_tokentype = TK_AND;
+		}
+		break;
+
+	// rest of the charset
+	default:
+		com_token[ len++ ] = *str++;
+		while ( !is_separator[ (c = *str) ] ) {
+			if ( len < MAX_TOKEN_CHARS-1 )
+				com_token[ len++ ] = c;
+			str++;
+		}
+		com_tokentype = TK_STRING;
+		break;
+
+	} // switch ( *str )
+
+	com_tokenline = com_lines - shift;
+	com_token[ len ] = '\0';
+	*data_p = ( char * )str;
+	return com_token;
+}
 
 
 /*
@@ -807,8 +1030,8 @@ char *COM_ParseExt( char **data_p, qboolean allowLineBreaks )
 COM_MatchToken
 ==================
 */
-void COM_MatchToken( char **buf_p, char *match ) {
-	char	*token;
+void COM_MatchToken( const char **buf_p, const char *match ) {
+	const char *token;
 
 	token = COM_Parse( buf_p );
 	if ( strcmp( token, match ) ) {
@@ -826,7 +1049,7 @@ Skips until a matching close brace is found.
 Internal brace depths are properly skipped.
 =================
 */
-qboolean SkipBracedSection( char **program, int depth ) {
+qboolean SkipBracedSection( const char **program, int depth ) {
 	char			*token;
 
 	do {
@@ -850,8 +1073,8 @@ qboolean SkipBracedSection( char **program, int depth ) {
 SkipRestOfLine
 =================
 */
-void SkipRestOfLine( char **data ) {
-	char	*p;
+void SkipRestOfLine( const char **data ) {
+	const char *p;
 	int		c;
 
 	p = *data;
@@ -871,39 +1094,41 @@ void SkipRestOfLine( char **data ) {
 }
 
 
-void Parse1DMatrix( char **buf_p, int x, float *m ) {
-	char    *token;
-	int i;
+void Parse1DMatrix( const char **buf_p, int x, float *m ) {
+	char	*token;
+	int		i;
 
 	COM_MatchToken( buf_p, "(" );
 
-	for ( i = 0 ; i < x ; i++ ) {
-		token = COM_Parse( buf_p );
-		m[i] = atof( token );
+	for (i = 0 ; i < x ; i++) {
+		token = COM_Parse(buf_p);
+		m[i] = atof(token);
 	}
 
 	COM_MatchToken( buf_p, ")" );
 }
 
-void Parse2DMatrix( char **buf_p, int y, int x, float *m ) {
-	int i;
+
+void Parse2DMatrix( const char **buf_p, int y, int x, float *m ) {
+	int		i;
 
 	COM_MatchToken( buf_p, "(" );
 
-	for ( i = 0 ; i < y ; i++ ) {
-		Parse1DMatrix( buf_p, x, m + i * x );
+	for (i = 0 ; i < y ; i++) {
+		Parse1DMatrix (buf_p, x, m + i * x);
 	}
 
 	COM_MatchToken( buf_p, ")" );
 }
 
-void Parse3DMatrix( char **buf_p, int z, int y, int x, float *m ) {
-	int i;
+
+void Parse3DMatrix( const char **buf_p, int z, int y, int x, float *m ) {
+	int		i;
 
 	COM_MatchToken( buf_p, "(" );
 
-	for ( i = 0 ; i < z ; i++ ) {
-		Parse2DMatrix( buf_p, y, x, m + i * x * y );
+	for (i = 0 ; i < z ; i++) {
+		Parse2DMatrix (buf_p, y, x, m + i * x*y);
 	}
 
 	COM_MatchToken( buf_p, ")" );

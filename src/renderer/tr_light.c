@@ -46,15 +46,21 @@ Used by both the front end (for DlightBmodel) and
 the back end (before doing the lighting calculation)
 ===============
 */
-void R_TransformDlights( int count, dlight_t *dl, orientationr_t *or ) {
-	int i;
-	vec3_t temp;
+void R_TransformDlights( int count, dlight_t *dl, orientationr_t *or) {
+	int		i;
+	vec3_t	temp, temp2;
 
 	for ( i = 0 ; i < count ; i++, dl++ ) {
 		VectorSubtract( dl->origin, or->origin, temp );
 		dl->transformed[0] = DotProduct( temp, or->axis[0] );
 		dl->transformed[1] = DotProduct( temp, or->axis[1] );
 		dl->transformed[2] = DotProduct( temp, or->axis[2] );
+		if ( dl->linear ) {
+			VectorSubtract( dl->origin2, or->origin, temp2 );
+			dl->transformed2[0] = DotProduct( temp2, or->axis[0] );
+			dl->transformed2[1] = DotProduct( temp2, or->axis[1] );
+			dl->transformed2[2] = DotProduct( temp2, or->axis[2] );
+		}
 	}
 }
 
@@ -123,6 +129,14 @@ void R_DlightBmodel( bmodel_t *bmodel ) {
 				}
 				if ( bmodel->bounds[0][j] - dl->transformed[j] > dl->radius ) {
 					break;
+				}
+				if ( dl->linear ) {
+					if ( dl->transformed2[j] - bmodel->bounds[1][j] > dl->radius ) {
+						break;
+					}
+					if ( bmodel->bounds[0][j] - dl->transformed2[j] > dl->radius ) {
+						break;
+					}
 				}
 			}
 			if ( j < 3 ) {
@@ -424,6 +438,8 @@ void R_SetupEntityLighting( const trRefdef_t *refdef, trRefEntity_t *ent ) {
 		if ( r_shadows->integer == 2 ) {
 			for ( i = 0 ; i < refdef->num_dlights ; i++ ) {
 				dl = &refdef->dlights[i];
+				if ( dl->linear ) // no support for linear lights atm
+					continue;
 
 				if ( dl->shader ) { //----(SA)	if the dlight has a diff shader specified, you don't know what it does, so don't let it affect entities lighting
 					continue;

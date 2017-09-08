@@ -111,7 +111,7 @@ void R_RemapShader(const char *shaderName, const char *newShaderName, const char
 ParseVector
 ===============
 */
-static qboolean ParseVector( char **text, int count, float *v ) {
+static qboolean ParseVector( const char **text, int count, float *v ) {
 	char	*token;
 	int		i;
 
@@ -300,7 +300,7 @@ static genFunc_t NameToGenFunc( const char *funcname )
 ParseWaveForm
 ===================
 */
-static void ParseWaveForm( char **text, waveForm_t *wave )
+static void ParseWaveForm( const char **text, waveForm_t *wave )
 {
 	char *token;
 
@@ -352,10 +352,10 @@ static void ParseWaveForm( char **text, waveForm_t *wave )
 ParseTexMod
 ===================
 */
-static void ParseTexMod( char *_text, shaderStage_t *stage )
+static void ParseTexMod( const char *_text, shaderStage_t *stage )
 {
 	const char *token;
-	char **text = &_text;
+	const char **text = &_text;
 	texModInfo_t *tmi;
 
 	if ( stage->bundle[0].numTexMods == TR_MAX_TEXMODS ) {
@@ -589,7 +589,7 @@ static void ParseTexMod( char *_text, shaderStage_t *stage )
 ParseStage
 ===================
 */
-static qboolean ParseStage( shaderStage_t *stage, char **text )
+static qboolean ParseStage( shaderStage_t *stage, const char **text )
 {
 	char *token;
 	int depthMaskBits = GLS_DEPTHMASK_TRUE, blendSrcBits = 0, blendDstBits = 0, atestBits = 0, depthFuncBits = 0;
@@ -1120,6 +1120,11 @@ static qboolean ParseStage( shaderStage_t *stage, char **text )
 			if ( !Q_stricmp( token, "environment" ) )
 			{
 				stage->bundle[0].tcGen = TCGEN_ENVIRONMENT_MAPPED;
+				token = COM_ParseExt( text, qfalse );
+				if ( Q_stricmp( token, "firstPerson" ) == 0 )
+				{
+					stage->bundle[0].tcGen = TCGEN_ENVIRONMENT_MAPPED_FP;
+				}
 			}
 			else if ( !Q_stricmp( token, "firerisenv" ) )
 			{
@@ -1255,7 +1260,7 @@ deformVertexes autoSprite2
 deformVertexes text[0-7]
 ===============
 */
-static void ParseDeform( char **text ) {
+static void ParseDeform( const char **text ) {
 	char	*token;
 	deformStage_t	*ds;
 
@@ -1403,7 +1408,7 @@ ParseSkyParms
 skyParms <outerbox> <cloudheight> <innerbox>
 ===============
 */
-static void ParseSkyParms( char **text ) {
+static void ParseSkyParms( const char **text ) {
 	char		*token;
 	static char	*suf[6] = {"rt", "bk", "lf", "ft", "up", "dn"};
 	char		pathname[MAX_QPATH];
@@ -1474,7 +1479,7 @@ static void ParseSkyParms( char **text ) {
 ParseSort
 =================
 */
-void ParseSort( char **text ) {
+void ParseSort( const char **text ) {
 	char	*token;
 
 	token = COM_ParseExt( text, qfalse );
@@ -1599,7 +1604,7 @@ ParseSurfaceParm
 surfaceparm <name>
 ===============
 */
-static void ParseSurfaceParm( char **text ) {
+static void ParseSurfaceParm( const char **text ) {
 	char	*token;
 	int		numInfoParms = ARRAY_LEN( infoParms );
 	int		i;
@@ -1619,104 +1624,129 @@ static void ParseSurfaceParm( char **text ) {
 	}
 }
 
-typedef enum {
-	opEQ,
-	opNEQ,
-	opGT,
-	opGTE,
-	opLT,
-	opLTE,
-} opType;
 
 typedef enum {
-	cond_invalid,
-	cond_false,
-	cond_true
-} condType;
-
+	res_invalid = -1,
+	res_false = 0,
+	res_true = 1
+} resultType;
 
 typedef enum {
-	tkIf,
-	tkElseIf,
-	tkElse
-} tokenType;
+	brIF,
+	brELIF,
+	brELSE
+} branchType;
+
+typedef enum {
+	maskOR,
+	maskAND
+} resultMask;
 
 /*
 ===============
 ParseCondition
 
-if ( <cvar> <condition> <integer value> )
+if ( $cvar|<integer value> [<condition> $cvar|<integer value> [ [ || .. ] && .. ] ] )
 { shader stage }
 [ else
 { shader stage } ]
-
-all tokens should be space-separated
 ===============
 */
-static qboolean ParseCondition( char **text, condType *result )
+static qboolean ParseCondition( const char **text, resultType *res )
 {
-	char *token;
+	const char*token;
 	int lval, rval;
-	opType op;
+	tokenType_t op;
+	resultMask	rm;
+	int r, r0;
 
-	// opening '('
-	token = COM_ParseExt( text, qfalse );
-	if ( token[0] != '(' ) {
-		ri.Printf( PRINT_WARNING, "WARNING: expecting '(' after 'if' in shader %s\n", shader.name );
-		return qfalse;
+	r = 0;			// resulting value
+	rm = maskOR;	// default mask
+
+	for ( ;; )
+	{
+		// expect l-value at least
+		token = COM_ParseComplex( text, qfalse );
+		if ( token[0] == '\0' ) {
+			ri.Printf( PRINT_WARNING, "WARNING: expecting lvalue for condition in shader %s\n", shader.name );
+			return qfalse;
+		}
+		// dereference
+		if ( token[0] == '$' )
+			lval = ri.Cvar_VariableIntegerValue( token+1 );
+		else
+			lval = atoi( token );
+
+		// get operator
+		token = COM_ParseComplex( text, qfalse );
+		if ( com_tokentype >= TK_EQ && com_tokentype <= TK_LTE )
+		{
+			op = com_tokentype;
+
+			// expect r-value
+			token = COM_ParseComplex( text, qfalse );
+			if ( token[0] == '\0' ) {
+				ri.Printf( PRINT_WARNING, "WARNING: expecting rvalue for condition in shader %s\n", shader.name );
+				return qfalse;
+			}
+			// dereference
+			if ( token[0] == '$' )
+				rval = ri.Cvar_VariableIntegerValue( token+1 );
+			else
+				rval = atoi( token );
+
+			// read next token, expect '||', '&&' or ')', allow newlines
+			token = COM_ParseComplex( text, qtrue );
+		} 
+		else if ( com_tokentype == TK_SCOPE_CLOSE || com_tokentype == TK_OR || com_tokentype == TK_AND ) 
+		{
+			// no r-value, assume 'not zero' comparison
+			op = TK_NEQ;
+			rval = 0;
+		}
+		else 
+		{
+			ri.Printf( PRINT_WARNING, "WARNING: unexpected operator '%s' for comparison in shader %s\n", token, shader.name );
+			return qfalse;
+		}
+
+		// evaluate expression
+		// TODO: string comparisons
+		switch ( op ) {
+			case TK_EQ:  r0 = ( lval == rval ); break;
+			case TK_NEQ: r0 = ( lval != rval ); break;
+			case TK_GT:  r0 = ( lval >  rval ); break;
+			case TK_GTE: r0 = ( lval >= rval ); break;
+			case TK_LT:  r0 = ( lval <  rval ); break;
+			case TK_LTE: r0 = ( lval <= rval ); break;
+			default:     r0 = 0; break;
+		}
+
+		if ( rm == maskOR )
+			r |= r0;
+		else
+			r &= r0;
+			
+		if ( com_tokentype == TK_OR ) {
+			rm = maskOR;
+			continue;
+		}
+
+		if ( com_tokentype == TK_AND ) {
+			rm = maskAND;
+			continue;
+		}
+
+		if ( com_tokentype != TK_SCOPE_CLOSE ) {
+			ri.Printf( PRINT_WARNING, "WARNING: expecting ')' in shader %s\n", shader.name );
+			return qfalse;
+		}
+
+		break;
 	}
 
-	// cvar
-	token = COM_ParseExt( text, qfalse );
-	if ( token[0] == '\0' ) {
-		ri.Printf( PRINT_WARNING, "WARNING: expecting cvar name for condition in shader %s\n", shader.name );
-		return qfalse;
-	}
-	lval = ri.Cvar_VariableIntegerValue( token );
-
-	// operator
-	token = COM_ParseExt( text, qfalse );
-	if ( strcmp( token, "==" ) == 0 )
-		op = opEQ;
-	else if ( strcmp( token, "!=" ) == 0 )
-		op = opNEQ;
-	else if ( strcmp( token, ">" ) == 0 )
-		op = opGT;
-	else if ( strcmp( token, ">=" ) == 0 )
-		op = opGTE;
-	else if ( strcmp( token, "<" ) == 0 )
-		op = opLT;
-	else if ( strcmp( token, "<=" ) == 0 )
-		op = opLTE;
-	else {
-		ri.Printf( PRINT_WARNING, "WARNING: unexpected operator '%s' for comparison in shader %s\n", token, shader.name );
-		return qfalse;
-	}
-
-	// value
-	token = COM_ParseExt( text, qfalse );
-	if ( token[0] == '\0' ) {
-		ri.Printf( PRINT_WARNING, "WARNING: expecting cvar value for comparison in shader %s\n", shader.name );
-		return qfalse;
-	}
-	rval = atoi( token );
-
-	// closing ')'
-	token = COM_ParseExt( text, qfalse );
-	if ( strcmp( token, ")" ) ) {
-		ri.Printf( PRINT_WARNING, "WARNING: expecting ')' in shader %s\n", shader.name );
-		return qfalse;
-	}
-
-	// TODO: string comparisons
-	switch ( op ) {
-		case opEQ: *result = ( lval == rval ) ? cond_true : cond_false; break;
-		case opNEQ: *result = ( lval != rval ) ? cond_true : cond_false; break;
-		case opGT: *result = ( lval > rval ) ? cond_true : cond_false; break;
-		case opGTE: *result = ( lval >= rval ) ? cond_true : cond_false; break;
-		case opLT: *result = ( lval < rval ) ? cond_true : cond_false; break;
-		case opLTE: *result = ( lval <= rval ) ? cond_true : cond_false; break;
-	}
+	if ( res )
+		*res = r ? res_true : res_false;
 	
 	return qtrue;
 }
@@ -1731,11 +1761,11 @@ shader.  Parse it into the global shader variable.  Later functions
 will optimize it.
 =================
 */
-static qboolean ParseShader( char **text )
+static qboolean ParseShader( const char **text )
 {
-	condType cond;
-	tokenType type;
-	char *token;
+	resultType res;
+	branchType branch;
+	const char *token;
 	int s;
 
 	s = 0;
@@ -1747,11 +1777,12 @@ static qboolean ParseShader( char **text )
 		return qfalse;
 	}
 
-	cond = cond_invalid;
+	res = res_invalid;
 
 	while ( 1 )
 	{
-		token = COM_ParseExt( text, qtrue );
+		//token = COM_ParseExt( text, qtrue );
+		token = COM_ParseComplex( text, qtrue );
 		if ( !token[0] )
 		{
 			ri.Printf( PRINT_WARNING, "WARNING: no concluding '}' in shader %s\n", shader.name );
@@ -1873,23 +1904,6 @@ static qboolean ParseShader( char **text )
 		{
 			if ( !ParseVector( text, 3, shader.fogParms.color ) ) {
 				return qfalse;
-			}
-
-			if ( r_greyscale->integer )
-			{
-				float luminance;
-
-				luminance = LUMA( shader.fogParms.color[0], shader.fogParms.color[1], shader.fogParms.color[2] );
-				VectorSet( shader.fogParms.color, luminance, luminance, luminance );
-			}
-			else if ( r_greyscale->value )
-			{
-				float luminance;
-
-				luminance = LUMA( shader.fogParms.color[0], shader.fogParms.color[1], shader.fogParms.color[2] );
-				shader.fogParms.color[0] = LERP( shader.fogParms.color[0], luminance, r_greyscale->value );
-				shader.fogParms.color[1] = LERP( shader.fogParms.color[1], luminance, r_greyscale->value );
-				shader.fogParms.color[2] = LERP( shader.fogParms.color[2], luminance, r_greyscale->value );
 			}
 
 			shader.fogParms.colorInt = ColorBytes4( shader.fogParms.color[0] * tr.identityLight,
@@ -2107,46 +2121,51 @@ static qboolean ParseShader( char **text )
 			continue;
 		}
 		// conditional stage definition
-		else if ( !Q_stricmp( token, "if" ) || !Q_stricmp( token, "else" ) )
+		else if ( !Q_stricmp( token, "if" ) || !Q_stricmp( token, "else" ) || !Q_stricmp( token, "elif" ) )
 		{
-			type = ( Q_stricmp( token, "if" ) == 0 ) ? tkIf : tkElse;
-			if ( type == tkIf && !ParseCondition( text, &cond ) ) 
-			{
-				ri.Printf( PRINT_WARNING, "WARNING: error parsing condition in '%s'\n", shader.name );
-				return qfalse;
+			if ( Q_stricmp( token, "if" ) == 0 ) {
+				branch = brIF;
+			} else {
+				if ( res == res_invalid  ) {
+					// we don't have any previous 'if' statements
+					ri.Printf( PRINT_WARNING, "WARNING: unexpected '%s' in '%s'\n", token, shader.name );
+					return qfalse;
+				}
+				if ( Q_stricmp( token, "else" ) == 0 )
+					branch = brELSE;
+				else
+					branch = brELIF;
 			}
-			if ( cond == cond_false )
-			{
+
+			if ( branch != brELSE ) { // we can set/update result
+				token = COM_ParseComplex( text, qfalse );
+				if ( com_tokentype != TK_SCOPE_OPEN ) {
+					ri.Printf( PRINT_WARNING, "WARNING: expecting '(' in '%s'\n", shader.name );
+					return qfalse;
+				}
+				if ( !ParseCondition( text, (branch == brIF || res == res_true) ? &res : NULL ) ) {
+					ri.Printf( PRINT_WARNING, "WARNING: error parsing condition in '%s'\n", shader.name );
+					return qfalse;
+				}
+			}
+
+			if ( res == res_false )	{
 				// skip next stage or keyword until newline
 				token = COM_ParseExt( text, qtrue );
 				if ( token[0] == '{' )
 					SkipBracedSection( text, 1 );
 				else
 					SkipRestOfLine( text );
-
-				if ( type == tkIf )
-					cond = cond_true; // for possible "else" statement
-				else
-					cond = cond_invalid;
-
-				continue;
-			} 
-			else
-			{
-				if ( cond == cond_invalid )
-				{
-					ri.Printf( PRINT_WARNING, "WARNING: invalid state of condition in '%s'\n", shader.name );
-					return qfalse;
-				}
-
-				if ( type == tkIf )
-					cond = cond_false; // for possible "else" statement
-				else
-					cond = cond_invalid;
-
+			} else {
 				// parse next tokens as usual
-				continue;
 			}
+
+			if ( branch == brELSE )
+				res = res_invalid; // finalize branch
+			else
+				res ^= 1; // or toggle for possible "elif" / "else" statements
+
+			continue;
 		}
 		// ydnar: implicit default mapping to eliminate redundant/incorrect explicit shader stages
 		else if ( !Q_stricmpn( token, "implicit", 8 ) ) {
@@ -2212,7 +2231,8 @@ See if we can use on of the simple fastpath stage functions,
 otherwise set to the generic stage function
 ===================
 */
-static void ComputeStageIteratorFunc( void ) {
+static void ComputeStageIteratorFunc( void )
+{
 	shader.optimalStageIteratorFunc = RB_StageIteratorGeneric;
 
 	//
@@ -3189,9 +3209,9 @@ return NULL if not found
 If found, it will return a valid shader
 =====================
 */
-static char *FindShaderInShaderText( const char *shadername ) {
+static const char *FindShaderInShaderText( const char *shadername ) {
 
-	char *token, *p;
+	const char *token, *p;
 
 	int i, hash;
 #ifdef SH_LOADTIMING
@@ -3376,7 +3396,7 @@ shader_t *R_FindShader( const char *name, int lightmapIndex, qboolean mipRawImag
 	char strippedName[MAX_QPATH];
 	char fileName[MAX_QPATH];
 	int i, hash;
-	char        *shaderText;
+	const char	*shaderText;
 	image_t     *image;
 	shader_t    *sh;
 
@@ -3778,11 +3798,11 @@ static int loadShaderBuffers( char **shaderFiles, const int numShaderFiles, char
 {
 	char filename[MAX_QPATH+8];
 	char shaderName[MAX_QPATH];
-	char *p, *token;
+	const char *p, *token;
 	long summand, sum = 0;
 	int shaderLine;
 	int i;
-	char *shaderStart;
+	const char *shaderStart;
 	qboolean denyErrors;
 
 	// load and parse shader files
@@ -3897,10 +3917,10 @@ static void ScanAndLoadShaderFiles( void )
 	char **shaderFiles, **shaderxFiles;
 	char *buffers[MAX_SHADER_FILES];
 	char *xbuffers[MAX_SHADER_FILES];
-	char *p;
 	int numShaderFiles, numShaderxFiles;
 	int i;
-	char *oldp, *token, *hashMem, *textEnd;
+	char *token, *hashMem, *textEnd;
+	const char *p, *oldp;
 	int shaderTextHashTableSizes[MAX_SHADERTEXT_HASH], hash, size;
 
 	long sum = 0;
@@ -4003,7 +4023,7 @@ static void ScanAndLoadShaderFiles( void )
 		}
 
 		hash = generateHashValue(token, MAX_SHADERTEXT_HASH);
-		shaderTextHashTable[hash][--shaderTextHashTableSizes[hash]] = oldp;
+		shaderTextHashTable[hash][--shaderTextHashTableSizes[hash]] = (char*)oldp;
 
 		SkipBracedSection(&p, 0);
 	}

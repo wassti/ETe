@@ -643,7 +643,7 @@ char	*Cvar_InfoString_Big( int bit );
 // returns an info string containing all the cvars that have the given bit set
 // in their flags ( CVAR_USERINFO, CVAR_SERVERINFO, CVAR_SYSTEMINFO, etc )
 void	Cvar_InfoStringBuffer( int bit, char *buff, int buffsize );
-void	Cvar_CheckRange( cvar_t *cv, float minVal, float maxVal, qboolean shouldBeIntegral );
+void	Cvar_CheckRange( cvar_t *cv, const char *minVal, const char *maxVal, cvarValidator_t type );
 void	Cvar_SetDescription( cvar_t *var, const char *var_description );
 
 void	Cvar_Restart(qboolean unsetVM);
@@ -990,7 +990,7 @@ char		*Com_PBMD5File( char *key );
 qboolean	Com_EarlyParseCmdLine( char *commandLine, char *con_title, int title_size, int *vid_xpos, int *vid_ypos );
 int			Com_Split( char *in, char **out, int outsz, int delim );
 
-int			Com_Filter(char *filter, char *name, int casesensitive);
+int			Com_Filter( const char *filter, const char *name, int casesensitive );
 int			Com_FilterPath( const char *filter, const char *name, int casesensitive );
 int			Com_RealTime(qtime_t *qtime);
 qboolean	Com_SafeMode( void );

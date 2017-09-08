@@ -53,12 +53,20 @@ typedef int socklen_t;
 typedef unsigned short sa_family_t;
 #	endif
 
+#ifdef _MSC_VER
+#pragma warning(disable : 4005)
+#endif
+
 #	define EAGAIN			WSAEWOULDBLOCK
 #	define EADDRNOTAVAIL	WSAEADDRNOTAVAIL
 #	define EAFNOSUPPORT		WSAEAFNOSUPPORT
 #	define ECONNRESET		WSAECONNRESET
 typedef u_long	ioctlarg_t;
 #	define socketError		WSAGetLastError( )
+
+#ifdef _MSC_VER
+#pragma warning(default : 4005)
+#endif
 
 static WSADATA	winsockdata;
 static qboolean	winsockInitialized = qfalse;
@@ -825,7 +833,7 @@ void Sys_ShowIP(void) {
 NET_IPSocket
 ====================
 */
-SOCKET NET_IPSocket( char *net_interface, int port, int *err ) {
+static SOCKET NET_IPSocket( const char *net_interface, int port, int *err ) {
 	SOCKET				newsocket;
 	struct sockaddr_in	address;
 	ioctlarg_t			_true = 1;
@@ -888,12 +896,13 @@ SOCKET NET_IPSocket( char *net_interface, int port, int *err ) {
 	return newsocket;
 }
 
+
 /*
 ====================
 NET_IP6Socket
 ====================
 */
-SOCKET NET_IP6Socket( char *net_interface, int port, struct sockaddr_in6 *bindto, int *err ) {
+static SOCKET NET_IP6Socket( const char *net_interface, int port, struct sockaddr_in6 *bindto, int *err ) {
 	SOCKET				newsocket;
 	struct sockaddr_in6	address;
 	ioctlarg_t			_true = 1;
@@ -1308,13 +1317,13 @@ static void NET_GetLocalAddress(void)
 }
 #else
 static void NET_GetLocalAddress( void ) {
-	char				hostname[256];
+	char	hostname[256];
 	struct addrinfo	hint;
 	struct addrinfo	*res = NULL;
 
 	numIP = 0;
 
-	if(gethostname( hostname, 256 ) == SOCKET_ERROR)
+	if ( gethostname( hostname, sizeof( hostname ) ) == SOCKET_ERROR )
 		return;
 
 	Com_Printf( "Hostname: %s\n", hostname );
@@ -1356,6 +1365,7 @@ static void NET_GetLocalAddress( void ) {
 		freeaddrinfo(res);
 }
 #endif
+
 
 /*
 ====================

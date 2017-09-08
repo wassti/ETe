@@ -360,7 +360,7 @@ void QDECL Com_Error( errorParm_t code, const char *fmt, ... ) {
 		VM_Forced_Unload_Start();
 		SV_Shutdown( "Server disconnected" );
 #ifndef DEDICATED
-		CL_Disconnect( qtrue );
+		CL_Disconnect( qfalse );
 		CL_FlushMemory();
 #endif
 		VM_Forced_Unload_Done();
@@ -376,7 +376,7 @@ void QDECL Com_Error( errorParm_t code, const char *fmt, ... ) {
 		VM_Forced_Unload_Start();
 		SV_Shutdown( va( "Server crashed: %s",  com_errorMessage ) );
 #ifndef DEDICATED
-		CL_Disconnect( qtrue );
+		CL_Disconnect( qfalse );
 		CL_FlushMemory();
 #endif
 		VM_Forced_Unload_Done();
@@ -389,7 +389,7 @@ void QDECL Com_Error( errorParm_t code, const char *fmt, ... ) {
 		SV_Shutdown( "Server didn't have CD" );
 #ifndef DEDICATED
 		if ( com_cl_running && com_cl_running->integer ) {
-			CL_Disconnect( qtrue );
+			CL_Disconnect( qfalse );
 			VM_Forced_Unload_Start();
 			CL_FlushMemory();
 			VM_Forced_Unload_Done();
@@ -401,7 +401,6 @@ void QDECL Com_Error( errorParm_t code, const char *fmt, ... ) {
 		FS_PureServerSetLoadedPaks( "", "" );
 
 		com_errorEntered = qfalse;
-
 		longjmp( abortframe, -1 );
 	} else {
 		VM_Forced_Unload_Start();
@@ -700,7 +699,7 @@ void Info_Print( const char *s ) {
 Com_StringContains
 ============
 */
-char *Com_StringContains(char *str1, char *str2, int casesensitive) {
+static const char *Com_StringContains( const char *str1, const char *str2, int casesensitive ) {
 	int len, i, j;
 
 	len = strlen(str1) - strlen(str2);
@@ -729,10 +728,10 @@ char *Com_StringContains(char *str1, char *str2, int casesensitive) {
 Com_Filter
 ============
 */
-int Com_Filter(char *filter, char *name, int casesensitive)
+int Com_Filter( const char *filter, const char *name, int casesensitive )
 {
-	char buf[MAX_TOKEN_CHARS];
-	char *ptr;
+	char buf[ MAX_TOKEN_CHARS ];
+	const char *ptr;
 	int i, found;
 
 	while(*filter) {
@@ -1329,9 +1328,9 @@ typedef struct memstatic_s {
 	byte mem[2];
 } memstatic_t;
 
-memstatic_t emptystring =
+static const memstatic_t emptystring =
 	{ {(sizeof(memblock_t)+2 + 3) & ~3, TAG_STATIC, NULL, NULL, ZONEID}, {'\0', '\0'} };
-memstatic_t numberstring[] = {
+static const memstatic_t numberstring[] = {
 	{ {(sizeof(memstatic_t) + 3) & ~3, TAG_STATIC, NULL, NULL, ZONEID}, {'0', '\0'} },
 	{ {(sizeof(memstatic_t) + 3) & ~3, TAG_STATIC, NULL, NULL, ZONEID}, {'1', '\0'} },
 	{ {(sizeof(memstatic_t) + 3) & ~3, TAG_STATIC, NULL, NULL, ZONEID}, {'2', '\0'} },
@@ -1600,7 +1599,7 @@ void Com_InitSmallZoneMemory( void ) {
 Com_InitZoneMemory
 =================
 */
-void Com_InitZoneMemory( void ) {
+static void Com_InitZoneMemory( void ) {
 	cvar_t	*cv;
 
 	// Please note: com_zoneMegs can only be set on the command line, and
@@ -1710,7 +1709,7 @@ void Hunk_SmallLog( void) {
 Com_InitHunkMemory
 =================
 */
-void Com_InitHunkMemory( void ) {
+static void Com_InitHunkMemory( void ) {
 	cvar_t	*cv;
 	int nMinAlloc;
 	char *pMsg = NULL;
@@ -3145,10 +3144,10 @@ void Com_Init( char *commandLine ) {
   // get dedicated here for proper hunk megs initialization
 #ifdef DEDICATED
 	com_dedicated = Cvar_Get ("dedicated", "1", CVAR_INIT);
-	Cvar_CheckRange( com_dedicated, 1, 2, qtrue );
+	Cvar_CheckRange( com_dedicated, "1", "2", CV_INTEGER );
 #else
 	com_dedicated = Cvar_Get ("dedicated", "0", CVAR_LATCH);
-	Cvar_CheckRange( com_dedicated, 0, 2, qtrue );
+	Cvar_CheckRange( com_dedicated, "0", "2", CV_INTEGER );
 #endif
 	// allocate the stack based hunk allocator
 	Com_InitHunkMemory();
@@ -3165,7 +3164,7 @@ void Com_Init( char *commandLine ) {
 	com_maxfpsUnfocused = Cvar_Get ("com_maxfpsUnfocused", "60", CVAR_ARCHIVE_ND );
 	com_maxfpsMinimized = Cvar_Get ("com_maxfpsMinimized", "30", CVAR_ARCHIVE_ND );
 	com_yieldCPU = Cvar_Get( "com_yieldCPU", "1", CVAR_ARCHIVE_ND );
-	Cvar_CheckRange( com_yieldCPU, 0, 1, qtrue );
+	Cvar_CheckRange( com_yieldCPU, "0", "1", CV_INTEGER );
 #endif
 	com_affinityMask = Cvar_Get( "com_affinityMask", "0", CVAR_ARCHIVE_ND );
 	com_affinityMask->modified = qfalse;
@@ -3252,7 +3251,7 @@ void Com_Init( char *commandLine ) {
 		Sys_SetAffinityMask( com_affinityMask->integer );
 
 	// Pick a random port value
-	Com_RandomBytes( (byte*)&qport, sizeof(int) );
+	Com_RandomBytes( (byte*)&qport, sizeof( qport ) );
 	Netchan_Init( qport & 0xffff );
 
 	VM_Init();

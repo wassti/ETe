@@ -141,13 +141,14 @@ define_t *globaldefines;
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-void QDECL SourceError( source_t *source, char *str, ... ) {
+void QDECL SourceError(source_t *source, const char *fmt, ...)
+{
 	char text[1024];
 	va_list ap;
 
-	va_start( ap, str );
-	Q_vsnprintf( text, sizeof( text ), str, ap );
-	va_end( ap );
+	va_start(ap, fmt);
+	Q_vsnprintf(text, sizeof(text), fmt, ap);
+	va_end(ap);
 #ifdef BOTLIB
 	botimport.Print( PRT_ERROR, "file %s, line %d: %s\n", source->scriptstack->filename, source->scriptstack->line, text );
 #endif  //BOTLIB
@@ -164,13 +165,14 @@ void QDECL SourceError( source_t *source, char *str, ... ) {
 // Returns:					-
 // Changes Globals:		-
 //===========================================================================
-void QDECL SourceWarning( source_t *source, char *str, ... ) {
+void QDECL SourceWarning(source_t *source, const char *fmt, ...)
+{
 	char text[1024];
 	va_list ap;
 
-	va_start( ap, str );
-	Q_vsnprintf( text, sizeof( text ), str, ap );
-	va_end( ap );
+	va_start(ap, fmt);
+	Q_vsnprintf(text, sizeof(text), fmt, ap);
+	va_end(ap);
 #ifdef BOTLIB
 	botimport.Print( PRT_WARNING, "file %s, line %d: %s\n", source->scriptstack->filename, source->scriptstack->line, text );
 #endif //BOTLIB
@@ -278,14 +280,14 @@ token_t *PC_CopyToken( token_t *token ) {
 	t = (token_t *) GetMemory( sizeof( token_t ) );
 	if ( !t ) {
 #ifdef BSPC
-		Error( "out of token space\n" );
+		Error("out of token space");
 #else
-		Com_Error( ERR_FATAL, "out of token space\n" );
+		Com_Error(ERR_FATAL, "out of token space");
 #endif
 		return NULL;
 	} //end if
 //	freetokens = freetokens->next;
-	memcpy( t, token, sizeof( token_t ) );
+	Com_Memcpy(t, token, sizeof(token_t));
 	t->next = NULL;
 	numtokens++;
 	return t;
@@ -549,7 +551,7 @@ void PC_PrintDefineHashTable( define_t **definehash ) {
 //char primes[16] = {1, 3, 5, 7, 11, 13, 17, 19, 23, 27, 29, 31, 37, 41, 43, 47};
 
 int PC_NameHash( char *name ) {
-	int register hash, i;
+	int hash, i;
 
 	hash = 0;
 	for ( i = 0; name[i] != '\0'; i++ )
@@ -779,7 +781,7 @@ int PC_ExpandBuiltinDefine( source_t *source, token_t *deftoken, define_t *defin
 //============================================================================
 int PC_ExpandDefine( source_t *source, token_t *deftoken, define_t *define,
 					 token_t **firsttoken, token_t **lasttoken ) {
-	token_t *parms[MAX_DEFINEPARMS], *dt, *pt, *t;
+	token_t *parms[MAX_DEFINEPARMS] = { NULL }, *dt, *pt, *t;
 	token_t *t1, *t2, *first, *last, *nextpt, token;
 	int parmnum, i;
 
@@ -930,27 +932,27 @@ int PC_ExpandDefineIntoSource( source_t *source, token_t *deftoken, define_t *de
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-void PC_ConvertPath( char *path ) {
+void PC_ConvertPath(char *path)
+{
 	char *ptr;
 
 	//remove double path seperators
-	for ( ptr = path; *ptr; )
+	for (ptr = path; *ptr;)
 	{
-		if ( ( *ptr == '\\' || *ptr == '/' ) &&
-			 ( *( ptr + 1 ) == '\\' || *( ptr + 1 ) == '/' ) ) {
-			strcpy( ptr, ptr + 1 );
+		if ((*ptr == '\\' || *ptr == '/') &&
+				(*(ptr+1) == '\\' || *(ptr+1) == '/'))
+		{
+			memmove(ptr, ptr+1, strlen(ptr));
 		} //end if
 		else
 		{
 			ptr++;
 		} //end else
 	} //end while
-	  //set OS dependent path seperators
-	for ( ptr = path; *ptr; )
+	//set OS dependent path seperators
+	for (ptr = path; *ptr;)
 	{
-		if ( *ptr == '/' || *ptr == '\\' ) {
-			*ptr = PATHSEPERATOR_CHAR;
-		}
+		if (*ptr == '/' || *ptr == '\\') *ptr = PATHSEPERATOR_CHAR;
 		ptr++;
 	} //end while
 } //end of the function PC_ConvertPath
@@ -1296,7 +1298,8 @@ int PC_Directive_define( source_t *source ) {
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-define_t *PC_DefineFromString( char *string ) {
+define_t *PC_DefineFromString(const char *string)
+{
 	script_t *script;
 	source_t src;
 	token_t *t;
@@ -1307,8 +1310,8 @@ define_t *PC_DefineFromString( char *string ) {
 
 	script = LoadScriptMemory( string, strlen( string ), "*extern" );
 	//create a new source
-	memset( &src, 0, sizeof( source_t ) );
-	strncpy( src.filename, "*extern", _MAX_PATH );
+	Com_Memset(&src, 0, sizeof(source_t));
+	Q_strncpyz( src.filename, "*extern", sizeof( src.filename ) );
 	src.scriptstack = script;
 #if DEFINEHASHING
 	src.definehash = GetClearedMemory( DEFINEHASHSIZE * sizeof( define_t * ) );
@@ -1378,7 +1381,8 @@ int PC_AddDefine( source_t *source, char *string ) {
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-int PC_AddGlobalDefine( char *string ) {
+int PC_AddGlobalDefine(const char *string)
+{
 	define_t *define;
 
 	define = PC_DefineFromString( string );
@@ -2966,12 +2970,18 @@ void PC_UnreadToken( source_t *source, token_t *token ) {
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-void PC_SetIncludePath( source_t *source, char *path ) {
-	strncpy( source->includepath, path, _MAX_PATH );
+void PC_SetIncludePath(source_t *source, const char *path)
+{
+	size_t len;
+
+	Q_strncpyz( source->includepath, path, sizeof(source->includepath)-1 );
+
+	len = strlen(source->includepath);
 	//add trailing path seperator
-	if ( source->includepath[strlen( source->includepath ) - 1] != '\\' &&
-		 source->includepath[strlen( source->includepath ) - 1] != '/' ) {
-		strcat( source->includepath, PATHSEPERATOR_STR );
+	if (len > 0 && source->includepath[len-1] != '\\' &&
+		source->includepath[len-1] != '/')
+	{
+		strcat(source->includepath, PATHSEPERATOR_STR);
 	} //end if
 } //end of the function PC_SetIncludePath
 //============================================================================
@@ -3005,7 +3015,7 @@ source_t *LoadSourceFile( const char *filename ) {
 	source = (source_t *) GetMemory( sizeof( source_t ) );
 	memset( source, 0, sizeof( source_t ) );
 
-	strncpy( source->filename, filename, _MAX_PATH );
+	Q_strncpyz(source->filename, filename, sizeof(source->filename));
 	source->scriptstack = script;
 	source->tokens = NULL;
 	source->defines = NULL;
@@ -3239,8 +3249,9 @@ int PC_SourceFileAndLine( int handle, char *filename, int *line ) {
 // Returns:				-
 // Changes Globals:		-
 //============================================================================
-void PC_SetBaseFolder( char *path ) {
-	PS_SetBaseFolder( path );
+void PC_SetBaseFolder(const char *path)
+{
+	PS_SetBaseFolder(path);
 } //end of the function PC_SetBaseFolder
 //============================================================================
 //

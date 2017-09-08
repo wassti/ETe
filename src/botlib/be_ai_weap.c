@@ -201,7 +201,8 @@ void DumpWeaponConfig( weaponconfig_t *wc ) {
 // Returns:					-
 // Changes Globals:		-
 //===========================================================================
-weaponconfig_t *LoadWeaponConfig( char *filename ) {
+weaponconfig_t *LoadWeaponConfig(const char *filename)
+{
 	int max_weaponinfo, max_projectileinfo;
 	token_t token;
 	char path[MAX_PATH];
@@ -222,7 +223,7 @@ weaponconfig_t *LoadWeaponConfig( char *filename ) {
 		max_projectileinfo = 64;
 		LibVarSet( "max_projectileinfo", "64" );
 	} //end if
-	strncpy( path, filename, MAX_PATH );
+	Q_strncpyz( path, filename, sizeof( path ) );
 	source = LoadSourceFile( path );
 	if ( !source ) {
 		botimport.Print( PRT_ERROR, "counldn't load %s\n", path );
@@ -514,7 +515,7 @@ void BotFreeWeaponState( int handle ) {
 // Changes Globals:		-
 //===========================================================================
 int BotSetupWeaponAI( void ) {
-	char *file;
+	const char *file;
 
 	PS_SetBaseFolder( "botfiles" );
 	file = LibVarString( "weaponconfig", "weapons.c" );

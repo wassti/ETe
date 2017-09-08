@@ -979,7 +979,7 @@ extern int HotKey;
 extern void Win_RemoveHotkey( void );
 extern void Win_AddHotkey( void );
 
-extern int Win32_GetKey( char **s, char *buf, int buflen );
+extern int Win32_GetKey( const char **s, char *buf, int buflen );
 
 /*
 =========================================================================
@@ -988,7 +988,8 @@ extern int Win32_GetKey( char **s, char *buf, int buflen );
 */
 static void IN_GetHotkey( cvar_t *var, int *pHotKey ) {
 
-	char	kset[256], buf[64], *s;
+	char	kset[256], buf[64];
+	const char *s;
 	int		i, code;
 
 	if ( !pHotKey )
@@ -1127,7 +1128,7 @@ void IN_Init( void ) {
 
 	// mouse variables
 	in_mouse = Cvar_Get ("in_mouse", "1", CVAR_ARCHIVE |CVAR_LATCH );
-	Cvar_CheckRange( in_mouse, -1, 1, qtrue );
+	Cvar_CheckRange( in_mouse, "-1", "1", CV_INTEGER );
 	Cvar_SetDescription( in_mouse,
 		"Mouse data input source:\n" \
 		"  0 - disable mouse input\n" \
@@ -1200,7 +1201,8 @@ void IN_Frame( void ) {
 		// temporarily deactivate if not in the game and
 		// running on the desktop
 		// voodoo always counts as full screen
-		if ( !glw_state.cdsFullscreen ) {
+		if ( !glw_state.cdsFullscreen )
+		{
 			IN_DeactivateMouse();
 			WIN_EnableAltTab();
 			WIN_DisableHook();

@@ -1931,6 +1931,10 @@ static qboolean ParseShader( const char **text )
 		// skyparms <cloudheight> <outerbox> <innerbox>
 		else if ( !Q_stricmp( token, "skyparms" ) ) {
 			ParseSkyParms( text );
+			if ( r_neatsky->integer ) {
+				shader.noPicMip = qtrue;
+				shader.noMipMaps = qtrue;
+			}
 			continue;
 		}
 		// This is fixed fog for the skybox/clouds determined solely by the shader

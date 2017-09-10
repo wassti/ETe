@@ -967,7 +967,7 @@ void SV_FinalCommand( const char *cmd, qboolean disconnect ) {
 				}
 				// force a snapshot to be sent
 				cl->lastSnapshotTime = 0;
-				cl->state = CS_ZOMBIE; // skip delta generation
+				//cl->state = CS_ZOMBIE; // skip delta generation
 				SV_SendClientSnapshot( cl );
 			}
 		}

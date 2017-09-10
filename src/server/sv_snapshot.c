@@ -196,14 +196,14 @@ static void SV_WriteSnapshotToClient( const client_t *client, msg_t *msg ) {
 	MSG_WriteData( msg, frame->areabits, frame->areabytes );
 
 	// don't send any changes to zombies
-	if ( client->state <= CS_ZOMBIE ) {
+	/*if ( client->state <= CS_ZOMBIE ) {
 		// playerstate
 		MSG_WriteByte( msg, 0 ); // # of changes
 		MSG_WriteBits( msg, 0, 1 ); // no array changes
 		// packet entities
 		MSG_WriteBits( msg, (MAX_GENTITIES-1), GENTITYNUM_BITS );
 		return;
-	}
+	}*/
 
 	{
 //		int sz = msg->cursize;

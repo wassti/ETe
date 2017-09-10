@@ -295,6 +295,23 @@ static void SV_SortEntityNumbers( entityNum_t *num, const int size ) {
 }
 
 
+static int SV_GetIndexByEntityNum( int num )
+{
+	const snapshotFrame_t *sf;
+	int i;
+	
+	sf = svs.currFrame;
+
+	for ( i = 0; i < sf->count; i++ ) {
+		if ( sf->ents[i]->number == num ) {
+			return i;
+		}
+	}
+
+	return -1;
+}
+
+
 /*
 ===============
 SV_AddIndexToSnapshot
@@ -401,10 +418,10 @@ static void SV_AddEntitiesVisibleFromPoint( const vec3_t origin, clientSnapshot_
 		bitvector = clientpvs;
 
 		// Gordon: just check origin for being in pvs, ignore bmodel extents
-		if ( ent->r.svFlags & SVF_IGNOREBMODELEXTENTS ) {
-			if ( bitvector[svEnt->originCluster >> 3] & ( 1 << ( svEnt->originCluster & 7 ) ) ) {
+		if (ent->r.svFlags & SVF_IGNOREBMODELEXTENTS) {
+			if (bitvector[svEnt->originCluster >> 3] & (1 << (svEnt->originCluster & 7))) {
 				//SV_AddEntToSnapshot( playerEnt, svEnt, ent, eNums );
-				SV_AddIndexToSnapshot( svEnt, e, eNums );
+				SV_AddIndexToSnapshot(svEnt, e, eNums);
 			}
 			continue;
 		}
@@ -415,7 +432,7 @@ static void SV_AddEntitiesVisibleFromPoint( const vec3_t origin, clientSnapshot_
 			// doors can legally straddle two areas, so
 			// we may need to check another one
 			if ( !CM_AreasConnected( clientarea, svEnt->areanum2 ) ) {
-				continue;		// blocked by a door
+				continue; // blocked by a door
 			}
 		}
 
@@ -451,21 +468,25 @@ static void SV_AddEntitiesVisibleFromPoint( const vec3_t origin, clientSnapshot_
 
 		//----(SA) added "visibility dummies"
 		if ( ent->r.svFlags & SVF_VISDUMMY ) {
-			sharedEntity_t *ment = 0;
+			sharedEntity_t *ment;
 
 			//find master;
 			ment = SV_GentityNum( ent->s.otherEntityNum );
-
 			if ( ment ) {
-				svEntity_t *master = 0;
-				master = SV_SvEntityForGentity( ment );
+				svEntity_t *master;
+				int index;
 
+				master = SV_SvEntityForGentity( ment );
 				if ( master->snapshotCounter == sv.snapshotCounter || !ment->r.linked ) {
 					continue;
 				}
 
 				//SV_AddEntToSnapshot( playerEnt, master, ment, eNums );
-				SV_AddIndexToSnapshot( master, ment->s.number, eNums );
+				index = SV_GetIndexByEntityNum( ment->s.number );
+				if ( index >= 0 ) {
+					SV_AddIndexToSnapshot( master, index, eNums );
+					eNums->unordered = qtrue;
+				}
 			}
 			continue;   // master needs to be added, but not this dummy ent
 		}
@@ -508,8 +529,14 @@ static void SV_AddEntitiesVisibleFromPoint( const vec3_t origin, clientSnapshot_
 					}
 
 					if ( ment->s.otherEntityNum == ent->s.number ) {
+						int index;
+
 						//SV_AddEntToSnapshot( playerEnt, master, ment, eNums );
-						SV_AddIndexToSnapshot( master, ment->s.number, eNums );
+						index = SV_GetIndexByEntityNum( ment->s.number );
+						if ( index >= 0 ) {
+							SV_AddIndexToSnapshot( master, index, eNums );
+							eNums->unordered = qtrue;
+						}
 					}
 				}
 				continue;
@@ -606,6 +633,13 @@ static void SV_BuildCommonSnapshot( void )
 			if ( ent->r.svFlags & SVF_NOCLIENT ) {
 				continue;
 			}
+
+			// Gordon: just check origin for being in pvs, ignore bmodel extents
+			//if ( ent->r.svFlags & SVF_IGNOREBMODELEXTENTS ) {
+				//if (!(bitvector[svEnt->originCluster >> 3] & (1 << (svEnt->originCluster & 7))) ) {
+				//	continue;
+				//}
+			//}
 
 			list[ count++ ] = ent;
 			sv.svEntities[ num ].snapshotCounter = -1;

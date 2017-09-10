@@ -918,11 +918,14 @@ void S_Base_ClearSoundBuffer( qboolean killStreaming ) {
 	else
 		clear = 0;
 
-	SNDDMA_BeginPainting ();
-	if (dma.buffer)
+	SNDDMA_BeginPainting();
+	
+	if ( dma.buffer )
 		Com_Memset(dma.buffer, clear, dma.samples * dma.samplebits/8);
-	SNDDMA_Submit ();
+
+	SNDDMA_Submit();
 }
+
 
 /*
 ==================
@@ -1266,9 +1269,9 @@ void S_Base_RawSamples( int stream, int samples, int rate, int width, int n_chan
 	
 	rawsamples = s_rawsamples[stream];
 
-	if ( s_muted->integer ) {
-		intVolumeLeft = intVolumeRight = 0;
-	} else {
+	//if ( s_muted->integer ) {
+	//	intVolumeLeft = intVolumeRight = 0;
+	/*} else*/ {
 		int leftvol, rightvol;
 
 		if ( entityNum >= 0 && entityNum < MAX_GENTITIES ) {
@@ -1509,7 +1512,8 @@ void S_Base_Update( void ) {
 	S_Update_();
 }
 
-void S_GetSoundtime( void )
+
+static void S_GetSoundtime( void )
 {
 	int		samplepos;
 	static	int		buffers;
@@ -1627,11 +1631,19 @@ void S_Update_(void) {
 	if (endtime - s_soundtime > samps)
 		endtime = s_soundtime + samps;
 
-	SNDDMA_BeginPainting ();
+	SNDDMA_BeginPainting();
 
-	S_PaintChannels (endtime);
+	S_PaintChannels( endtime );
 
-	SNDDMA_Submit ();
+	if ( (!gw_active && s_muteWhenUnfocused->integer) || (gw_minimized && s_muteWhenMinimized->integer) ) {
+		// clear dma buffer right after it was painted but still not sent to hardware
+		// this will allow us to record sound stream in video while staying muted
+		if ( dma.buffer ) {
+			memset( dma.buffer, 0, dma.samples * dma.samplebits/8 );
+		}
+	}
+
+	SNDDMA_Submit();
 
 	lastTime = thisTime;
 }

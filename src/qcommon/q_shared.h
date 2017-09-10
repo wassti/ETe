@@ -38,6 +38,7 @@ If you have questions concerning this license or the applicable additional terms
 #define GIT_VERSION Q3_VERSION
 #endif
 #define CLIENT_WINDOW_TITLE   "Enemy Territory"
+#define CLIENT_WINDOW_CLASS   CLIENT_WINDOW_TITLE
 #ifdef _WIN32
 #define CONSOLE_WINDOW_CLASS  "ET WinConsole"
 #endif

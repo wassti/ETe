@@ -535,9 +535,9 @@ FS_CreatePath
 Creates any directories needed to store the given filename
 ============
 */
-qboolean FS_CreatePath( char *OSPath ) {
-	char	*ofs;
-	
+qboolean FS_CreatePath( const char *OSPath ) {
+	const char *c, *dirNameStart = OSPath;
+
 	// make absolutely sure that it can't back up the path
 	// FIXME: is c: allowed???
 	if ( strstr( OSPath, ".." ) || strstr( OSPath, "::" ) ) {
@@ -545,14 +545,21 @@ qboolean FS_CreatePath( char *OSPath ) {
 		return qtrue;
 	}
 
-	for ( ofs = OSPath + 1; *ofs; ofs++ ) {
-		if ( *ofs == PATH_SEP ) {	
-			// create the directory
-			*ofs = '\0';
-			Sys_Mkdir( OSPath );
-			*ofs = PATH_SEP;
+	for ( c = OSPath; *c; ++c ) {
+		if ( *c == PATH_SEP ) {
+			char directory[MAX_OSPATH*2+1];
+			Q_strncpyz( directory, c, MIN( c - dirNameStart + 1, sizeof( directory ) ) );
+			// Make sure we have OS correct slashes
+			FS_ReplaceSeparators( directory );
+
+			Sys_Mkdir( directory );
+
+			dirNameStart = c + 1;
 		}
 	}
+
+	Sys_Mkdir( dirNameStart );
+
 	return qfalse;
 }
 
@@ -563,7 +570,7 @@ FS_CopyFile
 Copy a fully specified file from one place to another
 =================
 */
-void FS_CopyFile( char *fromOSPath, char *toOSPath ) {
+void FS_CopyFile( const char *fromOSPath, const char *toOSPath ) {
 	FILE	*f;
 	size_t	len;
 	byte	*buf;
@@ -597,15 +604,17 @@ void FS_CopyFile( char *fromOSPath, char *toOSPath ) {
 	}
 	fclose( f );
 
-	if ( FS_CreatePath( toOSPath ) ) {
-		free( buf );
-		return;
-	}
-
 	f = Sys_FOpen( toOSPath, "wb" );
 	if ( !f ) {
-		free( buf );
-		return;
+		if ( FS_CreatePath( toOSPath ) ) {
+			free( buf );
+			return;
+		}
+		f = Sys_FOpen( toOSPath, "wb" );
+		if ( !f ) {
+			free( buf );
+			return;
+		}
 	}
 
 	if ( fwrite( buf, 1, len, f ) != len ) {
@@ -808,16 +817,18 @@ fileHandle_t FS_SV_FOpenFileWrite( const char *filename ) {
 
 	FS_CheckFilenameIsNotAllowed( ospath, __func__, qtrue );
 
-	if ( FS_CreatePath( ospath ) ) {
-		return FS_INVALID_HANDLE;
-	}
-
 	Com_DPrintf( "writing to: %s\n", ospath );
 
 	fd->handleFiles.file.o = Sys_FOpen( ospath, "wb" );
 
 	if ( !fd->handleFiles.file.o ) {
-		return FS_INVALID_HANDLE;
+		if ( FS_CreatePath( ospath ) ) {
+			return FS_INVALID_HANDLE;
+		}
+		fd->handleFiles.file.o = Sys_FOpen( ospath, "wb" );
+		if ( !fd->handleFiles.file.o ) {
+			return FS_INVALID_HANDLE;
+		}
 	}
 
 	Q_strncpyz( fd->name, filename, sizeof( fd->name ) );
@@ -905,7 +916,7 @@ FS_SV_Rename
 ===========
 */
 void FS_SV_Rename( const char *from, const char *to ) {
-	char			*from_ospath, *to_ospath;
+	char *from_ospath, *to_ospath;
 
 	if ( !fs_searchpaths ) {
 		Com_Error( ERR_FATAL, "Filesystem call made without initialization" );
@@ -938,7 +949,7 @@ FS_Rename
 ===========
 */
 void FS_Rename( const char *from, const char *to ) {
-	char			*from_ospath, *to_ospath;
+	char *from_ospath, *to_ospath;
 
 	if ( !fs_searchpaths ) {
 		Com_Error( ERR_FATAL, "Filesystem call made without initialization" );
@@ -1028,10 +1039,6 @@ fileHandle_t FS_FOpenFileWrite( const char *filename ) {
 
 	FS_CheckFilenameIsNotAllowed( ospath, __func__, qfalse );
 
-	if( FS_CreatePath( ospath ) ) {
-		return FS_INVALID_HANDLE;
-	}
-
 	f = FS_HandleForFile();
 	fd = &fsh[ f ];
 	fd->pakIndex = -1;
@@ -1042,7 +1049,13 @@ fileHandle_t FS_FOpenFileWrite( const char *filename ) {
 	//Com_DPrintf( "writing to: %s\n", ospath );
 	fd->handleFiles.file.o = Sys_FOpen( ospath, "wb" );
 	if ( fd->handleFiles.file.o == NULL ) {
-		return FS_INVALID_HANDLE;
+		if ( FS_CreatePath( ospath ) ) {
+			return FS_INVALID_HANDLE;
+		}
+		fd->handleFiles.file.o = Sys_FOpen( ospath, "wb" );
+		if ( fd->handleFiles.file.o == NULL ) {
+			return FS_INVALID_HANDLE;
+		}
 	}
 
 	Q_strncpyz( fd->name, filename, sizeof( fd->name ) );
@@ -1082,10 +1095,6 @@ fileHandle_t FS_FOpenFileAppend( const char *filename ) {
 	}
 
 	FS_CheckFilenameIsNotAllowed( ospath, __func__, qfalse );
-
-	if ( FS_CreatePath( ospath ) ) {
-		return FS_INVALID_HANDLE;
-	}
 	
 	f = FS_HandleForFile();
 	fd = &fsh[ f ];
@@ -1094,7 +1103,13 @@ fileHandle_t FS_FOpenFileAppend( const char *filename ) {
 
 	fd->handleFiles.file.o = Sys_FOpen( ospath, "ab" );
 	if ( fd->handleFiles.file.o == NULL ) {
-		return FS_INVALID_HANDLE;
+		if ( FS_CreatePath( ospath ) ) {
+			return FS_INVALID_HANDLE;
+		}
+		fd->handleFiles.file.o = Sys_FOpen( ospath, "ab" );
+		if ( fd->handleFiles.file.o == NULL ) {
+			return FS_INVALID_HANDLE;
+		}
 	}
 
 	Q_strncpyz( fd->name, filename, sizeof( fd->name ) );
@@ -1765,7 +1780,7 @@ qboolean FS_CL_ExtractFromPakFile( const char *fullpath, const char *gamedir, co
 FS_AllowDeletion
 ==============
 */
-qboolean FS_AllowDeletion( char *filename ) {
+static qboolean FS_AllowDeletion( const char *filename ) {
 	// for safety, only allow deletion from the save, profiles and demo directory
 	if ( Q_strncmp( filename, "save/", 5 ) != 0 &&
 		 Q_strncmp( filename, "profiles/", 9 ) != 0 &&
@@ -1781,8 +1796,8 @@ qboolean FS_AllowDeletion( char *filename ) {
 FS_DeleteDir
 ==============
 */
-int FS_DeleteDir( char *dirname, qboolean nonEmpty, qboolean recursive ) {
-	char *ospath;
+static int FS_DeleteDir( const char *dirname, qboolean nonEmpty, qboolean recursive ) {
+	const char *ospath;
 	char **pFiles = NULL;
 	int i, nFiles = 0;
 
@@ -1849,7 +1864,7 @@ returns 0 otherwise
 ==============
 */
 #ifdef WIN32
-int FS_OSStatFile( char *ospath ) {
+static int FS_OSStatFile( const char *ospath ) {
 	struct _stat stat;
 	if ( _stat( ospath, &stat ) == -1 ) {
 		return -1;
@@ -1860,7 +1875,7 @@ int FS_OSStatFile( char *ospath ) {
 	return 0;
 }
 #else
-int FS_OSStatFile( char *ospath ) {
+static int FS_OSStatFile( const char *ospath ) {
 	struct stat stat_buf;
 	if ( stat( ospath, &stat_buf ) == -1 ) {
 		return -1;
@@ -1879,8 +1894,8 @@ TTimo - this was not in the 1.30 filesystem code
 using fs_homepath for the file to remove
 ==============
 */
-int FS_Delete( char *filename ) {
-	char *ospath;
+int FS_Delete( const char *filename ) {
+	const char *ospath;
 	int stat;
 
 	if ( !fs_searchpaths ) {

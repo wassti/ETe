@@ -63,8 +63,8 @@ Sys_StartProcess
 NERVE - SMF
 ==================
 */
-void Sys_StartProcess( char *exeName, qboolean doexit ) {
-	TCHAR szPathOrig[_MAX_PATH];
+void Sys_StartProcess( const char *exeName, qboolean doexit ) {
+	TCHAR szPathOrig[_MAX_PATH], temp[_MAX_PATH];
 	STARTUPINFO si;
 	PROCESS_INFORMATION pi;
 
@@ -73,8 +73,11 @@ void Sys_StartProcess( char *exeName, qboolean doexit ) {
 
 	GetCurrentDirectory( _MAX_PATH, szPathOrig );
 
+	// Note this only works if tchar is to remain `char`
+	Com_sprintf( temp, sizeof( temp ), "%s\\%s", szPathOrig, exeName );
+
 	// JPW NERVE swiped from Sherman's SP code
-	if ( !CreateProcess( NULL, va( "%s\\%s", szPathOrig, exeName ), NULL, NULL,FALSE, 0, NULL, NULL, &si, &pi ) ) {
+	if ( !CreateProcess( NULL, temp, NULL, NULL,FALSE, 0, NULL, NULL, &si, &pi ) ) {
 		// couldn't start it, popup error box
 		Com_Error( ERR_DROP, "Could not start process: '%s\\%s' ", szPathOrig, exeName  );
 		return;

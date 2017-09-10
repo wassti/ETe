@@ -608,7 +608,7 @@ static qboolean GLW_CreateWindow( const char *drivername, int width, int height,
 		wc.hCursor       = LoadCursor( NULL, IDC_ARROW );
 		wc.hbrBackground = (HBRUSH)(LRESULT)COLOR_GRAYTEXT;
 		wc.lpszMenuName  = 0;
-		wc.lpszClassName = T("Enemy Territory"/*CLIENT_WINDOW_TITLE*/); // WINDOW_CLASS_NAME
+		wc.lpszClassName = T(CLIENT_WINDOW_CLASS);
 
 		if ( !RegisterClass( &wc ) )
 		{
@@ -687,7 +687,7 @@ static qboolean GLW_CreateWindow( const char *drivername, int width, int height,
 		oldFullscreen = glw_state.cdsFullscreen;
 		glw_state.cdsFullscreen = cdsFullscreen;
 
-		g_wv.hWnd = CreateWindowEx( exstyle, TEXT(WINDOW_CLASS_NAME), TEXT("Enemy Territory"),
+		g_wv.hWnd = CreateWindowEx( exstyle, TEXT(CLIENT_WINDOW_CLASS), TEXT(CLIENT_WINDOW_TITLE " ( " ARCH_STRING " )"),
 			 stylebits, x, y, w, h, NULL, NULL, g_wv.hInstance,  NULL );
 
 		if ( !g_wv.hWnd )

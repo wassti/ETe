@@ -768,7 +768,7 @@ int FS_Home_FOpenFileRead( const char *filename, fileHandle_t *file );
 qboolean FS_FileIsInPAK( const char *filename, int *pChecksum );
 // returns qtrue if a file is in the PAK file, otherwise qfalse
 
-int     FS_Delete( char *filename );    // only works inside the 'save' directory (for deleting savegames/images)
+int     FS_Delete( const char *filename );    // only works inside the 'save' directory (for deleting savegames/images)
 
 int		FS_PakIndexForHandle( fileHandle_t f );
 // returns pak index or -1 if file is not in pak
@@ -886,9 +886,9 @@ qboolean FS_CL_ExtractFromPakFile( const char *path, const char *gamedir, const 
 char *FS_ShiftedStrStr( const char *string, const char *substring, int shift );
 char *FS_ShiftStr( const char *string, int shift );
 
-void FS_CopyFile( char *fromOSPath, char *toOSPath );
+void FS_CopyFile( const char *fromOSPath, const char *toOSPath );
 
-qboolean FS_CreatePath( char *OSPath );
+qboolean FS_CreatePath( const char *OSPath );
 
 qboolean FS_VerifyPak( const char *pak );
 
@@ -1332,7 +1332,7 @@ int   Sys_LoadFunctionErrors( void );
 void  Sys_UnloadLibrary( void *handle );
 
 // NOTE TTimo - on win32 the cwd is prepended .. non portable behaviour
-void Sys_StartProcess( char *exeName, qboolean doexit );            // NERVE - SMF
+void Sys_StartProcess( const char *exeName, qboolean doexit );            // NERVE - SMF
 void Sys_OpenURL( const char *url, qboolean doexit );                       // NERVE - SMF
 int Sys_GetHighQualityCPU();
 float Sys_GetCPUSpeed( void );

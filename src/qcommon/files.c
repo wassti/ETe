@@ -536,7 +536,8 @@ Creates any directories needed to store the given filename
 ============
 */
 qboolean FS_CreatePath( const char *OSPath ) {
-	const char *c, *dirNameStart = OSPath;
+	char	path[MAX_OSPATH*2+1];
+	char    *ofs;
 
 	// make absolutely sure that it can't back up the path
 	// FIXME: is c: allowed???
@@ -545,20 +546,19 @@ qboolean FS_CreatePath( const char *OSPath ) {
 		return qtrue;
 	}
 
-	for ( c = OSPath; *c; ++c ) {
-		if ( *c == PATH_SEP ) {
-			char directory[MAX_OSPATH*2+1];
-			Q_strncpyz( directory, c, MIN( c - dirNameStart + 1, sizeof( directory ) ) );
-			// Make sure we have OS correct slashes
-			FS_ReplaceSeparators( directory );
+	Q_strncpyz( path, OSPath, sizeof( path ) );
+	// Make sure we have OS correct slashes
+	FS_ReplaceSeparators( path );
 
-			Sys_Mkdir( directory );
+	for ( ofs = path + 1; *ofs; ofs++ ) {
+		if ( *ofs == PATH_SEP ) {
+			// create the directory
+			*ofs = '\0';
 
-			dirNameStart = c + 1;
+			Sys_Mkdir( path );
+			*ofs = PATH_SEP;
 		}
 	}
-
-	Sys_Mkdir( dirNameStart );
 
 	return qfalse;
 }

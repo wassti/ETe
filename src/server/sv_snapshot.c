@@ -317,7 +317,7 @@ static int SV_GetIndexByEntityNum( int num )
 SV_AddIndexToSnapshot
 ===============
 */
-static void SV_AddIndexToSnapshot( svEntity_t *svEnt, int index, snapshotEntityNumbers_t *eNums ) {
+static void SV_AddIndexToSnapshot( const sharedEntity_t *clientEnt, svEntity_t *svEnt, int index, snapshotEntityNumbers_t *eNums ) {
 
 	svEnt->snapshotCounter = sv.snapshotCounter;
 
@@ -325,16 +325,15 @@ static void SV_AddIndexToSnapshot( svEntity_t *svEnt, int index, snapshotEntityN
 	if ( eNums->numSnapshotEntities >= MAX_SNAPSHOT_ENTITIES ) {
 		return;
 	}
-	
-	// TODO
-	/*{
+
+	{
 		sharedEntity_t *gEnt = SV_GEntityForSvEntity( svEnt );
 		if ( gEnt->r.snapshotCallback ) {
-			if ( !(qboolean)VM_Call( gvm, GAME_SNAPSHOT_CALLBACK, gEnt->s.number, clientEnt->s.number ) ) {
+			if ( !SV_GameSnapshotCallback( gEnt->s.number, clientEnt->s.number ) ) {
 				return;
 			}
 		}
-	}*/	
+	}
 
 	eNums->snapshotEntities[ eNums->numSnapshotEntities ] = index;
 	eNums->numSnapshotEntities++;
@@ -411,7 +410,7 @@ static void SV_AddEntitiesVisibleFromPoint( const vec3_t origin, clientSnapshot_
 
 		// broadcast entities are always sent
 		if ( ent->r.svFlags & SVF_BROADCAST ) {
-			SV_AddIndexToSnapshot( svEnt, e, eNums );
+			SV_AddIndexToSnapshot( playerEnt, svEnt, e, eNums );
 			continue;
 		}
 
@@ -421,7 +420,7 @@ static void SV_AddEntitiesVisibleFromPoint( const vec3_t origin, clientSnapshot_
 		if (ent->r.svFlags & SVF_IGNOREBMODELEXTENTS) {
 			if (bitvector[svEnt->originCluster >> 3] & (1 << (svEnt->originCluster & 7))) {
 				//SV_AddEntToSnapshot( playerEnt, svEnt, ent, eNums );
-				SV_AddIndexToSnapshot(svEnt, e, eNums);
+				SV_AddIndexToSnapshot(playerEnt, svEnt, e, eNums);
 			}
 			continue;
 		}
@@ -484,7 +483,7 @@ static void SV_AddEntitiesVisibleFromPoint( const vec3_t origin, clientSnapshot_
 				//SV_AddEntToSnapshot( playerEnt, master, ment, eNums );
 				index = SV_GetIndexByEntityNum( ment->s.number );
 				if ( index >= 0 ) {
-					SV_AddIndexToSnapshot( master, index, eNums );
+					SV_AddIndexToSnapshot( playerEnt, master, index, eNums );
 					eNums->unordered = qtrue;
 				}
 			}
@@ -534,7 +533,7 @@ static void SV_AddEntitiesVisibleFromPoint( const vec3_t origin, clientSnapshot_
 						//SV_AddEntToSnapshot( playerEnt, master, ment, eNums );
 						index = SV_GetIndexByEntityNum( ment->s.number );
 						if ( index >= 0 ) {
-							SV_AddIndexToSnapshot( master, index, eNums );
+							SV_AddIndexToSnapshot( playerEnt, master, index, eNums );
 							eNums->unordered = qtrue;
 						}
 					}
@@ -544,7 +543,7 @@ static void SV_AddEntitiesVisibleFromPoint( const vec3_t origin, clientSnapshot_
 		}
 
 		// add it
-		SV_AddIndexToSnapshot( svEnt, e, eNums );
+		SV_AddIndexToSnapshot( playerEnt, svEnt, e, eNums );
 
 		// if it's a portal entity, add everything visible from its camera position
 		if ( ent->r.svFlags & SVF_PORTAL ) {

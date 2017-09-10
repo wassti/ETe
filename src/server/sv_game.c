@@ -335,6 +335,10 @@ void SV_GameBinaryMessageReceived( int cno, const char *buf, int buflen, int com
 	VM_Call( gvm, GAME_MESSAGERECEIVED, cno, buf, buflen, commandTime );
 }
 
+qboolean SV_GameSnapshotCallback( int entityNum, int clientNum ) {
+	return VM_Call( GAME_SNAPSHOT_CALLBACK, entityNum, clientNum );
+}
+
 //==============================================
 
 static int	FloatAsInt( float f ) {

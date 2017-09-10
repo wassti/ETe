@@ -528,6 +528,7 @@ int SV_LoadTag( const char* mod_name );
 qboolean    SV_GameIsSinglePlayer( void );
 qboolean    SV_GameIsCoop( void );
 void        SV_GameBinaryMessageReceived( int cno, const char *buf, int buflen, int commandTime );
+qboolean	SV_GameSnapshotCallback( int entityNum, int clientNum );
 
 //
 // sv_bot.c

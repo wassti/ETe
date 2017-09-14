@@ -361,8 +361,7 @@ static void GLW_CreatePFD( PIXELFORMATDESCRIPTOR *pPFD, int colorbits, int depth
 	src.cDepthBits = depthbits;
 	src.cStencilBits = stencilbits;
 
-	if ( g_wv.osversion.dwMajorVersion >= 6 )
-		src.dwFlags |= PFD_SUPPORT_COMPOSITION;
+	// src.dwFlags |= PFD_SUPPORT_COMPOSITION;
 
 	if ( stereo )
 	{
@@ -377,6 +376,7 @@ static void GLW_CreatePFD( PIXELFORMATDESCRIPTOR *pPFD, int colorbits, int depth
 
 	*pPFD = src;
 }
+
 
 /*
 ** GLW_MakeContext
@@ -670,7 +670,6 @@ static qboolean GLW_CreateWindow( const char *drivername, int width, int height,
 
 			// adjust window coordinates if necessary 
 			// so that the window is completely on screen
-
 			if ( w < glw_state.desktopWidth && (x + w) > glw_state.desktopWidth + glw_state.desktopX )
 				x = ( glw_state.desktopWidth + glw_state.desktopX - w );
 			if ( h < glw_state.desktopHeight && (y + h) > glw_state.desktopHeight + glw_state.desktopY )
@@ -1537,43 +1536,10 @@ static void GLW_DeleteDefaultLists( void ) {
 */
 static qboolean GLW_CheckOSVersion( void )
 {
-#define OSR2_BUILD_NUMBER 1111
-
-	OSVERSIONINFO	vinfo;
-
-	vinfo.dwOSVersionInfoSize = sizeof(vinfo);
-
-	glw_state.allowdisplaydepthchange = qfalse;
-
-	if ( GetVersionEx( &vinfo ) )
-	{
-		if ( vinfo.dwMajorVersion > 4 )
-		{
-			glw_state.allowdisplaydepthchange = qtrue;
-		}
-		else if ( vinfo.dwMajorVersion == 4 )
-		{
-			if ( vinfo.dwPlatformId == VER_PLATFORM_WIN32_NT )
-			{
-				glw_state.allowdisplaydepthchange = qtrue;
-			}
-			else if ( vinfo.dwPlatformId == VER_PLATFORM_WIN32_WINDOWS )
-			{
-				if ( LOWORD( vinfo.dwBuildNumber ) >= OSR2_BUILD_NUMBER )
-				{
-					glw_state.allowdisplaydepthchange = qtrue;
-				}
-			}
-		}
-	}
-	else
-	{
-		ri.Printf( PRINT_ALL, "GLW_CheckOSVersion() - GetVersionEx failed\n" );
-		return qfalse;
-	}
-
+	glw_state.allowdisplaydepthchange = qtrue;
 	return qtrue;
 }
+
 
 /*
 ** GLW_LoadOpenGL

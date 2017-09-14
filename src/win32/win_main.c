@@ -323,12 +323,13 @@ void Sys_ListFilteredFiles( const char *basedir, const char *subdirs, const char
 		Com_sprintf( filename, sizeof(filename), "%s\\%s", subdirs, findinfo.name );
 		if (!Com_FilterPath( filter, filename, qfalse ))
 			continue;
-		list[ *numfiles ] = CopyString( filename );
+		list[ *numfiles ] = FS_CopyString( filename );
 		(*numfiles)++;
 	} while ( _findnext (findhandle, &findinfo) != -1 );
 
 	_findclose (findhandle);
 }
+
 
 static qboolean strgtr(const char *s0, const char *s1) {
 	int l0, l1, i;
@@ -435,7 +436,7 @@ char **Sys_ListFiles( const char *directory, const char *extension, const char *
 			if ( nfiles == MAX_FOUND_FILES - 1 ) {
 				break;
 			}
-			list[ nfiles ] = CopyString( findinfo.name );
+			list[ nfiles ] = FS_CopyString( findinfo.name );
 			nfiles++;
 		}
 	} while ( _findnext (findhandle, &findinfo) != -1 );
@@ -773,43 +774,11 @@ void Sys_Init( void ) {
 	timeBeginPeriod( 1 );
 
 #ifndef DEDICATED
-	Cmd_AddCommand ("in_restart", Sys_In_Restart_f);
+	Cmd_AddCommand( "in_restart", Sys_In_Restart_f );
 #endif
 	Cmd_AddCommand( "clearviewlog", Sys_ClearViewlog_f );
 
-	g_wv.osversion.dwOSVersionInfoSize = sizeof( g_wv.osversion );
-
-	if (!GetVersionEx (&g_wv.osversion))
-		Sys_Error( "Couldn't get OS info" );
-
-	if (g_wv.osversion.dwMajorVersion < 4)
-		Sys_Error( GAME_VERSION " requires Windows version 4 or greater" );
-	if (g_wv.osversion.dwPlatformId == VER_PLATFORM_WIN32s)
-		Sys_Error( GAME_VERSION " doesn't run on Win32s" );
-
-	if ( g_wv.osversion.dwPlatformId == VER_PLATFORM_WIN32_NT )
-	{
-		Cvar_Set( "arch", "winnt" );
-	}
-	else if ( g_wv.osversion.dwPlatformId == VER_PLATFORM_WIN32_WINDOWS )
-	{
-		if ( LOWORD( g_wv.osversion.dwBuildNumber ) >= WIN98_BUILD_NUMBER )
-		{
-			Cvar_Set( "arch", "win98" );
-		}
-		else if ( LOWORD( g_wv.osversion.dwBuildNumber ) >= OSR2_BUILD_NUMBER )
-		{
-			Cvar_Set( "arch", "win95 osr2.x" );
-		}
-		else
-		{
-			Cvar_Set( "arch", "win95" );
-		}
-	}
-	else
-	{
-		Cvar_Set( "arch", "unknown Windows variant" );
-	}
+	Cvar_Set( "arch", "winnt" );
 
 	Cvar_Set( "username", Sys_GetCurrentUser() );
 

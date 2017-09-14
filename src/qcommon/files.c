@@ -333,17 +333,17 @@ qboolean legacy_mp_bin = qfalse;
 FS_Initialized
 ==============
 */
-
 qboolean FS_Initialized( void ) {
-	return (fs_searchpaths != NULL);
+	return ( fs_searchpaths != NULL );
 }
+
 
 /*
 =================
 FS_PakIsPure
 =================
 */
-qboolean FS_PakIsPure( pack_t *pack ) {
+qboolean FS_PakIsPure( const pack_t *pack ) {
 	int i;
 
 	if ( fs_numServerPaks ) {
@@ -367,10 +367,10 @@ FS_LoadStack
 return load stack
 =================
 */
-int FS_LoadStack( void )
-{
+int FS_LoadStack( void ) {
 	return fs_loadStack;
 }
+
 
 /*
 ================
@@ -415,12 +415,13 @@ static FILE	*FS_FileForHandle( fileHandle_t f ) {
 }
 
 
-void	FS_ForceFlush( fileHandle_t f ) {
+void FS_ForceFlush( fileHandle_t f ) {
 	FILE *file;
 
 	file = FS_FileForHandle(f);
 	setvbuf( file, NULL, _IONBF, 0 );
 }
+
 
 /*
 ================
@@ -498,6 +499,7 @@ static void FS_ReplaceSeparators( char *path ) {
 	}
 }
 
+
 /*
 ===================
 FS_BuildOSPath
@@ -549,19 +551,17 @@ qboolean FS_CreatePath( const char *OSPath ) {
 	Q_strncpyz( path, OSPath, sizeof( path ) );
 	// Make sure we have OS correct slashes
 	FS_ReplaceSeparators( path );
-
 	for ( ofs = path + 1; *ofs; ofs++ ) {
 		if ( *ofs == PATH_SEP ) {
 			// create the directory
 			*ofs = '\0';
-
 			Sys_Mkdir( path );
 			*ofs = PATH_SEP;
 		}
 	}
-
 	return qfalse;
 }
+
 
 /*
 =================
@@ -820,7 +820,6 @@ fileHandle_t FS_SV_FOpenFileWrite( const char *filename ) {
 	Com_DPrintf( "writing to: %s\n", ospath );
 
 	fd->handleFiles.file.o = Sys_FOpen( ospath, "wb" );
-
 	if ( !fd->handleFiles.file.o ) {
 		if ( FS_CreatePath( ospath ) ) {
 			return FS_INVALID_HANDLE;
@@ -912,11 +911,10 @@ int FS_SV_FOpenFileRead( const char *filename, fileHandle_t *fp ) {
 /*
 ===========
 FS_SV_Rename
-
 ===========
 */
 void FS_SV_Rename( const char *from, const char *to ) {
-	char *from_ospath, *to_ospath;
+	char			*from_ospath, *to_ospath;
 
 	if ( !fs_searchpaths ) {
 		Com_Error( ERR_FATAL, "Filesystem call made without initialization" );
@@ -945,11 +943,10 @@ void FS_SV_Rename( const char *from, const char *to ) {
 /*
 ===========
 FS_Rename
-
 ===========
 */
 void FS_Rename( const char *from, const char *to ) {
-	char *from_ospath, *to_ospath;
+	char			*from_ospath, *to_ospath;
 
 	if ( !fs_searchpaths ) {
 		Com_Error( ERR_FATAL, "Filesystem call made without initialization" );
@@ -1015,7 +1012,6 @@ void FS_FCloseFile( fileHandle_t f ) {
 /*
 ===========
 FS_FOpenFileWrite
-
 ===========
 */
 fileHandle_t FS_FOpenFileWrite( const char *filename ) {
@@ -1083,6 +1079,7 @@ fileHandle_t FS_FOpenFileAppend( const char *filename ) {
 	if ( !*filename ) {
 		return FS_INVALID_HANDLE;
 	}
+
 #ifndef DEDICATED
 	// don't let sound stutter
 	//S_ClearSoundBuffer( qfalse );
@@ -1095,7 +1092,7 @@ fileHandle_t FS_FOpenFileAppend( const char *filename ) {
 	}
 
 	FS_CheckFilenameIsNotAllowed( ospath, __func__, qfalse );
-	
+
 	f = FS_HandleForFile();
 	fd = &fsh[ f ];
 	fd->pakIndex = -1;
@@ -2638,6 +2635,16 @@ static int FS_ReturnPath( const char *zname, char *zpath, int *depth ) {
 	return len;
 }
 
+
+char *FS_CopyString( const char *in ) {
+	char *out;
+	//out = S_Malloc( strlen( in ) + 1 );
+	out = Z_Malloc( strlen( in ) + 1 );
+	strcpy( out, in );
+	return out;
+}
+
+
 /*
 ==================
 FS_AddFileToList
@@ -2654,11 +2661,12 @@ static int FS_AddFileToList( const char *name, char *list[MAX_FOUND_FILES], int 
 			return nfiles; // allready in list
 		}
 	}
-	list[ nfiles ] = CopyString( name );
+	list[ nfiles ] = FS_CopyString( name );
 	nfiles++;
 
 	return nfiles;
 }
+
 
 /*
 ===============
@@ -2949,6 +2957,7 @@ int	FS_GetFileList( const char *path, const char *extension, char *listbuf, int 
 
 	return nFiles;
 }
+
 
 /*
 =======================
@@ -3792,7 +3801,6 @@ qboolean FS_ComparePaks( char *neededpaks, int len, qboolean dlstring ) {
 	}
 
 	if ( *neededpaks ) {
-	//	Com_Printf( "Need paks: %s\n", neededpaks );
 		return qtrue;
 	}
 
@@ -4305,7 +4313,7 @@ const char *FS_ReferencedPakPureChecksums( int maxlen ) {
 	s = Q_stradd( s, va( "%i ", checksum ) );
 	if ( s > max ) { 
 		// client-side overflow
-		Com_Printf( S_COLOR_YELLOW "WARNING: pure checksum list is too long (%i), you might be not able to play on remote server!\n", s - info );
+		Com_Printf( S_COLOR_YELLOW "WARNING: pure checksum list is too long (%i), you might be not able to play on remote server!\n", (int)(s - info) );
 		*max = '\0';
 	}
 	
@@ -4445,7 +4453,7 @@ void FS_PureServerSetLoadedPaks( const char *pakSums, const char *pakNames ) {
 		}
 
 		for ( i = 0 ; i < d ; i++ ) {
-			fs_serverPakNames[i] = CopyString( Cmd_Argv( i ) );
+			fs_serverPakNames[i] = FS_CopyString( Cmd_Argv( i ) );
 		}
 	}
 }
@@ -4496,7 +4504,7 @@ void FS_PureServerSetReferencedPaks( const char *pakSums, const char *pakNames )
 			if ( strlen( Cmd_Argv( i ) ) >= MAX_OSPATH-13 ) // + ".00000000.pk3"
 				Com_Error( ERR_DROP, "Referenced pak name is too long: %s", Cmd_Argv( i ) );
 
-			fs_serverReferencedPakNames[i] = CopyString( Cmd_Argv( i ) );
+			fs_serverReferencedPakNames[i] = FS_CopyString( Cmd_Argv( i ) );
 		}
 	}
 

@@ -1638,7 +1638,7 @@ void SV_UserinfoChanged( client_t *cl ) {
 		cl->rate = maxRate;	// lans should not rate limit
 	} else {
 		val = Info_ValueForKey (cl->userinfo, "rate");
-		if (strlen(val)) {
+		if (val[0]) {
 			i = atoi(val);
 			cl->rate = i;
 			if (cl->rate < 1000) {
@@ -1650,9 +1650,9 @@ void SV_UserinfoChanged( client_t *cl ) {
 			cl->rate = 5000;
 		}
 	}
-	val = Info_ValueForKey( cl->userinfo, "handicap" );
-	if ( strlen( val ) ) {
-		i = atoi( val );
+	val = Info_ValueForKey (cl->userinfo, "handicap");
+	if (val[0]) {
+		i = atoi(val);
 		if ( i <= -100 || i > 100 || strlen( val ) > 4 ) {
 			Info_SetValueForKey( cl->userinfo, "handicap", "0" );
 		}

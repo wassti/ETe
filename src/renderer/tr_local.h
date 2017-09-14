@@ -1445,6 +1445,7 @@ extern cvar_t  *r_roundImagesDown;
 extern cvar_t  *r_allowNonPo2;
 extern cvar_t  *r_colorMipLevels;               // development aid to see texture mip usage
 extern cvar_t  *r_picmip;                       // controls picmip values
+extern	cvar_t	*r_nomip;						// apply picmip only on worldspawn textures
 extern cvar_t  *r_finish;
 extern cvar_t  *r_textureMode;
 extern cvar_t  *r_offsetFactor;

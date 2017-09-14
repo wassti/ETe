@@ -892,6 +892,8 @@ qboolean FS_CreatePath( const char *OSPath );
 
 qboolean FS_VerifyPak( const char *pak );
 
+char *FS_CopyString( const char *in );
+
 /*
 ==============================================================
 

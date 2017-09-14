@@ -336,7 +336,7 @@ void SV_GameBinaryMessageReceived( int cno, const char *buf, int buflen, int com
 }
 
 qboolean SV_GameSnapshotCallback( int entityNum, int clientNum ) {
-	return VM_Call( GAME_SNAPSHOT_CALLBACK, entityNum, clientNum );
+	return VM_Call( gvm, GAME_SNAPSHOT_CALLBACK, entityNum, clientNum );
 }
 
 //==============================================

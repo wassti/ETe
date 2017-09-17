@@ -447,6 +447,12 @@ void RE_AddLightToScene( const vec3_t org, float radius, float intensity, float 
 	}
 #ifdef USE_PMLIGHT
 	if ( r_dlightMode->integer ) {
+		// ENSI NOTE FIXME this is quick and dirty hack to support intensity dlights (dyna)
+		r *= intensity;
+		g *= intensity;
+		b *= intensity;
+		// END ENSI
+
 		r *= r_dlightIntensity->value;
 		g *= r_dlightIntensity->value;
 		b *= r_dlightIntensity->value;

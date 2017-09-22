@@ -1203,8 +1203,6 @@ void SV_AddOperatorCommands( void ) {
 	Cmd_AddCommand( "banClient", SV_BanNum_f );
 #endif // AUTHORIZE_SUPPORT
 	Cmd_AddCommand( "status", SV_Status_f );
-	Cmd_AddCommand( "serverinfo", SV_Serverinfo_f );
-	Cmd_AddCommand( "systeminfo", SV_Systeminfo_f );
 	Cmd_AddCommand( "dumpuser", SV_DumpUser_f );
 	Cmd_AddCommand( "map_restart", SV_MapRestart_f );
 	Cmd_AddCommand( "fieldinfo", SV_FieldInfo_f );
@@ -1220,9 +1218,6 @@ void SV_AddOperatorCommands( void ) {
 	Cmd_SetCommandCompletionFunc( "spdevmap", SV_CompleteMapName );
 	Cmd_AddCommand( "loadgame", SV_LoadGame_f );
 	Cmd_AddCommand( "killserver", SV_KillServer_f );
-	if ( com_dedicated->integer ) {
-		Cmd_AddCommand( "say", SV_ConSay_f );
-	}
 }
 
 /*
@@ -1238,11 +1233,24 @@ void SV_RemoveOperatorCommands( void ) {
 	Cmd_RemoveCommand( "banUser" );
 	Cmd_RemoveCommand( "banClient" );
 	Cmd_RemoveCommand( "status" );
-	Cmd_RemoveCommand( "serverinfo" );
-	Cmd_RemoveCommand( "systeminfo" );
 	Cmd_RemoveCommand( "dumpuser" );
 	Cmd_RemoveCommand( "map_restart" );
 	Cmd_RemoveCommand( "sectorlist" );
-	Cmd_RemoveCommand( "say" );
 #endif
+}
+
+
+void SV_AddDedicatedCommands( void )
+{
+	Cmd_AddCommand( "serverinfo", SV_Serverinfo_f );
+	Cmd_AddCommand( "systeminfo", SV_Systeminfo_f );
+	Cmd_AddCommand( "say", SV_ConSay_f );
+}
+
+
+void SV_RemoveDedicatedCommands( void )
+{
+	Cmd_RemoveCommand( "serverinfo" );
+	Cmd_RemoveCommand( "systeminfo" );
+	Cmd_RemoveCommand( "say" );
 }

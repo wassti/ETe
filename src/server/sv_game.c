@@ -332,10 +332,14 @@ SV_GameBinaryMessageReceived
 ====================
 */
 void SV_GameBinaryMessageReceived( int cno, const char *buf, int buflen, int commandTime ) {
+	if ( !gvm )
+		return;
 	VM_Call( gvm, GAME_MESSAGERECEIVED, cno, buf, buflen, commandTime );
 }
 
 qboolean SV_GameSnapshotCallback( int entityNum, int clientNum ) {
+	if ( !gvm )
+		return qtrue;
 	return VM_Call( gvm, GAME_SNAPSHOT_CALLBACK, entityNum, clientNum );
 }
 

@@ -745,7 +745,6 @@ qboolean CL_GameCommand( void );
 qboolean CL_CgameRunning( void );
 void CL_CGameRendering( stereoFrame_t stereo );
 void CL_SetCGameTime( void );
-void CL_FirstSnapshot( void );
 void CL_UpdateLevelHunkUsage( void );
 void CL_CGameBinaryMessageReceived( const char *buf, int buflen, int serverTime );
 

@@ -787,6 +787,7 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 	Sys_SetStatus( "Running map %s", mapname );
 }
 
+
 /*
 ===============
 SV_Init
@@ -796,10 +797,14 @@ Only called at main exe startup, not for each game
 */
 void SV_BotInitBotLib( void );
 
-void SV_Init( void ) {
+void SV_Init( void )
+{
 	//int index;
 
 	SV_AddOperatorCommands();
+
+	if ( com_dedicated->integer )
+		SV_AddDedicatedCommands();
 
 	// serverinfo vars
 	Cvar_Get( "dmflags", "0", /*CVAR_SERVERINFO*/ 0 );

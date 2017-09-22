@@ -97,7 +97,7 @@ typedef struct {
 	int	minimize, maximize;
 } textureMode_t;
 
-textureMode_t modes[] = {
+const textureMode_t modes[] = {
 	{"GL_NEAREST", GL_NEAREST, GL_NEAREST},
 	{"GL_LINEAR", GL_LINEAR, GL_LINEAR},
 	{"GL_NEAREST_MIPMAP_NEAREST", GL_NEAREST_MIPMAP_NEAREST, GL_NEAREST},
@@ -178,6 +178,7 @@ int R_SumOfUsedImages( void ) {
 
 	return total;
 }
+
 
 /*
 ===============
@@ -378,6 +379,7 @@ static void ResampleTexture( unsigned *in, int inwidth, int inheight, unsigned *
 	}
 }
 
+
 /*
 ================
 R_LightScaleTexture
@@ -492,6 +494,7 @@ static void R_MipMap2( unsigned *in, int inWidth, int inHeight ) {
 	Com_Memcpy( in, temp, outWidth * outHeight * 4 );
 	ri.Hunk_FreeTempMemory( temp );
 }
+
 
 /*
 ================
@@ -1212,6 +1215,7 @@ void R_InitFogTable( void ) {
 	}
 }
 
+
 /*
 ================
 R_FogFactor
@@ -1877,6 +1881,7 @@ void	R_InitSkins( void ) {
 	skin->surfaces[0]->shader = tr.defaultShader;
 }
 
+
 /*
 ===============
 R_GetSkinByHandle
@@ -1888,6 +1893,7 @@ skin_t	*R_GetSkinByHandle( qhandle_t hSkin ) {
 	}
 	return tr.skins[ hSkin ];
 }
+
 
 /*
 ===============

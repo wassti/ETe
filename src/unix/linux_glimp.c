@@ -25,7 +25,6 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-
 /*
 ** GLW_IMP.C
 **
@@ -984,9 +983,9 @@ void GLimp_SetGamma( unsigned char red[256], unsigned char green[256], unsigned 
 	int shift;
 
 #ifdef USE_PMLIGHT
-	if ( !glConfig.deviceSupportsGamma || r_ignorehwgamma->integer || r_fbo->integer )
+	if ( r_ignorehwgamma->integer || r_fbo->integer )
 #else
-	if ( !glConfig.deviceSupportsGamma || r_ignorehwgamma->integer )
+	if ( r_ignorehwgamma->integer )
 #endif
 		return;
 
@@ -1101,8 +1100,10 @@ void GLimp_Shutdown( void )
 /*
 ** GLimp_LogComment
 */
-void GLimp_LogComment( char *comment ) {
-	if ( glw_state.log_fp ) {
+void GLimp_LogComment( char *comment )
+{
+	if ( glw_state.log_fp )
+	{
 		fprintf( glw_state.log_fp, "%s", comment );
 	}
 }
@@ -2041,8 +2042,6 @@ void GLimp_Init( void )
 	GLW_InitGamma();
 
 	InitSig(); // not clear why this is at begin & end of function
-
-	return;
 }
 
 
@@ -2151,7 +2150,7 @@ void IN_Frame( void )
 		// temporarily deactivate if not in the game and
 		// running on the desktop
 		// voodoo always counts as full screen
-		if ( Cvar_VariableIntegerValue( "r_fullscreen" ) == 0 )
+		if ( !glConfig.isFullscreen )
 		{
 			IN_DeactivateMouse();
 			return;
@@ -2205,6 +2204,18 @@ char *Sys_GetClipboardData( void )
 	}
 	return NULL;
 }
+
+
+/*
+=================
+Sys_SetClipboardBitmap
+=================
+*/
+void Sys_SetClipboardBitmap( const byte *bitmap, int length )
+{
+	// TODO: implement
+}
+
 
 #ifdef USE_JOYSTICK
 // bk010216 - added stubs for non-Linux UNIXes here

@@ -2153,7 +2153,7 @@ CONVENIENCE FUNCTIONS FOR ENTIRE FILES
 ======================================================================================
 */
 
-qboolean FS_FileIsInPAK( const char *filename, int *pChecksum ) {
+qboolean FS_FileIsInPAK( const char *filename, int *pChecksum, char *pakName ) {
 	searchpath_t	*search;
 	pack_t			*pak;
 	fileInPack_t	*pakFile;
@@ -2212,6 +2212,9 @@ qboolean FS_FileIsInPAK( const char *filename, int *pChecksum ) {
 				if ( !FS_FilenameCompare( pakFile->name, filename ) ) {
 					if ( pChecksum ) {
 						*pChecksum = pak->pure_checksum;
+					}
+					if ( pakName ) {
+						Com_sprintf( pakName, MAX_OSPATH, "%s/%s", pak->pakGamename, pak->pakBasename );
 					}
 					// Mac hack
 					if ( pak->checksum == MP_LEGACY_PAK ) {

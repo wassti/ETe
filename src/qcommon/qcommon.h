@@ -765,7 +765,7 @@ int FS_FOpenFileRead_Filtered( const char *qpath, fileHandle_t *file, qboolean u
 
 int FS_Home_FOpenFileRead( const char *filename, fileHandle_t *file );
 
-qboolean FS_FileIsInPAK( const char *filename, int *pChecksum );
+qboolean FS_FileIsInPAK( const char *filename, int *pChecksum, char *pakName );
 // returns qtrue if a file is in the PAK file, otherwise qfalse
 
 int     FS_Delete( const char *filename );    // only works inside the 'save' directory (for deleting savegames/images)
@@ -1072,7 +1072,8 @@ typedef enum {
 	TAG_BOTLIB,
 	TAG_RENDERER,
 	TAG_SMALL,
-	TAG_STATIC
+	TAG_STATIC,
+	TAG_COUNT
 } memtag_t;
 
 /*
@@ -1102,16 +1103,16 @@ temp file loading
 #define Z_TagMalloc(size, tag)			Z_TagMallocDebug(size, tag, #size, __FILE__, __LINE__)
 #define Z_Malloc(size)					Z_MallocDebug(size, #size, __FILE__, __LINE__)
 #define S_Malloc(size)					S_MallocDebug(size, #size, __FILE__, __LINE__)
-void *Z_TagMallocDebug( int size, int tag, char *label, char *file, int line );	// NOT 0 filled memory
+void *Z_TagMallocDebug( int size, memtag_t tag, char *label, char *file, int line );	// NOT 0 filled memory
 void *Z_MallocDebug( int size, char *label, char *file, int line );			// returns 0 filled memory
 void *S_MallocDebug( int size, char *label, char *file, int line );			// returns 0 filled memory
 #else
-void *Z_TagMalloc( int size, int tag );	// NOT 0 filled memory
+void *Z_TagMalloc( int size, memtag_t tag );	// NOT 0 filled memory
 void *Z_Malloc( int size );			// returns 0 filled memory
 void *S_Malloc( int size );			// NOT 0 filled memory only for small allocations
 #endif
 void Z_Free( void *ptr );
-void Z_FreeTags( int tag );
+void Z_FreeTags( memtag_t tag );
 int Z_AvailableMemory( void );
 void Z_LogHeap( void );
 
@@ -1219,6 +1220,10 @@ int SV_FrameMsec( void );
 qboolean SV_GameCommand( void );
 int SV_SendQueuedPackets( void );
 
+void SV_AddDedicatedCommands( void );
+void SV_RemoveDedicatedCommands( void );
+
+
 //
 // UI interface
 //
@@ -1279,6 +1284,7 @@ char	*Sys_GetCurrentUser( void );
 void	QDECL Sys_Error( const char *error, ...) __attribute__ ((noreturn, format (printf, 1, 2)));
 void	Sys_Quit (void) __attribute__ ((noreturn));
 char	*Sys_GetClipboardData( void );	// note that this isn't journaled...
+void	Sys_SetClipboardBitmap( const byte *bitmap, int length );
 
 void	Sys_Print( const char *msg );
 

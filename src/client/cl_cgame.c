@@ -52,16 +52,17 @@ void Key_GetBindingByString( const char* binding, int* key1, int* key2 );
 CL_GetGameState
 ====================
 */
-void CL_GetGameState( gameState_t *gs ) {
+static void CL_GetGameState( gameState_t *gs ) {
 	*gs = cl.gameState;
 }
+
 
 /*
 ====================
 CL_GetGlconfig
 ====================
 */
-void CL_GetGlconfig( glconfig_t *glconfig ) {
+static void CL_GetGlconfig( glconfig_t *glconfig ) {
 	*glconfig = cls.glconfig;
 }
 
@@ -71,7 +72,7 @@ void CL_GetGlconfig( glconfig_t *glconfig ) {
 CL_GetUserCmd
 ====================
 */
-qboolean CL_GetUserCmd( int cmdNumber, usercmd_t *ucmd ) {
+static qboolean CL_GetUserCmd( int cmdNumber, usercmd_t *ucmd ) {
 	// cmds[cmdNumber] is the last properly generated command
 
 	// can't return anything that we haven't created yet
@@ -90,50 +91,36 @@ qboolean CL_GetUserCmd( int cmdNumber, usercmd_t *ucmd ) {
 	return qtrue;
 }
 
-int CL_GetCurrentCmdNumber( void ) {
+
+/*
+====================
+CL_GetCurrentCmdNumber
+====================
+*/
+static int CL_GetCurrentCmdNumber( void ) {
 	return cl.cmdNumber;
 }
 
 
 /*
 ====================
-CL_GetParseEntityState
-====================
-*/
-qboolean    CL_GetParseEntityState( int parseEntityNumber, entityState_t *state ) {
-	// can't return anything that hasn't been parsed yet
-	if ( parseEntityNumber >= cl.parseEntitiesNum ) {
-		Com_Error( ERR_DROP, "CL_GetParseEntityState: %i >= %i",
-				   parseEntityNumber, cl.parseEntitiesNum );
-	}
-
-	// can't return anything that has been overwritten in the circular buffer
-	if ( parseEntityNumber <= cl.parseEntitiesNum - MAX_PARSE_ENTITIES ) {
-		return qfalse;
-	}
-
-	*state = cl.parseEntities[ parseEntityNumber & ( MAX_PARSE_ENTITIES - 1 ) ];
-	return qtrue;
-}
-
-/*
-====================
 CL_GetCurrentSnapshotNumber
 ====================
 */
-void    CL_GetCurrentSnapshotNumber( int *snapshotNumber, int *serverTime ) {
+static void CL_GetCurrentSnapshotNumber( int *snapshotNumber, int *serverTime ) {
 	*snapshotNumber = cl.snap.messageNum;
 	*serverTime = cl.snap.serverTime;
 }
+
 
 /*
 ====================
 CL_GetSnapshot
 ====================
 */
-qboolean    CL_GetSnapshot( int snapshotNumber, snapshot_t *snapshot ) {
-	clSnapshot_t    *clSnap;
-	int i, count;
+static qboolean CL_GetSnapshot( int snapshotNumber, snapshot_t *snapshot ) {
+	clSnapshot_t	*clSnap;
+	int				i, count;
 
 	if ( snapshotNumber > cl.snap.messageNum ) {
 		Com_Error( ERR_DROP, "CL_GetSnapshot: snapshotNumber > cl.snapshot.messageNum" );
@@ -161,7 +148,7 @@ qboolean    CL_GetSnapshot( int snapshotNumber, snapshot_t *snapshot ) {
 	snapshot->serverCommandSequence = clSnap->serverCommandNum;
 	snapshot->ping = clSnap->ping;
 	snapshot->serverTime = clSnap->serverTime;
-	memcpy( snapshot->areamask, clSnap->areamask, sizeof( snapshot->areamask ) );
+	Com_Memcpy( snapshot->areamask, clSnap->areamask, sizeof( snapshot->areamask ) );
 	snapshot->ps = clSnap->ps;
 	count = clSnap->numEntities;
 	if ( count > MAX_ENTITIES_IN_SNAPSHOT ) {
@@ -179,12 +166,13 @@ qboolean    CL_GetSnapshot( int snapshotNumber, snapshot_t *snapshot ) {
 	return qtrue;
 }
 
+
 /*
-==============
+=====================
 CL_SetUserCmdValue
-==============
+=====================
 */
-void CL_SetUserCmdValue( int userCmdValue, int flags, float sensitivityScale, int mpIdentClient ) {
+static void CL_SetUserCmdValue( int userCmdValue, int flags, float sensitivityScale, int mpIdentClient ) {
 	cl.cgameUserCmdValue        = userCmdValue;
 	cl.cgameFlags               = flags;
 	cl.cgameSensitivity         = sensitivityScale;
@@ -196,7 +184,7 @@ void CL_SetUserCmdValue( int userCmdValue, int flags, float sensitivityScale, in
 CL_SetClientLerpOrigin
 ==================
 */
-void CL_SetClientLerpOrigin( float x, float y, float z ) {
+static void CL_SetClientLerpOrigin( float x, float y, float z ) {
 	cl.cgameClientLerpOrigin[0] = x;
 	cl.cgameClientLerpOrigin[1] = y;
 	cl.cgameClientLerpOrigin[2] = z;
@@ -207,18 +195,10 @@ void CL_SetClientLerpOrigin( float x, float y, float z ) {
 CL_AddCgameCommand
 ==============
 */
-void CL_AddCgameCommand( const char *cmdName ) {
+static void CL_AddCgameCommand( const char *cmdName ) {
 	Cmd_AddCommand( cmdName, NULL );
 }
 
-/*
-==============
-CL_CgameError
-==============
-*/
-void CL_CgameError( const char *string ) {
-	Com_Error( ERR_DROP, "%s", string );
-}
 
 qboolean CL_CGameCheckKeyExec( int key ) {
 	if ( cgvm ) {
@@ -234,10 +214,10 @@ qboolean CL_CGameCheckKeyExec( int key ) {
 CL_ConfigstringModified
 =====================
 */
-void CL_ConfigstringModified( void ) {
-	char		*old, *s;
+static void CL_ConfigstringModified( void ) {
+	const char	*old, *s;
 	int			i, index;
-	char		*dup;
+	const char	*dup;
 	gameState_t	oldGs;
 	int			len;
 
@@ -287,7 +267,6 @@ void CL_ConfigstringModified( void ) {
 		// parse serverId and other cvars
 		CL_SystemInfoChanged();
 	}
-
 }
 
 
@@ -298,7 +277,7 @@ CL_GetServerCommand
 Set up argc/argv for the given command
 ===================
 */
-qboolean CL_GetServerCommand( int serverCommandNumber ) {
+static qboolean CL_GetServerCommand( int serverCommandNumber ) {
 	char	*s;
 	char	*cmd;
 	static char bigConfigString[BIG_INFO_STRING];
@@ -328,7 +307,7 @@ qboolean CL_GetServerCommand( int serverCommandNumber ) {
 
 rescan:
 	Cmd_TokenizeString( s );
-	cmd = Cmd_Argv( 0 );
+	cmd = Cmd_Argv(0);
 	argc = Cmd_Argc();
 
 	if ( !strcmp( cmd, "disconnect" ) ) {
@@ -379,7 +358,7 @@ rescan:
 		// reparse the string, because Con_ClearNotify() may have done another Cmd_TokenizeString()
 		Cmd_TokenizeString( s );
 		Com_Memset( cl.cmds, 0, sizeof( cl.cmds ) );
-		////ENSI CHECK IF NEEDED cls.lastVidRestart = Sys_Milliseconds(); // hack for OSP mod
+		cls.lastVidRestart = Sys_Milliseconds(); // hack for OSP mod
 		return qtrue;
 	}
 
@@ -426,7 +405,7 @@ CL_SetExpectedHunkUsage
   Sets com_expectedhunkusage, so the client knows how to draw the percentage bar
 ====================
 */
-void CL_SetExpectedHunkUsage( const char *mapname ) {
+static void CL_SetExpectedHunkUsage( const char *mapname ) {
 	int handle;
 	char *memlistfile = "hunkusage.dat";
 	char *buf;
@@ -515,13 +494,13 @@ CL_CM_LoadMap
 Just adds default parameters that cgame doesn't need to know about
 ====================
 */
-void CL_CM_LoadMap( const char *mapname ) {
+static void CL_CM_LoadMap( const char *mapname ) {
 	int checksum;
 
 	// DHM - Nerve :: If we are not running the server, then set expected usage here
-	if ( !com_sv_running->integer ) {
+	if ( !com_sv_running->integer )
 		CL_SetExpectedHunkUsage( mapname );
-	} else
+	else
 	{
 		// TTimo
 		// catch here when a local server is started to avoid outdated com_errorDiagnoseIP
@@ -551,7 +530,7 @@ void CL_ShutdownCGame( void ) {
 }
 
 
-static int	FloatAsInt( float f ) {
+static int FloatAsInt( float f ) {
 	floatint_t fi;
 	fi.f = f;
 	return fi.i;
@@ -1352,7 +1331,7 @@ or bursted delayed packets.
 
 #define	RESET_TIME	500
 
-void CL_AdjustTimeDelta( void ) {
+static void CL_AdjustTimeDelta( void ) {
 	int		newDelta;
 	int		deltaDelta;
 
@@ -1407,7 +1386,7 @@ void CL_AdjustTimeDelta( void ) {
 CL_FirstSnapshot
 ==================
 */
-void CL_FirstSnapshot( void ) {
+static void CL_FirstSnapshot( void ) {
 	// ignore snapshots that don't have entities
 	if ( cl.snap.snapFlags & SNAPFLAG_NOT_ACTIVE ) {
 		return;
@@ -1435,6 +1414,7 @@ void CL_FirstSnapshot( void ) {
 	
 	Sys_BeginProfiling();
 }
+
 
 /*
 ==================

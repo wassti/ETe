@@ -25,7 +25,6 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-
 #ifndef _WIN32
 #  error You should not be including this file on this platform
 #endif
@@ -44,7 +43,6 @@ typedef struct
 	char		gl_extensions[ 16384 ]; // to store full extension string
 	// Ensiform ^ fixme? wtf?
 
-	qboolean	allowdisplaydepthchange;
 	qboolean	pixelFormatSet;
 	int			nPendingPF;
 

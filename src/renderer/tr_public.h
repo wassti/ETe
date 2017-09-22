@@ -81,7 +81,7 @@ typedef struct {
 	void ( *AddPolysToScene )( qhandle_t hShader, int numVerts, const polyVert_t *verts, int numPolys );
 	// done.
 	void ( *AddLightToScene )( const vec3_t org, float radius, float intensity, float r, float g, float b, qhandle_t hShader, int flags );
-		void	(*AddLinearLightToScene)( const vec3_t start, const vec3_t end, float intensity, float r, float g, float b );
+	void	(*AddLinearLightToScene)( const vec3_t start, const vec3_t end, float intensity, float r, float g, float b );
 //----(SA)
 	void ( *AddCoronaToScene )( const vec3_t org, float r, float g, float b, float scale, int id, qboolean visible );
 	void ( *SetFog )( int fogvar, int var1, int var2, float r, float g, float b, float density );
@@ -141,6 +141,9 @@ typedef struct {
 	void ( *Finish )( void );
 	
 	void (*TakeVideoFrame)( int h, int w, byte* captureBuffer, byte *encodeBuffer, qboolean motionJpeg );
+
+	void	(*SetColorMappings)( void );
+
 } refexport_t;
 
 //
@@ -210,6 +213,7 @@ typedef struct {
 	e_status ( *CIN_RunCinematic )( int handle );
 
 	void	(*CL_WriteAVIVideoFrame)( const byte *buffer, int size );
+	void	(*Sys_SetClipboardBitmap)( const byte *bitmap, int size );
 
 } refimport_t;
 

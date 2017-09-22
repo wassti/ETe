@@ -195,6 +195,7 @@ void Field_Paste( field_t *edit ) {
 	Z_Free( cbd );
 }
 
+
 /*
 =================
 Field_KeyDownEvent
@@ -583,8 +584,9 @@ void CL_KeyDownEvent( int key, unsigned time ) {
 	qboolean onlybinds = qfalse;
 	keys[key].down = qtrue;
 	keys[key].repeats++;
-	if( keys[key].repeats == 1 )
-			anykeydown++;
+
+	if ( keys[key].repeats == 1 )
+		anykeydown++;
 
 	if ( Sys_IsNumLockDown() && CL_NumPadEvent( key ) )
 		onlybinds = qtrue;
@@ -601,8 +603,18 @@ void CL_KeyDownEvent( int key, unsigned time ) {
 	// console key is hardcoded, so the user can never unbind it
 	if( key == K_CONSOLE || ( keys[K_SHIFT].down && key == K_ESCAPE ) )
 	{
-		Con_ToggleConsole_f ();
-		Key_ClearStates ();
+		Con_ToggleConsole_f();
+		Key_ClearStates();
+		return;
+	}
+
+	// hardcoded screenshot key
+	if ( key == K_PRINT ) {
+		if ( keys[K_SHIFT].down ) {
+			Cbuf_ExecuteText( EXEC_APPEND, "screenshotBMP\n" );
+		} else {
+			Cbuf_ExecuteText( EXEC_APPEND, "screenshotBMP clipboard\n" );
+		}
 		return;
 	}
 
@@ -741,15 +753,19 @@ void CL_KeyUpEvent( int key, unsigned time )
 	keys[key].repeats = 0;
 	keys[key].down = qfalse;
 	anykeydown--;
-	if (anykeydown < 0) {
+
+	if ( anykeydown < 0 )
 		anykeydown = 0;
-	}
 
 	if ( Sys_IsNumLockDown() && CL_NumPadEvent( key ) )
 		onlybinds = qtrue;
 
 	// don't process key-up events for the console key
 	if ( key == K_CONSOLE || ( key == K_ESCAPE && keys[K_SHIFT].down ) )
+		return;
+
+	// hardcoded screenshot key
+	if ( key == K_PRINT )
 		return;
 
 	//

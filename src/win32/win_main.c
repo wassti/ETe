@@ -137,6 +137,7 @@ void Sys_BeginProfiling( void ) {
 	// this is just used on the mac build
 }
 
+
 /*
 =============
 Sys_Error
@@ -499,7 +500,6 @@ void Sys_FreeFileList( char **list ) {
 /*
 ================
 Sys_GetClipboardData
-
 ================
 */
 char *Sys_GetClipboardData( void ) {
@@ -524,6 +524,33 @@ char *Sys_GetClipboardData( void ) {
 		CloseClipboard();
 	}
 	return data;
+}
+
+
+/*
+================
+Sys_SetClipboardBitmap
+================
+*/
+void Sys_SetClipboardBitmap( const byte *bitmap, int length )
+{
+	HGLOBAL hMem;
+	byte *ptr;
+
+	if ( !g_wv.hWnd || !OpenClipboard( g_wv.hWnd ) )
+		return;
+
+	EmptyClipboard();
+	hMem = GlobalAlloc( GMEM_MOVEABLE | GMEM_DDESHARE, length );
+	if ( hMem != NULL ) {
+		ptr = ( byte* )GlobalLock( hMem );
+		if ( ptr != NULL ) {
+			memcpy( ptr, bitmap, length ); 
+		}
+		GlobalUnlock( hMem );
+		SetClipboardData( CF_DIB, hMem );
+	}
+	CloseClipboard();
 }
 
 

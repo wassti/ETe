@@ -2093,7 +2093,7 @@ void CL_DownloadsComplete( void ) {
 #endif
 
 	// if we downloaded files we need to restart the file system
-	if ( clc.downloadRestart ) {
+	if (clc.downloadRestart) {
 		clc.downloadRestart = qfalse;
 
 		FS_Restart( clc.checksumFeed ); // We possibly downloaded a pak, restart the file system to load it
@@ -2296,6 +2296,7 @@ and determine if we need to download them
 =================
 */
 void CL_InitDownloads( void ) {
+
 	char missingfiles[ MAXPRINTMSG ];
 
 	// TTimo
@@ -3710,8 +3711,9 @@ void CL_InitRef( void ) {
 	ri.CIN_UploadCinematic = CIN_UploadCinematic;
 	ri.CIN_PlayCinematic = CIN_PlayCinematic;
 	ri.CIN_RunCinematic = CIN_RunCinematic;
-  
+
 	ri.CL_WriteAVIVideoFrame = CL_WriteAVIVideoFrame;
+	ri.Sys_SetClipboardBitmap = Sys_SetClipboardBitmap;
 
 	ret = GetRefAPI( REF_API_VERSION, &ri );
 
@@ -4119,6 +4121,11 @@ void CL_Init( void ) {
 	Cmd_AddCommand ("stopvideo", CL_StopVideo_f );
 	Cmd_AddCommand ("serverinfo", CL_Serverinfo_f );
 	Cmd_AddCommand ("systeminfo", CL_Systeminfo_f );
+
+#ifdef USE_CURL
+	Cmd_AddCommand( "download", CL_Download_f );
+	Cmd_AddCommand( "dlmap", CL_Download_f );
+#endif
 
 	// Ridah, startup-caching system
 	Cmd_AddCommand( "cache_startgather", CL_Cache_StartGather_f );

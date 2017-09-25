@@ -182,6 +182,7 @@ typedef struct {
 	void	(*Cvar_CheckRange)( cvar_t *cv, const char *minVal, const char *maxVal, cvarValidator_t type );
 	void	(*Cvar_SetDescription)( cvar_t *cv, const char *description );
 
+	const char *(*Cvar_VariableString)( const char *var_name );
 	int		(*Cvar_VariableIntegerValue) (const char *var_name);
 
 	void	(*Cmd_AddCommand)( const char *name, void(*cmd)(void) );

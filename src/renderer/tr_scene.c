@@ -418,7 +418,7 @@ void RE_AddRefEntityToScene( const refEntity_t *ent, qboolean intShaderTime ) {
 	R_AddModelShadow( (refEntity_t*) ent );
 }
 
-
+extern qboolean modIsETF;
 
 /*
 RE_AddLightToScene()
@@ -448,9 +448,8 @@ void RE_AddLightToScene( const vec3_t org, float radius, float intensity, float 
 #ifdef USE_PMLIGHT
 	if ( r_dlightMode->integer ) {
 		// ETF powerup hack
-		if ( (radius == 200.f || radius == 150.f) && intensity >= 1.25f && intensity < 2.0f ) {
+		if ( modIsETF && ( radius == 200 || radius == 150 ) && intensity >= 1.25f )
 			intensity = 1.25f;
-		}
 
 		// ENSI NOTE FIXME this is quick and dirty hack to support intensity dlights (dyna)
 		r *= intensity;

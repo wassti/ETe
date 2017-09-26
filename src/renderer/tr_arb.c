@@ -3,15 +3,6 @@
 
 #ifdef USE_PMLIGHT
 
-enum {
-	VP_GLOBAL_EYEPOS,
-	VP_GLOBAL_MAX,
-};
-
-#if (VP_GLOBAL_MAX > 96)
-#error VP_GLOBAL_MAX > MAX_PROGRAM_ENV_PARAMETERS_ARB
-#endif
-
 typedef enum {
 	DLIGHT_VERTEX,
 	DLIGHT_FRAGMENT,
@@ -55,7 +46,6 @@ void ( APIENTRY * qglDeleteProgramsARB)( GLsizei n, const GLuint *programs );
 void ( APIENTRY * qglProgramStringARB )( GLenum target, GLenum format, GLsizei len, const GLvoid *string );
 void ( APIENTRY * qglBindProgramARB )( GLenum target, GLuint program );
 void ( APIENTRY * qglProgramLocalParameter4fARB )( GLenum target, GLuint index, GLfloat x, GLfloat y, GLfloat z, GLfloat w );
-void ( APIENTRY * qglProgramEnvParameter4fARB )( GLenum target, GLuint index, GLfloat x, GLfloat y, GLfloat z, GLfloat w );
 
 qboolean fboAvailable = qfalse;
 qboolean fboEnabled = qfalse;
@@ -292,11 +282,10 @@ void ARB_SetupLightParams( void )
 	}
 	else 
 	{
-		qglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 0, dl->transformed[0], dl->transformed[1], dl->transformed[2], 0 );
+		qglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 1, dl->transformed[0], dl->transformed[1], dl->transformed[2], 0 );
 	}
 
-	qglProgramEnvParameter4fARB( GL_VERTEX_PROGRAM_ARB, VP_GLOBAL_EYEPOS,
-		backEnd.orientation.viewOrigin[0], backEnd.orientation.viewOrigin[1], backEnd.orientation.viewOrigin[2], 0 );
+	qglProgramLocalParameter4fARB( GL_VERTEX_PROGRAM_ARB, 0, backEnd.orientation.viewOrigin[0], backEnd.orientation.viewOrigin[1], backEnd.orientation.viewOrigin[2], 0 );
 }
 
 
@@ -313,6 +302,13 @@ void ARB_LightingPass( void )
 	RB_DeformTessGeometry();
 
 	GL_Cull( tess.shader->cullType );
+
+	// set polygon offset if necessary
+	if ( tess.shader->polygonOffset )
+	{
+		qglEnable( GL_POLYGON_OFFSET_FILL );
+		qglPolygonOffset( r_offsetFactor->value, r_offsetUnits->value );
+	}
 
 	pStage = tess.xstages[ tess.shader->lightingStage ];
 
@@ -342,6 +338,12 @@ void ARB_LightingPass( void )
 	//if ( qglUnlockArraysEXT )
 	//		qglUnlockArraysEXT();
 
+	// reset polygon offset
+	if ( tess.shader->polygonOffset ) 
+	{
+		qglDisable( GL_POLYGON_OFFSET_FILL );
+	}
+
 	qglDisableClientState( GL_NORMAL_ARRAY );
 }
 
@@ -353,8 +355,8 @@ extern cvar_t *r_dlightSpecColor;
 static const char *dlightVP = {
 	"!!ARBvp1.0 \n"
 	"OPTION ARB_position_invariant; \n"
-	"PARAM posEye = program.env[0]; \n"
-	"PARAM posLight = program.local[0]; \n"
+	"PARAM posEye = program.local[0]; \n"
+	"PARAM posLight = program.local[1]; \n"
 	"OUTPUT lv = result.texcoord[1]; \n" // 1
 	"OUTPUT ev = result.texcoord[2]; \n" // 2
 	"OUTPUT n = result.texcoord[3]; \n"  // 3
@@ -369,7 +371,7 @@ static const char *dlightVP = {
 static const char *dlightVP_linear = {
 	"!!ARBvp1.0 \n"
 	"OPTION ARB_position_invariant; \n"
-	"PARAM posEye = program.env[0]; \n"
+	"PARAM posEye = program.local[0]; \n"
 	"OUTPUT fp = result.texcoord[1]; \n"
 	"OUTPUT ev = result.texcoord[2]; \n"
 	"OUTPUT n = result.texcoord[3]; \n"
@@ -1454,8 +1456,6 @@ static void QGL_InitShaders( void )
 	GPA( glProgramStringARB );
 	GPA( glDeleteProgramsARB );
 	GPA( glProgramLocalParameter4fARB );
-	GPA( glProgramEnvParameter4fARB );
-
 	programAvail = 1;
 
 	ri.Printf( PRINT_ALL, "...using ARB shaders\n" );
@@ -1611,7 +1611,6 @@ void QGL_DoneARB( void )
 	qglProgramStringARB		= NULL;
 	qglBindProgramARB		= NULL;
 	qglProgramLocalParameter4fARB = NULL;
-	qglProgramEnvParameter4fARB = NULL;
 }
 
 #endif // USE_PMLIGHT

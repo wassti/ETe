@@ -450,6 +450,16 @@ void R_AddMDCSurfaces( trRefEntity_t *ent ) {
 			R_AddDrawSurf( (void *)surface, shader, fogNum, 0 );
 		}
 
+#ifdef USE_PMLIGHT
+		if ( numDlights && shader->lightingStage >= 0 ) {
+			for ( n = 0; n < numDlights; n++ ) {
+				dl = dlights[n];
+				tr.light = dl;
+				R_AddLitSurf( (void *)surface, shader /*, fogNum*/ );
+			}
+		}
+#endif
+
 		surface = ( mdcSurface_t * )( (byte *)surface + surface->ofsEnd );
 	}
 

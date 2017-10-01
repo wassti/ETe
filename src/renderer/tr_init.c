@@ -79,6 +79,7 @@ cvar_t	*r_dlightSpecColor;
 cvar_t	*r_dlightScale;
 cvar_t	*r_dlightIntensity;
 cvar_t	*r_fbo;
+cvar_t	*r_hdr;
 #endif
 cvar_t  *r_dlightBacks;
 
@@ -244,7 +245,9 @@ static void InitOpenGL( void )
 	
 	if ( glConfig.vidWidth == 0 )
 	{
-		GLint		temp;
+		GLint max_texture_size;
+		GLint max_shader_units = -1;
+		GLint max_bind_units = -1;
 
 		memset( &glConfig, 0, sizeof( glConfig ) );
 		memset( &glConfigExt, 0, sizeof( glConfigExt ) );
@@ -257,11 +260,19 @@ static void InitOpenGL( void )
 		}
 
 		// OpenGL driver constants
-		qglGetIntegerv( GL_MAX_TEXTURE_SIZE, &temp );
-		glConfig.maxTextureSize = temp;
+		qglGetIntegerv( GL_MAX_TEXTURE_SIZE, &max_texture_size );
+		glConfig.maxTextureSize = max_texture_size;
 
-		if ( glConfig.maxActiveTextures > MAX_TEXTURE_UNITS )
-			glConfig.maxActiveTextures = MAX_TEXTURE_UNITS;
+		qglGetIntegerv( GL_MAX_TEXTURE_IMAGE_UNITS, &max_shader_units );
+		qglGetIntegerv( GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &max_bind_units );
+
+		if ( max_bind_units > max_shader_units )
+			max_bind_units = max_shader_units;
+		if ( max_bind_units > MAX_TEXTURE_UNITS )
+			max_bind_units = MAX_TEXTURE_UNITS;
+
+		if ( glConfig.maxActiveTextures && max_bind_units > 0 )
+			glConfig.maxActiveTextures = max_bind_units;
 
 		// stubbed or broken drivers may have reported 0...
 		if ( glConfig.maxTextureSize <= 0 ) 
@@ -1262,9 +1273,9 @@ void R_Register( void )
 #else
 	ri.Cvar_CheckRange( r_dlightMode, "1", "2", CV_INTEGER );
 #endif
-	r_dlightScale = ri.Cvar_Get( "r_dlightScale", "1.0", CVAR_ARCHIVE_ND );
+	r_dlightScale = ri.Cvar_Get( "r_dlightScale", "1", CVAR_ARCHIVE_ND );
 	ri.Cvar_CheckRange( r_dlightScale, "0.1", "1", CV_FLOAT );
-	r_dlightSpecPower = ri.Cvar_Get( "r_dlightSpecPower", "8.0", CVAR_ARCHIVE_ND );
+	r_dlightSpecPower = ri.Cvar_Get( "r_dlightSpecPower", "8", CVAR_ARCHIVE_ND );
 	ri.Cvar_CheckRange( r_dlightSpecPower, "1", "32", CV_FLOAT );
 	r_dlightSpecColor = ri.Cvar_Get( "r_dlightSpecColor", "-0.25", CVAR_ARCHIVE_ND );
 	ri.Cvar_CheckRange( r_dlightSpecColor, "-1", "1", CV_FLOAT );
@@ -1272,6 +1283,7 @@ void R_Register( void )
 	ri.Cvar_CheckRange( r_dlightIntensity, "0.1", "1", CV_FLOAT );
 
 	r_fbo = ri.Cvar_Get( "r_fbo", "0", CVAR_ARCHIVE | CVAR_LATCH );
+	r_hdr = ri.Cvar_Get( "r_hdr", "0", CVAR_ARCHIVE | CVAR_LATCH );
 #endif
 	r_dlightBacks = ri.Cvar_Get( "r_dlightBacks", "1", CVAR_ARCHIVE_ND );
 	r_finish = ri.Cvar_Get( "r_finish", "0", CVAR_ARCHIVE_ND );

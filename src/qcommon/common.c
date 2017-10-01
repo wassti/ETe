@@ -66,8 +66,6 @@ const int demo_protocols[] = { PROTOCOL_VERSION, NEW_PROTOCOL_VERSION, 0 };
 #else
 #define DEF_COMZONEMEGS		25
 #endif
-#define XSTRING(x)			STRING(x)
-#define STRING(x)			#x
 #define DEF_COMHUNKMEGS_S	XSTRING(DEF_COMHUNKMEGS)
 #define DEF_COMZONEMEGS_S	XSTRING(DEF_COMZONEMEGS)
 

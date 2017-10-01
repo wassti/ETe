@@ -48,6 +48,9 @@ If you have questions concerning this license or the applicable additional terms
 #endif
 #endif
 
+// stringify macro
+#define XSTRING(x)	STRING(x)
+#define STRING(x)	#x
 
 
 //============================================================================

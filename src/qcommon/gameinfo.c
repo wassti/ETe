@@ -113,10 +113,12 @@ void Com_GetGameInfo( void ) {
 		firstLaunch = qfalse;
 }
 
+cvar_t *Cvar_Unset( cvar_t *cv );
+
 void Com_UpdateDefaultGametype( void ) {
-	if ( g_gameType && g_gameType->resetString ) {
-		Z_Free( g_gameType->resetString );
-		g_gameType->resetString = CopyString( va( "%i", com_gameInfo.defaultGameType ) );//NULL;
+	if ( g_gameType ) {
+		Cvar_Unset( g_gameType );
+		g_gameType = NULL;
 	}
 	g_gameType = Cvar_Get( "g_gametype", va( "%i", com_gameInfo.defaultGameType ), CVAR_SERVERINFO | CVAR_LATCH );
 }

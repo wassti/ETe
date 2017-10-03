@@ -120,6 +120,7 @@ common.c
 cvar.c
 files.c
 gameinfo.c
+history.c
 huffman.c
 huffman_static.c
 keys.c
@@ -211,7 +212,6 @@ mac_sources = [
 win32_sources = [
 'win32/win_main.c',
 'win32/win_shared.c',
-'win32/win_wndproc.c',
 'win32/win_syscon.c',
 'qcommon/q_shared.c',
 'qcommon/q_math.c',
@@ -224,6 +224,7 @@ win32_full_sources = [
 'win32/win_gamma.c',
 'win32/win_minimize.c',
 'win32/win_snd.c',
+'win32/win_wndproc.c',
 ]
 
 botlib_list = [

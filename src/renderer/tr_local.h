@@ -1517,6 +1517,8 @@ extern cvar_t   *r_wolffog;
 
 extern cvar_t  *r_highQualityVideo;
 
+extern cvar_t  *r_useFirstPersonEnvMaps;
+
 //====================================================================
 
 void R_SwapBuffers( int );

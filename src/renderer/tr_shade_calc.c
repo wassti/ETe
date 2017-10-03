@@ -1116,7 +1116,7 @@ void RB_CalcEnvironmentTexCoordsFP( float *st ) {
 	vec3_t		viewer, reflected, where, what, why, who;
 	float		d; 
 
-	if ( !backEnd.currentEntity || ( backEnd.currentEntity->e.renderfx & RF_FIRST_PERSON ) == 0 )
+	if ( !backEnd.currentEntity || ( backEnd.currentEntity->e.renderfx & RF_FIRST_PERSON ) == 0 || r_useFirstPersonEnvMaps->integer == 0 )
 	{
 		RB_CalcEnvironmentTexCoords( st );
 		return;

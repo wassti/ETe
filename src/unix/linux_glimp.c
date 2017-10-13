@@ -837,6 +837,7 @@ void HandleX11Events( void )
 	}
 }
 
+
 // NOTE TTimo for the tty console input, we didn't rely on those .. 
 //   it's not very surprising actually cause they are not used otherwise
 void KBD_Init( void )
@@ -872,6 +873,7 @@ void IN_ActivateMouse( void )
 	}
 }
 
+
 void IN_DeactivateMouse( void )
 {
 	if ( !mouse_avail || !dpy || !win ) 
@@ -892,6 +894,7 @@ void IN_DeactivateMouse( void )
 		mouse_active = qfalse;
 	}
 }
+
 
 /*****************************************************************************/
 
@@ -983,7 +986,7 @@ void GLimp_SetGamma( unsigned char red[256], unsigned char green[256], unsigned 
 	int shift;
 
 #ifdef USE_PMLIGHT
-	if ( r_ignorehwgamma->integer || r_fbo->integer )
+	if ( r_ignorehwgamma->integer || fboEnabled )
 #else
 	if ( r_ignorehwgamma->integer )
 #endif
@@ -1026,6 +1029,7 @@ void GLimp_SetGamma( unsigned char red[256], unsigned char green[256], unsigned 
 #endif /* HAVE_XF86DGA */
 }
 
+
 /*
 ** GLimp_Shutdown
 **
@@ -1067,7 +1071,7 @@ void GLimp_Shutdown( void )
 		}
 
 #ifdef USE_PMLIGHT
-		if ( glConfig.deviceSupportsGamma && !r_fbo->integer )
+		if ( glConfig.deviceSupportsGamma && !fboEnabled )
 #else
 		if ( glConfig.deviceSupportsGamma )
 #endif
@@ -1097,6 +1101,7 @@ void GLimp_Shutdown( void )
 	QGL_Shutdown();
 }
 
+
 /*
 ** GLimp_LogComment
 */
@@ -1107,6 +1112,7 @@ void GLimp_LogComment( char *comment )
 		fprintf( glw_state.log_fp, "%s", comment );
 	}
 }
+
 
 /*
 ** GLW_StartDriverAndSetMode
@@ -1153,10 +1159,6 @@ static qboolean GLW_StartDriverAndSetMode( const char *drivername, int mode, con
 */
 int GLW_SetMode( const char *drivername, int mode, const char *modeFS, qboolean fullscreen )
 {
-	PFNGLXCHOOSEFBCONFIGPROC		qglXChooseFBConfig;
-	PFNGLXGETFBCONFIGATTRIBPROC		qglXGetFBConfigAttrib;
-	PFNGLXGETVISUALFROMFBCONFIGPROC	qglXGetVisualFromFBConfig;
-	
 	// these match in the array
 	#define ATTR_RED_IDX 2
 	#define ATTR_GREEN_IDX 4
@@ -1174,26 +1176,6 @@ int GLW_SetMode( const char *drivername, int mode, const char *modeFS, qboolean 
 		GLX_DEPTH_SIZE, 1,      // 8, 9
 		GLX_STENCIL_SIZE, 1,    // 10, 11
 		None
-	};
-
-	#define MSAA_DEPTH_INDEX   15
-	#define MSAA_STENCIL_INDEX 17
-	#define MSAA_SAMPLES_INDEX 23
-
-	static int MSAAattrib[] = {
-		GLX_X_RENDERABLE    , True,
-		GLX_DRAWABLE_TYPE   , GLX_WINDOW_BIT,
-		GLX_RENDER_TYPE     , GLX_RGBA_BIT,
-		GLX_X_VISUAL_TYPE   , GLX_TRUE_COLOR,
-		GLX_RED_SIZE        , 8,
-		GLX_GREEN_SIZE      , 8,
-		GLX_BLUE_SIZE       , 8,
-		GLX_DEPTH_SIZE      , 24, // 15
-		GLX_STENCIL_SIZE    , 8,  // 17
-		GLX_DOUBLEBUFFER    , True,
-     	GLX_SAMPLE_BUFFERS  , 1,
-		GLX_SAMPLES         , 1,  // 23
-		None		
 	};
 
 	Window root;
@@ -1491,78 +1473,6 @@ int GLW_SetMode( const char *drivername, int mode, const char *modeFS, qboolean 
 	{
 		ri.Printf( PRINT_ALL, "Couldn't get a visual\n" );
 		return RSERR_INVALID_MODE;
-	}
-
-#ifdef USE_PMLIGHT
-	if ( r_ext_multisample->integer > 0 && !r_fbo->integer )
-#else
-	if ( r_ext_multisample->integer > 0 )
-#endif
-	{
-		qglXChooseFBConfig = qwglGetProcAddress( "glXChooseFBConfig" );
-		qglXGetFBConfigAttrib = qwglGetProcAddress( "glXGetFBConfigAttrib" );
-		qglXGetVisualFromFBConfig = qwglGetProcAddress( "glXGetVisualFromFBConfig" );
-
-		if ( colorbits == 24 && qglXChooseFBConfig && qglXGetFBConfigAttrib && qglXGetVisualFromFBConfig )
-		{
-			GLXFBConfig *fbconfig;
-			int numfbconfig;
-			int maxval;
-			int bestfbi;
-			int value;
-			int nSamples;
-		
-			value = 0;
-			maxval = 0;
-			bestfbi = 0;
-
-			MSAAattrib[ MSAA_DEPTH_INDEX ] = glConfig.depthBits;
-			MSAAattrib[ MSAA_STENCIL_INDEX ] = glConfig.stencilBits;
-			nSamples = MAX( r_ext_multisample->integer, 8 );
-		
-			fbconfig = qglXChooseFBConfig( dpy, scrnum, MSAAattrib, &numfbconfig );
-			if ( fbconfig )
-			{
-				for( i = 0; i < numfbconfig; i++ )
-				{
-					qglXGetFBConfigAttrib( dpy, fbconfig[ i ], GLX_SAMPLES, &value );
-					if ( value > maxval )
-					{
-						bestfbi = i;
-						maxval = value;
-						if ( maxval >= nSamples )
-						{
-							break;
-						}
-					}
-				}
-				if ( value )
-				{
-					visinfo = qglXGetVisualFromFBConfig( dpy, fbconfig[ bestfbi ] );
-					ri.Printf( PRINT_ALL, "...using %ix MSAA visual\n", value );
-				}
-				else
-				{
-					ri.Printf( PRINT_ALL, "...no MSAA visuals available\n" );
-				}
-			//
-			}
-			else
-			{
-				ri.Printf( PRINT_ALL, "...no MSAA visuals available\n" );
-			}// if ( fbconfig )
-		}
-		else // verbose errors
-		{
-			if ( !qglXChooseFBConfig || !qglXGetFBConfigAttrib || !qglXGetVisualFromFBConfig )
-			{
-				ri.Printf( PRINT_ALL, "...MSAA functions resolve error\n" );
-			}
-			else if ( colorbits != 24 )
-			{
-				ri.Printf( PRINT_ALL, "...MSAA requires 24 bit color depth\n" );
-			}
-		}
 	}
 
 	/* window attributes */
@@ -1878,12 +1788,12 @@ static void GLW_InitExtensions( void )
 	}
 }
 
-static void GLW_InitGamma( void )
+static void GLW_InitGamma( glconfig_t *config )
 {
 #ifdef USE_PMLIGHT
-	if ( fboAvailable ) 
+	if ( fboEnabled )
 	{
-		glConfig.deviceSupportsGamma = qtrue;
+		config->deviceSupportsGamma = qtrue;
 		return;
 	}
 #endif
@@ -1891,20 +1801,23 @@ static void GLW_InitGamma( void )
 	#define GAMMA_MINMAJOR 2
 	#define GAMMA_MINMINOR 0
 
-	glConfig.deviceSupportsGamma = qfalse;
+	config->deviceSupportsGamma = qfalse;
 
 #ifdef HAVE_XF86DGA
-	if ( vidmode_ext )
+	if ( !r_ignorehwgamma->integer )
 	{
-		if (vidmode_MajorVersion < GAMMA_MINMAJOR || 
-			(vidmode_MajorVersion == GAMMA_MINMAJOR && vidmode_MinorVersion < GAMMA_MINMINOR)) 
+		if ( vidmode_ext )
 		{
-			ri.Printf( PRINT_ALL, "XF86 Gamma extension not supported in this version\n");
-			return;
+			if ( vidmode_MajorVersion < GAMMA_MINMAJOR || 
+				(vidmode_MajorVersion == GAMMA_MINMAJOR && vidmode_MinorVersion < GAMMA_MINMINOR) )
+			{
+				ri.Printf( PRINT_ALL, "XF86 Gamma extension not supported in this version\n" );
+				return;
+			}
+			XF86VidModeGetGamma( dpy, scrnum, &vidmode_InitialGamma );
+			ri.Printf( PRINT_ALL, "XF86 Gamma extension initialized\n" );
+			config->deviceSupportsGamma = qtrue;
 		}
-		XF86VidModeGetGamma(dpy, scrnum, &vidmode_InitialGamma);
-		ri.Printf( PRINT_ALL, "XF86 Gamma extension initialized\n");
-		glConfig.deviceSupportsGamma = qtrue;
 	}
 #endif /* HAVE_XF86DGA */
 }
@@ -2035,11 +1948,10 @@ void GLimp_Init( void )
 	GLW_InitExtensions();
 
 #if defined(USE_PMLIGHT) && !defined(USE_RENDERER2)
-	QGL_EarlyInitARB();
 	QGL_InitARB();
 #endif
 
-	GLW_InitGamma();
+	GLW_InitGamma( &glConfig );
 
 	InitSig(); // not clear why this is at begin & end of function
 }

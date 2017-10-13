@@ -25,7 +25,6 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-
 // cvar.c -- dynamic variable tracking
 
 #include "q_shared.h"
@@ -38,6 +37,8 @@ int			cvar_modifiedFlags;
 #define	MAX_CVARS	2048
 cvar_t		cvar_indexes[MAX_CVARS];
 int			cvar_numIndexes;
+
+static int	cvar_group[ CVG_MAX ];
 
 #define FILE_HASH_SIZE		512
 static	cvar_t	*hashTable[FILE_HASH_SIZE];
@@ -66,6 +67,7 @@ static long generateHashValue( const char *fname ) {
 	hash &= (FILE_HASH_SIZE-1);
 	return hash;
 }
+
 
 /*
 ============
@@ -485,19 +487,21 @@ cvar_t *Cvar_Get( const char *var_name, const char *var_value, int flags ) {
 	if(index >= cvar_numIndexes)
 		cvar_numIndexes = index + 1;
 		
-	var->name = CopyString (var_name);
-	var->string = CopyString (var_value);
+	var->name = CopyString( var_name );
+	var->string = CopyString( var_value );
 	var->modified = qtrue;
 	var->modificationCount = 1;
-	var->value = atof (var->string);
-	var->integer = atoi(var->string);
+	var->value = atof( var->string );
+	var->integer = atoi( var->string );
 	var->resetString = CopyString( var_value );
 	var->validator = CV_NONE;
 	var->description = NULL;
+	var->group = CVG_NONE;
+	cvar_group[ var->group ] = 1;
 
 	// link the variable in
 	var->next = cvar_vars;
-	if(cvar_vars)
+	if ( cvar_vars )
 		cvar_vars->prev = var;
 
 	var->prev = NULL;
@@ -511,7 +515,7 @@ cvar_t *Cvar_Get( const char *var_name, const char *var_value, int flags ) {
 	var->hashIndex = hash;
 
 	var->hashNext = hashTable[hash];
-	if(hashTable[hash])
+	if ( hashTable[hash] )
 		hashTable[hash]->hashPrev = var;
 
 	var->hashPrev = NULL;
@@ -615,6 +619,7 @@ void Cvar_Print( const cvar_t *v ) {
 		Com_Printf( "%s\n", v->description );
 	}
 }
+
 
 /*
 ============
@@ -724,6 +729,7 @@ cvar_t *Cvar_Set2( const char *var_name, const char *value, qboolean force ) {
 			var->latchedString = CopyString(value);
 			var->modified = qtrue;
 			var->modificationCount++;
+			cvar_group[ var->group ] = 1;
 			return var;
 		}
 
@@ -748,6 +754,7 @@ cvar_t *Cvar_Set2( const char *var_name, const char *value, qboolean force ) {
 
 	var->modified = qtrue;
 	var->modificationCount++;
+	cvar_group[ var->group ] = 1;
 	
 	Z_Free (var->string);	// free the old value string
 	
@@ -757,6 +764,7 @@ cvar_t *Cvar_Set2( const char *var_name, const char *value, qboolean force ) {
 
 	return var;
 }
+
 
 /*
 ============
@@ -1109,7 +1117,7 @@ Cvar_Reset_f
 */
 void Cvar_Reset_f( void ) {
 	if ( Cmd_Argc() != 2 ) {
-		Com_Printf( "usage: reset <variable>\n" );
+		Com_Printf ("usage: reset <variable>\n");
 		return;
 	}
 	Cvar_Reset( Cmd_Argv( 1 ) );
@@ -1709,21 +1717,22 @@ void Cvar_Restart_f(void)
 Cvar_InfoString
 =====================
 */
-char *Cvar_InfoString(int bit)
+char *Cvar_InfoString( int bit )
 {
-	static char	info[MAX_INFO_STRING];
+	static char	info[ MAX_INFO_STRING ];
 	cvar_t	*var;
 
 	info[0] = 0;
 
-	for(var = cvar_vars; var; var = var->next)
+	for( var = cvar_vars; var; var = var->next )
 	{
-		if(var->name && (var->flags & bit))
-			Info_SetValueForKey (info, var->name, var->string);
+		if ( var->name && ( var->flags & bit ) )
+			Info_SetValueForKey( info, var->name, var->string );
 	}
 
 	return info;
 }
+
 
 /*
 =====================
@@ -1748,7 +1757,6 @@ char *Cvar_InfoString_Big(int bit)
 }
 
 
-
 /*
 =====================
 Cvar_InfoStringBuffer
@@ -1766,6 +1774,11 @@ Cvar_CheckRange
 */
 void Cvar_CheckRange( cvar_t *var, const char *mins, const char *maxs, cvarValidator_t type )
 {
+	if ( type >= CV_MAX ) {
+		Com_Printf( S_COLOR_YELLOW "Invalid validation type %i for %s\n", type, var->name );
+		return;
+	}
+
 	if ( var->mins ) {
 		Z_Free( var->mins );
 		var->mins = NULL;
@@ -1780,11 +1793,16 @@ void Cvar_CheckRange( cvar_t *var, const char *mins, const char *maxs, cvarValid
 	if ( type == CV_NONE )
 		return;
 
-	if ( mins )
-		var->mins = CopyString( mins );
-	
-	if ( maxs )
-		var->maxs = CopyString( maxs );
+	if ( type == CV_BOOLEAN ) {
+		var->mins = CopyString( "0" );
+		var->maxs = CopyString( "1" );
+		var->validator = CV_INTEGER;
+	} else {
+		if ( mins )
+			var->mins = CopyString( mins );
+		if ( maxs )
+			var->maxs = CopyString( maxs );
+	}
 
 	// Force an initial range check
 	Cvar_Set( var->name, var->string );
@@ -1805,6 +1823,54 @@ void Cvar_SetDescription( cvar_t *var, const char *var_description )
 			Z_Free( var->description );
 		}
 		var->description = CopyString( var_description );
+	}
+}
+
+
+/*
+=====================
+Cvar_SetGroup
+=====================
+*/
+void Cvar_SetGroup( cvar_t *var, cvarGroup_t group ) {
+	if ( group < CVG_MAX ) {
+		var->group = group;
+	} else {
+		Com_Error( ERR_DROP, "Bad group index %i for %s", group, var->name );
+	}
+}
+
+
+/*
+=====================
+Cvar_CheckGroup
+=====================
+*/
+int Cvar_CheckGroup( cvarGroup_t group ) {
+	if ( group < CVG_MAX ) {
+		return cvar_group[ group ];
+	} else {
+		return 0;
+	}
+}
+
+
+/*
+=====================
+Cvar_ResetGroup
+=====================
+*/
+void Cvar_ResetGroup( cvarGroup_t group, qboolean resetModifiedFlags ) {
+	if ( group < CVG_MAX ) {
+		cvar_group[ group ] = 0;
+		if ( resetModifiedFlags ) {
+			int i;
+			for ( i = 0; i < cvar_numIndexes; i++ ) {
+				if ( cvar_indexes[ i ].group == group && cvar_indexes[ i ].name ) {
+					cvar_indexes[ i ].modified = qfalse;
+				}
+			}
+		}
 	}
 }
 
@@ -1913,7 +1979,7 @@ void Cvar_Init (void)
 	cvar_cheats = Cvar_Get("sv_cheats", "1", CVAR_ROM | CVAR_SYSTEMINFO );
 
 	Cmd_AddCommand ("print", Cvar_Print_f);
-	Cmd_AddCommand( "toggle", Cvar_Toggle_f );
+	Cmd_AddCommand ("toggle", Cvar_Toggle_f);
 	Cmd_SetCommandCompletionFunc( "toggle", Cvar_CompleteCvarName );
 	Cmd_AddCommand( "cycle", Cvar_Cycle_f );  // ydnar
 	Cmd_SetCommandCompletionFunc( "cycle", Cvar_CompleteCvarName );

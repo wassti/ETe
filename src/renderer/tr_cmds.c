@@ -700,11 +700,12 @@ void RE_EndFrame( int *frontEndMsec, int *backEndMsec ) {
 
 #ifdef USE_PMLIGHT
 	// recompile GPU shaders if needed
-	if ( r_dlightSpecPower->modified || r_dlightSpecColor->modified || r_greyscale->modified ) {
+	if ( ri.Cvar_CheckGroup( CVG_RENDERER ) )
+	{
 		ARB_UpdatePrograms();
-		r_dlightSpecPower->modified = qfalse;
-		r_dlightSpecColor->modified = qfalse;
-		r_greyscale->modified = qfalse;
+		if ( r_ext_multisample->modified || r_hdr->modified )
+			QGL_InitFBO();
+		ri.Cvar_ResetGroup( CVG_RENDERER, qtrue );
 	}
 #endif
 }
@@ -736,6 +737,24 @@ void RE_TakeVideoFrame( int width, int height,
 	cmd->encodeBuffer = encodeBuffer;
 	cmd->motionJpeg = motionJpeg;
 }
+
+
+void RE_FinishBloom( void )
+{
+	finishBloomCommand_t *cmd;
+
+	if ( !tr.registered ) {
+		return;
+	}
+
+	cmd = R_GetCommandBuffer( sizeof( *cmd ) );
+	if ( !cmd ) {
+		return;
+	}
+
+	cmd->commandId = RC_FINISHBLOOM;
+}
+
 
 //bani
 /*

@@ -386,11 +386,11 @@ void R_AddMDCSurfaces( trRefEntity_t *ent ) {
 				const char *s = va( "%s_b", surface->name ); // append '_b' for 'blink'
 				hash = MSG_HashKey( s, strlen( s ) );
 				for ( j = 0 ; j < skin->numSurfaces ; j++ ) {
-					if ( hash != skin->surfaces[j]->hash ) {
+					if ( hash != skin->surfaces[j].hash ) {
 						continue;
 					}
-					if ( !strcmp( skin->surfaces[j]->name, s ) ) {
-						shader = skin->surfaces[j]->shader;
+					if ( !strcmp( skin->surfaces[j].name, s ) ) {
+						shader = skin->surfaces[j].shader;
 						break;
 					}
 				}
@@ -400,11 +400,11 @@ void R_AddMDCSurfaces( trRefEntity_t *ent ) {
 				hash = MSG_HashKey( surface->name, sizeof( surface->name ) );
 				for ( j = 0 ; j < skin->numSurfaces ; j++ ) {
 					// the names have both been lowercased
-					if ( hash != skin->surfaces[j]->hash ) {
+					if ( hash != skin->surfaces[j].hash ) {
 						continue;
 					}
-					if ( !strcmp( skin->surfaces[j]->name, surface->name ) ) {
-						shader = skin->surfaces[j]->shader;
+					if ( !strcmp( skin->surfaces[j].name, surface->name ) ) {
+						shader = skin->surfaces[j].shader;
 						break;
 					}
 				}

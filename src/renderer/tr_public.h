@@ -142,6 +142,8 @@ typedef struct {
 	
 	void (*TakeVideoFrame)( int h, int w, byte* captureBuffer, byte *encodeBuffer, qboolean motionJpeg );
 
+	void	(*FinishBloom)( void );
+
 	void	(*SetColorMappings)( void );
 
 } refexport_t;
@@ -182,6 +184,9 @@ typedef struct {
 	void	(*Cvar_CheckRange)( cvar_t *cv, const char *minVal, const char *maxVal, cvarValidator_t type );
 	void	(*Cvar_SetDescription)( cvar_t *cv, const char *description );
 
+	void	(*Cvar_SetGroup)( cvar_t *var, cvarGroup_t group );
+	int		(*Cvar_CheckGroup)( cvarGroup_t group );
+	void	(*Cvar_ResetGroup)( cvarGroup_t group, qboolean resetModifiedFlags );
 	const char *(*Cvar_VariableString)( const char *var_name );
 	int		(*Cvar_VariableIntegerValue) (const char *var_name);
 

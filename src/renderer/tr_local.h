@@ -511,6 +511,12 @@ typedef struct {
 
 //=================================================================================
 
+// max surfaces per-skin
+// This is an arbitry limit. Vanilla Q3 only supported 32 surfaces in skins but failed to
+// enforce the maximum limit when reading skin files. It was possile to use more than 32
+// surfaces which accessed out of bounds memory past end of skin->surfaces hunk block.
+#define MAX_SKIN_SURFACES	256
+
 // skins allow models to be retextured without modifying the model file
 typedef struct {
 	char name[MAX_QPATH];
@@ -531,7 +537,7 @@ typedef struct skin_s {
 	char name[MAX_QPATH];           // game path, including extension
 	int numSurfaces;
 	int numModels;
-	skinSurface_t   *surfaces[MD3_MAX_SURFACES];
+	skinSurface_t	*surfaces;			// dynamically allocated array of surfaces
 	skinModel_t     *models[MAX_PART_MODELS];
 } skin_t;
 //----(SA) end
@@ -1820,10 +1826,9 @@ void R_ComputeTexCoords( const shaderStage_t *pStage );
 
 qboolean R_LightCullBounds( const dlight_t* dl, const vec3_t mins, const vec3_t maxs );
 
-void QGL_EarlyInitARB( void );
 void QGL_InitARB( void );
-
 void QGL_DoneARB( void );
+void QGL_InitFBO( void );
 qboolean ARB_UpdatePrograms( void );
 
 qboolean GL_ProgramAvailable( void );
@@ -1833,13 +1838,13 @@ void GL_ProgramEnable( void );
 void ARB_SetupLightParams( void );
 void ARB_LightingPass( void );
 
-extern qboolean		fboAvailable;
+extern qboolean		fboEnabled;
 extern qboolean		blitMSfbo;
 
 void FBO_BindMain( void );
 void FBO_PostProcess( void );
 void FBO_BlitMS( qboolean depthOnly );
-qboolean FBO_Bloom( const int w, const int h, const float gamma, const float obScale, qboolean finalPass );
+qboolean FBO_Bloom( const float gamma, const float obScale, qboolean finalPass );
 
 #endif // USE_PMLIGHT
 
@@ -2061,6 +2066,10 @@ typedef struct {
 
 typedef struct {
 	int commandId;
+} finishBloomCommand_t;
+
+typedef struct {
+	int commandId;
 	int buffer;
 } endFrameCommand_t;
 
@@ -2139,6 +2148,7 @@ typedef enum {
 	RC_DRAW_SURFS,
 	RC_DRAW_BUFFER,
 	RC_VIDEOFRAME,
+	RC_FINISHBLOOM,
 	RC_COLORMASK,
 	RC_CLEARDEPTH,
 	RC_RENDERTOTEXTURE, //bani
@@ -2218,6 +2228,8 @@ size_t RE_SaveJPGToBuffer(byte *buffer, size_t bufSize, int quality,
 		          int image_width, int image_height, byte *image_buffer, int padding);
 void RE_TakeVideoFrame( int width, int height,
 		byte *captureBuffer, byte *encodeBuffer, qboolean motionJpeg );
+
+void RE_FinishBloom( void );
 
 //Bloom Stuff
 void R_BloomInit( void );

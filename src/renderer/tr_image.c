@@ -84,7 +84,7 @@ void R_FreeImageBuffer( void ) {
 void R_GammaCorrect( byte *buffer, int bufSize ) {
 	int i;
 #ifdef USE_PMLIGHT
-	if ( fboAvailable )
+	if ( fboEnabled )
 		return;
 #endif
 	for ( i = 0; i < bufSize; i++ ) {
@@ -150,12 +150,12 @@ void GL_TextureMode( const char *string ) {
 		GL_Bind( glt );
 		// ydnar: for allowing lightmap debugging
 		if ( glt->flags & IMGFLAG_MIPMAP ) {
-			qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_min );
-			qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max );
+			qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_min );
+			qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max );
 		}
 		else {
-			qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-			qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max );
+			qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+			qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max );
 		}
 	}
 }
@@ -822,8 +822,8 @@ done:
 			qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT,
 					(GLint)Com_Clamp( 1, (int)glConfig.maxAnisotropy, r_ext_max_anisotropy->integer ) );
 
-		qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_min);
-		qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max);
+		qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_min);
+		qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max);
 	}
 	else
 	{
@@ -831,8 +831,8 @@ done:
 			qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 1 );
 
 		// ydnar: for allowing lightmap debugging
-		qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-		qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max ); // Q3 GL_LINEAR
+		qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+		qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max ); // Q3 GL_LINEAR
 	}
 
 	GL_CheckErrors();
@@ -948,8 +948,8 @@ image_t *R_CreateImage( const char *name, byte *pic, int width, int height,
 								&image->uploadWidth,
 								&image->uploadHeight );
 
-	qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, glWrapClampMode );
-	qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, glWrapClampMode );
+	qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, glWrapClampMode );
+	qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, glWrapClampMode );
 
 	glState.currenttextures[glState.currenttmu] = 0;
 	qglBindTexture( GL_TEXTURE_2D, 0 );
@@ -1427,7 +1427,7 @@ void R_SetColorMappings( void ) {
 
 	// never overbright in windowed mode
 #ifdef USE_PMLIGHT
-	if ( !glConfig.isFullscreen && r_overBrightBits->integer >= 0 && r_fbo->integer == 0 )
+	if ( !glConfig.isFullscreen && r_overBrightBits->integer >= 0 && !fboEnabled )
 #else
 	if ( !glConfig.isFullscreen && r_overBrightBits->integer >= 0 )
 #endif
@@ -1483,6 +1483,7 @@ void R_SetColorMappings( void ) {
 		GLimp_SetGamma( s_gammatable, s_gammatable, s_gammatable );
 	}
 }
+
 
 /*
 ===============
@@ -1741,10 +1742,10 @@ qhandle_t RE_GetShaderFromModel( qhandle_t modelid, int surfnum, int withlightma
 /*
 ===============
 RE_RegisterSkin
-
 ===============
 */
 qhandle_t RE_RegisterSkin( const char *name ) {
+	skinSurface_t parseSurfaces[MAX_SKIN_SURFACES];
 	qhandle_t	hSkin;
 	skin_t		*skin;
 	skinSurface_t	*surf;
@@ -1756,6 +1757,7 @@ qhandle_t RE_RegisterSkin( const char *name ) {
 	char		*text_p;
 	char		*token;
 	char		surfName[MAX_QPATH];
+	int			totalSurfaces;
 
 	if ( !name || !name[0] ) {
 		ri.Printf( PRINT_DEVELOPER, "Empty name passed to RE_RegisterSkin\n" );
@@ -1805,7 +1807,7 @@ qhandle_t RE_RegisterSkin( const char *name ) {
 	skin->numModels     = 0;    //----(SA) added
 
 //----(SA)	end
-
+	totalSurfaces = 0;
 	text_p = text.c;
 	while ( text_p && *text_p ) {
 		// get surface name
@@ -1844,20 +1846,32 @@ qhandle_t RE_RegisterSkin( const char *name ) {
 		// parse the shader name
 		token = CommaParse( &text_p );
 
-		surf = skin->surfaces[ skin->numSurfaces ] = ri.Hunk_Alloc( sizeof( *skin->surfaces[0] ), h_low );
-		Q_strncpyz( surf->name, surfName, sizeof( surf->name ) );
-		surf->hash = MSG_HashKey( surf->name, sizeof( surf->name ) );
-		surf->shader = R_FindShader( token, LIGHTMAP_NONE, qtrue );
-		skin->numSurfaces++;
+		if ( skin->numSurfaces < MAX_SKIN_SURFACES ) {
+			surf = &parseSurfaces[skin->numSurfaces];
+			Q_strncpyz( surf->name, surfName, sizeof( surf->name ) );
+			surf->hash = MSG_HashKey( surf->name, sizeof( surf->name ) );
+			surf->shader = R_FindShader( token, LIGHTMAP_NONE, qtrue );
+			skin->numSurfaces++;
+		}
+
+		totalSurfaces++;
 	}
 
 	ri.FS_FreeFile( text.v );
 
+	if ( totalSurfaces > MAX_SKIN_SURFACES ) {
+		ri.Printf( PRINT_WARNING, "WARNING: Ignoring excess surfaces (found %d, max is %d) in skin '%s'!\n",
+					totalSurfaces, MAX_SKIN_SURFACES, name );
+	}
 
 	// never let a skin have 0 shaders
 	if ( skin->numSurfaces == 0 ) {
 		return 0;		// use default skin
 	}
+
+	// copy surfaces to skin
+	skin->surfaces = ri.Hunk_Alloc( skin->numSurfaces * sizeof( skinSurface_t ), h_low );
+	memcpy( skin->surfaces, parseSurfaces, skin->numSurfaces * sizeof( skinSurface_t ) );
 
 	return hSkin;
 }
@@ -1877,8 +1891,8 @@ void	R_InitSkins( void ) {
 	skin = tr.skins[0] = ri.Hunk_Alloc( sizeof( skin_t ), h_low );
 	Q_strncpyz( skin->name, "<default skin>", sizeof( skin->name )  );
 	skin->numSurfaces = 1;
-	skin->surfaces[0] = ri.Hunk_Alloc( sizeof( *skin->surfaces[0] ), h_low );
-	skin->surfaces[0]->shader = tr.defaultShader;
+	skin->surfaces = ri.Hunk_Alloc( sizeof( skinSurface_t ), h_low );
+	skin->surfaces[0].shader = tr.defaultShader;
 }
 
 
@@ -1909,10 +1923,10 @@ void	R_SkinList_f( void ) {
 	for ( i = 0 ; i < tr.numSkins ; i++ ) {
 		skin = tr.skins[i];
 
-		ri.Printf( PRINT_ALL, "%3i:%s\n", i, skin->name );
+		ri.Printf( PRINT_ALL, "%3i:%s (%d surfaces)\n", i, skin->name, skin->numSurfaces );
 		for ( j = 0 ; j < skin->numSurfaces ; j++ ) {
 			ri.Printf( PRINT_ALL, "       %s = %s\n", 
-				skin->surfaces[j]->name, skin->surfaces[j]->shader->name );
+				skin->surfaces[j].name, skin->surfaces[j].shader->name );
 		}
 	}
 	ri.Printf (PRINT_ALL, "------------------\n");

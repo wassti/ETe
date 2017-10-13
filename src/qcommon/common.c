@@ -53,7 +53,7 @@ const int demo_protocols[] = { PROTOCOL_VERSION, NEW_PROTOCOL_VERSION, 0 };
 
 #define USE_MULTI_SEGMENT // allocate additional zone segments on demand
 
-#define MIN_DEDICATED_COMHUNKMEGS 1
+#define MIN_DEDICATED_COMHUNKMEGS 8
 #ifdef DEDICATED
 #define MIN_COMHUNKMEGS		48
 #define DEF_COMHUNKMEGS		56
@@ -970,6 +970,9 @@ typedef struct memzone_s {
 	memblock_t	*rover;
 #ifdef USE_MULTI_SEGMENT
 	struct memzone_s *next;
+	struct memzone_s *head; // first segment, for updating stats
+	int		totalSize;
+	int		totalUsed;
 	int		segnum;
 #endif
 } memzone_t;
@@ -979,9 +982,6 @@ memzone_t	*mainzone;
 // we also have a small zone for small allocations that would only
 // fragment the main zone (think of cvar and cmd strings)
 memzone_t	*smallzone;
-
-static int s_zoneTotal;
-static int s_smallZoneTotal;
 
 
 /*
@@ -1022,7 +1022,11 @@ Z_AvailableZoneMemory
 ========================
 */
 static int Z_AvailableZoneMemory( const memzone_t *zone ) {
+#ifdef USE_MULTI_SEGMENT
+	return zone->totalSize - zone->totalUsed;
+#else
 	return zone->size - zone->used;
+#endif
 }
 
 
@@ -1068,6 +1072,7 @@ void Z_Free( void *ptr ) {
 
 #ifdef USE_MULTI_SEGMENT
 	zone = block->parent;
+	zone->head->totalUsed -= block->size;
 #else
 	if ( block->tag == TAG_SMALL ) {
 		zone = smallzone;
@@ -1190,9 +1195,12 @@ void *Z_TagMalloc( int size, memtag_t tag ) {
 					newz = calloc( newsize, 1 );
 					if ( newz ) {
 						Z_ClearZone( newz, newsize );
-						newz->segnum = zone->segnum + 1; // stats
-						s_zoneTotal += newsize; // stats
 						zone->next = newz;
+						// stats
+						newz->head = zone->head;
+						newz->head->totalSize += newz->size;
+						newz->head->totalUsed += newz->used;
+						newz->segnum = zone->segnum + 1;
 					}
 				}
 				zone = zone->next;
@@ -1250,6 +1258,7 @@ void *Z_TagMalloc( int size, memtag_t tag ) {
 	zone->rover = base->next;	// next allocation will start looking here
 	zone->used += base->size;	//
 #ifdef USE_MULTI_SEGMENT
+	zone->head->totalUsed += base->size;
 	base->parent = zone;
 #endif
 	base->id = ZONEID;
@@ -1635,7 +1644,7 @@ void Com_Meminfo_f( void ) {
 	int		unused;
 
 	Com_Printf( "%9i bytes (%6.2f MB) total hunk\n", s_hunkTotal, s_hunkTotal / Square( 1024.f ) );
-	Com_Printf( "%9i bytes (%6.2f MB) total zone\n", s_zoneTotal, s_zoneTotal / Square( 1024.f ) );
+	Com_Printf( "%9i bytes (%6.2f MB) total zone\n", mainzone->totalSize, mainzone->totalSize / Square( 1024.f ) );
 	Com_Printf( "\n" );
 	Com_Printf( "%9i bytes (%6.2f MB) low mark\n", hunk_low.mark, hunk_low.mark / Square( 1024.f ) );
 	Com_Printf( "%9i bytes (%6.2f MB) low permanent\n", hunk_low.permanent, hunk_low.permanent / Square( 1024.f ) );
@@ -1683,10 +1692,11 @@ Touch all known used data to make sure it is paged in
 ===============
 */
 void Com_TouchMemory( void ) {
+	const memblock_t *block;
+	const memzone_t *zone;
 	int		start, end;
 	int		i, j;
 	int		sum;
-	memblock_t	*block;
 
 	Z_CheckHeap();
 
@@ -1705,15 +1715,23 @@ void Com_TouchMemory( void ) {
 		sum += ((int *)s_hunkData)[i];
 	}
 
-	for (block = mainzone->blocklist.next ; ; block = block->next) {
-		if ( block->tag ) {
+	zone = mainzone;
+	for (block = zone->blocklist.next ; ; block = block->next) {
+		if ( block->tag != TAG_FREE ) {
 			j = block->size >> 2;
 			for ( i = 0 ; i < j ; i+=64 ) {				// only need to touch each page
 				sum += ((int *)block)[i];
 			}
 		}
-		if ( block->next == &mainzone->blocklist ) {
-			break;			// all blocks have been hit	
+		if ( block->next == &zone->blocklist ) {
+#ifdef USE_MULTI_SEGMENT
+			if ( zone->next ) {
+				zone = zone->next;
+				block = zone->blocklist.next;
+				continue;
+			}
+#endif
+			break; // all blocks have been hit
 		}
 	}
 
@@ -1730,12 +1748,17 @@ Com_InitSmallZoneMemory
 */
 void Com_InitSmallZoneMemory( void ) {
 	static byte s_buf[ 512 * 1024 ];
+	int smallZoneSize;
 
-	s_smallZoneTotal = sizeof( s_buf );
-	Com_Memset( s_buf, 0, s_smallZoneTotal );
+	smallZoneSize = sizeof( s_buf );
+	Com_Memset( s_buf, 0, smallZoneSize );
 	smallzone = (memzone_t *)s_buf;
-	Z_ClearZone( smallzone, s_smallZoneTotal );
+	Z_ClearZone( smallzone, smallZoneSize );
 #ifdef USE_MULTI_SEGMENT
+	// initial segment points on itself
+	smallzone->head = smallzone;
+	smallzone->totalSize = smallzone->size;
+	smallzone->totalUsed = smallzone->used;
 	smallzone->segnum = 1; // stats
 #endif
 }
@@ -1747,6 +1770,7 @@ Com_InitZoneMemory
 =================
 */
 static void Com_InitZoneMemory( void ) {
+	int		mainZoneSize;
 	cvar_t	*cv;
 
 	// Please note: com_zoneMegs can only be set on the command line, and
@@ -1759,16 +1783,20 @@ static void Com_InitZoneMemory( void ) {
 	cv = Cvar_Get( "com_zoneMegs", DEF_COMZONEMEGS_S, CVAR_LATCH | CVAR_ARCHIVE );
 
 	if ( cv->integer < DEF_COMZONEMEGS ) {
-		s_zoneTotal = 1024 * 1024 * DEF_COMZONEMEGS;
+		mainZoneSize = 1024 * 1024 * DEF_COMZONEMEGS;
 	} else {
-		s_zoneTotal = cv->integer * 1024 * 1024;
+		mainZoneSize = cv->integer * 1024 * 1024;
 	}
-	mainzone = calloc( s_zoneTotal, 1 );
+	mainzone = calloc( mainZoneSize, 1 );
 	if ( !mainzone ) {
-		Com_Error( ERR_FATAL, "Zone data failed to allocate %i megs", s_zoneTotal / (1024*1024) );
+		Com_Error( ERR_FATAL, "Zone data failed to allocate %i megs", mainZoneSize / (1024*1024) );
 	}
-	Z_ClearZone( mainzone, s_zoneTotal );
+	Z_ClearZone( mainzone, mainZoneSize );
 #ifdef USE_MULTI_SEGMENT
+	// initial segment points on itself
+	mainzone->head = mainzone;
+	mainzone->totalSize = mainzone->size;
+	mainzone->totalUsed = mainzone->used;
 	mainzone->segnum = 1; // stats
 #endif
 }

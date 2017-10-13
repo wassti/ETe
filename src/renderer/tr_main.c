@@ -1100,6 +1100,7 @@ void R_PlaneForSurface (surfaceType_t *surfType, cplane_t *plane) {
 	}
 }
 
+
 /*
 =================
 R_GetPortalOrientation
@@ -1481,8 +1482,8 @@ qboolean R_MirrorViewBySurface( drawSurf_t *drawSurf, int entityNum ) {
 	}
 
 #ifdef USE_PMLIGHT
-	if ( oldParms.num_dlights && r_numdlights + oldParms.num_dlights <= ARRAY_LEN( backEndData->dlights ) ) {
-		// create dedicated set for each view
+	// create dedicated set for each view
+	if ( r_numdlights + oldParms.num_dlights <= ARRAY_LEN( backEndData->dlights ) ) {
 		newParms.dlights = oldParms.dlights + oldParms.num_dlights;
 		newParms.num_dlights = oldParms.num_dlights;
 		r_numdlights += oldParms.num_dlights;
@@ -1491,7 +1492,7 @@ qboolean R_MirrorViewBySurface( drawSurf_t *drawSurf, int entityNum ) {
 	}
 #endif
 
-	if ( tess.numVertexes > 2 ) {
+	if ( r_fastsky->integer && tess.numVertexes > 2 ) {
 		int mins[2], maxs[2];
 		R_GetModelViewBounds( mins, maxs );
 		newParms.scissorX = newParms.viewportX + mins[0];

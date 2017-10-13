@@ -3707,6 +3707,10 @@ void CL_InitRef( void ) {
 	ri.Cvar_VariableString = Cvar_VariableString;
 	ri.Cvar_VariableIntegerValue = Cvar_VariableIntegerValue;
 
+	ri.Cvar_SetGroup = Cvar_SetGroup;
+	ri.Cvar_CheckGroup = Cvar_CheckGroup;
+	ri.Cvar_ResetGroup = Cvar_ResetGroup;
+
 	// cinematic stuff
 
 	ri.CIN_UploadCinematic = CIN_UploadCinematic;

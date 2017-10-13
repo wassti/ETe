@@ -28,7 +28,6 @@ If you have questions concerning this license or the applicable additional terms
 /*
 ** WIN_GAMMA.C
 */
-#include <assert.h>
 #include "../renderer/tr_local.h"
 #include "../qcommon/qcommon.h"
 #include "glw_win.h"
@@ -37,26 +36,26 @@ If you have questions concerning this license or the applicable additional terms
 static unsigned short s_oldHardwareGamma[3][256];
 
 /*
-** WG_CheckHardwareGamma
+** GLW_InitGamma
 **
 ** Determines if the underlying hardware supports the Win32 gamma correction API.
 */
-void WG_CheckHardwareGamma( void )
+void GLW_InitGamma( glconfig_t *config )
 {
 	HDC			hDC;
 
 #ifdef USE_PMLIGHT
-	if ( fboAvailable ) 
+	if ( fboEnabled )
 	{
-		glConfig.deviceSupportsGamma = qtrue;
+		config->deviceSupportsGamma = qtrue;
 		return;
 	}
 #endif
 	
-	glConfig.deviceSupportsGamma = qfalse;
+	config->deviceSupportsGamma = qfalse;
 
 	// non-3Dfx standalone drivers don't support gamma changes, period
-	if ( glConfig.driverType == GLDRV_STANDALONE )
+	if ( config->driverType == GLDRV_STANDALONE )
 	{
 		return;
 	}
@@ -66,7 +65,7 @@ void WG_CheckHardwareGamma( void )
 		if ( glw_state.displayName[0] ) 
 		{
 			hDC = CreateDC( TEXT( "DISPLAY" ), glw_state.displayName, NULL, NULL );		
-			glConfig.deviceSupportsGamma = ( GetDeviceGammaRamp( hDC, s_oldHardwareGamma ) == FALSE ) ? qfalse : qtrue;
+			config->deviceSupportsGamma = ( GetDeviceGammaRamp( hDC, s_oldHardwareGamma ) == FALSE ) ? qfalse : qtrue;
 			DeleteDC( hDC );
 		}
 		else 
@@ -76,7 +75,7 @@ void WG_CheckHardwareGamma( void )
 			ReleaseDC( GetDesktopWindow(), hDC );
 		}
 
-		if ( glConfig.deviceSupportsGamma )
+		if ( config->deviceSupportsGamma )
 		{
 			//
 			// do a sanity check on the gamma values
@@ -85,7 +84,7 @@ void WG_CheckHardwareGamma( void )
 				 ( HIBYTE( s_oldHardwareGamma[1][255] ) <= HIBYTE( s_oldHardwareGamma[1][0] ) ) ||
 				 ( HIBYTE( s_oldHardwareGamma[2][255] ) <= HIBYTE( s_oldHardwareGamma[2][0] ) ) )
 			{
-				glConfig.deviceSupportsGamma = qfalse;
+				config->deviceSupportsGamma = qfalse;
 				ri.Printf( PRINT_WARNING, "WARNING: device has broken gamma support\n" );
 			}
 
@@ -150,7 +149,7 @@ void GLimp_SetGamma( unsigned char red[256], unsigned char green[256], unsigned 
 	HDC		hDC;
 
 #ifdef USE_PMLIGHT
-	if ( fboAvailable )
+	if ( fboEnabled )
 		return;
 #endif
 
@@ -204,9 +203,9 @@ void GLimp_SetGamma( unsigned char red[256], unsigned char green[256], unsigned 
 
 
 /*
-** WG_RestoreGamma
+** GLW_RestoreGamma
 */
-void WG_RestoreGamma( void )
+void GLW_RestoreGamma( void )
 {
 	if ( glConfig.deviceSupportsGamma )
 	{

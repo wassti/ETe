@@ -30,16 +30,6 @@ If you have questions concerning this license or the applicable additional terms
 #include "qcommon.h"
 #include "../server/server.h"
 
-/*typedef struct gameInfo_s {
-	qboolean spEnabled;
-	int spGameTypes;
-	int defaultSPGameType;
-	int coopGameTypes;
-	int defaultCoopGameType;
-	int defaultGameType;
-	qboolean usesProfiles;
-} gameInfo_t;*/
-
 // Arnout: gameinfo, to let the engine know which gametypes are SP and if we should use profiles.
 // This can't be dependant on gamecode as we sometimes need to know about it when no game-modules
 // are loaded

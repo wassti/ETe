@@ -3483,12 +3483,14 @@ void Com_Init( char *commandLine ) {
 	// make sure single player is off by default
 	Cvar_Set("ui_singlePlayerActive", "0");
 
+#ifndef DEDICATED
 	// NERVE - SMF - force recommendedSet and don't do vid_restart if in safe mode
 	if ( !com_recommendedSet->integer && !safeMode ) {
 		Com_SetRecommended();
 		Cbuf_ExecuteText( EXEC_APPEND, "vid_restart\n" );
 	}
 	Cvar_Set( "com_recommendedSet", "1" );
+#endif
 
 	com_fullyInitialized = qtrue;
 
@@ -3525,10 +3527,8 @@ Writes key bindings and archived cvars to config file if modified
 */
 void Com_WriteConfiguration( void ) {
 #ifndef DEDICATED
-	extern cvar_t *fs_basegame;
-	extern cvar_t *fs_gamedirvar;
-#endif
 	const char *cl_profileStr = Cvar_VariableString( "cl_profile" );
+#endif
 
 	// if we are quiting without fully initializing, make sure
 	// we don't write out anything
@@ -3541,9 +3541,13 @@ void Com_WriteConfiguration( void ) {
 	}
 	cvar_modifiedFlags &= ~CVAR_ARCHIVE;
 
+#ifndef DEDICATED
 	if ( com_gameInfo.usesProfiles && cl_profileStr[0] ) {
 		Com_WriteConfigToFile( va( "profiles/%s/%s", cl_profileStr, CONFIG_NAME ) );
-	} else {
+	}
+	else
+#endif
+	{
 		Com_WriteConfigToFile( Q3CONFIG_CFG );
 	}
 }

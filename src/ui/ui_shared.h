@@ -31,7 +31,7 @@ If you have questions concerning this license or the applicable additional terms
 
 
 #include "../qcommon/q_shared.h"
-#include "../cgame/tr_types.h"
+#include "../renderer/tr_types.h"
 #include "keycodes.h"
 
 #include "../../etmain/ui/menudef.h"

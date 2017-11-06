@@ -26,11 +26,9 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-
 #include "../client/client.h"
 #include "win_local.h"
 #include "glw_win.h"
-#include "../renderer/tr_local.h"
 
 #ifndef WM_MOUSEWHEEL
 #define WM_MOUSEWHEEL (WM_MOUSELAST+1)  // message that will be supported by the OS 
@@ -41,7 +39,6 @@ static UINT MSH_MOUSEWHEEL;
 // Console variables that we need to access from this module
 cvar_t		*vid_xpos;			// X coordinate of window position
 cvar_t		*vid_ypos;			// Y coordinate of window position
-cvar_t		*r_fullscreen;
 cvar_t		*in_forceCharset;
 
 static HHOOK WinHook;
@@ -648,7 +645,6 @@ LRESULT WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM  wParam, LPARAM lParam 
 
 		vid_xpos = Cvar_Get( "vid_xpos", "3", CVAR_ARCHIVE );
 		vid_ypos = Cvar_Get( "vid_ypos", "22", CVAR_ARCHIVE );
-		r_fullscreen = Cvar_Get( "r_fullscreen", "1", CVAR_ARCHIVE | CVAR_LATCH );
 		in_forceCharset = Cvar_Get( "in_forceCharset", "1", CVAR_ARCHIVE_ND );
 
 		MSH_MOUSEWHEEL = RegisterWindowMessage( TEXT( "MSWHEEL_ROLLMSG" ) ); 
@@ -730,11 +726,7 @@ LRESULT WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM  wParam, LPARAM lParam 
 				} else {
 					GLW_RestoreGamma();
 					// Minimize if there only one monitor
-#ifdef USE_PMLIGHT
-					if ( glw_state.monitorCount <= 1 || fboEnabled )
-#else
-					if ( glw_state.monitorCount <= 1 )
-#endif
+					if ( glw_state.monitorCount <= 1 || ( re.CanMinimize && re.CanMinimize() ) )
 						ShowWindow( hWnd, SW_MINIMIZE );
 					SetDesktopDisplaySettings();
 				}
@@ -793,7 +785,7 @@ LRESULT WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM  wParam, LPARAM lParam 
 
 	case WM_TIMER:
 		if ( wParam == TIMER_ID && uTimerID != 0 && !CL_VideoRecording() )
-			Com_Frame( clc.demoplaying );
+			Com_Frame( CL_NoDelay() );
 		break;
 
 	// this is complicated because Win32 seems to pack multiple mouse events into
@@ -824,11 +816,7 @@ LRESULT WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM  wParam, LPARAM lParam 
 		if ( wParam == SC_SCREENSAVE || wParam == SC_MONITORPOWER )
 			return 0;
 
-#ifdef USE_PMLIGHT
-		if ( wParam == SC_MINIMIZE && CL_VideoRecording() && !fboEnabled )
-#else
-		if ( wParam == SC_MINIMIZE && CL_VideoRecording() )
-#endif
+		if ( wParam == SC_MINIMIZE && CL_VideoRecording() && !( re.CanMinimize && re.CanMinimize() ) )
 			return 0;
 
 		// simulate drag move to avoid ~500ms delay between DefWindowProc() and further WM_ENTERSIZEMOVE
@@ -845,11 +833,7 @@ LRESULT WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM  wParam, LPARAM lParam 
 		{
 			if ( gw_active )
 			{
-#ifdef USE_PMLIGHT
-				if ( !CL_VideoRecording() || fboEnabled )
-#else
-				if ( !CL_VideoRecording() )
-#endif
+				if ( !CL_VideoRecording() || ( re.CanMinimize && re.CanMinimize() ) )
 					ShowWindow( hWnd, SW_MINIMIZE );
 			}
 			else

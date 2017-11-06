@@ -608,6 +608,8 @@ void	Cvar_SetValue( const char *var_name, float value );
 void	Cvar_SetValueSafe( const char *var_name, float value );
 // expands value to a string and calls Cvar_Set/Cvar_SetSafe
 
+qboolean Cvar_SetModified( const char *var_name, qboolean modified );
+
 float	Cvar_VariableValue( const char *var_name );
 int		Cvar_VariableIntegerValue( const char *var_name );
 // returns 0 if not defined or non numeric
@@ -901,6 +903,12 @@ qboolean FS_VerifyPak( const char *pak );
 
 char *FS_CopyString( const char *in );
 
+// AVI pipes
+
+fileHandle_t FS_PipeOpenWrite( const char *cmd, const char *filename );
+void FS_PipeClose( fileHandle_t f );
+
+
 /*
 ==============================================================
 
@@ -1137,7 +1145,7 @@ void Com_TouchMemory( void );
 
 // commandLine should not include the executable name (argv[0])
 void Com_Init( char *commandLine );
-void Com_Frame( qboolean demoPlaying );
+void Com_Frame( qboolean noDelay );
 void Com_Shutdown( qboolean badProfile );
 
 /*

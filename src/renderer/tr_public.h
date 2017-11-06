@@ -29,7 +29,7 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __TR_PUBLIC_H
 #define __TR_PUBLIC_H
 
-#include "../cgame/tr_types.h"
+#include "tr_types.h"
 
 #define REF_API_VERSION     8
 
@@ -146,6 +146,10 @@ typedef struct {
 
 	void	(*SetColorMappings)( void );
 
+	qboolean (*CanMinimize)( void ); // == fbo enabled
+
+	qboolean (*GetModeInfo)( int *width, int *height, float *windowAspect, int mode, const char *modeFS, int dw, int dh, qboolean fullscreen );
+
 } refexport_t;
 
 //
@@ -214,12 +218,25 @@ typedef struct {
 	qboolean ( *FS_FileExists )( const char *file );
 
 	// cinematic stuff
-	void ( *CIN_UploadCinematic )( int handle );
-	int ( *CIN_PlayCinematic )( const char *arg0, int xpos, int ypos, int width, int height, int bits );
-	e_status ( *CIN_RunCinematic )( int handle );
+	void	(*CIN_UploadCinematic)( int handle );
+	int		(*CIN_PlayCinematic)( const char *arg0, int xpos, int ypos, int width, int height, int bits );
+	e_status (*CIN_RunCinematic)( int handle );
 
 	void	(*CL_WriteAVIVideoFrame)( const byte *buffer, int size );
 	void	(*Sys_SetClipboardBitmap)( const byte *bitmap, int size );
+	qboolean(*Sys_LowPhysicalMemory)( void );
+
+	int		(*Com_RealTime)( qtime_t *qtime );
+
+	// platform-dependent functions
+	void	(*GLimp_Init)( glconfig_t *config );
+	void	(*GLimp_Shutdown)( void );
+	void	(*GLimp_EndFrame)( void );
+	void	(*GLimp_InitGamma)( glconfig_t *config );
+	void	(*GLimp_SetGamma)( unsigned char red[256], unsigned char green[256], unsigned char blue[256] );
+
+	void*	(*GL_GetProcAddress)( const char *name );
+	int		(*GLimp_NormalFontBase)( void );
 
 } refimport_t;
 
@@ -233,4 +250,4 @@ typedef	refexport_t* (QDECL *GetRefAPI_t) (int apiVersion, refimport_t * rimp);
 refexport_t*GetRefAPI( int apiVersion, refimport_t *rimp );
 #endif
 
-#endif  // __TR_PUBLIC_H
+#endif	// __TR_PUBLIC_H

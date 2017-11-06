@@ -25,17 +25,16 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-
 // tr_init.c -- functions that are not called every frame
 
 #include "tr_local.h"
 
 glconfig_t	glConfig;
-glconfigExt_t glConfigExt;
                 
 glstate_t	glState;
 
 static void GfxInfo_f( void );
+static void GL_SetDefaultState( void );
 
 cvar_t  *r_flareSize;
 cvar_t  *r_flareFade;
@@ -46,7 +45,6 @@ cvar_t  *r_railSegmentLength;
 
 cvar_t  *r_ignoreFastPath;
 
-cvar_t  *r_verbose;
 cvar_t  *r_ignore;
 
 cvar_t  *r_displayRefresh;
@@ -81,7 +79,8 @@ cvar_t	*r_dlightIntensity;
 cvar_t	*r_fbo;
 cvar_t	*r_hdr;
 #endif
-cvar_t  *r_dlightBacks;
+cvar_t	*r_bloom;
+cvar_t	*r_dlightBacks;
 
 cvar_t  *r_lodbias;
 cvar_t  *r_lodscale;
@@ -152,7 +151,6 @@ cvar_t  *r_normallength;
 cvar_t  *r_showmodelbounds;
 cvar_t  *r_finish;
 cvar_t  *r_clear;
-cvar_t  *r_swapInterval;
 cvar_t  *r_textureMode;
 cvar_t  *r_offsetFactor;
 cvar_t  *r_offsetUnits;
@@ -164,8 +162,6 @@ cvar_t  *r_portalOnly;
 
 cvar_t  *r_subdivisions;
 cvar_t  *r_lodCurveError;
-
-cvar_t  *r_fullscreen;
 
 cvar_t  *r_customwidth;
 cvar_t  *r_customheight;
@@ -215,12 +211,257 @@ int max_polys;
 cvar_t  *r_maxpolyverts;
 int max_polyverts;
 
-void ( APIENTRY * qglMultiTexCoord2fARB )( GLenum texture, GLfloat s, GLfloat t );
-void ( APIENTRY * qglActiveTextureARB )( GLenum texture );
-void ( APIENTRY * qglClientActiveTextureARB )( GLenum texture );
+static const char *gl_extensions = NULL;
 
-void ( APIENTRY * qglLockArraysEXT )( GLint, GLint );
-void ( APIENTRY * qglUnlockArraysEXT )( void );
+#define GLE( ret, name, ... ) ret ( APIENTRY * q##name )( __VA_ARGS__ );
+	QGL_Core_PROCS;
+	QGL_Ext_PROCS;
+#undef GLE
+
+// for modular renderer
+#if 0
+void QDECL Com_Error( errorParm_t code, const char *fmt, ... ) 
+{
+	char buf[ 4096 ];
+	va_list	argptr;
+	va_start( argptr, fmt );
+	Q_vsnprintf( buf, sizeof( buf ), fmt, argptr );
+	va_end( argptr );
+	ri.Error( code, "%s", buf );
+}
+
+void QDECL Com_Printf( const char *fmt, ... ) 
+{
+	char buf[ MAXPRINTMSG ];
+	va_list	argptr;
+	va_start( argptr, fmt );
+	Q_vsnprintf( buf, sizeof( buf ), fmt, argptr );
+	va_end( argptr );
+
+	ri.Printf( PRINT_ALL, "%s", buf );
+}
+#endif
+
+
+/*
+** R_HaveExtension
+*/
+qboolean R_HaveExtension( const char *ext )
+{
+	const char *ptr = Q_stristr( gl_extensions, ext );
+	if (ptr == NULL)
+		return qfalse;
+	ptr += strlen(ext);
+	return ((*ptr == ' ') || (*ptr == '\0'));  // verify it's complete string.
+}
+
+
+// Truncates the GL extensions string by only allowing up to 'maxExtensions' extensions in the string.
+static const char *TruncateGLExtensionsString( const char *extensionsString, int maxExtensions ) {
+	const char *p = extensionsString;
+	const char *q;
+	int numExtensions = 0;
+	size_t extensionsLen = strlen( extensionsString );
+
+	char *truncatedExtensions;
+
+	while ( ( q = strchr( p, ' ' ) ) != NULL && numExtensions <= maxExtensions ) {
+		p = q + 1;
+		numExtensions++;
+	}
+
+	if ( q != NULL ) {
+		// We still have more extensions. We'll call this the end
+
+		extensionsLen = p - extensionsString - 1;
+	}
+
+	truncatedExtensions = (char *)Hunk_Alloc( extensionsLen + 1, h_low );
+	Q_strncpyz( truncatedExtensions, extensionsString, extensionsLen + 1 );
+
+	return truncatedExtensions;
+}
+
+
+/*
+** R_InitExtensions
+*/
+static void R_InitExtensions( void )
+{
+	size_t len;
+	
+	if ( !qglGetString( GL_EXTENSIONS ) )
+	{
+		ri.Error( ERR_FATAL, "OpenGL installation is broken. Please fix video drivers and/or restart your system" );
+	}
+
+	// get our config strings
+	Q_strncpyz( glConfig.vendor_string, (char *)qglGetString (GL_VENDOR), sizeof( glConfig.vendor_string ) );
+	Q_strncpyz( glConfig.renderer_string, (char *)qglGetString (GL_RENDERER), sizeof( glConfig.renderer_string ) );
+	len = strlen( glConfig.renderer_string );
+	if ( len && glConfig.renderer_string[ len - 1 ] == '\n' )
+		glConfig.renderer_string[ len - 1 ] = '\0';
+	Q_strncpyz( glConfig.version_string, (char *)qglGetString( GL_VERSION ), sizeof( glConfig.version_string ) );
+
+	gl_extensions = (const char *)qglGetString( GL_EXTENSIONS );
+	Q_strncpyz( glConfig.extensions_string, TruncateGLExtensionsString( gl_extensions, 128 ), sizeof( glConfig.extensions_string ) );
+
+	if ( !r_allowExtensions->integer )
+	{
+		ri.Printf( PRINT_ALL, "*** IGNORING OPENGL EXTENSIONS ***\n" );
+		return;
+	}
+
+	ri.Printf( PRINT_ALL, "Initializing OpenGL extensions\n" );
+
+	// GL_EXT_texture_compression_s3tc
+	glConfig.textureCompression = TC_NONE;
+	if ( R_HaveExtension( "GL_ARB_texture_compression" ) &&
+		 R_HaveExtension( "GL_EXT_texture_compression_s3tc" ) )
+	{
+		if ( r_ext_compressed_textures->integer ){ 
+			glConfig.textureCompression = TC_S3TC_ARB;
+			ri.Printf( PRINT_ALL, "...using GL_EXT_texture_compression_s3tc\n" );
+		} else {
+			ri.Printf( PRINT_ALL, "...ignoring GL_EXT_texture_compression_s3tc\n" );
+		}
+	} else {
+		ri.Printf( PRINT_ALL, "...GL_EXT_texture_compression_s3tc not found\n" );
+	}
+
+	// GL_S3_s3tc
+	if ( glConfig.textureCompression == TC_NONE && r_ext_compressed_textures->integer ) {
+		if ( R_HaveExtension( "GL_S3_s3tc" ) ) {
+			if ( r_ext_compressed_textures->integer ) {
+				glConfig.textureCompression = TC_S3TC;
+				ri.Printf( PRINT_ALL, "...using GL_S3_s3tc\n" );
+			} else {
+				glConfig.textureCompression = TC_NONE;
+				ri.Printf( PRINT_ALL, "...ignoring GL_S3_s3tc\n" );
+			}
+		} else {
+			ri.Printf( PRINT_ALL, "...GL_S3_s3tc not found\n" );
+		}
+	}
+
+	// GL_EXT_texture_env_add
+	glConfig.textureEnvAddAvailable = qfalse;
+	if ( R_HaveExtension( "GL_EXT_texture_env_add" ) ) {
+		if ( r_ext_texture_env_add->integer ) {
+			glConfig.textureEnvAddAvailable = qtrue;
+			ri.Printf( PRINT_ALL, "...using GL_EXT_texture_env_add\n" );
+		} else {
+			glConfig.textureEnvAddAvailable = qfalse;
+			ri.Printf( PRINT_ALL, "...ignoring GL_EXT_texture_env_add\n" );
+		}
+	} else {
+		ri.Printf( PRINT_ALL, "...GL_EXT_texture_env_add not found\n" );
+	}
+
+	// GL_ARB_multitexture
+	qglMultiTexCoord2fARB = NULL;
+	qglActiveTextureARB = NULL;
+	qglClientActiveTextureARB = NULL;
+	if ( R_HaveExtension( "GL_ARB_multitexture" ) )
+	{
+		if ( r_ext_multitexture->integer )
+		{
+			qglMultiTexCoord2fARB = ri.GL_GetProcAddress( "glMultiTexCoord2fARB" );
+			qglActiveTextureARB = ri.GL_GetProcAddress( "glActiveTextureARB" );
+			qglClientActiveTextureARB = ri.GL_GetProcAddress( "glClientActiveTextureARB" );
+
+			if ( qglActiveTextureARB )
+			{
+				qglGetIntegerv( GL_MAX_ACTIVE_TEXTURES_ARB, &glConfig.maxActiveTextures );
+
+				if ( glConfig.maxActiveTextures > 1 )
+				{
+					ri.Printf( PRINT_ALL, "...using GL_ARB_multitexture\n" );
+				}
+				else
+				{
+					qglMultiTexCoord2fARB = NULL;
+					qglActiveTextureARB = NULL;
+					qglClientActiveTextureARB = NULL;
+					ri.Printf( PRINT_ALL, "...not using GL_ARB_multitexture, < 2 texture units\n" );
+				}
+			}
+		}
+		else
+		{
+			ri.Printf( PRINT_ALL, "...ignoring GL_ARB_multitexture\n" );
+		}
+	}
+	else
+	{
+		ri.Printf( PRINT_ALL, "...GL_ARB_multitexture not found\n" );
+	}
+
+	// GL_EXT_compiled_vertex_array
+	qglLockArraysEXT = NULL;
+	qglUnlockArraysEXT = NULL;
+	if ( R_HaveExtension( "GL_EXT_compiled_vertex_array" ) )
+	{
+		if ( r_ext_compiled_vertex_array->integer )
+		{
+			ri.Printf( PRINT_ALL, "...using GL_EXT_compiled_vertex_array\n" );
+			qglLockArraysEXT = ri.GL_GetProcAddress( "glLockArraysEXT" );
+			qglUnlockArraysEXT = ri.GL_GetProcAddress( "glUnlockArraysEXT" );
+			if ( !qglLockArraysEXT || !qglUnlockArraysEXT ) {
+				ri.Error( ERR_FATAL, "bad getprocaddress" );
+			}
+		}
+		else
+		{
+			ri.Printf( PRINT_ALL, "...ignoring GL_EXT_compiled_vertex_array\n" );
+		}
+	}
+	else
+	{
+		ri.Printf( PRINT_ALL, "...GL_EXT_compiled_vertex_array not found\n" );
+	}
+
+	glConfig.anisotropicAvailable = qfalse;
+	if ( R_HaveExtension("GL_EXT_texture_filter_anisotropic") )
+	{
+		if ( r_ext_texture_filter_anisotropic->integer ) {
+			int _maxAnisotropy = 0;
+			qglGetIntegerv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &_maxAnisotropy );
+			if ( _maxAnisotropy <= 0 ) {
+				ri.Printf( PRINT_ALL, "...GL_EXT_texture_filter_anisotropic not properly supported!\n" );
+				_maxAnisotropy = glConfig.maxAnisotropy = 0;
+			}
+			else
+			{
+				ri.Printf( PRINT_ALL, "...using GL_EXT_texture_filter_anisotropic (max: %i)\n", _maxAnisotropy );
+				glConfig.anisotropicAvailable = qtrue;
+				glConfig.maxAnisotropy = _maxAnisotropy;
+			}
+		}
+		else
+		{
+			ri.Printf( PRINT_ALL, "...ignoring GL_EXT_texture_filter_anisotropic\n" );
+		}
+	}
+	else
+	{
+		ri.Printf( PRINT_ALL, "...GL_EXT_texture_filter_anisotropic not found\n" );
+	}
+
+	// GL_NV_fog_distance
+	if ( R_HaveExtension( "GL_NV_fog_distance" ) ) {
+		if ( r_ext_NV_fog_dist->integer ) {
+			glConfig.NVFogAvailable = qtrue;
+			ri.Printf( PRINT_ALL, "...using GL_NV_fog_distance\n" );
+		} else {
+			ri.Printf( PRINT_ALL, "...ignoring GL_NV_fog_distance\n" );
+			ri.Cvar_Set( "r_ext_NV_fog_dist", "0" );
+		}
+	} else {
+		ri.Printf( PRINT_ALL, "...GL_NV_fog_distance not found\n" );
+		ri.Cvar_Set( "r_ext_NV_fog_dist", "0" );
+	}
+}
 
 
 /*
@@ -249,20 +490,21 @@ static void InitOpenGL( void )
 		GLint max_texture_size;
 		GLint max_shader_units = -1;
 		GLint max_bind_units = -1;
-
-		memset( &glConfig, 0, sizeof( glConfig ) );
-		memset( &glConfigExt, 0, sizeof( glConfigExt ) );
 		
-		GLimp_Init();
+		ri.GLimp_Init( &glConfig );
 
-		if ( !qglGetString( GL_EXTENSIONS ) )
-		{
-			Com_Error( ERR_FATAL, "OpenGL installation is broken. Please fix video drivers and/or restart your system" );
-		}
+#define GLE( ret, name, ... ) q##name = ri.GL_GetProcAddress( XSTRING( name ) ); if ( !q##name ) ri.Error( ERR_FATAL, "Error resolving core OpenGL functions" );
+		QGL_Core_PROCS;
+#undef GLE
 
 		// OpenGL driver constants
 		qglGetIntegerv( GL_MAX_TEXTURE_SIZE, &max_texture_size );
 		glConfig.maxTextureSize = max_texture_size;
+
+		R_InitExtensions();
+
+		ri.Cvar_Set( "r_highQualityVideo", "1" );
+		ri.Cvar_Set( "r_lastValidRenderer", glConfig.renderer_string );
 
 		qglGetIntegerv( GL_MAX_TEXTURE_IMAGE_UNITS, &max_shader_units );
 		qglGetIntegerv( GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &max_bind_units );
@@ -279,6 +521,18 @@ static void InitOpenGL( void )
 		if ( glConfig.maxTextureSize <= 0 ) 
 		{
 			glConfig.maxTextureSize = 0;
+		}
+
+#if defined(USE_PMLIGHT)
+		QGL_InitARB();
+#endif
+		glConfig.deviceSupportsGamma = qfalse;
+
+		if ( !r_ignorehwgamma->integer )
+		{
+			ri.GLimp_InitGamma( &glConfig );
+			if ( fboAvailable )
+				glConfig.deviceSupportsGamma = qtrue;
 		}
 	}
 
@@ -346,7 +600,7 @@ typedef struct vidmode_s
 	float		pixelAspect;		// pixel width / height
 } vidmode_t;
 
-vidmode_t r_vidModes[] =
+static const vidmode_t r_vidModes[] =
 {
 	{ "Mode  0: 320x240",			320,	240,	1 },
 	{ "Mode  1: 400x300",			400,	300,	1 },
@@ -377,9 +631,9 @@ vidmode_t r_vidModes[] =
 };
 static int	s_numVidModes = ARRAY_LEN( r_vidModes );
 
-qboolean R_GetModeInfo( int *width, int *height, float *windowAspect, int mode, const char *modeFS, int dw, int dh, qboolean fullscreen ) {
-	vidmode_t	*vm;
-	float		pixelAspect;
+static qboolean R_GetModeInfo( int *width, int *height, float *windowAspect, int mode, const char *modeFS, int dw, int dh, qboolean fullscreen ) {
+	const	vidmode_t *vm;
+	float	pixelAspect;
 
 	// set dedicated fullscreen mode
 	if ( fullscreen && *modeFS )
@@ -414,6 +668,7 @@ qboolean R_GetModeInfo( int *width, int *height, float *windowAspect, int mode, 
 
 	return qtrue;
 }
+
 
 /*
 ** R_ModeList_f
@@ -707,7 +962,7 @@ static void R_ScreenshotFilename( char *fileName, const char *fileExt ) {
 	int count;
 
 	count = 0;
-	Com_RealTime( &t );
+	ri.Com_RealTime( &t );
 
 	Com_sprintf( fileName, MAX_OSPATH, "screenshots/shot-%04d%02d%02d-%02d%02d%02d.%s", 
 			1900 + t.tm_year, 1 + t.tm_mon,	t.tm_mday,
@@ -729,7 +984,7 @@ levelshots are specialized 128*128 thumbnails for
 the menu system, sampled down from full screen distorted images
 ====================
 */
-void R_LevelShot( void ) {
+static void R_LevelShot( void ) {
 	char		checkname[MAX_OSPATH];
 	byte		*buffer;
 	byte		*source, *allsource;
@@ -949,7 +1204,7 @@ const void *RB_TakeVideoFrameCmd( const void *data )
 /*
 ** GL_SetDefaultState
 */
-void GL_SetDefaultState( void )
+static void GL_SetDefaultState( void )
 {
 	qglClearDepth( 1.0f );
 
@@ -1061,12 +1316,12 @@ void GfxInfo_f( void )
 	ri.Printf( PRINT_ALL, "GL_RENDERER: %s\n", glConfig.renderer_string );
 	ri.Printf( PRINT_ALL, "GL_VERSION: %s\n", glConfig.version_string );
 	ri.Printf( PRINT_DEVELOPER, "GL_EXTENSIONS: " );
-	R_PrintLongString( PRINT_DEVELOPER, glConfigExt.originalExtensionString );
-	ri.Printf( PRINT_DEVELOPER, "\n" );
+	R_PrintLongString( PRINT_ALL, gl_extensions );
+	ri.Printf( PRINT_ALL, "\n" );
 	ri.Printf( PRINT_ALL, "GL_MAX_TEXTURE_SIZE: %d\n", glConfig.maxTextureSize );
 	ri.Printf( PRINT_ALL, "GL_MAX_ACTIVE_TEXTURES_ARB: %d\n", glConfig.maxActiveTextures );
 	ri.Printf( PRINT_ALL, "\nPIXELFORMAT: color(%d-bits) Z(%d-bit) stencil(%d-bits)\n", glConfig.colorBits, glConfig.depthBits, glConfig.stencilBits );
-	ri.Printf( PRINT_ALL, "MODE: %d, %d x %d %s hz:", r_mode->integer, glConfig.vidWidth, glConfig.vidHeight, fsstrings[r_fullscreen->integer != 0] );
+	ri.Printf( PRINT_ALL, "MODE: %d, %d x %d %s hz:", r_mode->integer, glConfig.vidWidth, glConfig.vidHeight, fsstrings[ glConfig.isFullscreen != 0 ] );
 	if ( glConfig.displayFrequency )
 	{
 		ri.Printf( PRINT_ALL, "%d\n", glConfig.displayFrequency );
@@ -1163,12 +1418,11 @@ void GfxInfo_f( void )
 R_Register
 ===============
 */
-void R_Register( void ) 
+static void R_Register( void )
 {
 	//
 	// latched and archived variables
 	//
-	r_glDriver = ri.Cvar_Get( "r_glDriver", OPENGL_DRIVER_NAME, CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE );
 	r_allowExtensions = ri.Cvar_Get( "r_allowExtensions", "1", CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE );
 	r_ext_compressed_textures = ri.Cvar_Get( "r_ext_compressed_textures", "1", CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE ); // (SA) ew, a spelling change I missed from the missionpack
 	r_ext_multitexture = ri.Cvar_Get( "r_ext_multitexture", "1", CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE );
@@ -1218,7 +1472,6 @@ void R_Register( void )
 	r_modeFullscreen = ri.Cvar_Get( "r_modeFullscreen", "-2", CVAR_ARCHIVE | CVAR_LATCH );
 	ri.Cvar_SetDescription( r_modeFullscreen, "Dedicated fullscreen mode, set to \"\" to use \\r_mode in all cases" );
 	r_oldMode = ri.Cvar_Get( "r_oldMode", "", CVAR_ARCHIVE );                             // ydnar: previous "good" video mode
-	r_fullscreen = ri.Cvar_Get( "r_fullscreen", "1", CVAR_ARCHIVE | CVAR_LATCH );
 
 	r_customwidth = ri.Cvar_Get( "r_customWidth", "1600", CVAR_ARCHIVE | CVAR_LATCH );
 	ri.Cvar_CheckRange( r_customwidth, "1", NULL, CV_INTEGER );
@@ -1290,10 +1543,11 @@ void R_Register( void )
 	r_hdr = ri.Cvar_Get( "r_hdr", "0", CVAR_ARCHIVE_ND );
 	ri.Cvar_SetGroup( r_hdr, CVG_RENDERER );
 #endif
+	r_bloom = ri.Cvar_Get( "r_bloom", "0", CVAR_ARCHIVE_ND );
+
 	r_dlightBacks = ri.Cvar_Get( "r_dlightBacks", "1", CVAR_ARCHIVE_ND );
 	r_finish = ri.Cvar_Get( "r_finish", "0", CVAR_ARCHIVE_ND );
 	r_textureMode = ri.Cvar_Get( "r_textureMode", "GL_LINEAR_MIPMAP_NEAREST", CVAR_ARCHIVE );
-	r_swapInterval = ri.Cvar_Get( "r_swapInterval", "0", CVAR_ARCHIVE_ND );
 #ifdef __MACOS__
 	r_gamma = ri.Cvar_Get( "r_gamma", "1.2", CVAR_ARCHIVE_ND );
 #else
@@ -1363,7 +1617,6 @@ void R_Register( void )
 	r_novis = ri.Cvar_Get( "r_novis", "0", CVAR_CHEAT );
 	r_showcluster = ri.Cvar_Get( "r_showcluster", "0", CVAR_CHEAT );
 	r_speeds = ri.Cvar_Get( "r_speeds", "0", CVAR_CHEAT );
-	r_verbose = ri.Cvar_Get( "r_verbose", "0", CVAR_CHEAT );
 	r_logFile = ri.Cvar_Get( "r_logFile", "0", CVAR_CHEAT );
 	r_debugSurface = ri.Cvar_Get( "r_debugSurface", "0", CVAR_CHEAT );
 	r_nobind = ri.Cvar_Get( "r_nobind", "0", CVAR_CHEAT );
@@ -1503,7 +1756,6 @@ void R_Init( void ) {
 
 	R_InitFreeType();
 
-
 	err = qglGetError();
 	if ( err != GL_NO_ERROR )
 		ri.Printf (PRINT_ALL, "glGetError() = 0x%x\n", err);
@@ -1522,7 +1774,7 @@ void R_PurgeCache( void ) {
 RE_Shutdown
 ===============
 */
-void RE_Shutdown( qboolean destroyWindow ) {	
+static void RE_Shutdown( qboolean destroyWindow ) {
 
 	ri.Printf( PRINT_ALL, "RE_Shutdown( %i )\n", destroyWindow );
 
@@ -1568,10 +1820,19 @@ void RE_Shutdown( qboolean destroyWindow ) {
 
 	// shut down platform specific OpenGL stuff
 	if ( destroyWindow ) {
-		GLimp_Shutdown();
+
+#if defined(USE_PMLIGHT)
+		QGL_DoneARB();
+#endif
+		ri.GLimp_Shutdown();
+
+#define GLE( ret, name, ... ) q##name = NULL;
+		QGL_Core_PROCS;
+		QGL_Ext_PROCS;
+#undef GLE
 
 		Com_Memset( &glConfig, 0, sizeof( glConfig ) );
-		Com_Memset( &glConfigExt, 0, sizeof( glConfigExt ) );
+		gl_extensions = NULL;
 		Com_Memset( &glState, 0, sizeof( glState ) );
 
 		// Ridah, release the virtual memory
@@ -1591,9 +1852,9 @@ RE_EndRegistration
 Touch all images to make sure they are resident
 =============
 */
-void RE_EndRegistration( void ) {
+static void RE_EndRegistration( void ) {
 	R_IssuePendingRenderCommands();
-	if ( !Sys_LowPhysicalMemory() ) {
+	if ( !ri.Sys_LowPhysicalMemory() ) {
 //		RB_ShowImages();
 	}
 }
@@ -1699,8 +1960,10 @@ refexport_t *GetRefAPI ( int apiVersion, refimport_t *rimp ) {
 
 	re.TakeVideoFrame = RE_TakeVideoFrame;
 	re.SetColorMappings = R_SetColorMappings;
+	re.GetModeInfo = R_GetModeInfo;
 
 	re.FinishBloom = RE_FinishBloom;
+	re.CanMinimize = RE_CanMinimize;
 
 	return &re;
 }

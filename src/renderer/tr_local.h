@@ -1375,17 +1375,9 @@ typedef struct {
 	qboolean				mapLoading;
 } trGlobals_t;
 
-typedef struct glconfigExt_s
-{
-	glconfig_t *glConfig;
-
-	const char *originalExtensionString;
-} glconfigExt_t;
-
 extern backEndState_t backEnd;
 extern trGlobals_t tr;
 extern glconfig_t glConfig;         // outside of TR since it shouldn't be cleared during ref re-init
-extern glconfigExt_t glConfigExt;
 extern glstate_t glState;           // outside of TR since it shouldn't be cleared during ref re-init
 
 
@@ -1400,7 +1392,6 @@ extern cvar_t   *r_railCoreWidth;
 extern cvar_t   *r_railSegmentLength;
 
 extern cvar_t   *r_ignore;              // used for debugging anything
-extern cvar_t   *r_verbose;             // used for verbose debug spew
 extern cvar_t   *r_ignoreFastPath;      // allows us to ignore our Tess fast paths
 
 extern cvar_t   *r_znear;               // near Z clip plane
@@ -1433,7 +1424,8 @@ extern cvar_t	*r_dlightIntensity;		// 0.1 - 1.0
 extern cvar_t	*r_fbo;
 extern cvar_t	*r_hdr;
 #endif
-extern cvar_t   *r_dlightBacks;         // dlight non-facing surfaces for continuity
+extern cvar_t	*r_bloom;
+extern cvar_t	*r_dlightBacks;			// dlight non-facing surfaces for continuity
 
 extern cvar_t  *r_norefresh;            // bypasses the ref rendering
 extern cvar_t  *r_drawentities;         // disable/enable entity rendering
@@ -1448,7 +1440,7 @@ extern cvar_t  *r_nocurves;
 extern cvar_t  *r_showcluster;
 
 extern cvar_t	*r_gamma;
-extern cvar_t	*r_displayRefresh;		// optional display refresh option
+//extern cvar_t	*r_displayRefresh;				// optional display refresh option
 
 extern cvar_t  *r_nobind;                       // turns off binding to appropriate textures
 extern cvar_t  *r_singleShader;                 // make most world faces use default shader
@@ -1569,7 +1561,6 @@ void R_RotateForEntity( const trRefEntity_t *ent, const viewParms_t *viewParms, 
 ** GL wrapper/helper functions
 */
 void    GL_Bind( image_t *image );
-void    GL_SetDefaultState( void );
 void    GL_SelectTexture( int unit );
 void	GL_BindTexture( int unit, GLuint texnum );
 void    GL_TextureMode( const char *string );
@@ -1622,7 +1613,6 @@ void        RE_LoadWorldMap( const char *mapname );
 void        RE_SetWorldVisData( const byte *vis );
 qhandle_t   RE_RegisterModel( const char *name );
 qhandle_t   RE_RegisterSkin( const char *name );
-void        RE_Shutdown( qboolean destroyWindow );
 
 qboolean    R_GetEntityToken( char *buffer, int size );
 
@@ -1635,10 +1625,7 @@ qhandle_t   RE_GetShaderFromModel( qhandle_t modelid, int surfnum, int withlight
 
 model_t     *R_AllocModel( void );
 
-void        R_Init( void );
-
-qboolean    R_GetModeInfo( int *width, int *height, float *windowAspect, int mode, const char *modeFS
-							, int dw, int dh, qboolean fullscreen );
+void		R_Init( void );
 
 void        R_SetColorMappings( void );
 void        R_GammaCorrect( byte *buffer, int bufSize );
@@ -1681,26 +1668,6 @@ void RE_RenderToTexture( int textureid, int x, int y, int w, int h );
 // bani
 void RE_Finish( void );
 int R_GetTextureId( const char *name );
-
-/*
-====================================================================
-
-IMPLEMENTATION SPECIFIC FUNCTIONS
-
-====================================================================
-*/
-
-extern int gl_NormalFontBase;
-
-void        GLimp_Init( void );
-void        GLimp_Shutdown( void );
-void        GLimp_EndFrame( void );
-
-void        GLimp_LogComment( char *comment );
-
-void GLimp_SetGamma( unsigned char red[256],
-					 unsigned char green[256],
-					 unsigned char blue[256] );
 
 
 /*
@@ -2147,7 +2114,6 @@ typedef enum {
 	RC_STRETCH_PIC_GRADIENT,    // (SA) added
 	RC_DRAW_SURFS,
 	RC_DRAW_BUFFER,
-	RC_VIDEOFRAME,
 	RC_FINISHBLOOM,
 	RC_COLORMASK,
 	RC_CLEARDEPTH,
@@ -2200,8 +2166,6 @@ extern int max_polyverts;
 
 extern	backEndData_t	*backEndData;	// the second one may not be allocated
 
-
-void *R_GetCommandBuffer( int bytes );
 void RB_ExecuteRenderCommands( const void *data );
 void RB_TakeScreenshot( int x, int y, int width, int height, const char *fileName );
 void RB_TakeScreenshotJPEG( int x, int y, int width, int height, const char *fileName );
@@ -2230,6 +2194,7 @@ void RE_TakeVideoFrame( int width, int height,
 		byte *captureBuffer, byte *encodeBuffer, qboolean motionJpeg );
 
 void RE_FinishBloom( void );
+qboolean RE_CanMinimize( void );
 
 //Bloom Stuff
 void R_BloomInit( void );
@@ -2340,5 +2305,14 @@ void R_Hunk_End( void );
 void R_FreeImageBuffer( void );
 
 qboolean R_inPVS( const vec3_t p1, const vec3_t p2 );
+
+qboolean fboAvailable;
+
+qboolean R_HaveExtension( const char *ext );
+
+#define GLE( ret, name, ... ) extern ret ( APIENTRY * q##name )( __VA_ARGS__ );
+	QGL_Core_PROCS;
+	QGL_Ext_PROCS;
+#undef GLE
 
 #endif //TR_LOCAL_H (THIS MUST BE LAST!!)

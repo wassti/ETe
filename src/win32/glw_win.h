@@ -40,11 +40,8 @@ typedef struct
 	HGLRC   hGLRC;			// handle to GL rendering context
 
 	HINSTANCE   OpenGLLib;  // HINSTANCE for the OpenGL library
-	char		gl_extensions[ 16384 ]; // to store full extension string
-	// Ensiform ^ fixme? wtf?
 
 	qboolean	pixelFormatSet;
-	int			nPendingPF;
 
 	int			desktopBitsPixel;
 	int			desktopWidth; 
@@ -58,13 +55,14 @@ typedef struct
 	qboolean	cdsFullscreen;
 	int			monitorCount;
 
-	FILE		*log_fp; // TODO: implement?
+	FILE		*log_fp;	// TODO: implement?
+
+	glconfig_t	*config;	// feedback to renderer module
 
 } glwstate_t;
 
 extern glwstate_t glw_state;
 
-extern void GLW_InitGamma( glconfig_t *config );
 extern void GLW_RestoreGamma( void );
 
 #endif

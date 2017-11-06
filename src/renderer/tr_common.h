@@ -44,12 +44,9 @@ typedef enum
 	IMGFLAG_NO_COMPRESSION = 0x0010,
 	IMGFLAG_NOLIGHTSCALE   = 0x0020,
 	IMGFLAG_CLAMPTOEDGE    = 0x0040,
-	IMGFLAG_SRGB           = 0x0080,
-	IMGFLAG_GENNORMALMAP   = 0x0100,
-	IMGFLAG_LIGHTMAP       = 0x0200,
+	IMGFLAG_GENNORMALMAP   = 0x0080,
+	IMGFLAG_LIGHTMAP       = 0x0100,
 } imgFlags_t;
-
-#define MIP_RAW_IMAGE ( IMGFLAG_MIPMAP | IMGFLAG_PICMIP )
 
 typedef struct image_s {
 	char		imgName[MAX_QPATH];		// game path, including extension
@@ -102,19 +99,14 @@ extern cvar_t *r_mode;				// video mode
 extern cvar_t *r_modeFullscreen;	// fullscreen video mode
 extern cvar_t *r_oldMode;             // ydnar: previous "good" video mode
 extern cvar_t *r_noborder;
-extern cvar_t *r_fullscreen;
 extern cvar_t *r_ignorehwgamma;		// overrides hardware gamma capabilities
 extern cvar_t *r_drawBuffer;
-extern cvar_t *r_glDriver;
-extern cvar_t *r_swapInterval;
 
 extern cvar_t *r_allowExtensions;				// global enable/disable of OpenGL extensions
 extern cvar_t *r_ext_compressed_textures;		// these control use of specific extensions
 extern cvar_t *r_ext_multitexture;
 extern cvar_t *r_ext_compiled_vertex_array;
 extern cvar_t *r_ext_texture_env_add;
-extern cvar_t   *r_ext_gamma_control;
-extern cvar_t   *r_ext_texenv_op;
 
 extern cvar_t *r_ext_texture_filter_anisotropic;
 extern cvar_t *r_ext_max_anisotropy;
@@ -123,13 +115,9 @@ extern cvar_t *r_ext_max_anisotropy;
 extern cvar_t   *r_ext_NV_fog_dist;
 extern cvar_t   *r_nv_fogdist_mode;
 
-extern cvar_t *r_stereoEnabled;
-
 extern	cvar_t	*r_saveFontData;
 
-//qboolean	R_GetModeInfo( int *width, int *height, float *windowAspect, int mode, int dw, int dh );
-
-float R_NoiseGet4f( float x, float y, float z, float t );
+float R_NoiseGet4f( float x, float y, float z, double t );
 void  R_NoiseInit( void );
 
 typedef enum {
@@ -177,18 +165,5 @@ IMPLEMENTATION SPECIFIC FUNCTIONS
 
 ====================================================================
 */
-
-void		GLimp_Init( void );
-void		GLimp_Shutdown( void );
-void		GLimp_EndFrame( void );
-
-void		GLimp_LogComment( char *comment );
-void		GLimp_Minimize(void);
-
-void		GLimp_SetGamma( unsigned char red[256],
-		unsigned char green[256],
-		unsigned char blue[256] );
-
-qboolean	GLimp_HaveExtension( const char *ext);
 
 #endif

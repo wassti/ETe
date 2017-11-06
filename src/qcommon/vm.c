@@ -659,7 +659,7 @@ locals from sp
 intptr_t QDECL VM_Call( vm_t *vm, int callnum, ... )
 {
 	//vm_t	*oldVM;
-	intptr_t r;
+	intptr_t r = 0;
 	int	nargs;
 	int i;
 

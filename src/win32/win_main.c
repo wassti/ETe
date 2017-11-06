@@ -648,6 +648,80 @@ void Sys_UnloadDll( void *dllHandle ) {
 	}
 }
 
+extern int cl_connectedToPureServer;
+
+#if 0
+enum SearchPathFlag
+{
+	SEARCH_PATH_MOD = 1 << 0,
+	SEARCH_PATH_BASE = 1 << 1,
+	SEARCH_PATH_ROOT = 1 << 2
+};
+
+static void *Sys_LoadDllFromPaths( const char *filename, const char *gamedir, const char **searchPaths,
+	size_t numPaths, uint32_t searchFlags, const char *callerName ) {
+	char *fn;
+	void *libHandle;
+	size_t i;
+
+	if ( searchFlags & SEARCH_PATH_MOD ) {
+		for ( i = 0; i < numPaths; i++ ) {
+			const char *libDir = searchPaths[i];
+			if ( !libDir[0] )
+				continue;
+
+			fn = FS_BuildOSPath( libDir, gamedir, filename );
+			libHandle = Sys_LoadLibrary( fn );
+			if ( libHandle )
+				return libHandle;
+
+			Com_Printf( "%s(%s) failed: \"%s\"\n", callerName, fn, Sys_LibraryError() );
+		}
+	}
+
+	if ( searchFlags & SEARCH_PATH_BASE ) {
+		for ( i = 0; i < numPaths; i++ ) {
+			const char *libDir = searchPaths[i];
+			if ( !libDir[0] )
+				continue;
+
+			fn = FS_BuildOSPath( libDir, BASEGAME, filename );
+			libHandle = Sys_LoadLibrary( fn );
+			if ( libHandle )
+				return libHandle;
+
+			Com_Printf( "%s(%s) failed: \"%s\"\n", callerName, fn, Sys_LibraryError() );
+		}
+	}
+
+	if ( searchFlags & SEARCH_PATH_ROOT ) {
+		for ( i = 0; i < numPaths; i++ ) {
+			const char *libDir = searchPaths[i];
+			if ( !libDir[0] )
+				continue;
+
+			fn = va( "%s%c%s", libDir, PATH_SEP, filename );
+			libHandle = Sys_LoadLibrary( fn );
+			if ( libHandle )
+				return libHandle;
+
+			Com_Printf( "%s(%s) failed: \"%s\"\n", callerName, fn, Sys_LibraryError() );
+		}
+	}
+
+	return NULL;
+}
+
+
+qboolean Sys_DLLNeedsUnpacking( void )
+{
+#ifdef DEDICATED
+	return qfalse;
+#else
+	return cl_connectedToPureServer != 0;
+#endif
+}
+#endif
 
 /*
 =================
@@ -656,7 +730,6 @@ Sys_LoadDll
 Used to load a development dll instead of a virtual machine
 =================
 */
-extern int cl_connectedToPureServer;
 
 const char* Sys_GetDLLName( const char *name ) {
 	return va( "%s_mp_" ARCH_STRING DLL_EXT, name );
@@ -819,42 +892,92 @@ void Sys_Init( void ) {
 //=======================================================================
 
 
-/*
-==================
-SetDPIAwareness
-==================
-*/
-static void SetDPIAwareness( void ) 
-{
-	typedef HANDLE (WINAPI *pfnSetThreadDpiAwarenessContext)( HANDLE dpiContext );
-	typedef HRESULT (WINAPI *pfnSetProcessDpiAwareness)( int value );
+//#include <ShellScalingApi.h>
 
-	pfnSetThreadDpiAwarenessContext pSetThreadDpiAwarenessContext;
-	pfnSetProcessDpiAwareness pSetProcessDpiAwareness;
-	HMODULE dll;
+typedef HANDLE( WINAPI *SetThreadDpiAwarenessContextPtr )( HANDLE );
+typedef HRESULT( WINAPI *SetProcessDpiAwarenessPtr )( int );
+typedef BOOL( WINAPI *SetProcessDPIAwarePtr )( void );
 
-	dll = GetModuleHandle( T("user32") );
-	if ( dll )
-	{
-		pSetThreadDpiAwarenessContext = (pfnSetThreadDpiAwarenessContext) GetProcAddress( dll, "SetThreadDpiAwarenessContext" );
-		if ( pSetThreadDpiAwarenessContext )
-		{
-			pSetThreadDpiAwarenessContext( (HANDLE)(-2) ); // DPI_AWARENESS_CONTEXT_SYSTEM_AWARE
-		}
+// TODO print sucess/fail
+static qboolean TryThreadHighDPI( HANDLE value ) {
+	SetThreadDpiAwarenessContextPtr set_thread_dpi_awareness_context_f = NULL;
+	HMODULE u32dll = GetModuleHandle( T( "user32" ) );
+
+	if ( !u32dll ) {
+		return qfalse;
 	}
 
-	dll = LoadLibrary( T("shcore") );
-	if ( dll )
-	{
-		pSetProcessDpiAwareness = (pfnSetProcessDpiAwareness) GetProcAddress( dll, "SetProcessDpiAwareness" );
-		if ( pSetProcessDpiAwareness )
-		{
-			pSetProcessDpiAwareness( 2 ); // PROCESS_PER_MONITOR_DPI_AWARE
+	set_thread_dpi_awareness_context_f = (SetThreadDpiAwarenessContextPtr)GetProcAddress( u32dll, "SetThreadDpiAwarenessContext" );
+
+	if ( set_thread_dpi_awareness_context_f ) {
+		HANDLE ret = set_thread_dpi_awareness_context_f( value );
+		if ( ret != NULL ) {
+			return qtrue;
 		}
-		FreeLibrary( dll );
 	}
+	return qfalse;
 }
 
+// TODO print sucess/fail
+static qboolean TryModernProcessHighDPI( int value ) {
+	SetProcessDpiAwarenessPtr set_process_dpi_awareness_f = NULL;
+	HMODULE u32dll = GetModuleHandle( T( "user32" ) );
+
+	if ( !u32dll ) {
+		return qfalse;
+	}
+
+	set_process_dpi_awareness_f = (SetProcessDpiAwarenessPtr)GetProcAddress( u32dll, "SetProcessDpiAwarenessInternal" );
+
+	if ( set_process_dpi_awareness_f ) {
+		HRESULT hr = set_process_dpi_awareness_f( value );
+
+		if ( SUCCEEDED( hr ) ) {
+			return qtrue;
+		} else if ( hr == E_ACCESSDENIED ) {
+			// This can happen when function is called more than once or there is a manifest override
+			// Definitely should be logging this
+		}
+	}
+	return qfalse;
+}
+
+static qboolean TryLegacyProcessHighDPI( void ) {
+	SetProcessDPIAwarePtr set_process_dpi_aware_f = NULL;
+	HMODULE u32dll = GetModuleHandle( T( "user32" ) );
+
+	if ( !u32dll ) {
+		return qfalse;
+	}
+
+	set_process_dpi_aware_f = (SetProcessDPIAwarePtr)GetProcAddress( u32dll, "SetProcessDPIAware" );
+
+	if ( set_process_dpi_aware_f ) {
+		return set_process_dpi_aware_f() == TRUE ? qtrue : qfalse;
+	}
+	return qfalse;
+}
+
+static void SetupHighDPISupport( void ) {
+	//const HANDLE contextPerMonitorV2 = (HANDLE)-4;
+	//const HANDLE contextPerMonitor = (HANDLE)-3;
+
+
+	int dpiValue = 0;
+	if ( qtrue ) { // If Windows 10 or greater TODO implement
+		dpiValue = 2; // PROCESS_PER_MONITOR_DPI_AWARE
+	} else {
+		dpiValue = 1; // PROCESS_SYSTEM_DPI_AWARE
+	}
+
+	//if ( !TryThreadHighDPI( contextPerMonitorV2 ) ) {
+	//	if ( !TryThreadHighDPI( contextPerMonitor ) ) {
+			if ( !TryModernProcessHighDPI( dpiValue ) ) {
+				TryLegacyProcessHighDPI();
+			}
+	//	}
+	//}
+}
 
 /*
 ==================
@@ -873,7 +996,7 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 		return 0;
 	}
 
-	SetDPIAwareness();
+	SetupHighDPISupport();
 
 	g_wv.hInstance = hInstance;
 	Q_strncpyz( sys_cmdline, lpCmdLine, sizeof( sys_cmdline ) );
@@ -914,7 +1037,7 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 		// make sure mouse and joystick are only called once a frame
 		IN_Frame();
 		// run the game
-		Com_Frame( clc.demoplaying );
+		Com_Frame( CL_NoDelay() );
 #endif
 	}
 	// never gets here

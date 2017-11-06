@@ -65,6 +65,7 @@
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <EnableEnhancedInstructionSet>NoExtensions</EnableEnhancedInstructionSet>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -139,9 +140,6 @@
     <ClCompile Include="..\ft2\ttpost.c" />
     <ClCompile Include="..\ft2\ttsbit.c" />
     <ClCompile Include="..\qcommon\puff.c" />
-    <ClCompile Include="..\win32\win_gamma.c" />
-    <ClCompile Include="..\win32\win_glimp.c" />
-    <ClCompile Include="..\win32\win_qgl.c" />
     <ClCompile Include="tr_animation_mdm.c" />
     <ClCompile Include="tr_animation_mds.c" />
     <ClCompile Include="tr_arb.c" />
@@ -239,9 +237,6 @@
     <ClInclude Include="..\qcommon\cm_public.h" />
     <ClInclude Include="..\qcommon\qcommon.h" />
     <ClInclude Include="..\qcommon\qfiles.h" />
-    <ClInclude Include="..\win32\glw_win.h" />
-    <ClInclude Include="..\win32\resource.h" />
-    <ClInclude Include="..\win32\win_local.h" />
     <ClInclude Include="anorms256.h" />
     <ClInclude Include="qgl.h" />
     <ClInclude Include="tr_common.h" />

@@ -31,7 +31,7 @@ backEndData_t	*backEndData;
 backEndState_t	backEnd;
 
 
-static float	s_flipMatrix[16] = {
+static float s_flipMatrix[16] = {
 	// convert from our coordinate system (looking down X)
 	// to OpenGL's coordinate system (looking down -Z)
 	0, 0, -1, 0,
@@ -66,6 +66,7 @@ void GL_Bind( image_t *image ) {
 		qglBindTexture (GL_TEXTURE_2D, texnum);
 	}
 }
+
 
 /*
 ** GL_SelectTexture
@@ -157,6 +158,7 @@ void GL_Cull( int cullType ) {
 	}
 }
 
+
 /*
 ** GL_TexEnv
 */
@@ -189,6 +191,7 @@ void GL_TexEnv( int env )
 		break;
 	}
 }
+
 
 /*
 ** GL_State
@@ -409,11 +412,12 @@ static void SetViewportAndScissor( void ) {
 	qglMatrixMode(GL_MODELVIEW);
 
 	// set the window clipping
-	qglViewport( backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
-				 backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
-	qglScissor( backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
-				backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
+	qglViewport( backEnd.viewParms.viewportX, backEnd.viewParms.viewportY, 
+		backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight );
+	qglScissor( backEnd.viewParms.scissorX, backEnd.viewParms.scissorY, 
+		backEnd.viewParms.scissorWidth, backEnd.viewParms.scissorHeight );
 }
+
 
 /*
 =================
@@ -423,7 +427,7 @@ Any mirrored or portaled views have already been drawn, so prepare
 to actually render the visible surfaces for this view
 =================
 */
-void RB_BeginDrawingView( void ) {
+static void RB_BeginDrawingView( void ) {
 	int clearBits = 0;
 
 	// sync with gl if needed
@@ -601,7 +605,7 @@ static void RB_LightingPass( void );
 RB_RenderDrawSurfList
 ==================
 */
-void RB_RenderDrawSurfList( drawSurf_t *drawSurfs, int numDrawSurfs ) {
+static void RB_RenderDrawSurfList( drawSurf_t *drawSurfs, int numDrawSurfs ) {
 	shader_t		*shader, *oldShader;
 	int				fogNum, oldFogNum;
 	int				entityNum, oldEntityNum;
@@ -1049,21 +1053,21 @@ RB_SetGL2D
 
 ================
 */
-void	RB_SetGL2D (void) {
+void RB_SetGL2D( void ) {
 	backEnd.projection2D = qtrue;
 
 	// set 2D virtual screen size
 	qglViewport( 0, 0, glConfig.vidWidth, glConfig.vidHeight );
 	qglScissor( 0, 0, glConfig.vidWidth, glConfig.vidHeight );
-	qglMatrixMode(GL_PROJECTION);
-    qglLoadIdentity ();
-	qglOrtho (0, glConfig.vidWidth, glConfig.vidHeight, 0, 0, 1);
-	qglMatrixMode(GL_MODELVIEW);
-    qglLoadIdentity ();
+	qglMatrixMode( GL_PROJECTION );
+	qglLoadIdentity();
+	qglOrtho( 0, glConfig.vidWidth, glConfig.vidHeight, 0, 0, 1 );
+	qglMatrixMode( GL_MODELVIEW );
+	qglLoadIdentity();
 
 	GL_State( GLS_DEPTHTEST_DISABLE |
-			  GLS_SRCBLEND_SRC_ALPHA |
-			  GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA );
+		GLS_SRCBLEND_SRC_ALPHA |
+		GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA );
 
 	qglDisable( GL_CULL_FACE ); // Q3: C Two sided? ET: Cull Face?
 	qglDisable( GL_CLIP_PLANE0 );
@@ -1155,6 +1159,7 @@ void RE_StretchRaw( int x, int y, int w, int h, int cols, int rows, const byte *
 	qglEnd ();
 }
 
+
 void RE_UploadCinematic (int w, int h, int cols, int rows, const byte *data, int client, qboolean dirty) {
 
 	GL_Bind( tr.scratchImage[client] );
@@ -1184,7 +1189,7 @@ RB_SetColor
 
 =============
 */
-const void	*RB_SetColor( const void *data ) {
+static const void *RB_SetColor( const void *data ) {
 	const setColorCommand_t	*cmd;
 
 	cmd = (const setColorCommand_t *)data;
@@ -1197,21 +1202,18 @@ const void	*RB_SetColor( const void *data ) {
 	return (const void *)(cmd + 1);
 }
 
+
 /*
 =============
 RB_StretchPic
 =============
 */
-const void *RB_StretchPic ( const void *data ) {
+static const void *RB_StretchPic( const void *data ) {
 	const stretchPicCommand_t	*cmd;
 	shader_t *shader;
 	int		numVerts, numIndexes;
 
 	cmd = (const stretchPicCommand_t *)data;
-
-	if ( !backEnd.projection2D ) {
-		RB_SetGL2D();
-	}
 
 	shader = cmd->shader;
 	if ( shader != tess.shader ) {
@@ -1221,6 +1223,13 @@ const void *RB_StretchPic ( const void *data ) {
 		backEnd.currentEntity = &backEnd.entity2D;
 		RB_BeginSurface( shader, 0 );
 	}
+	
+	if ( !backEnd.projection2D ) {
+		RB_SetGL2D();
+	}
+
+	//Check if it's time for BLOOM!
+	R_BloomScreen();
 
 	RB_CHECKOVERFLOW( 4, 6 );
 	numVerts = tess.numVertexes;
@@ -1294,7 +1303,7 @@ static void RB_LightingPass( void )
 	GL_ProgramDisable();
 }
 
-const void* RB_Draw2dPolys( const void* data ) {
+static const void* RB_Draw2dPolys( const void* data ) {
 	const poly2dCommand_t* cmd;
 	shader_t *shader;
 	int i;
@@ -1347,7 +1356,7 @@ const void* RB_Draw2dPolys( const void* data ) {
 RB_RotatedPic
 =============
 */
-const void *RB_RotatedPic( const void *data ) {
+static const void *RB_RotatedPic( const void *data ) {
 	const stretchPicCommand_t   *cmd;
 	shader_t *shader;
 	int numVerts, numIndexes;
@@ -1355,10 +1364,6 @@ const void *RB_RotatedPic( const void *data ) {
 	float pi2 = M_PI * 2;
 
 	cmd = (const stretchPicCommand_t *)data;
-
-	if ( !backEnd.projection2D ) {
-		RB_SetGL2D();
-	}
 
 	shader = cmd->shader;
 	if ( shader != tess.shader ) {
@@ -1368,6 +1373,13 @@ const void *RB_RotatedPic( const void *data ) {
 		backEnd.currentEntity = &backEnd.entity2D;
 		RB_BeginSurface( shader, 0 );
 	}
+
+	if ( !backEnd.projection2D ) {
+		RB_SetGL2D();
+	}
+
+	//Check if it's time for BLOOM!
+	R_BloomScreen();
 
 	RB_CHECKOVERFLOW( 4, 6 );
 	numVerts = tess.numVertexes;
@@ -1429,16 +1441,12 @@ const void *RB_RotatedPic( const void *data ) {
 RB_StretchPicGradient
 ==============
 */
-const void *RB_StretchPicGradient( const void *data ) {
+static const void *RB_StretchPicGradient( const void *data ) {
 	const stretchPicCommand_t   *cmd;
 	shader_t *shader;
 	int numVerts, numIndexes;
 
 	cmd = (const stretchPicCommand_t *)data;
-
-	if ( !backEnd.projection2D ) {
-		RB_SetGL2D();
-	}
 
 	shader = cmd->shader;
 	if ( shader != tess.shader ) {
@@ -1448,6 +1456,13 @@ const void *RB_StretchPicGradient( const void *data ) {
 		backEnd.currentEntity = &backEnd.entity2D;
 		RB_BeginSurface( shader, 0 );
 	}
+
+	if ( !backEnd.projection2D ) {
+		RB_SetGL2D();
+	}
+
+	//Check if it's time for BLOOM!
+	R_BloomScreen();
 
 	RB_CHECKOVERFLOW( 4, 6 );
 	numVerts = tess.numVertexes;
@@ -1512,7 +1527,7 @@ RB_DrawSurfs
 
 =============
 */
-const void	*RB_DrawSurfs( const void *data ) {
+static const void *RB_DrawSurfs( const void *data ) {
 	const drawSurfsCommand_t	*cmd;
 
 	// finish any 2D drawing if needed
@@ -1547,12 +1562,16 @@ RB_DrawBuffer
 
 =============
 */
-const void	*RB_DrawBuffer( const void *data ) {
+static const void *RB_DrawBuffer( const void *data ) {
 	const drawBufferCommand_t	*cmd;
 
 	cmd = (const drawBufferCommand_t *)data;
 
-	qglDrawBuffer( cmd->buffer );
+	if ( fboEnabled ) {
+		qglDrawBuffer( GL_COLOR_ATTACHMENT0 );
+	} else {
+		qglDrawBuffer( cmd->buffer );
+	}
 
 	// clear screen for debugging
 	if ( r_clear->integer ) {
@@ -1562,6 +1581,7 @@ const void	*RB_DrawBuffer( const void *data ) {
 
 	return (const void *)(cmd + 1);
 }
+
 
 /*
 ===============
@@ -1628,17 +1648,17 @@ void RB_ShowImages( void ) {
 
 }
 
+
 /*
 =============
 RB_ColorMask
-
 =============
 */
-const void *RB_ColorMask(const void *data)
+static const void *RB_ColorMask( const void *data )
 {
 	const colorMaskCommand_t *cmd = data;
 	
-	qglColorMask(cmd->rgba[0], cmd->rgba[1], cmd->rgba[2], cmd->rgba[3]);
+	qglColorMask( cmd->rgba[0], cmd->rgba[1], cmd->rgba[2], cmd->rgba[3] );
 	
 	return (const void *)(cmd + 1);
 }
@@ -1649,18 +1669,18 @@ const void *RB_ColorMask(const void *data)
 RB_ClearDepth
 =============
 */
-const void *RB_ClearDepth(const void *data)
+static const void *RB_ClearDepth( const void *data )
 {
 	const clearDepthCommand_t *cmd = data;
 	
-	if(tess.numIndexes)
+	if ( tess.numIndexes )
 		RB_EndSurface();
 
 	// texture swapping test
-	if (r_showImages->integer)
+	if ( r_showImages->integer )
 		RB_ShowImages();
 
-	qglClear(GL_DEPTH_BUFFER_BIT);
+	qglClear( GL_DEPTH_BUFFER_BIT );
 	
 	return (const void *)(cmd + 1);
 }
@@ -1671,14 +1691,13 @@ const void *RB_ClearDepth(const void *data)
 RB_FinishBloom
 =============
 */
-extern cvar_t *r_bloom;
-const void *RB_FinishBloom(const void *data)
+static const void *RB_FinishBloom( const void *data )
 {
 	const finishBloomCommand_t *cmd = data;
 
 	if ( r_bloom->integer > 1 && fboEnabled )
 	{
-		if ( !backEnd.doneBloom2fbo /*&& backEnd.doneSurfaces*/ )
+		if ( !backEnd.doneBloom2fbo && backEnd.doneSurfaces )
 		{
 			if ( !backEnd.projection2D )
 				RB_SetGL2D();
@@ -1747,7 +1766,7 @@ RB_RenderToTexture
 
 =============
 */
-const void  *RB_RenderToTexture( const void *data ) {
+static const void *RB_RenderToTexture( const void *data ) {
 	const renderToTextureCommand_t  *cmd;
 
 //	ri.Printf( PRINT_ALL, "RB_RenderToTexture\n" );
@@ -1771,7 +1790,7 @@ RB_Finish
 
 =============
 */
-const void  *RB_Finish( const void *data ) {
+static const void *RB_Finish( const void *data ) {
 	const renderFinishCommand_t *cmd;
 
 //	ri.Printf( PRINT_ALL, "RB_Finish\n" );
@@ -1805,8 +1824,6 @@ void RB_ExecuteRenderCommands( const void *data ) {
 			data = RB_SetColor( data );
 			break;
 		case RC_STRETCH_PIC:
-			//Check if it's time for BLOOM!
-			R_BloomScreen();
 			data = RB_StretchPic( data );
 			break;
 		case RC_2DPOLYS:
@@ -1824,8 +1841,8 @@ void RB_ExecuteRenderCommands( const void *data ) {
 		case RC_DRAW_BUFFER:
 			data = RB_DrawBuffer( data );
 			break;
-		case RC_VIDEOFRAME:
-			data = RB_TakeVideoFrameCmd( data );
+		case RC_FINISHBLOOM:
+			data = RB_FinishBloom(data);
 			break;
 		case RC_COLORMASK:
 			data = RB_ColorMask(data);
@@ -1839,9 +1856,6 @@ void RB_ExecuteRenderCommands( const void *data ) {
 			//bani
 		case RC_FINISH:
 			data = RB_Finish( data );
-			break;
-		case RC_FINISHBLOOM:
-			data = RB_FinishBloom(data);
 			break;
 		case RC_END_OF_LIST:
 		default:

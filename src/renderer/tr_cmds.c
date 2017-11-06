@@ -32,7 +32,7 @@ If you have questions concerning this license or the applicable additional terms
 R_PerformanceCounters
 =====================
 */
-void R_PerformanceCounters( void ) {
+static void R_PerformanceCounters( void ) {
 	if ( !r_speeds->integer ) {
 		// clear the counters even if we aren't printing
 		Com_Memset( &tr.pc, 0, sizeof( tr.pc ) );
@@ -89,7 +89,7 @@ void R_PerformanceCounters( void ) {
 R_IssueRenderCommands
 ====================
 */
-void R_IssueRenderCommands( qboolean runPerformanceCounters ) {
+static void R_IssueRenderCommands( qboolean runPerformanceCounters ) {
 	renderCommandList_t	*cmdList;
 
 	cmdList = &backEndData->commands;
@@ -134,7 +134,7 @@ R_GetCommandBufferReserved
 make sure there is enough command space
 ============
 */
-void *R_GetCommandBufferReserved( int bytes, int reservedBytes ) {
+static void *R_GetCommandBufferReserved( int bytes, int reservedBytes ) {
 	renderCommandList_t	*cmdList;
 
 	cmdList = &backEndData->commands;
@@ -161,7 +161,7 @@ R_GetCommandBuffer
 returns NULL if there is not enough space for important commands
 =============
 */
-void *R_GetCommandBuffer( int bytes ) {
+static void *R_GetCommandBuffer( int bytes ) {
 	return R_GetCommandBufferReserved( bytes, PAD( sizeof( swapBuffersCommand_t ), sizeof(void *) ) );
 }
 
@@ -254,7 +254,7 @@ void RE_StretchPic ( float x, float y, float w, float h,
 #define MODE_GREEN_MAGENTA 4
 #define MODE_MAX	MODE_GREEN_MAGENTA
 
-void R_SetColorMode(GLboolean *rgba, stereoFrame_t stereoFrame, int colormode)
+static void R_SetColorMode(GLboolean *rgba, stereoFrame_t stereoFrame, int colormode)
 {
 	rgba[0] = rgba[1] = rgba[2] = rgba[3] = GL_TRUE;
 	
@@ -549,10 +549,12 @@ void RE_BeginFrame( stereoFrame_t stereoFrame ) {
 				// clear both, front and backbuffer.
 				qglColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 				qglClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-				
-				qglDrawBuffer(GL_FRONT);
-				qglClear(GL_COLOR_BUFFER_BIT);
-				qglDrawBuffer(GL_BACK);
+				if ( !fboEnabled )
+				{
+					qglDrawBuffer(GL_FRONT);
+					qglClear(GL_COLOR_BUFFER_BIT);
+					qglDrawBuffer(GL_BACK);
+				}
 				qglClear(GL_COLOR_BUFFER_BIT);
 				
 				r_anaglyphMode->modified = qfalse;
@@ -678,7 +680,7 @@ void RE_EndFrame( int *frontEndMsec, int *backEndMsec ) {
 		backEnd.screenshotMask = 0;
 	}
 
-	GLimp_EndFrame();
+	ri.GLimp_EndFrame();
 
 	backEnd.projection2D = qfalse;
 	backEnd.doneBloom = qfalse;
@@ -729,7 +731,7 @@ void RE_TakeVideoFrame( int width, int height,
 
 	cmd = &backEnd.vcmd;
 
-	cmd->commandId = RC_VIDEOFRAME;
+	//cmd->commandId = RC_VIDEOFRAME;
 
 	cmd->width = width;
 	cmd->height = height;
@@ -753,6 +755,16 @@ void RE_FinishBloom( void )
 	}
 
 	cmd->commandId = RC_FINISHBLOOM;
+}
+
+
+qboolean RE_CanMinimize( void )
+{
+#ifdef USE_PMLIGHT
+	return fboEnabled;
+#else
+	return qfalse;
+#endif
 }
 
 

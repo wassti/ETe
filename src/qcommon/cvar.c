@@ -215,6 +215,7 @@ int Cvar_Flags(const char *var_name)
 	}
 }
 
+
 /*
 ============
 Cvar_CommandCompletion
@@ -775,6 +776,7 @@ void Cvar_Set( const char *var_name, const char *value) {
 	Cvar_Set2 (var_name, value, qtrue);
 }
 
+
 /*
 ============
 Cvar_SetSafe
@@ -797,6 +799,7 @@ void Cvar_SetSafe( const char *var_name, const char *value )
 	Cvar_Set( var_name, value );
 }
 
+
 /*
 ============
 Cvar_SetLatched
@@ -805,6 +808,7 @@ Cvar_SetLatched
 void Cvar_SetLatched( const char *var_name, const char *value) {
 	Cvar_Set2 (var_name, value, qfalse);
 }
+
 
 /*
 ============
@@ -845,6 +849,29 @@ void Cvar_SetValueSafe( const char *var_name, float value )
 		Com_sprintf( val, sizeof(val), "%f", value );
 	Cvar_SetSafe( var_name, val );
 }
+
+
+/*
+============
+Cvar_SetModified
+============
+*/
+qboolean Cvar_SetModified( const char *var_name, qboolean modified )
+{
+	cvar_t	*var;
+
+	var = Cvar_FindVar( var_name );
+	if ( var ) 
+	{
+		var->modified = modified;
+		return qtrue;
+	}
+	else 
+	{
+		return qfalse;
+	}
+}
+
 
 /*
 ============

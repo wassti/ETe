@@ -911,7 +911,6 @@ image_t *R_CreateImage( const char *name, byte *pic, int width, int height,
 
 	// ydnar: ok, let's try the recommended way
 	qglGenTextures( 1, &image->texnum );
-
 	tr.numImages++;
 
 	image->type = type;
@@ -1478,9 +1477,9 @@ void R_SetColorMappings( void ) {
 		s_intensitytable[i] = j;
 	}
 
-	if ( glConfig.deviceSupportsGamma )
+	if ( glConfig.deviceSupportsGamma && !fboEnabled )
 	{
-		GLimp_SetGamma( s_gammatable, s_gammatable, s_gammatable );
+		ri.GLimp_SetGamma( s_gammatable, s_gammatable, s_gammatable );
 	}
 }
 

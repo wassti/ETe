@@ -35,8 +35,14 @@ If you have questions concerning this license or the applicable additional terms
 typedef struct
 {
 	void *OpenGLLib; // instance of OpenGL library
-	char gl_extensions[ 16384 ];
 	FILE *log_fp;
+
+	qboolean gammaSet;
+
+	qboolean cdsFullscreen;
+
+	glconfig_t *config; // feedback to renderer module
+
 } glwstate_t;
 
 extern glwstate_t glw_state;

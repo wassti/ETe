@@ -25,7 +25,6 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-
 // tr_shade_calc.c
 
 #include "tr_local.h"
@@ -388,7 +387,7 @@ void DeformText( const char *text ) {
 GlobalVectorToLocal
 ==================
 */
-void GlobalVectorToLocal( const vec3_t in, vec3_t out ) {
+static void GlobalVectorToLocal( const vec3_t in, vec3_t out ) {
 	out[0] = DotProduct( in, backEnd.orientation.axis[0] );
 	out[1] = DotProduct( in, backEnd.orientation.axis[1] );
 	out[2] = DotProduct( in, backEnd.orientation.axis[2] );
@@ -473,7 +472,7 @@ Autosprite2Deform
 Autosprite2 will pivot a rectangular quad along the center of its long axis
 =====================
 */
-int edgeVerts[6][2] = {
+static const unsigned int edgeVerts[6][2] = {
 	{ 0, 1 },
 	{ 0, 2 },
 	{ 0, 3 },

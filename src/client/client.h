@@ -481,6 +481,7 @@ extern	cvar_t	*m_filter;
 extern	cvar_t	*cl_timedemo;
 extern	cvar_t	*cl_aviFrameRate;
 extern	cvar_t	*cl_aviMotionJpeg;
+extern	cvar_t	*cl_aviPipeFormat;
 
 extern	cvar_t	*cl_activeAction;
 
@@ -549,7 +550,8 @@ const char* CL_TranslateStringBuf( const char *string ); // TTimo
 
 void CL_OpenURL( const char *url ); // TTimo
 
-qboolean CL_CheckPaused(void);
+qboolean CL_CheckPaused( void );
+qboolean CL_NoDelay( void );
 
 //
 // cl_input
@@ -769,9 +771,21 @@ qboolean CL_Netchan_Process( netchan_t *chan, msg_t *msg );
 //
 // cl_avi.c
 //
-qboolean CL_OpenAVIForWriting( const char *filename );
+qboolean CL_OpenAVIForWriting( const char *filename, qboolean pipe );
 void CL_TakeVideoFrame( void );
 void CL_WriteAVIVideoFrame( const byte *imageBuffer, int size );
 void CL_WriteAVIAudioFrame( const byte *pcmBuffer, int size );
 qboolean CL_CloseAVI( void );
 qboolean CL_VideoRecording( void );
+
+
+// platform-specific
+void	GLimp_Init( glconfig_t *config );
+void	GLimp_Shutdown( void );
+void	GLimp_EndFrame( void );
+
+void	GLimp_InitGamma( glconfig_t *config );
+void	GLimp_SetGamma( unsigned char red[256], unsigned char green[256], unsigned char blue[256] );
+
+void	*GL_GetProcAddress( const char *name );
+int		GLimp_NormalFontBase( void );

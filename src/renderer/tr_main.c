@@ -47,7 +47,7 @@ refimport_t	ri;
 
 // entities that will have procedurally generated surfaces will just
 // point at this for their sorting surface
-surfaceType_t entitySurface = SF_ENTITY;
+static surfaceType_t entitySurface = SF_ENTITY;
 
 // fog stuff
 glfog_t glfogsettings[NUM_FOGS];
@@ -332,6 +332,7 @@ int R_CullLocalPointAndRadius( vec3_t pt, float radius )
 	return R_CullPointAndRadius( transformed, radius );
 }
 
+
 /*
 ** R_CullPointAndRadius
 */
@@ -419,11 +420,12 @@ R_LocalNormalToWorld
 
 =================
 */
-void R_LocalNormalToWorld( vec3_t local, vec3_t world ) {
+void R_LocalNormalToWorld (vec3_t local, vec3_t world) {
 	world[0] = local[0] * tr.orientation.axis[0][0] + local[1] * tr.orientation.axis[1][0] + local[2] * tr.orientation.axis[2][0];
 	world[1] = local[0] * tr.orientation.axis[0][1] + local[1] * tr.orientation.axis[1][1] + local[2] * tr.orientation.axis[2][1];
 	world[2] = local[0] * tr.orientation.axis[0][2] + local[1] * tr.orientation.axis[1][2] + local[2] * tr.orientation.axis[2][2];
 }
+
 
 /*
 =================
@@ -431,11 +433,12 @@ R_LocalPointToWorld
 
 =================
 */
-void R_LocalPointToWorld( vec3_t local, vec3_t world ) {
+void R_LocalPointToWorld (vec3_t local, vec3_t world) {
 	world[0] = local[0] * tr.orientation.axis[0][0] + local[1] * tr.orientation.axis[1][0] + local[2] * tr.orientation.axis[2][0] + tr.orientation.origin[0];
 	world[1] = local[0] * tr.orientation.axis[0][1] + local[1] * tr.orientation.axis[1][1] + local[2] * tr.orientation.axis[2][1] + tr.orientation.origin[1];
 	world[2] = local[0] * tr.orientation.axis[0][2] + local[1] * tr.orientation.axis[1][2] + local[2] * tr.orientation.axis[2][2] + tr.orientation.origin[2];
 }
+
 
 /*
 =================
@@ -443,11 +446,12 @@ R_WorldToLocal
 
 =================
 */
-void R_WorldToLocal( vec3_t world, vec3_t local ) {
+void R_WorldToLocal (vec3_t world, vec3_t local) {
 	local[0] = DotProduct( world, tr.orientation.axis[0] );
 	local[1] = DotProduct( world, tr.orientation.axis[1] );
 	local[2] = DotProduct( world, tr.orientation.axis[2] );
 }
+
 
 /*
 ==========================
@@ -502,7 +506,7 @@ myGlMultMatrix
 
 ==========================
 */
-void myGlMultMatrix( const float *a, const float *b, float *out ) {
+static void myGlMultMatrix( const float *a, const float *b, float *out ) {
 	int		i, j;
 
 	for ( i = 0 ; i < 4 ; i++ ) {
@@ -1046,6 +1050,7 @@ void R_MirrorPoint (vec3_t in, orientation_t *surface, orientation_t *camera, ve
 	VectorAdd( transformed, camera->origin, out );
 }
 
+
 void R_MirrorVector (vec3_t in, orientation_t *surface, orientation_t *camera, vec3_t out) {
 	int		i;
 	float	d;
@@ -1441,7 +1446,7 @@ Returns qtrue if another view has been rendered
 #ifdef USE_PMLIGHT
 extern int r_numdlights;
 #endif
-qboolean R_MirrorViewBySurface( drawSurf_t *drawSurf, int entityNum ) {
+static qboolean R_MirrorViewBySurface( drawSurf_t *drawSurf, int entityNum ) {
 	vec4_t			clipDest[128];
 	viewParms_t		newParms;
 	viewParms_t		oldParms;
@@ -1513,12 +1518,13 @@ qboolean R_MirrorViewBySurface( drawSurf_t *drawSurf, int entityNum ) {
 	// OPTIMIZE: restrict the viewport on the mirrored view
 
 	// render the mirror view
-	R_RenderView( &newParms );
+	R_RenderView (&newParms);
 
 	tr.viewParms = oldParms;
 
 	return qtrue;
 }
+
 
 /*
 =================
@@ -1527,7 +1533,7 @@ R_SpriteFogNum
 See if a sprite is inside a fog volume
 =================
 */
-int R_SpriteFogNum( trRefEntity_t *ent ) {
+static int R_SpriteFogNum( trRefEntity_t *ent ) {
 	int				i, j;
 	fog_t			*fog;
 
@@ -1811,7 +1817,7 @@ void R_DecomposeSort( unsigned sort, int *entityNum, shader_t **shader,
 R_SortDrawSurfs
 =================
 */
-void R_SortDrawSurfs( drawSurf_t *drawSurfs, int numDrawSurfs ) {
+static void R_SortDrawSurfs( drawSurf_t *drawSurfs, int numDrawSurfs ) {
 	shader_t		*shader;
 	int				fogNum;
 	int				entityNum;
@@ -2069,7 +2075,7 @@ void R_DebugText( const vec3_t org, float r, float g, float b, const char *text,
 	qglColor3f( r, g, b );
 	qglRasterPos3fv( org );
 	qglPushAttrib( GL_LIST_BIT );
-	qglListBase( gl_NormalFontBase );
+	qglListBase( ri.GLimp_NormalFontBase() );
 	qglCallLists( strlen( text ), GL_UNSIGNED_BYTE, text );
 	qglListBase( 0 );
 	qglPopAttrib();

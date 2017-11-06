@@ -61,6 +61,7 @@ cvar_t	*cl_autoRecordDemo;
 cvar_t	*cl_aviFrameRate;
 cvar_t	*cl_aviMotionJpeg;
 cvar_t	*cl_forceavidemo;
+cvar_t	*cl_aviPipeFormat;
 
 cvar_t	*cl_freelook;
 cvar_t	*cl_sensitivity;
@@ -1794,7 +1795,7 @@ void CL_ResetPureClientAtServer( void ) {
 
 /*
 =================
-CL_Vid_Restart_f
+CL_Vid_Restart
 
 Restart the video subsystem
 
@@ -1808,11 +1809,10 @@ static void CL_Vid_Restart( void ) {
 	com_expectedhunkusage = -1;
 
 	// Settings may have changed so stop recording now
-	if( CL_VideoRecording( ) ) {
-		CL_CloseAVI( );
-	}
+	if ( CL_VideoRecording() )
+		CL_CloseAVI();
 
-	if(clc.demorecording)
+	if ( clc.demorecording )
 		CL_StopRecord_f();
 
 	// don't let them loop during the restart
@@ -2671,7 +2671,7 @@ static void CL_ServersResponsePacket( const netadr_t* from, msg_t *msg, qboolean
 	byte*			buffend;
 	serverInfo_t	*server;
 	
-	//Com_Printf("CL_ServersResponsePacket\n"); // moved down
+	Com_Printf("CL_ServersResponsePacket from %s\n", NET_AdrToStringwPort(from) );
 
 	if (cls.numglobalservers == -1) {
 		// state to detect lack of servers or lack of response
@@ -2780,7 +2780,7 @@ static void CL_ServersResponsePacket( const netadr_t* from, msg_t *msg, qboolean
 	cls.numglobalservers = count;
 	total = count + cls.numGlobalServerAddresses;
 
-	Com_Printf( "getserversResponse:%3d servers parsed (total %d)\n", numservers, total);
+	Com_Printf( "%d servers parsed (total %d)\n", numservers, total);
 }
 
 
@@ -3056,10 +3056,10 @@ void CL_PacketEvent( const netadr_t *from, msg_t *msg ) {
 	}
 }
 
+
 /*
 ==================
 CL_CheckTimeout
-
 ==================
 */
 void CL_CheckTimeout( void ) {
@@ -3085,7 +3085,7 @@ CL_CheckPaused
 Check whether client has been paused.
 ==================
 */
-qboolean CL_CheckPaused(void)
+qboolean CL_CheckPaused( void )
 {
 	// if cl_paused->modified is set, the cvar has only been changed in
 	// this frame. Keep paused in this frame to ensure the server doesn't
@@ -3096,12 +3096,26 @@ qboolean CL_CheckPaused(void)
 	return qfalse;
 }
 
-//============================================================================
+
+/*
+==================
+CL_NoDelay
+==================
+*/
+qboolean CL_NoDelay( void )
+{
+	extern cvar_t *com_timedemo;
+
+	if ( CL_VideoRecording() || ( com_timedemo->integer && clc.demofile != FS_INVALID_HANDLE ) )
+		return qtrue;
+	
+	return qfalse;
+}
+
 
 /*
 ==================
 CL_CheckUserinfo
-
 ==================
 */
 void CL_CheckUserinfo( void ) {
@@ -3570,6 +3584,7 @@ void CL_ShutdownRef( void ) {
 	Com_Memset( &re, 0, sizeof( re ) );
 }
 
+
 /*
 ============
 CL_InitRenderer
@@ -3592,6 +3607,7 @@ void CL_InitRenderer( void ) {
 	g_consoleField.widthInChars = g_console_field_width;
 }
 
+
 /*
 ============================
 CL_StartHunkUsers
@@ -3601,7 +3617,7 @@ This is the only place that any of these functions are called from
 ============================
 */
 void CL_StartHunkUsers( void ) {
-	if ( !com_cl_running ) {
+	if (!com_cl_running) {
 		return;
 	}
 
@@ -3635,6 +3651,7 @@ void CL_StartHunkUsers( void ) {
 	}
 }
 
+
 /*
 ============
 CL_RefMalloc
@@ -3658,14 +3675,15 @@ int CL_ScaledMilliseconds(void) {
 	return Sys_Milliseconds()*com_timescale->value;
 }
 
+
 /*
 ============
 CL_InitRef
 ============
 */
 void CL_InitRef( void ) {
-	refimport_t ri;
-	refexport_t *ret;
+	refimport_t	ri;
+	refexport_t	*ret;
 
 	Com_Printf( "----- Initializing Renderer ----\n" );
 
@@ -3699,6 +3717,7 @@ void CL_InitRef( void ) {
 	ri.FS_ListFiles = FS_ListFiles;
 	//ri.FS_FileIsInPAK = FS_FileIsInPAK;
 	ri.FS_FileExists = FS_FileExists;
+
 	ri.Cvar_Get = Cvar_Get;
 	ri.Cvar_Set = Cvar_Set;
 	ri.Cvar_SetValue = Cvar_SetValue;
@@ -3719,6 +3738,16 @@ void CL_InitRef( void ) {
 
 	ri.CL_WriteAVIVideoFrame = CL_WriteAVIVideoFrame;
 	ri.Sys_SetClipboardBitmap = Sys_SetClipboardBitmap;
+	ri.Sys_LowPhysicalMemory = Sys_LowPhysicalMemory;
+	ri.Com_RealTime = Com_RealTime;
+
+	ri.GLimp_Init = GLimp_Init;
+	ri.GLimp_Shutdown = GLimp_Shutdown;
+	ri.GLimp_EndFrame = GLimp_EndFrame;
+	ri.GLimp_InitGamma = GLimp_InitGamma;
+	ri.GLimp_SetGamma = GLimp_SetGamma;
+	ri.GL_GetProcAddress = GL_GetProcAddress;
+	ri.GLimp_NormalFontBase = GLimp_NormalFontBase;
 
 	ret = GetRefAPI( REF_API_VERSION, &ri );
 
@@ -3798,13 +3827,22 @@ video [filename]
 void CL_Video_f( void )
 {
 	char  filename[ MAX_QPATH ];
+	const char *ext;
+	qboolean pipe;
 	int   i;
 
 	if( !clc.demoplaying )
 	{
-		Com_Printf( "The video command can only be used when playing back demos\n" );
+		Com_Printf( "The %s command can only be used when playing back demos\n", Cmd_Argv( 0 ) );
 		return;
 	}
+
+	pipe = ( Q_stricmp( Cmd_Argv( 0 ), "video-pipe" ) == 0 );
+
+	if ( pipe )
+		ext = "mp4";
+	else
+		ext = "avi";
 
 	if( Cmd_Argc() == 2 )
 	{
@@ -3816,7 +3854,7 @@ void CL_Video_f( void )
 		 // scan for a free filename
 		for( i = 0; i <= 9999; i++ )
 		{
-			Com_sprintf( filename, sizeof( filename ), "videos/video%04d.avi", i );
+			Com_sprintf( filename, sizeof( filename ), "videos/video%04d.%s", i, ext );
 			if ( !FS_FileExists( filename ) )
 				break; // file doesn't exist
 		}
@@ -3838,7 +3876,7 @@ void CL_Video_f( void )
 	Q_strncpyz( clc.videoName, filename, sizeof( clc.videoName ) );
 	clc.videoIndex = 0;
 
-	CL_OpenAVIForWriting( va( "%s.avi", clc.videoName ) );
+	CL_OpenAVIForWriting( va( "%s.%s", clc.videoName, ext ), pipe );
 }
 
 
@@ -3849,7 +3887,7 @@ CL_StopVideo_f
 */
 void CL_StopVideo_f( void )
 {
-  CL_CloseAVI( );
+  CL_CloseAVI();
 }
 
 
@@ -3890,6 +3928,15 @@ static void CL_AddFavorite_f( void ) {
 		default:
 			Com_Printf( "unknown error (%i) adding favorite server\n", status );
 			break;
+		}
+	}
+}
+
+static void CL_ListFavorites_f( void ) {
+	int i;
+	for ( i = 0; i < cls.numfavoriteservers; i++ ) {
+		if ( cls.favoriteServers[i].adr.type == NA_IP || cls.favoriteServers[i].adr.type == NA_IP6 ) {
+			Com_Printf( "Fav Server: %s \"%s\"\n", NET_AdrToStringwPort( &cls.favoriteServers[i].adr ), cls.favoriteServers[i].hostName );
 		}
 	}
 }
@@ -3943,6 +3990,11 @@ void CL_Init( void ) {
 	Cvar_CheckRange( cl_aviFrameRate, "1", "1000", CV_INTEGER );
 	cl_aviMotionJpeg = Cvar_Get ("cl_aviMotionJpeg", "1", CVAR_ARCHIVE);
 	cl_forceavidemo = Cvar_Get ("cl_forceavidemo", "0", 0);
+
+	cl_aviPipeFormat = Cvar_Get( "cl_aviPipeFormat",
+		"-preset medium -crf 23 -vcodec libx264 -flags +cgop -pix_fmt yuv420p "
+		"-bf 2 -codec:a aac -strict -2 -b:a 160k -r:a 22050 -movflags faststart", 
+		CVAR_ARCHIVE );
 
 	rconAddress = Cvar_Get( "rconAddress", "", 0 );
 	Cvar_SetDescription( rconAddress, "Alternate server address to remotely access via rcon protocol" );
@@ -4122,6 +4174,7 @@ void CL_Init( void ) {
 	Cmd_AddCommand( "fs_referencedList", CL_ReferencedPK3List_f );
 
 	Cmd_AddCommand ("video", CL_Video_f );
+	Cmd_AddCommand ("video-pipe", CL_Video_f );
 	Cmd_SetCommandCompletionFunc( "video", CL_CompleteVideoName );
 	Cmd_AddCommand ("stopvideo", CL_StopVideo_f );
 	Cmd_AddCommand ("serverinfo", CL_Serverinfo_f );
@@ -4165,10 +4218,11 @@ void CL_Init( void ) {
 //	Cmd_AddCommand( "wav_stoprecord", CL_WavStopRecord_f );
 
 	Cmd_AddCommand( "addFavorite", CL_AddFavorite_f );
+	Cmd_AddCommand( "listFavorites", CL_ListFavorites_f );
 
 	CL_InitRef();
 
-	SCR_Init ();
+	SCR_Init();
 
 	//Cbuf_Execute ();
 
@@ -4245,6 +4299,7 @@ void CL_Shutdown( const char *finalmsg, qboolean quit ) {
 	Cmd_RemoveCommand ("fs_referencedList");
 	//Cmd_RemoveCommand( "model" );
 	Cmd_RemoveCommand ("video");
+	Cmd_RemoveCommand ("video-pipe");
 	Cmd_RemoveCommand ("stopvideo");
 	Cmd_RemoveCommand ("serverinfo");
 	Cmd_RemoveCommand ("systeminfo");
@@ -4262,6 +4317,7 @@ void CL_Shutdown( const char *finalmsg, qboolean quit ) {
 	// done.
 
 	Cmd_RemoveCommand( "addFavorite" );
+	Cmd_RemoveCommand( "listFavorites" );
 
 	CL_ShutdownInput();
 	Con_Shutdown();
@@ -4668,6 +4724,10 @@ void CL_LocalServers_f( void ) {
 /*
 ==================
 CL_GlobalServers_f
+
+Originally master 0 was Internet and master 1 was MPlayer.
+ioquake3 2008; added support for requesting five separate master servers using 0-4.
+ioquake3 2017; made master 0 fetch all master servers and 1-5 request a single master server.
 ==================
 */
 void CL_GlobalServers_f( void ) {
@@ -4677,13 +4737,36 @@ void CL_GlobalServers_f( void ) {
 	const char	*masteraddress;
 	char		*cmdname;
 	
-	if ( (count = Cmd_Argc()) < 3 || (masterNum = atoi(Cmd_Argv(1))) < 0 || masterNum > MAX_MASTER_SERVERS - 1 )
+	if ( (count = Cmd_Argc()) < 3 || (masterNum = atoi(Cmd_Argv(1))) < 0 || masterNum > MAX_MASTER_SERVERS )
 	{
-		Com_Printf( "usage: globalservers <master# 0-%d> <protocol> [keywords]\n", MAX_MASTER_SERVERS - 1 );
+		Com_Printf( "usage: globalservers <master# 0-%d> <protocol> [keywords]\n", MAX_MASTER_SERVERS );
 		return;	
 	}
 
-	sprintf(command, "sv_master%d", masterNum + 1);
+	// request from all master servers
+	if ( masterNum == 0 ) {
+		int numAddress = 0;
+
+		for ( i = 1; i <= MAX_MASTER_SERVERS; i++ ) {
+			Com_sprintf( command, sizeof( command ), "sv_master%d", i );
+			masteraddress = Cvar_VariableString( command );
+
+			if ( !*masteraddress )
+				continue;
+
+			numAddress++;
+
+			Com_sprintf( command, sizeof( command ), "globalservers %d %s %s\n", i, Cmd_Argv( 2 ), Cmd_ArgsFrom( 3 ) );
+			Cbuf_AddText( command );
+		}
+
+		if ( !numAddress ) {
+			Com_Printf( "CL_GlobalServers_f: Error: No master server addresses.\n" );
+		}
+		return;
+	}
+
+	Com_sprintf( command, sizeof( command ), "sv_master%d", masterNum + 1 );
 	masteraddress = Cvar_VariableString( command );
 	
 	if ( !*masteraddress )
@@ -4705,7 +4788,7 @@ void CL_GlobalServers_f( void ) {
 	else if ( i == 2 )
 		to.port = BigShort( PORT_MASTER );
 
-	Com_Printf( "Requesting servers from master %s...\n", masteraddress );
+	Com_Printf( "Requesting servers from %s (%s)...\n", masteraddress, NET_AdrToStringwPort( &to ) );
 
 	cls.numglobalservers = -1;
 	cls.pingUpdateSource = AS_GLOBAL;
@@ -4724,8 +4807,11 @@ void CL_GlobalServers_f( void ) {
 
 	for (i=3; i < count; i++)
 	{
+		const char *arg = Cmd_Argv( i );
+		if ( !Q_stricmp( arg, "\\game\\etf" ) )
+			continue;
 		Q_strcat(command, sizeof(command), " ");
-		Q_strcat(command, sizeof(command), Cmd_Argv(i));
+		Q_strcat(command, sizeof(command), arg);
 	}
 	
 	// if we are a demo, automatically add a "demo" keyword
@@ -5433,7 +5519,7 @@ qboolean CL_CheckTranslationString( char *original, char *translated ) {
 	// compare
 	len = strlen( format_org );
 
-	if ( len != strlen( format_trans ) ) {
+	if ( len != (int)strlen( format_trans ) ) {
 		return qfalse;
 	}
 

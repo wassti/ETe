@@ -2506,7 +2506,7 @@ static void FixRenderCommandList( int newShader ) {
 
 				for( i = 0, drawSurf = ds_cmd->drawSurfs; i < ds_cmd->numDrawSurfs; i++, drawSurf++ ) {
 					R_DecomposeSort( drawSurf->sort, &entityNum, &sh, &fogNum, &dlightMap );
-                    sortedIndex = (( drawSurf->sort >> QSORT_SHADERNUM_SHIFT ) & (MAX_SHADERS-1));
+					sortedIndex = (( drawSurf->sort >> QSORT_SHADERNUM_SHIFT ) & (MAX_SHADERS-1));
 					if( sortedIndex >= newShader ) {
 						sortedIndex++;
 						drawSurf->sort = (sortedIndex << QSORT_SHADERNUM_SHIFT) | entityNum | ( fogNum << QSORT_FOGNUM_SHIFT ) | (int)dlightMap;
@@ -2518,6 +2518,24 @@ static void FixRenderCommandList( int newShader ) {
 			case RC_DRAW_BUFFER:
 				{
 				const drawBufferCommand_t *db_cmd = (const drawBufferCommand_t *)curCmd;
+				curCmd = (const void *)(db_cmd + 1);
+				break;
+				}
+			case RC_FINISHBLOOM:
+				{
+				const finishBloomCommand_t *db_cmd = (const finishBloomCommand_t *)curCmd;
+				curCmd = (const void *)(db_cmd + 1);
+				break;
+				}
+			case RC_COLORMASK:
+				{
+				const colorMaskCommand_t *db_cmd = (const colorMaskCommand_t *)curCmd;
+				curCmd = (const void *)(db_cmd + 1);
+				break;
+				}
+			case RC_CLEARDEPTH:
+				{
+				const clearDepthCommand_t *db_cmd = (const clearDepthCommand_t *)curCmd;
 				curCmd = (const void *)(db_cmd + 1);
 				break;
 				}
@@ -3234,7 +3252,6 @@ static const char *FindShaderInShaderText( const char *shadername ) {
 	if ( dshader ) {
 		dynamicshader_t *dptr;
 		char    *q;
-		int i;
 
 		dptr = dshader;
 		i = 0;
@@ -3740,56 +3757,56 @@ A second parameter will cause it to print in sorted order
 void	R_ShaderList_f (void) {
 	int			i;
 	int			count;
-	shader_t	*shader;
+	shader_t	*_shader;
 
 	ri.Printf (PRINT_ALL, "-----------------------\n");
 
 	count = 0;
 	for ( i = 0 ; i < tr.numShaders ; i++ ) {
 		if ( ri.Cmd_Argc() > 1 ) {
-			shader = tr.sortedShaders[i];
+			_shader = tr.sortedShaders[i];
 		} else {
-			shader = tr.shaders[i];
+			_shader = tr.shaders[i];
 		}
 
-		ri.Printf( PRINT_ALL, "%i ", shader->numUnfoggedPasses );
+		ri.Printf( PRINT_ALL, "%i ", _shader->numUnfoggedPasses );
 
-		if (shader->lightmapIndex >= 0 ) {
+		if (_shader->lightmapIndex >= 0 ) {
 			ri.Printf (PRINT_ALL, "L ");
 		} else {
 			ri.Printf (PRINT_ALL, "  ");
 		}
-		if ( shader->multitextureEnv == GL_ADD ) {
+		if ( _shader->multitextureEnv == GL_ADD ) {
 			ri.Printf( PRINT_ALL, "MT(a) " );
-		} else if ( shader->multitextureEnv == GL_MODULATE ) {
+		} else if ( _shader->multitextureEnv == GL_MODULATE ) {
 			ri.Printf( PRINT_ALL, "MT(m) " );
-		} else if ( shader->multitextureEnv == GL_DECAL ) {
+		} else if ( _shader->multitextureEnv == GL_DECAL ) {
 			ri.Printf( PRINT_ALL, "MT(d) " );
 		} else {
 			ri.Printf( PRINT_ALL, "      " );
 		}
-		if ( shader->explicitlyDefined ) {
+		if ( _shader->explicitlyDefined ) {
 			ri.Printf( PRINT_ALL, "E " );
 		} else {
 			ri.Printf( PRINT_ALL, "  " );
 		}
 
-		if ( shader->optimalStageIteratorFunc == RB_StageIteratorGeneric ) {
+		if ( _shader->optimalStageIteratorFunc == RB_StageIteratorGeneric ) {
 			ri.Printf( PRINT_ALL, "gen " );
-		} else if ( shader->optimalStageIteratorFunc == RB_StageIteratorSky ) {
+		} else if ( _shader->optimalStageIteratorFunc == RB_StageIteratorSky ) {
 			ri.Printf( PRINT_ALL, "sky " );
-		} else if ( shader->optimalStageIteratorFunc == RB_StageIteratorLightmappedMultitexture ) {
+		} else if ( _shader->optimalStageIteratorFunc == RB_StageIteratorLightmappedMultitexture ) {
 			ri.Printf( PRINT_ALL, "lmmt" );
-		} else if ( shader->optimalStageIteratorFunc == RB_StageIteratorVertexLitTexture ) {
+		} else if ( _shader->optimalStageIteratorFunc == RB_StageIteratorVertexLitTexture ) {
 			ri.Printf( PRINT_ALL, "vlt " );
 		} else {
 			ri.Printf( PRINT_ALL, "    " );
 		}
 
-		if ( shader->defaultShader ) {
-			ri.Printf (PRINT_ALL,  ": %s (DEFAULTED)\n", shader->name);
+		if ( _shader->defaultShader ) {
+			ri.Printf (PRINT_ALL,  ": %s (DEFAULTED)\n", _shader->name);
 		} else {
-			ri.Printf (PRINT_ALL,  ": %s\n", shader->name);
+			ri.Printf (PRINT_ALL,  ": %s\n", _shader->name);
 		}
 		count++;
 	}

@@ -1010,13 +1010,11 @@ intptr_t CL_UISystemCalls( intptr_t *args ) {
 		return 0;
 
 	case UI_S_FADESTREAMINGSOUND:
-		// ENSI TODO IMPLEMENT
-		//S_FadeStreamingSound( VMF( 1 ), args[2], args[3] );
+		S_FadeStreamingSound( VMF( 1 ), args[2], args[3] );
 		return 0;
 
 	case UI_S_FADEALLSOUNDS:
-		// ENSI TODO IMPLEMENT
-		//S_FadeAllSounds( VMF( 1 ), args[2], args[3] );
+		S_FadeAllSounds( VMF( 1 ), args[2], args[3] );
 		return 0;
 
 	case UI_KEY_KEYNUMTOSTRINGBUF:
@@ -1211,8 +1209,7 @@ intptr_t CL_UISystemCalls( intptr_t *args ) {
 		S_StopBackgroundTrack();
 		return 0;
 	case UI_S_STARTBACKGROUNDTRACK:
-		// ENSI NOTE disable fadeup time for now
-		S_StartBackgroundTrack( VMA( 1 ), VMA( 2 )/*, args[3]*/ );   //----(SA)	added fadeup time
+		S_StartBackgroundTrack( VMA( 1 ), VMA( 2 ), args[3] );   //----(SA)	added fadeup time
 		return 0;
 
 	case UI_REAL_TIME:

@@ -134,7 +134,7 @@ void SND_setup( void )
 	q = p + scs;
 	while (--q > p)
 		*(sndBuffer **)q = q-1;
-	
+
 	*(sndBuffer **)q = NULL;
 	freelist = p + scs - 1;
 

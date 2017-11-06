@@ -21,32 +21,41 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 
+// background track queuing
+#define QUEUED_PLAY_ONCE    -1
+#define QUEUED_PLAY_LOOPED  -2
+#define QUEUED_PLAY_ONCE_SILENT -3  ///< when done it goes quiet
+
 void S_Init( void );
 void S_Shutdown( void );
+void S_Reload( void );
 
 // if origin is NULL, the sound will be dynamically sourced from the entity
 void S_StartSound( vec3_t origin, int entnum, int entchannel, sfxHandle_t sfx, int volume );
 void S_StartSoundEx( vec3_t origin, int entnum, int entchannel, sfxHandle_t sfx, int flags, int volume );
 void S_StartLocalSound( sfxHandle_t sfx, int channelNum, int volume );
 
-void S_StartBackgroundTrack( const char *intro, const char *loop );
+void S_StartBackgroundTrack( const char *intro, const char *loop, int fadeUpTime );
 void S_StopBackgroundTrack( void );
 
-void S_StartStreamingSound( const char *intro, const char *loop, int entnum, int channel, int attenuation );
+float S_StartStreamingSound( const char *intro, const char *loop, int entnum, int channel, int attenuation );
+void S_StopEntStreamingSound( int entNum );
+void S_FadeStreamingSound( float targetvol, int time, int stream );
 
 // cinematics and voice-over-network will send raw samples
 // 1.0 volume will be direct output of source samples
 void S_RawSamples(int stream, int samples, int rate, int width, int channels,
-				   const byte *data, float volume, int entityNum);
+				   const byte *data, float lvol, float rvol, int entityNum);
 
 // stop all sounds and the background track
-void S_StopAllSounds( void );
+void S_ClearSounds(qboolean clearStreaming, qboolean clearMusic);
+void S_StopAllSounds(void);
+void S_FadeAllSounds(float targetVol, int time, qboolean stopSounds);
 
 // all continuous looping sounds must be added before calling S_Update
-void S_ClearLoopingSounds( qboolean killall );
+void S_ClearLoopingSounds( void );
 void S_AddLoopingSound( const vec3_t origin, const vec3_t velocity, const int range, sfxHandle_t sfx, int volume, int soundTime );
 void S_AddRealLoopingSound( const vec3_t origin, const vec3_t velocity, const int range, sfxHandle_t sfx, int volume );
-void S_StopLoopingSound(int entityNum );
 
 // recompute the relative volumes for all running sounds
 // relative to the given entityNum / orientation
@@ -74,8 +83,6 @@ int S_GetVoiceAmplitude( int entityNum );
 void S_ClearSoundBuffer( qboolean killStreaming );
 
 void SNDDMA_Activate( void );
-
-void S_UpdateBackgroundTrack( void );
 
 // START	xkan, 9/23/2002
 // returns how long the sound lasts in milliseconds

@@ -1,23 +1,36 @@
 /*
 ===========================================================================
-Copyright (C) 1999-2005 Id Software, Inc.
+Wolfenstein: Enemy Territory GPL Source Code
+Copyright (C) 1999-2010 id Software LLC, a ZeniMax Media company.
+
+ET: Legacy
+Copyright (C) 2012-2017 ET:Legacy team <mail@etlegacy.com>
+
 Copyright (C) 2005 Stuart Dalton (badcdev@gmail.com)
 
-This file is part of Quake III Arena source code.
+This file is part of the Wolfenstein: Enemy Territory GPL Source Code (Wolf ET Source Code)
+This file is part of ET: Legacy - http://www.etlegacy.com
 
-Quake III Arena source code is free software; you can redistribute it
-and/or modify it under the terms of the GNU General Public License as
-published by the Free Software Foundation; either version 2 of the License,
-or (at your option) any later version.
+Wolf ET Source Code is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
-Quake III Arena source code is distributed in the hope that it will be
-useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+Wolf ET Source Code is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Quake III Arena source code; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+along with Wolf ET Source Code. If not, see <http://www.gnu.org/licenses/>.
+
+In addition, Wolfenstein: Enemy Territory GPL Source Code is also
+subject to certain additional terms. You should have received a copy
+of these additional terms immediately following the terms and conditions
+of the GNU General Public License which accompanied the source code.
+If not, please request a copy in writing from id Software at the address below.
+
+id Software LLC, c/o ZeniMax Media Inc., Suite 120, Rockville, Maryland 20850 USA.
 ===========================================================================
 */
 
@@ -44,19 +57,22 @@ S_ValidateInterface
 static qboolean S_ValidSoundInterface( soundInterface_t *_si )
 {
 	if( !_si->Shutdown ) return qfalse;
+	if( !_si->Reload ) return qfalse;
 	if( !_si->StartSound ) return qfalse;
 	if( !_si->StartSoundEx ) return qfalse;
 	if( !_si->StartLocalSound ) return qfalse;
 	if( !_si->StartBackgroundTrack ) return qfalse;
 	if( !_si->StopBackgroundTrack ) return qfalse;
 	if( !_si->StartStreamingSound ) return qfalse;
-	if( !_si->GetVoiceAmplitude ) return qfalse;
+	if( !_si->StopEntStreamingSound ) return qfalse;
+	if( !_si->FadeStreamingSound ) return qfalse;
 	if( !_si->RawSamples ) return qfalse;
+	if( !_si->ClearSounds ) return qfalse;
 	if( !_si->StopAllSounds ) return qfalse;
+	if( !_si->FadeAllSounds ) return qfalse;
 	if( !_si->ClearLoopingSounds ) return qfalse;
 	if( !_si->AddLoopingSound ) return qfalse;
 	if( !_si->AddRealLoopingSound ) return qfalse;
-	if( !_si->StopLoopingSound ) return qfalse;
 	if( !_si->Respatialize ) return qfalse;
 	if( !_si->UpdateEntityPosition ) return qfalse;
 	if( !_si->Update ) return qfalse;
@@ -66,6 +82,9 @@ static qboolean S_ValidSoundInterface( soundInterface_t *_si )
 	if( !_si->ClearSoundBuffer ) return qfalse;
 	if( !_si->SoundInfo ) return qfalse;
 	if( !_si->SoundList ) return qfalse;
+	if( !_si->GetVoiceAmplitude ) return qfalse;
+	if( !_si->GetSoundLength ) return qfalse;
+	if( !_si->GetCurrentSoundTime ) return qfalse;
 
 #ifdef USE_VOIP
 	if( !_si->StartCapture ) return qfalse;
@@ -119,10 +138,10 @@ void S_StartLocalSound( sfxHandle_t sfx, int channelNum, int volume )
 S_StartBackgroundTrack
 =================
 */
-void S_StartBackgroundTrack( const char *intro, const char *loop )
+void S_StartBackgroundTrack( const char *intro, const char *loop, int fadeupTime )
 {
 	if( si.StartBackgroundTrack ) {
-		si.StartBackgroundTrack( intro, loop );
+		si.StartBackgroundTrack( intro, loop, fadeupTime );
 	}
 }
 
@@ -143,24 +162,28 @@ void S_StopBackgroundTrack( void )
 S_StartStreamingSound
 =================
 */
-void S_StartStreamingSound( const char *intro, const char *loop, int entityNum, int channel, int attenuation )
+float S_StartStreamingSound( const char *intro, const char *loop, int entityNum, int channel, int attenuation )
 {
 	if( si.StartStreamingSound ) {
-		si.StartStreamingSound( intro, loop, entityNum, channel, attenuation );
+		return si.StartStreamingSound( intro, loop, entityNum, channel, attenuation );
+	}
+	return 0.0f;
+}
+
+void S_StopEntStreamingSound(int entNum)
+{
+	if (si.StopEntStreamingSound)
+	{
+		si.StopEntStreamingSound(entNum);
 	}
 }
 
-/*
-=================
-S_GetVoiceAmplitude
-=================
-*/
-int S_GetVoiceAmplitude( int entityNum )
+void S_FadeStreamingSound(float targetvol, int time, int stream)
 {
-	if( si.GetVoiceAmplitude ) {
-		return si.GetVoiceAmplitude( entityNum );
+	if (si.FadeStreamingSound)
+	{
+		si.FadeStreamingSound(targetvol, time, stream);
 	}
-	return 0;
 }
 
 /*
@@ -169,10 +192,18 @@ S_RawSamples
 =================
 */
 void S_RawSamples (int stream, int samples, int rate, int width, int channels,
-		   const byte *data, float volume, int entityNum)
+		   const byte *data, float lvol, float rvol, int entityNum)
 {
 	if(si.RawSamples)
-		si.RawSamples(stream, samples, rate, width, channels, data, volume, entityNum);
+		si.RawSamples(stream, samples, rate, width, channels, data, lvol, rvol, entityNum);
+}
+
+void S_ClearSounds(qboolean clearStreaming, qboolean clearMusic)
+{
+	if (si.ClearSounds)
+	{
+		si.ClearSounds(clearStreaming, clearMusic);
+	}
 }
 
 /*
@@ -187,15 +218,23 @@ void S_StopAllSounds( void )
 	}
 }
 
+void S_FadeAllSounds(float targetVol, int time, qboolean stopSounds)
+{
+	if (si.FadeAllSounds)
+	{
+		si.FadeAllSounds(targetVol, time, stopSounds);
+	}
+}
+
 /*
 =================
 S_ClearLoopingSounds
 =================
 */
-void S_ClearLoopingSounds( qboolean killall )
+void S_ClearLoopingSounds( void )
 {
 	if( si.ClearLoopingSounds ) {
-		si.ClearLoopingSounds( killall );
+		si.ClearLoopingSounds( );
 	}
 }
 
@@ -222,18 +261,6 @@ void S_AddRealLoopingSound( const vec3_t origin,
 {
 	if( si.AddRealLoopingSound ) {
 		si.AddRealLoopingSound( origin, velocity, range, sfx, volume );
-	}
-}
-
-/*
-=================
-S_StopLoopingSound
-=================
-*/
-void S_StopLoopingSound( int entityNum )
-{
-	if( si.StopLoopingSound ) {
-		si.StopLoopingSound( entityNum );
 	}
 }
 
@@ -379,6 +406,19 @@ void S_SoundList( void )
 	}
 }
 
+/*
+=================
+S_GetVoiceAmplitude
+=================
+*/
+int S_GetVoiceAmplitude( int entityNum )
+{
+	if( si.GetVoiceAmplitude ) {
+		return si.GetVoiceAmplitude( entityNum );
+	}
+	return 0;
+}
+
 // START	xkan, 9/23/2002
 // returns how long the sound lasts in milliseconds
 int S_GetSoundLength( sfxHandle_t sfxHandle ) {
@@ -496,6 +536,34 @@ void S_Play_f( void ) {
 }
 
 /*
+==============
+S_QueueMusic_f
+	console interface really just for testing
+==============
+*/
+void S_QueueMusic_f( void ) {
+	int type = -2;  // default to setting this as the next continual loop
+	int c;
+
+	if ( !si.StartBackgroundTrack ) {
+		return;
+	}
+
+	c = Cmd_Argc();
+
+	if ( c == 3 ) {
+		type = atoi( Cmd_Argv( 2 ) );
+	}
+
+	if ( type != -1 ) { // clamp to valid values (-1, -2)
+		type = -2;
+	}
+
+	// NOTE: could actually use this to touch the file now so there's not a hit when the queue'd music is played?
+	si.StartBackgroundTrack( Cmd_Argv( 1 ), Cmd_Argv( 1 ), type );
+}
+
+/*
 =================
 S_Music_f
 =================
@@ -510,19 +578,64 @@ void S_Music_f( void ) {
 	c = Cmd_Argc();
 
 	if ( c == 2 ) {
-		si.StartBackgroundTrack( Cmd_Argv(1), NULL );
+		si.StartBackgroundTrack( Cmd_Argv(1), NULL, 0 );
 	} else if ( c == 3 ) {
-		si.StartBackgroundTrack( Cmd_Argv(1), Cmd_Argv(2) );
+		si.StartBackgroundTrack( Cmd_Argv(1), Cmd_Argv(2), 0 );
+	} else if ( c == 4 ) {
+		si.StartBackgroundTrack( Cmd_Argv(1), Cmd_Argv(2), atoi(Cmd_Argv(3)) );
 	} else {
-		Com_Printf ("Usage: music <musicfile> [loopfile]\n");
+		Com_Printf ("Usage: music <musicfile> [loopfile] [fadeupTime]\n");
+		return;
+	}
+}
+
+void S_Stream_f(void)
+{
+	int c;
+
+	if (!si.StartStreamingSound)
+	{
 		return;
 	}
 
+	c = Cmd_Argc();
+
+	if (c == 2)
+	{
+		si.StartStreamingSound(Cmd_Argv(1), NULL, 0, 0, 0);
+	}
+	else if (c == 3)
+	{
+		si.StartStreamingSound(Cmd_Argv(1), Cmd_Argv(2), 0, 0, 0);
+	}
+	else if (c == 4)
+	{
+		si.StartStreamingSound(Cmd_Argv(1), Cmd_Argv(2),
+		                       atoi(Cmd_Argv(3)), 0, 0);
+	}
+	else if (c == 5)
+	{
+		si.StartStreamingSound(Cmd_Argv(1), Cmd_Argv(2),
+		                       atoi(Cmd_Argv(3)),
+		                       atoi(Cmd_Argv(4)), 0);
+	}
+	else if (c == 6)
+	{
+		si.StartStreamingSound(Cmd_Argv(1), Cmd_Argv(2),
+		                       atoi(Cmd_Argv(3)),
+		                       atoi(Cmd_Argv(4)),
+		                       atoi(Cmd_Argv(5)));
+	}
+	else
+	{
+		Com_Printf("Usage: stream <streamfile> [loopfile] [entNum] [channel] [attenuation]\n");
+		return;
+	}
 }
 
 /*
 =================
-S_Music_f
+S_StopMusic_f
 =================
 */
 void S_StopMusic_f( void )
@@ -564,7 +677,9 @@ void S_Init( void )
 
 		Cmd_AddCommand( "play", S_Play_f );
 		Cmd_AddCommand( "music", S_Music_f );
+		Cmd_AddCommand( "music_queue", S_QueueMusic_f );
 		Cmd_AddCommand( "stopmusic", S_StopMusic_f );
+		Cmd_AddCommand( "stream", S_Stream_f );
 		Cmd_AddCommand( "s_list", S_SoundList );
 		Cmd_AddCommand( "s_stop", S_StopAllSounds );
 		Cmd_AddCommand( "s_info", S_SoundInfo );
@@ -615,6 +730,8 @@ void S_Shutdown( void )
 
 	Cmd_RemoveCommand( "play" );
 	Cmd_RemoveCommand( "music");
+	Cmd_RemoveCommand( "music_queue" );
+	Cmd_RemoveCommand( "stream" );
 	Cmd_RemoveCommand( "stopmusic");
 	Cmd_RemoveCommand( "s_list" );
 	Cmd_RemoveCommand( "s_stop" );

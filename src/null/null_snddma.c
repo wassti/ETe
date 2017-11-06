@@ -70,8 +70,5 @@ int S_GetSoundLength( sfxHandle_t sfxHandle ) {
 	return 0;
 }
 
-void S_UpdateThread( void ) {
-}
-
 void S_AddLoopSounds( void ) {
 }

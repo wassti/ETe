@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "../qcommon/q_shared.h"
 #include "../qcommon/qcommon.h"
 #include "snd_public.h"
+#include "snd_codec.h"
 
 #define	PAINTBUFFER_SIZE		4096					// this is in samples
 
@@ -69,6 +70,7 @@ typedef struct {
 	int			samplebits;
 	int			speed;
 	byte		*buffer;
+	byte		*buffer2;
 } dma_t;
 
 #define START_SAMPLE_IMMEDIATE	0x7fffffff
@@ -110,7 +112,6 @@ typedef struct
 	sfx_t		*thesfx;		// sfx structure
 	qboolean	doppler;
 	int flags;                  //----(SA)	added
-	qboolean threadReady;
 	qboolean	fullVolume;
 } channel_t;
 
@@ -131,23 +132,25 @@ typedef struct {
 typedef struct
 {
 	void (*Shutdown)(void);
+	void (*Reload)( void );
 	void (*StartSound)( vec3_t origin, int entnum, int entchannel, sfxHandle_t sfx, int volume );
 	void (*StartSoundEx)( vec3_t origin, int entnum, int entchannel, sfxHandle_t sfx, int flags, int volume );
 	void (*StartLocalSound)( sfxHandle_t sfx, int channelNum, int volume );
-	void (*StartBackgroundTrack)( const char *intro, const char *loop );
+	void (*StartBackgroundTrack)( const char *intro, const char *loop, int fadeupTime );
 	void (*StopBackgroundTrack)( void );
-	void (*StartStreamingSound)( const char *intro, const char *loop, int entnum, int channel, int attenuation );
-	int (*GetVoiceAmplitude)( int entityNum );
-	void (*RawSamples)(int stream, int samples, int rate, int width, int channels, const byte *data, float volume, int entityNum);
+	float (*StartStreamingSound)( const char *intro, const char *loop, int entnum, int channel, int attenuation );
+	void (*StopEntStreamingSound)( int entNum );
+	void (*FadeStreamingSound)( float targetvol, int time, int ssNum );
+	void (*RawSamples)(int stream, int samples, int rate, int width, int channels, const byte *data, float lvol, float rvol, int entityNum);
+	void (*ClearSounds)( qboolean clearStreaming, qboolean clearMusic );
 	void (*StopAllSounds)( void );
-	void (*ClearLoopingSounds)( qboolean killall );
+	void (*FadeAllSounds)( float targetvol, int time, qboolean stopsounds );
+	void (*ClearLoopingSounds)( void );
 	void (*AddLoopingSound)( const vec3_t origin, const vec3_t velocity, const int range, sfxHandle_t sfx, int volume, int soundTime );
 	void (*AddRealLoopingSound)( const vec3_t origin, const vec3_t velocity, const int range, sfxHandle_t sfx, int volume );
-	void (*StopLoopingSound)(int entityNum );
 	void (*Respatialize)( int entityNum, const vec3_t origin, vec3_t axis[3], int inwater );
 	void (*UpdateEntityPosition)( int entityNum, const vec3_t origin );
 	void (*Update)( void );
-	void (*Reload)( void );
 	void (*DisableSounds)( void );
 	void (*BeginRegistration)( void );
 	sfxHandle_t (*RegisterSound)( const char *sample, qboolean compressed );
@@ -155,6 +158,7 @@ typedef struct
 	void (*SoundInfo)( void );
 	void (*SoundList)( void );
 
+	int (*GetVoiceAmplitude)( int entityNum );
 	// START	xkan, 9/23/2002
 	// returns how long the sound lasts in milliseconds
 	int (*GetSoundLength)( sfxHandle_t sfxHandle );
@@ -209,19 +213,34 @@ extern	dma_t	dma;
 
 // Ridah, streaming sounds
 typedef struct {
-	fileHandle_t file;
-	wavinfo_t info;
-	int samples;
-	char loop[MAX_QPATH];
+	snd_stream_t *stream;
+	char name[MAX_QPATH];
+	char loopStream[MAX_QPATH];
+	char queueStream[MAX_QPATH];
+	int queueStreamType;
 	int entnum;
 	int channel;
-	int attenuation;
-	qboolean kill;
+	qboolean attenuation;
+	int fadeStart;
+	int fadeEnd;
+	float fadeStartVol;
+	float fadeTargetVol;
 } streamingSound_t;
 
 #define	MAX_RAW_SAMPLES	16384
 #define MAX_RAW_STREAMS (MAX_CLIENTS * 2 + 1)
-extern streamingSound_t streamingSounds[MAX_RAW_STREAMS];
+#define MAX_STREAMING_SOUNDS 12
+
+#define RAW_STREAM_MUSIC 0
+#ifdef USE_VOIP
+#define RAW_STREAM_VOIP (RAW_STREAM_MUSIC + 1)
+#define RAW_STREAM_SOUNDS (RAW_STREAM_VOIP + MAX_CLIENTS)
+#else
+#define RAW_STREAM_SOUNDS (RAW_STREAM_MUSIC + 1)
+#endif
+#define RAW_STREAM(x) ((x ? RAW_STREAM_SOUNDS + x - 1 : 0))
+
+extern streamingSound_t streamingSounds[MAX_STREAMING_SOUNDS];
 extern	portable_samplepair_t s_rawsamples[MAX_RAW_STREAMS][MAX_RAW_SAMPLES];
 extern	int		s_rawend[MAX_RAW_STREAMS];
 
@@ -233,6 +252,8 @@ extern cvar_t *s_muteWhenMinimized;
 extern cvar_t *s_muteWhenUnfocused;
 
 extern cvar_t *s_testsound;
+
+extern float s_volCurrent;
 
 qboolean S_LoadSound( sfx_t *sfx );
 

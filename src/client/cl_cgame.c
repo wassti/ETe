@@ -704,16 +704,15 @@ intptr_t CL_CgameSystemCalls( intptr_t *args ) {
 		S_StartLocalSound( args[1], args[2], args[3] );
 		return 0;
 	case CG_S_CLEARLOOPINGSOUNDS:
-		S_ClearLoopingSounds( qtrue );
+		S_ClearLoopingSounds( );
 		return 0;
 	case CG_S_CLEARSOUNDS:
-		// ENSI NOTE let's just call clear sound buffer because it effectively does the same thing in ET use cases
 		S_ClearSoundBuffer( qtrue );
-		/*if ( args[1] == 0 ) {
+		if ( args[1] == 0 ) {
 			S_ClearSounds( qtrue, qfalse );
 		} else if ( args[1] == 1 ) {
 			S_ClearSounds( qtrue, qtrue );
-		}*/
+		}
 		return 0;
 	case CG_S_ADDLOOPINGSOUND:
 		// FIXME MrE: handling of looping sounds changed
@@ -723,8 +722,7 @@ intptr_t CL_CgameSystemCalls( intptr_t *args ) {
 		S_AddRealLoopingSound( VMA( 1 ), VMA( 2 ), args[3], args[4], args[5] );
 		return 0;
 	case CG_S_STOPSTREAMINGSOUND:
-		// ENSI TODO IMPLEMENT
-		//S_StopEntStreamingSound( args[1] );
+		S_StopEntStreamingSound( args[1] );
 		return 0;
 	case CG_S_UPDATEENTITYPOSITION:
 		S_UpdateEntityPosition( args[1], VMA( 2 ) );
@@ -750,17 +748,13 @@ intptr_t CL_CgameSystemCalls( intptr_t *args ) {
 		return S_RegisterSound( VMA( 1 ), args[2] );
 #endif  ///// (SA) DOOMSOUND
 	case CG_S_STARTBACKGROUNDTRACK:
-		// ENSI NOTE disable fadeup time for now
-		S_StartBackgroundTrack( VMA( 1 ), VMA( 2 )/*, args[3]*/ );  //----(SA)	added fadeup time
+		S_StartBackgroundTrack( VMA( 1 ), VMA( 2 ), args[3] );  //----(SA)	added fadeup time
 		return 0;
 	case CG_S_FADESTREAMINGSOUND:
-		// ENSI NOTE IMPLEMENT ME
-		//S_FadeStreamingSound( VMF( 1 ), args[2], args[3] ); //----(SA)	added music/all-streaming options
+		S_FadeStreamingSound( VMF( 1 ), args[2], args[3] ); //----(SA)	added music/all-streaming options
 		return 0;
 	case CG_S_STARTSTREAMINGSOUND:
-		// ENSI NOTE implement me
-		return 0;
-		//return S_StartStreamingSound( VMA( 1 ), VMA( 2 ), args[3], args[4], args[5] );
+		return S_StartStreamingSound( VMA( 1 ), VMA( 2 ), args[3], args[4], args[5] );
 	case CG_R_LOADWORLDMAP:
 		re.LoadWorld( VMA( 1 ) );
 		return 0;
@@ -1023,8 +1017,7 @@ intptr_t CL_CgameSystemCalls( intptr_t *args ) {
 		return 0;
 
 	case CG_S_FADEALLSOUNDS:
-		// ENSI TODO IMPLEMENT
-		//S_FadeAllSounds( VMF( 1 ), args[2], args[3] );
+		S_FadeAllSounds( VMF( 1 ), args[2], args[3] );
 		return 0;
 
 	case CG_R_INPVS:

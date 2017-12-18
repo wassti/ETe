@@ -29,21 +29,34 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __SPLINES_H
 #define __SPLINES_H
 
+//#define ENABLE_DRAWING
+
+#ifdef ENABLE_DRAWING
+
 extern "C" {
 #ifdef Q3RADIANT
 #include "../qgl.h"
 #else
 #include "../renderer/qgl.h"
+
+#define GLE( ret, name, ... ) extern ret ( APIENTRY * q##name )( __VA_ARGS__ );
+		QGL_Core_PROCS;
+		QGL_Ext_PROCS;
+#undef GLE
+
 #endif
 }
+#endif
 #include "util_list.h"
 #include "util_str.h"
 #include "math_vector.h"
 
 typedef int fileHandle_t;
 
+#ifdef ENABLE_DRAWING
 extern void glBox( idVec3 &color, idVec3 &point, float size );
 extern void glLabeledPoint( idVec3 &color, idVec3 &point, float size, const char *label );
+#endif
 
 static idVec4 blue( 0, 0, 1, 1 );
 static idVec4 red( 1, 0, 0, 1 );
@@ -157,10 +170,12 @@ virtual void updateSelection( const idVec3 &move ) {
 }
 
 void drawSelection() {
+#ifdef ENABLE_DRAWING
 	int count = selectedPoints.Num();
 	for ( int i = 0; i < count; i++ ) {
 		glBox( red, *getPoint( selectedPoints[i] ), 4 );
 	}
+#endif
 }
 
 protected:
@@ -546,7 +561,9 @@ virtual idVec3 *getPoint( int index ) {
 }
 
 virtual void draw( bool editMode ) {
+#ifdef ENABLE_DRAWING
 	glLabeledPoint( blue, pos, ( editMode ) ? 5 : 3, "Fixed point" );
+#endif
 }
 
 protected:
@@ -614,12 +631,14 @@ virtual void addPoint( const idVec3 &v ) {
 }
 
 virtual void draw( bool editMode ) {
+#ifdef ENABLE_DRAWING
 	glLabeledPoint( blue, startPos, ( editMode ) ? 5 : 3, "Start interpolated" );
 	glLabeledPoint( blue, endPos, ( editMode ) ? 5 : 3, "End interpolated" );
 	qglBegin( GL_LINES );
 	qglVertex3fv( startPos );
 	qglVertex3fv( endPos );
 	qglEnd();
+#endif
 }
 
 virtual void start( long t ) {
@@ -697,7 +716,9 @@ virtual void addPoint( const float x, const float y, const float z ) {
 }
 
 virtual void draw( bool editMode ) {
+#ifdef ENABLE_DRAWING
 	target.draw( editMode );
+#endif
 }
 
 virtual void updateSelection( const idVec3 &move ) {
@@ -1020,6 +1041,7 @@ bool getCameraInfo( long time, float *origin, float *direction, float *fv ) {
 }
 
 void draw( bool editMode ) {
+#ifdef ENABLE_DRAWING
 	// gcc doesn't allow casting away from bools
 	// why?  I've no idea...
 	if ( cameraPosition ) {
@@ -1029,6 +1051,7 @@ void draw( bool editMode ) {
 			targetPositions[i]->draw( (bool)( ( editMode || cameraRunning ) && i == activeTarget && !cameraEdit ) );
 		}
 	}
+#endif
 }
 
 /*
@@ -1129,6 +1152,5 @@ bool editMode;
 extern bool g_splineMode;
 
 extern idCameraDef *g_splineList;
-
 
 #endif

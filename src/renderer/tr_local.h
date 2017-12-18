@@ -454,6 +454,7 @@ typedef struct decalProjector_s
 	int numPlanes;                  // either 5 or 6, for quad or triangle projectors
 	vec4_t planes[ 6 ];
 	vec4_t texMat[ 3 ][ 2 ];
+	int projectorNum;               ///< global identifier
 }
 decalProjector_t;
 
@@ -948,6 +949,8 @@ typedef struct decal_s
 	int fogIndex;
 	int numVerts;
 	polyVert_t verts[ MAX_DECAL_VERTS ];
+	int projectorNum;
+	int frameAdded;                     ///< need to keep decal for at least one frame so we know not to reproject it in later views
 }
 decal_t;
 
@@ -1916,7 +1919,7 @@ DECALS - ydnar
 void RE_ProjectDecal( qhandle_t hShader, int numPoints, vec3_t *points, vec4_t projection, vec4_t color, int lifeTime, int fadeTime );
 void RE_ClearDecals( void );
 
-void R_AddModelShadow( refEntity_t *ent );
+void R_AddModelShadow( const refEntity_t *ent );
 
 void R_TransformDecalProjector( decalProjector_t * in, vec3_t axis[ 3 ], vec3_t origin, decalProjector_t * out );
 qboolean R_TestDecalBoundingBox( decalProjector_t *dp, vec3_t mins, vec3_t maxs );
@@ -2157,10 +2160,8 @@ typedef enum {
 #define MAX_POLYINDICIES 8192
 
 // ydnar: max decal projectors per frame, each can generate lots of polys
-#define MAX_DECAL_PROJECTORS    32  // uses bitmasks, don't increase
-#define DECAL_PROJECTOR_MASK    ( MAX_DECAL_PROJECTORS - 1 )
+#define MAX_DECAL_PROJECTORS    128     ///< includes decal projectors that will be culled out, hard limited to 32 active projectors because of bitmasks.
 #define MAX_DECALS              1024
-#define DECAL_MASK              ( MAX_DECALS - 1 )
 
 // all of the information needed by the back end must be
 // contained in a backEndData_t

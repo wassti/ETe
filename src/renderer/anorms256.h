@@ -26,6 +26,7 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+float r_anormals[NUMMDCVERTEXNORMALS][3] = {
 {1.000000, 0.000000, 0.000000},
 {0.980785, 0.195090, 0.000000},
 {0.923880, 0.382683, 0.000000},
@@ -282,3 +283,4 @@ If you have questions concerning this license or the applicable additional terms
 {-0.000000, 0.195090, 0.980785},
 {-0.195090, -0.000000, 0.980785},
 {0.000000, -0.195090, 0.980785},
+};

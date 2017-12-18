@@ -603,9 +603,7 @@ qhandle_t RE_RegisterModel( const char *name ) {
 
 //-------------------------------------------------------------------------------
 // Ridah, mesh compression
-float r_anormals[NUMMDCVERTEXNORMALS][3] = {
 #include "anorms256.h"
-};
 
 /*
 =============

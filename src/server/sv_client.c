@@ -1089,7 +1089,7 @@ Check to see if the client wants a file, open it if needed and start pumping the
 Fill up msg with data, return number of download blocks added
 ==================
 */
-int SV_WriteDownloadToClient(client_t *cl, msg_t *msg)
+static int SV_WriteDownloadToClient(client_t *cl, msg_t *msg)
 {
 	int curindex;
 	int unreferenced = 1;
@@ -1392,7 +1392,7 @@ SV_SendDownloadMessages
 Send one round of download messages to all clients
 ==================
 */
-int SV_SendDownloadMessages(void)
+int SV_SendDownloadMessages( void )
 {
 	int i, numDLs = 0, retval;
 	client_t *cl;

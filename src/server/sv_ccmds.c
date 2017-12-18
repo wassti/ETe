@@ -109,8 +109,6 @@ SV_GetPlayerByNum
 Returns the player with idnum from Cmd_Argv(1)
 ==================
 */
-// fretn unused
-#if 0
 static client_t *SV_GetPlayerByNum( void ) {
 	client_t	*cl;
 	int			i;
@@ -148,7 +146,7 @@ static client_t *SV_GetPlayerByNum( void ) {
 	}
 	return cl;
 }
-#endif
+
 //=========================================================
 
 
@@ -958,17 +956,41 @@ static void SV_KickNum_f( void ) {
 	cl->lastPacketTime = svs.time;	// in case there is a funny zombie
 }
 */
+
+
+
+
+/*
+** SV_Strlen -- skips color escape codes
+*/
+static int SV_Strlen( const char *str ) {
+	const char *s = str;
+	int count = 0;
+
+	while ( *s ) {
+		if ( Q_IsColorString( s ) ) {
+			s += 2;
+		} else {
+			count++;
+			s++;
+		}
+	}
+
+	return count;
+}
+
+
 /*
 ================
 SV_Status_f
 ================
 */
 static void SV_Status_f( void ) {
-	int i, j, l;
-	client_t    *cl;
-	playerState_t   *ps;
-	const char      *s;
-	int ping;
+	int			i, j, l;
+	client_t	*cl;
+	playerState_t	*ps;
+	const char		*s;
+	int			ping;
 
 	// make sure server is running
 	if ( !com_sv_running->integer ) {
@@ -976,50 +998,59 @@ static void SV_Status_f( void ) {
 		return;
 	}
 
-	Com_Printf( "map: %s\n", sv_mapname->string );
+	Com_Printf ("map: %s\n", sv_mapname->string );
 
-	Com_Printf( "num score ping name            lastmsg address               qport rate\n" );
-	Com_Printf( "--- ----- ---- --------------- ------- --------------------- ----- -----\n" );
-	for ( i = 0,cl = svs.clients ; i < sv_maxclients->integer ; i++,cl++ )
+	Com_Printf ("cl score ping name            address                                 rate \n");
+	Com_Printf ("-- ----- ---- --------------- --------------------------------------- -----\n");
+	for (i=0,cl=svs.clients ; i < sv_maxclients->integer ; i++,cl++)
 	{
-		if ( !cl->state ) {
+		if (!cl->state)
 			continue;
-		}
-		Com_Printf( "%3i ", i );
+		Com_Printf ("%2i ", i);
 		ps = SV_GameClientNum( i );
-		Com_Printf( "%5i ", ps->persistant[PERS_SCORE] );
+		Com_Printf ("%5i ", ps->persistant[PERS_SCORE]);
 
-		if ( cl->state == CS_CONNECTED ) {
-			Com_Printf( "CNCT " );
-		} else if ( cl->state == CS_ZOMBIE ) {
-			Com_Printf( "ZMBI " );
-		} else
+		if (cl->state == CS_CONNECTED)
+			Com_Printf ("CON ");
+		else if (cl->state == CS_ZOMBIE)
+			Com_Printf ("ZMB ");
+		else
 		{
 			ping = cl->ping < 9999 ? cl->ping : 9999;
-			Com_Printf( "%4i ", ping );
+			Com_Printf ("%4i ", ping);
 		}
 
-		Com_Printf( "%s", cl->name );
-		l = 16 - strlen( cl->name );
-		for ( j = 0 ; j < l ; j++ )
-			Com_Printf( " " );
+		Com_Printf ("%s", cl->name);
+		
+		l = 16 - SV_Strlen(cl->name);
+		j = 0;
+		
+		do
+		{
+			Com_Printf (" ");
+			j++;
+		} while(j < l);
 
-		Com_Printf( "%7i ", svs.time - cl->lastPacketTime );
 
+		// TTimo adding a ^7 to reset the color
 		s = NET_AdrToString( &cl->netchan.remoteAddress );
-		Com_Printf( "%s", s );
-		l = 22 - strlen( s );
-		for ( j = 0 ; j < l ; j++ )
-			Com_Printf( " " );
+		Com_Printf ("^7%s", s);
+		l = 39 - strlen(s);
+		j = 0;
+		
+		do
+		{
+			Com_Printf(" ");
+			j++;
+		} while(j < l);
+		
+		Com_Printf (" %5i", cl->rate);
 
-		Com_Printf( "%5i", cl->netchan.qport );
-
-		Com_Printf( " %5i", cl->rate );
-
-		Com_Printf( "\n" );
+		Com_Printf ("\n");
 	}
-	Com_Printf( "\n" );
+	Com_Printf ("\n");
 }
+
 
 /*
 ==================
@@ -1027,8 +1058,8 @@ SV_ConSay_f
 ==================
 */
 static void SV_ConSay_f( void ) {
-	char    *p;
-	char text[1024];
+	char	*p;
+	char	text[1024];
 
 	// make sure server is running
 	if ( !com_sv_running->integer ) {
@@ -1036,21 +1067,70 @@ static void SV_ConSay_f( void ) {
 		return;
 	}
 
-	if ( Cmd_Argc() < 2 ) {
+	if ( Cmd_Argc () < 2 ) {
 		return;
 	}
 
 	strcpy( text, "console: " );
 	p = Cmd_Args();
 
+	if ( strlen( p ) > 1000 ) {
+		return;
+	}
+
 	if ( *p == '"' ) {
 		p++;
-		p[strlen( p ) - 1] = 0;
+		p[strlen(p)-1] = '\0';
 	}
 
 	strcat( text, p );
 
 	SV_SendServerCommand( NULL, "chat \"%s\"", text );
+}
+
+
+/*
+==================
+SV_ConTell_f
+==================
+*/
+static void SV_ConTell_f( void ) {
+	char	*p;
+	char	text[1024];
+	client_t	*cl;
+
+	// make sure server is running
+	if ( !com_sv_running->integer ) {
+		Com_Printf( "Server is not running.\n" );
+		return;
+	}
+
+	if ( Cmd_Argc() < 3 ) {
+		Com_Printf( "Usage: tell <client number> <text>\n" );
+		return;
+	}
+
+	cl = SV_GetPlayerByNum();
+	if ( !cl ) {
+		return;
+	}
+
+	strcpy( text, "console_tell: " );
+	p = Cmd_ArgsFrom( 2 );
+
+	if ( strlen( p ) > 1000 ) {
+		return;
+	}
+
+	if ( *p == '"' ) {
+		p++;
+		p[strlen(p)-1] = '\0';
+	}
+
+	strcat( text, p );
+
+	Com_Printf( "%s\n", text );
+	SV_SendServerCommand( cl, "chat \"%s\"", text );
 }
 
 
@@ -1244,6 +1324,7 @@ void SV_AddDedicatedCommands( void )
 {
 	Cmd_AddCommand( "serverinfo", SV_Serverinfo_f );
 	Cmd_AddCommand( "systeminfo", SV_Systeminfo_f );
+	Cmd_AddCommand( "tell", SV_ConTell_f );
 	Cmd_AddCommand( "say", SV_ConSay_f );
 }
 
@@ -1252,5 +1333,6 @@ void SV_RemoveDedicatedCommands( void )
 {
 	Cmd_RemoveCommand( "serverinfo" );
 	Cmd_RemoveCommand( "systeminfo" );
+	Cmd_RemoveCommand( "tell" );
 	Cmd_RemoveCommand( "say" );
 }

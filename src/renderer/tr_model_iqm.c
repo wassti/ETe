@@ -960,7 +960,7 @@ void R_AddIQMSurfaces( trRefEntity_t *ent ) {
 			for ( n = 0; n < numDlights; n++ ) {
 				dl = dlights[n];
 				tr.light = dl;
-				R_AddLitSurf( (void *)surface, shader /*, fogNum*/ );
+				R_AddLitSurf( (void *)surface, shader, fogNum );
 			}
 		}
 #endif
@@ -1061,6 +1061,8 @@ void RB_IQMSurfaceAnim( surfaceType_t *surface ) {
 	int		*tri;
 	glIndex_t	*ptr;
 	glIndex_t	base;
+
+	VBO_Flush();
 
 	tess.surfType = SF_IQM;
 
@@ -1177,6 +1179,7 @@ void RB_IQMSurfaceAnim( surfaceType_t *surface ) {
 	tess.numIndexes += 3 * surf->num_triangles;
 	tess.numVertexes += surf->num_vertexes;
 }
+
 
 int R_IQMLerpTag( orientation_t *tag, iqmData_t *data,
 		  int startFrame, int endFrame, 

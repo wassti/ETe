@@ -106,7 +106,7 @@ void Con_ToggleConsole_f( void ) {
 Con_MessageMode_f
 ================
 */
-void Con_MessageMode_f( void ) {
+static void Con_MessageMode_f( void ) {
 	chat_team = qfalse;
 	Field_Clear( &chatField );
 	chatField.widthInChars = 30;
@@ -114,24 +114,26 @@ void Con_MessageMode_f( void ) {
 	Key_SetCatcher( Key_GetCatcher() ^ KEYCATCH_MESSAGE );
 }
 
+
 /*
 ================
 Con_MessageMode2_f
 ================
 */
-void Con_MessageMode2_f( void ) {
+static void Con_MessageMode2_f( void ) {
 	chat_team = qtrue;
 	Field_Clear( &chatField );
 	chatField.widthInChars = 25;
 	Key_SetCatcher( Key_GetCatcher( ) ^ KEYCATCH_MESSAGE );
 }
 
+
 /*
 ================
 Con_MessageMode3_f
 ================
 */
-void Con_MessageMode3_f( void ) {
+static void Con_MessageMode3_f( void ) {
 	chat_team = qfalse;
 	chat_buddy = qtrue;
 	Field_Clear( &chatField );
@@ -145,7 +147,7 @@ void Con_MessageMode3_f( void ) {
 Con_Clear_f
 ================
 */
-void Con_Clear_f( void ) {
+static void Con_Clear_f( void ) {
 	int		i;
 
 	for ( i = 0 ; i < con.linewidth ; i++ ) {
@@ -159,6 +161,7 @@ void Con_Clear_f( void ) {
 	Con_Bottom();		// go to end
 }
 
+						
 /*
 ================
 Con_Dump_f
@@ -166,7 +169,7 @@ Con_Dump_f
 Save the console contents out to a file
 ================
 */
-void Con_Dump_f( void )
+static void Con_Dump_f( void )
 {
 	int		l, x, i, n;
 	short	*line;
@@ -325,6 +328,7 @@ void Con_CheckResize( void )
 	con.display = con.current;
 }
 
+
 /*
 ==================
 Cmd_CompleteTxtName
@@ -364,6 +368,7 @@ void Con_Init( void )
 	Cmd_AddCommand( "condump", Con_Dump_f );
 	Cmd_SetCommandCompletionFunc( "condump", Cmd_CompleteTxtName );
 }
+
 
 /*
 ================
@@ -639,7 +644,7 @@ void Con_DrawNotify( void )
 		if (time == 0)
 			continue;
 		time = cls.realtime - time;
-		if (time > con_notifytime->value*1000)
+		if ( time >= con_notifytime->value*1000 )
 			continue;
 		text = con.text + (i % con.totallines)*con.linewidth;
 

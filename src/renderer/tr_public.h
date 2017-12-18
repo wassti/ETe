@@ -148,7 +148,7 @@ typedef struct {
 
 	qboolean (*CanMinimize)( void ); // == fbo enabled
 
-	qboolean (*GetModeInfo)( int *width, int *height, float *windowAspect, int mode, const char *modeFS, int dw, int dh, qboolean fullscreen );
+	const glconfig_t *(*GetConfig)( void );
 
 } refexport_t;
 
@@ -191,6 +191,8 @@ typedef struct {
 	void	(*Cvar_SetGroup)( cvar_t *var, cvarGroup_t group );
 	int		(*Cvar_CheckGroup)( cvarGroup_t group );
 	void	(*Cvar_ResetGroup)( cvarGroup_t group, qboolean resetModifiedFlags );
+
+	void	(*Cvar_VariableStringBuffer)( const char *var_name, char *buffer, int bufsize );
 	const char *(*Cvar_VariableString)( const char *var_name );
 	int		(*Cvar_VariableIntegerValue) (const char *var_name);
 

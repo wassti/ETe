@@ -147,7 +147,7 @@ qboolean CL_Netchan_TransmitNextFragment(netchan_t *chan)
 	if ( chan->unsentFragments )
 	{
 		Netchan_TransmitNextFragment( chan );
-			return qtrue;
+		return qtrue;
 	}
 	
 	return qfalse;

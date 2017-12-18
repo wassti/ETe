@@ -1314,6 +1314,7 @@ static qboolean SurfIsOffscreen( const drawSurf_t *drawSurf, vec4_t clipDest[128
 
 	R_DecomposeSort( drawSurf->sort, &entityNum, &shader, &fogNum, &dlighted );
 	RB_BeginSurface( shader, fogNum );
+	tess.allowVBO = qfalse;
 	rb_surfaceTable[ *drawSurf->surface ]( drawSurf->surface );
 
 	assert( tess.numVertexes < 128 );
@@ -1443,18 +1444,13 @@ R_MirrorViewBySurface
 Returns qtrue if another view has been rendered
 ========================
 */
-#ifdef USE_PMLIGHT
 extern int r_numdlights;
-#endif
 static qboolean R_MirrorViewBySurface( drawSurf_t *drawSurf, int entityNum ) {
 	vec4_t			clipDest[128];
 	viewParms_t		newParms;
 	viewParms_t		oldParms;
 	orientation_t	surface, camera;
 	qboolean		isMirror;
-#ifdef USE_PMLIGHT
-	int				i;
-#endif
 
 	// don't recursively mirror
 	if (tr.viewParms.isPortal) {
@@ -1489,6 +1485,7 @@ static qboolean R_MirrorViewBySurface( drawSurf_t *drawSurf, int entityNum ) {
 #ifdef USE_PMLIGHT
 	// create dedicated set for each view
 	if ( r_numdlights + oldParms.num_dlights <= ARRAY_LEN( backEndData->dlights ) ) {
+		int i;
 		newParms.dlights = oldParms.dlights + oldParms.num_dlights;
 		newParms.num_dlights = oldParms.num_dlights;
 		r_numdlights += oldParms.num_dlights;
@@ -1729,7 +1726,7 @@ static void R_SortLitsurfs( dlight_t* dl )
 R_AddLitSurf
 =================
 */
-void R_AddLitSurf( surfaceType_t *surface, shader_t *shader /*, int fogIndex*/ )
+void R_AddLitSurf( surfaceType_t *surface, shader_t *shader, int fogIndex )
 {
 	struct litSurf_s *litsurf;
 
@@ -1741,7 +1738,7 @@ void R_AddLitSurf( surfaceType_t *surface, shader_t *shader /*, int fogIndex*/ )
 	litsurf = &tr.refdef.litSurfs[ tr.refdef.numLitSurfs++ ];
 
 	litsurf->sort = (shader->sortedIndex << QSORT_SHADERNUM_SHIFT) 
-		| tr.shiftedEntityNum /*| ( fogIndex << QSORT_FOGNUM_SHIFT )*/;
+		| tr.shiftedEntityNum | ( fogIndex << QSORT_FOGNUM_SHIFT );
 	litsurf->surface = surface;
 
 	if ( !tr.light->head )
@@ -1759,8 +1756,8 @@ void R_AddLitSurf( surfaceType_t *surface, shader_t *shader /*, int fogIndex*/ )
 R_DecomposeLitSort
 =================
 */
-void R_DecomposeLitSort( unsigned sort, int *entityNum, shader_t **shader /*, int *fogNum*/ ) {
-	//*fogNum = ( sort >> QSORT_FOGNUM_SHIFT ) & FOGNUM_MASK;
+void R_DecomposeLitSort( unsigned sort, int *entityNum, shader_t **shader, int *fogNum ) {
+	*fogNum = ( sort >> QSORT_FOGNUM_SHIFT ) & FOGNUM_MASK;
 	*shader = tr.sortedShaders[ ( sort >> QSORT_SHADERNUM_SHIFT ) & (MAX_SHADERS-1) ];
 	*entityNum = ( sort >> QSORT_REFENTITYNUM_SHIFT ) & REFENTITYNUM_MASK;
 }

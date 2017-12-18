@@ -145,9 +145,9 @@ portable_samplepair_t	s_rawsamples[MAX_RAW_STREAMS][MAX_RAW_SAMPLES];
 // ====================================================================
 
 
-void S_Base_SoundInfo(void) {	
+static void S_Base_SoundInfo( void ) {
 	Com_Printf("----- Sound Info -----\n" );
-	if (!s_soundStarted) {
+	if ( !s_soundStarted ) {
 		Com_Printf ("sound system not started\n");
 	} else {
 		Com_Printf("%5d stereo\n", dma.channels - 1);
@@ -166,7 +166,7 @@ void S_Base_SoundInfo(void) {
 		}
 
 	}
-	Com_Printf("----------------------\n");
+	Com_Printf("----------------------\n" );
 }
 
 
@@ -210,7 +210,7 @@ void S_Base_MasterGain( float val )
 S_Base_SoundList
 =================
 */
-void S_Base_SoundList( void ) {
+static void S_Base_SoundList( void ) {
 	int		i;
 	sfx_t	*sfx;
 	int		size, total;
@@ -235,15 +235,14 @@ void S_Base_SoundList( void ) {
 }
 
 
-
-void S_ChannelFree(channel_t *v) {
+static void S_ChannelFree( channel_t *v ) {
 	v->thesfx = NULL;
 	*(channel_t **)v = freelist;
 	freelist = (channel_t*)v;
 }
 
 
-channel_t*	S_ChannelMalloc( void ) {
+static channel_t* S_ChannelMalloc( void ) {
 	channel_t *v;
 	if (freelist == NULL) {
 		return NULL;
@@ -300,6 +299,7 @@ static unsigned int S_HashSFXName(const char *name) {
 	hash &= (LOOP_HASH-1);
 	return hash;
 }
+
 
 /*
 ==================
@@ -374,7 +374,7 @@ static sfx_t *S_FindName( const char *name ) {
 S_DefaultSound
 =================
 */
-void S_DefaultSound( sfx_t *sfx ) {
+static void S_DefaultSound( sfx_t *sfx ) {
 	int i;
 
 	if ( s_defaultsound->integer ) {
@@ -402,7 +402,7 @@ void S_DefaultSound( sfx_t *sfx ) {
 S_Reload
 ================
 */
-void S_Base_Reload( void ) {
+static void S_Base_Reload( void ) {
 	sfx_t *sfx;
 	int i;
 
@@ -429,10 +429,11 @@ This is called when the hunk is cleared and the sounds
 are no longer valid.
 ===================
 */
-void S_Base_DisableSounds( void ) {
+static void S_Base_DisableSounds( void ) {
 	S_Base_StopAllSounds();
 	s_soundMuted = qtrue;
 }
+
 
 /*
 ==================
@@ -441,12 +442,11 @@ S_RegisterSound
 Creates a default buzz sound if the file can't be loaded
 ==================
 */
-sfxHandle_t S_Base_RegisterSound( const char *name, qboolean compressed ) {
-	sfx_t   *sfx;
+static sfxHandle_t S_Base_RegisterSound( const char *name, qboolean compressed ) {
+	sfx_t	*sfx;
 
 	compressed = qfalse;
-
-	if ( !s_soundStarted ) {
+	if (!s_soundStarted) {
 		return 0;
 	}
 
@@ -487,13 +487,14 @@ sfxHandle_t S_Base_RegisterSound( const char *name, qboolean compressed ) {
 	return sfx - s_knownSfx;
 }
 
+
 /*
 =====================
 S_BeginRegistration
 
 =====================
 */
-void S_Base_BeginRegistration( void ) {
+static void S_Base_BeginRegistration( void ) {
 	sfx_t   *sfx;
 	s_soundMuted = qfalse;		// we can play again
 
@@ -510,12 +511,14 @@ void S_Base_BeginRegistration( void ) {
 	}
 }
 
-void S_memoryLoad(sfx_t	*sfx) {
+void S_memoryLoad( sfx_t *sfx ) {
+
 	// load the sound file
 	if ( !S_LoadSound ( sfx ) ) {
 //		Com_Printf( S_COLOR_YELLOW "WARNING: couldn't load sound: %s\n", sfx->soundName );
 		sfx->defaultSound = qtrue;
 	}
+
 	sfx->inMemory = qtrue;
 }
 
@@ -528,7 +531,7 @@ S_SpatializeOrigin
 Used for spatializing s_channels
 =================
 */
-void S_SpatializeOrigin (vec3_t origin, int master_vol, int *left_vol, int *right_vol, float range, int no_attenuation )
+static void S_SpatializeOrigin (vec3_t origin, int master_vol, int *left_vol, int *right_vol, float range, int no_attenuation )
 {
 	vec_t lscale, rscale;
 

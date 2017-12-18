@@ -653,11 +653,11 @@ a newline.
 static const char *SkipWhitespace( const char *data, qboolean *hasNewLines ) {
 	int c;
 
-	while ( ( c = *data ) <= ' ' ) {
-		if ( !c ) {
+	while( (c = *data) <= ' ') {
+		if( !c ) {
 			return NULL;
 		}
-		if ( c == '\n' ) {
+		if( c == '\n' ) {
 			com_lines++;
 			*hasNewLines = qtrue;
 		}
@@ -666,6 +666,7 @@ static const char *SkipWhitespace( const char *data, qboolean *hasNewLines ) {
 
 	return data;
 }
+
 
 int COM_Compress( char *data_p ) {
 	char *in, *out;
@@ -999,6 +1000,7 @@ __reswitch:
 			}
 			if ( len < MAX_TOKEN_CHARS-1 ) // overflow check
 				com_token[ len++ ] = c;
+			str++;
 		}
 		if ( c != '\0' ) {
 			str++; // skip enging '"'

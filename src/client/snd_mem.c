@@ -51,20 +51,21 @@ short *sfxScratchBuffer = NULL;
 sfx_t *sfxScratchPointer = NULL;
 int	   sfxScratchIndex = 0;
 
-void	SND_free(sndBuffer *v) {
+
+void SND_free( sndBuffer *v )
+{
 	*(sndBuffer **)v = freelist;
 	freelist = (sndBuffer*)v;
 	inUse += sizeof(sndBuffer);
 	totalInUse -= sizeof(sndBuffer); // -EC-
 }
 
-sndBuffer*	SND_malloc(void) {
+
+sndBuffer *SND_malloc( void ) {
 	sndBuffer *v;
-redo:
-	if (freelist == NULL) {
+
+	while ( freelist == NULL )
 		S_FreeOldestSound();
-		goto redo;
-	}
 
 	inUse -= sizeof(sndBuffer);
 	totalInUse += sizeof(sndBuffer);
@@ -192,7 +193,7 @@ static int ResampleSfx( sfx_t *sfx, int channels, int inrate, int inwidth, int s
 			if( inwidth == 2 ) {
 				sample = ( ((short *)data)[srcsample+j] );
 			} else {
-				sample = (int)( (unsigned char)(data[srcsample+j]) - 128) << 8;
+				sample = (unsigned int)( (unsigned char)(data[srcsample+j]) - 128) << 8;
 			}
 			part = (i*channels+j)&(SND_CHUNK_SIZE-1);
 			if (part == 0) {

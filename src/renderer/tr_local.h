@@ -32,11 +32,7 @@ If you have questions concerning this license or the applicable additional terms
 #define USE_LEGACY_DLIGHTS	// vet dynamic lights
 #define USE_PMLIGHT			// promode dynamic lights via \r_dlightMode 1
 #define MAX_REAL_DLIGHTS	(MAX_DLIGHTS*2)
-#define MAX_LITSURFS		(MAX_DRAWSURFS*2)
-
-#ifdef USE_RENDERER2
-#undef USE_PMLIGHT
-#endif
+#define MAX_LITSURFS		(MAX_DRAWSURFS)
 
 #include "../qcommon/q_shared.h"
 #include "../qcommon/qfiles.h"
@@ -314,6 +310,8 @@ typedef struct {
 	qboolean isFogged;              // used only for shaders that have fog disabled, so we can enable it for individual stages
 	qboolean		depthFragment;
 
+	qboolean isStaticShader;
+
 } shaderStage_t;
 
 struct shaderCommands_s;
@@ -336,7 +334,7 @@ typedef struct {
 } skyParms_t;
 
 typedef struct {
-	vec3_t color;
+	vec4_t color;
 	float depthForOpaque;
 	unsigned colorInt;                  // in packed byte format
 	float tcScale;                      // texture coordinate vector scales
@@ -397,15 +395,19 @@ typedef struct shader_s {
 	shaderStage_t   *stages[MAX_SHADER_STAGES];
 
 #ifdef USE_PMLIGHT
-	int	lightingStage;
+	int			lightingStage;
+	int			lightingBundle;
 #endif
+	qboolean	isStaticShader;
+	short		vboVPindex;
+	short		vboFPindex;
 
-	void		(*optimalStageIteratorFunc)( void );
+	void	(*optimalStageIteratorFunc)( void );
 
-	double	clampTime;                                  // time this shader is clamped to - set to double for frameloss fix -EC-
-	double	timeOffset;                                 // current time offset for this shader - set to double for frameloss fix -EC-
+	double	clampTime;						// time this shader is clamped to - set to double for frameloss fix -EC-
+	double	timeOffset;						// current time offset for this shader - set to double for frameloss fix -EC-
 
-	struct shader_s *remappedShader;                  // current shader this one is remapped too
+	struct shader_s *remappedShader;		// current shader this one is remapped too
 
 	struct	shader_s	*next;
 } shader_t;
@@ -556,6 +558,15 @@ typedef struct {
 } fog_t;
 
 typedef struct {
+	float		eyeT;
+	float		eyeInside; // 0.0 or 1.0
+	vec4_t		fogDistanceVector;
+	vec4_t		fogDepthVector;
+	const float *fogColor;
+	qboolean	level;
+} fogProgramParms_t;
+
+typedef struct {
 	orientationr_t	orientation;
 	orientationr_t	world;
 	vec3_t		pvsOrigin;			// may be different than or.origin for portals
@@ -694,7 +705,7 @@ srfGeneric_t;
 
 typedef struct srfGridMesh_s
 {
-	surfaceType_t surfaceType;
+	surfaceType_t	surfaceType;
 
 	// culling information
 	vec3_t bounds[ 2 ];
@@ -703,21 +714,25 @@ typedef struct srfGridMesh_s
 	cplane_t plane;
 
 	// dynamic lighting information
-	int dlightBits;
+	int				dlightBits;
 
 	// lod information, which may be different
 	// than the culling information to allow for
 	// groups of curves that LOD as a unit
-	vec3_t lodOrigin;
-	float lodRadius;
-	int lodFixed;
-	int lodStitched;
+	vec3_t			lodOrigin;
+	float			lodRadius;
+	int				lodFixed;
+	int				lodStitched;
+
+	int				vboItemIndex;
+	int				vboExpectIndices;
+	int				vboExpectVertices;
 
 	// vertexes
-	int width, height;
-	float           *widthLodError;
-	float           *heightLodError;
-	drawVert_t verts[1];            // variable sized
+	int				width, height;
+	float			*widthLodError;
+	float			*heightLodError;
+	drawVert_t		verts[1];		// variable sized
 } srfGridMesh_t;
 
 
@@ -737,6 +752,7 @@ typedef struct srfSurfaceFace_s
 #ifdef USE_LEGACY_DLIGHTS
 	int dlightBits;
 #endif
+	int			vboItemIndex;
 
 	// triangle definitions (no normals at points)
 	int numPoints;
@@ -763,6 +779,7 @@ typedef struct srfTriangles_s
 #ifdef USE_LEGACY_DLIGHTS
 	int dlightBits;
 #endif
+	int				vboItemIndex;
 
 	// triangle definitions
 	int numIndexes;
@@ -828,6 +845,8 @@ typedef struct
 #ifdef USE_LEGACY_DLIGHTS
 	int dlightBits;
 #endif
+
+	int				vboItemIndex;
 
 	// triangle definitions
 	int numIndexes;
@@ -1180,14 +1199,13 @@ typedef struct {
 
 // the renderer front end should never modify glstate_t
 typedef struct {
-	int currenttextures[ MAX_TEXTURE_UNITS ];
-	int currenttmu;
-	qboolean finishCalled;
-	int texEnv[2];
-	int faceCulling;
-	unsigned long glStateBits;
+	GLuint		currenttextures[ MAX_TEXTURE_UNITS ];
+	int			currenttmu;
+	qboolean	finishCalled;
+	int			texEnv[2];
+	int			faceCulling;
+	unsigned long	glStateBits;
 } glstate_t;
-
 
 typedef struct {
 	int c_surfaces, c_shaders, c_vertexes, c_indexes, c_totalIndexes;
@@ -1244,9 +1262,6 @@ typedef struct {
 	qboolean	vertexes2D;		// shader needs to be finished
 	qboolean	doneBloom;		// done bloom this frame
 	qboolean	doneSurfaces;   // done any 3d surfaces already
-#ifdef USE_PMLIGHT
-	qboolean	doneBloom2fbo;
-#endif
 	trRefEntity_t	entity2D;	// currentEntity will point at this when doing 2D rendering
 
 	int		screenshotMask;		// tga | jpg | bmp
@@ -1421,10 +1436,24 @@ extern cvar_t	*r_dlightSpecPower;		// 1 - 32
 extern cvar_t	*r_dlightSpecColor;		// -1.0 - 1.0
 extern cvar_t	*r_dlightScale;			// 0.1 - 1.0
 extern cvar_t	*r_dlightIntensity;		// 0.1 - 1.0
+#endif
+extern cvar_t	*r_vbo;
 extern cvar_t	*r_fbo;
 extern cvar_t	*r_hdr;
-#endif
 extern cvar_t	*r_bloom;
+extern cvar_t	*r_bloom_threshold;
+extern cvar_t	*r_bloom_threshold_mode;
+extern cvar_t	*r_bloom_modulate;
+extern cvar_t	*r_bloom_passes;
+extern cvar_t	*r_bloom_blend_base;
+extern cvar_t	*r_bloom_intensity;
+extern cvar_t	*r_bloom_filter_size;
+extern cvar_t	*r_bloom_reflection;
+
+extern cvar_t	*r_renderWidth;
+extern cvar_t	*r_renderHeight;
+extern cvar_t	*r_renderScale;
+
 extern cvar_t	*r_dlightBacks;			// dlight non-facing surfaces for continuity
 
 extern cvar_t  *r_norefresh;            // bypasses the ref rendering
@@ -1540,8 +1569,8 @@ void R_DecomposeSort( unsigned sort, int *entityNum, shader_t **shader,
 
 void R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int fogNum, int dlightMap );
 #ifdef USE_PMLIGHT
-void R_DecomposeLitSort( unsigned sort, int *entityNum, shader_t **shader /*, int *fogNum*/ );
-void R_AddLitSurf( surfaceType_t *surface, shader_t *shader /*, int fogIndex*/ );
+void R_DecomposeLitSort( unsigned sort, int *entityNum, shader_t **shader, int *fogNum );
+void R_AddLitSurf( surfaceType_t *surface, shader_t *shader, int fogIndex );
 #endif
 
 #define CULL_IN     0       // completely unclipped
@@ -1663,12 +1692,19 @@ void    R_RemapShader( const char *oldShader, const char *newShader, const char 
 //bani
 qboolean RE_LoadDynamicShader( const char *shadername, const char *shadertext );
 
+void		FindLightingStages( shader_t *sh );
+
 // fretn - renderToTexture
 void RE_RenderToTexture( int textureid, int x, int y, int w, int h );
 // bani
 void RE_Finish( void );
 int R_GetTextureId( const char *name );
 
+
+//
+// tr_surface.c
+//
+void		RB_SurfaceGridEstimate( srfGridMesh_t *cv, int *numVertexes, int *numIndexes ); 
 
 /*
 ====================================================================
@@ -1702,6 +1738,7 @@ typedef struct shaderCommands_s
 #pragma pack(pop)
 
 	surfaceType_t	surfType;
+	int			vboIndex;
 
 	shader_t	*shader;
 	double		shaderTime;	// -EC- set to double for frameloss fix
@@ -1711,25 +1748,26 @@ typedef struct shaderCommands_s
 #endif
 	int			numIndexes;
 	int			numVertexes;
+	qboolean	allowVBO;
 
 #ifdef USE_PMLIGHT
-	qboolean	dlightPass;
 	const dlight_t* light;
+	qboolean	dlightPass;
+	qboolean	dlightUpdateParams;
 #endif
 
 	// info extracted from current shader
 	int			numPasses;
-	void		(*currentStageIteratorFunc)( void );
-	shaderStage_t	**xstages;
+	shaderStage_t **xstages;
 
 } shaderCommands_t;
 
 extern	shaderCommands_t	tess;
 
-void RB_BeginSurface(shader_t *shader, int fogNum );
-void RB_EndSurface(void);
+void RB_BeginSurface( shader_t *shader, int fogNum );
+void RB_EndSurface( void );
 void RB_CheckOverflow( int verts, int indexes );
-#define RB_CHECKOVERFLOW(v,i) if (tess.numVertexes + (v) >= SHADER_MAX_VERTEXES || tess.numIndexes + (i) >= SHADER_MAX_INDEXES ) {RB_CheckOverflow(v,i);}
+#define RB_CHECKOVERFLOW(v,i) RB_CheckOverflow(v,i)
 
 void RB_StageIteratorGeneric( void );
 void RB_StageIteratorSky( void );
@@ -1786,12 +1824,15 @@ void R_SetupEntityLighting( const trRefdef_t *refdef, trRefEntity_t *ent );
 int R_LightForPoint( vec3_t point, vec3_t ambientLight, vec3_t directedLight, vec3_t lightDir );
 
 #ifdef USE_PMLIGHT
+void ARB_SetupLightParams( void );
+void ARB_LightingPass( void );
+qboolean R_LightCullBounds( const dlight_t* dl, const vec3_t mins, const vec3_t maxs );
+#endif // USE_PMLIGHT
 
 void R_BindAnimatedImage( const textureBundle_t *bundle );
 void R_DrawElements( int numIndexes, const glIndex_t *indexes );
+void R_ComputeColors( const shaderStage_t *pStage );
 void R_ComputeTexCoords( const shaderStage_t *pStage );
-
-qboolean R_LightCullBounds( const dlight_t* dl, const vec3_t mins, const vec3_t maxs );
 
 void QGL_InitARB( void );
 void QGL_DoneARB( void );
@@ -1802,9 +1843,6 @@ qboolean GL_ProgramAvailable( void );
 void GL_ProgramDisable( void );
 void GL_ProgramEnable( void );
 
-void ARB_SetupLightParams( void );
-void ARB_LightingPass( void );
-
 extern qboolean		fboEnabled;
 extern qboolean		blitMSfbo;
 
@@ -1812,8 +1850,6 @@ void FBO_BindMain( void );
 void FBO_PostProcess( void );
 void FBO_BlitMS( qboolean depthOnly );
 qboolean FBO_Bloom( const float gamma, const float obScale, qboolean finalPass );
-
-#endif // USE_PMLIGHT
 
 /*
 ============================================================
@@ -1964,6 +2000,7 @@ void    RB_CalcEnvironmentTexCoords( float *dstTexCoords );
 void	RB_CalcEnvironmentTexCoordsFP( float *dstTexCoords );
 void    RB_CalcFireRiseEnvTexCoords( float *st );
 void    RB_CalcFogTexCoords( float *dstTexCoords );
+const fogProgramParms_t *RB_CalcFogProgramParms( void );
 void    RB_CalcScrollTexCoords( const float scroll[2], float *dstTexCoords );
 void    RB_CalcRotateTexCoords( float rotSpeed, float *dstTexCoords );
 void    RB_CalcScaleTexCoords( const float scale[2], float *dstTexCoords );
@@ -2037,11 +2074,6 @@ typedef struct {
 
 typedef struct {
 	int commandId;
-	int buffer;
-} endFrameCommand_t;
-
-typedef struct {
-	int commandId;
 	shader_t    *shader;
 	float x, y;
 	float w, h;
@@ -2067,16 +2099,6 @@ typedef struct {
 	drawSurf_t *drawSurfs;
 	int numDrawSurfs;
 } drawSurfsCommand_t;
-
-typedef struct {
-	int commandId;
-	int x;
-	int y;
-	int width;
-	int height;
-	char *fileName;
-	qboolean jpeg;
-} screenshotCommand_t;
 
 typedef struct
 {
@@ -2195,9 +2217,15 @@ void RE_TakeVideoFrame( int width, int height,
 
 void RE_FinishBloom( void );
 qboolean RE_CanMinimize( void );
+const glconfig_t *RE_GetConfig( void );
+
 
 //Bloom Stuff
-void R_BloomInit( void );
+
+#define MAX_FILTER_SIZE 20
+#define MIN_FILTER_SIZE 1
+#define MAX_BLUR_PASSES MAX_TEXTURE_UNITS
+
 void R_BloomScreen( void );
 
 // font stuff
@@ -2313,6 +2341,74 @@ qboolean R_HaveExtension( const char *ext );
 #define GLE( ret, name, ... ) extern ret ( APIENTRY * q##name )( __VA_ARGS__ );
 	QGL_Core_PROCS;
 	QGL_Ext_PROCS;
+	QGL_ARB_PROGRAM_PROCS;
+	QGL_VBO_PROCS;
+	QGL_FBO_PROCS;
+	QGL_FBO_OPT_PROCS;
 #undef GLE
 
-#endif //TR_LOCAL_H (THIS MUST BE LAST!!)
+// VBO functions
+
+extern void RB_StageIteratorVBO( void );
+extern void R_BuildWorldVBO( msurface_t *surf, int surfCount );
+
+extern void VBO_PushData( int itemIndex, shaderCommands_t *input );
+extern void VBO_UnBind( void );
+extern int VBO_Active( void );
+
+extern void VBO_Cleanup( void );
+extern void VBO_QueueItem( int itemIndex );
+extern void VBO_ClearQueue( void );
+extern void VBO_Flush( void );
+
+// ARB shaders definitions
+
+typedef enum {
+	Vertex,
+	Fragment
+} programType;
+
+typedef enum {
+	DEFAULT_VERTEX,
+	DEFAULT_FRAGMENT,
+
+	PROGRAM_BASE,
+
+	DUMMY_VERTEX = PROGRAM_BASE,
+
+	// locate all fog programs in predefined order (sequentially after non-fogged ones)
+	// so we can easy switch/adjust them without many if() statements
+#ifdef USE_PMLIGHT
+	DLIGHT_VERTEX,
+	DLIGHT_VERTEX_FOG,
+	DLIGHT_VERTEX_FOG_LEVEL,
+
+	DLIGHT_FRAGMENT,
+	DLIGHT_FRAGMENT_FOG,
+
+	DLIGHT_LINEAR_VERTEX,
+	DLIGHT_LINEAR_VERTEX_FOG,
+	DLIGHT_LINEAR_VERTEX_FOG_LEVEL,
+
+	DLIGHT_LINEAR_FRAGMENT,
+	DLIGHT_LINEAR_FRAGMENT_FOG,
+#endif
+	SPRITE_FRAGMENT,
+	GAMMA_FRAGMENT,
+	BLOOM_EXTRACT_FRAGMENT,
+	BLUR_FRAGMENT,
+	BLENDX_FRAGMENT,
+	BLEND2_FRAGMENT,
+	BLEND2_GAMMA_FRAGMENT,
+
+	PROGRAM_COUNT
+
+} programNum;
+
+extern const char *fogVPCode;
+extern const char *fogLevelVPCode;
+
+qboolean ARB_CompileProgram( programType ptype, const char *text, GLuint program );
+void ARB_ProgramEnableExt( GLuint vertexProgram, GLuint fragmentProgram );
+
+#endif //TR_LOCAL_H

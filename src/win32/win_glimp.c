@@ -68,10 +68,10 @@ typedef enum {
 //#define	WINDOW_CLASS_NAME	"Wolfenstein"
 #define WINDOW_CLASS_NAME   "Enemy Territory"
 
-static rserr_t	GLW_SetMode( const char *drivername, 
-							 int mode, 
+static rserr_t	GLW_SetMode( const char *drivername,
+							 int mode,
 							 const char *modeFS,
-							 int colorbits, 
+							 int colorbits,
 							 qboolean cdsFullscreen );
 
 static qboolean s_classRegistered = qfalse;
@@ -87,22 +87,10 @@ void     QGL_Shutdown( void );
 //
 glwstate_t glw_state;
 
-static cvar_t *r_allowSoftwareGL;		// don't abort out if the pixelformat claims software
+// GLimp-specific cvars
 static cvar_t *r_maskMinidriver;		// allow a different dll name to be treated as if it were opengl32.dll
-static cvar_t *r_swapInterval;
-static cvar_t *r_glDriver;
 static cvar_t *r_stereoEnabled;
 static cvar_t *r_verbose;				// used for verbose debug spew
-
-cvar_t *r_fullscreen;
-
-extern cvar_t *r_mode;
-extern cvar_t *r_modeFullscreen;
-
-extern cvar_t *r_colorbits;
-extern cvar_t *r_stencilbits;
-extern cvar_t *r_depthbits;
-extern cvar_t *r_drawBuffer;
 
 int gl_NormalFontBase = 0;
 static qboolean fontbase_init = qfalse;
@@ -592,7 +580,6 @@ static qboolean GLW_InitDriver( const char *drivername, int colorbits )
 static qboolean GLW_CreateWindow( const char *drivername, int width, int height, int colorbits, qboolean cdsFullscreen )
 {
 	RECT			r;
-	cvar_t			*vid_xpos, *vid_ypos;
 	int				stylebits;
 	int				x, y, w, h;
 	int				exstyle;
@@ -627,8 +614,13 @@ static qboolean GLW_CreateWindow( const char *drivername, int width, int height,
 		Com_Printf( "...registered window class\n" );
 	}
 
-	UpdateMonitorInfo( NULL );
+	r.left = vid_xpos->integer;
+	r.top = vid_ypos->integer;
+	r.right = r.left + width;
+	r.bottom = r.top + height;
 
+	UpdateMonitorInfo( &r );
+	
 	//
 	// create the HWND if one does not already exist
 	//
@@ -637,10 +629,10 @@ static qboolean GLW_CreateWindow( const char *drivername, int width, int height,
 		//
 		// compute width and height
 		//
-		r.left = 0;
-		r.top = 0;
-		r.right  = width;
-		r.bottom = height;
+		//r.left = 0;
+		//r.top = 0;
+		//r.right  = width;
+		//r.bottom = height;
 
 		if ( cdsFullscreen )
 		{
@@ -658,8 +650,6 @@ static qboolean GLW_CreateWindow( const char *drivername, int width, int height,
 		h = r.bottom - r.top;
 
 		// select monitor from window rect
-		vid_xpos = Cvar_Get( "vid_xpos", "", 0 );
-		vid_ypos = Cvar_Get( "vid_ypos", "", 0 );
 		r.left = vid_xpos->integer;
 		r.top = vid_ypos->integer;
 		r.right = r.left + w;
@@ -878,7 +868,7 @@ void UpdateMonitorInfo( const RECT *target )
 			scaleX = (devMode.dmPelsWidth * 100) / w;
 			scaleY = (devMode.dmPelsHeight * 100) / h;
 			if ( scaleX == scaleY ) {
-				Com_Printf( "...detected DPI scale: %i%%\n", scaleX );
+				Com_Printf( S_COLOR_YELLOW "...detected DPI scale: %i%%\n", scaleX );
 				w = devMode.dmPelsWidth;
 				h = devMode.dmPelsHeight;
 			}
@@ -909,6 +899,7 @@ void UpdateMonitorInfo( const RECT *target )
 				}
 		}
 	} else {
+		// no information about current monitor, get desktop settings
 		HDC hDC = GetDC( GetDesktopWindow() );
 		glw_state.desktopX = 0;
 		glw_state.desktopY = 0;
@@ -926,34 +917,32 @@ void UpdateMonitorInfo( const RECT *target )
 static rserr_t GLW_SetMode( const char *drivername, int mode, const char *modeFS, int colorbits, qboolean cdsFullscreen )
 {
 	//HDC hDC;
+	RECT r;
 	const char *win_fs[] = { "W", "FS" };
 	glconfig_t *config = glw_state.config;
 	int		cdsRet;
 	DEVMODE dm;
-		
-	if ( dm_desktop.dmSize == 0 ) 
+
+	vid_xpos = Cvar_Get( "vid_xpos", "3", CVAR_ARCHIVE );
+	vid_ypos = Cvar_Get( "vid_ypos", "22", CVAR_ARCHIVE );
+
+	r.left = vid_xpos->integer;
+	r.top = vid_ypos->integer;
+	r.right = r.left + 320;
+	r.bottom = r.top + 240;
+
+	UpdateMonitorInfo( &r );
+
+	if ( dm_desktop.dmSize == 0 )
 	{
 		SetDesktopDisplaySettings();
 	}
 
 	//
-	// check our desktop attributes
-	//
-	//hDC = GetDC( GetDesktopWindow() );
-	//glw_state.desktopBitsPixel = GetDeviceCaps( hDC, BITSPIXEL );
-	//glw_state.desktopWidth = GetDeviceCaps( hDC, HORZRES );
-	//glw_state.desktopHeight = GetDeviceCaps( hDC, VERTRES );
-	//glw_state.desktopX = 0;
-	//glw_state.desktopY = 0;
-	//ReleaseDC( GetDesktopWindow(), hDC );
-	
-	UpdateMonitorInfo( NULL );
-
-	//
 	// print out informational messages
 	//
 	Com_Printf( "...setting mode %d:", mode );
-	if ( !re.GetModeInfo( &config->vidWidth, &config->vidHeight, &config->windowAspect, 
+	if ( !CL_GetModeInfo( &config->vidWidth, &config->vidHeight, &config->windowAspect,
 		mode, modeFS, glw_state.desktopWidth, glw_state.desktopHeight, cdsFullscreen ) )
 	{
 		Com_Printf( " invalid mode\n" );
@@ -1351,22 +1340,10 @@ void GLimp_Init( glconfig_t *config )
 	Com_Printf( "Initializing OpenGL subsystem\n" );
 
 	// glimp-specific
-	r_allowSoftwareGL = Cvar_Get( "r_allowSoftwareGL", "0", CVAR_LATCH );
+
 	r_maskMinidriver = Cvar_Get( "r_maskMinidriver", "0", CVAR_LATCH );
-	r_swapInterval = Cvar_Get( "r_swapInterval", "0", CVAR_ARCHIVE_ND );
-	r_glDriver = Cvar_Get( "r_glDriver", OPENGL_DRIVER_NAME, CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE );
 	r_stereoEnabled = Cvar_Get( "r_stereoEnabled", "0", CVAR_ARCHIVE_ND | CVAR_LATCH );
 	r_verbose = Cvar_Get( "r_verbose", "0", 0 );
-
-	r_fullscreen = Cvar_Get( "r_fullscreen", "1", CVAR_ARCHIVE | CVAR_LATCH );
-	r_mode = Cvar_Get( "r_mode", "-2", CVAR_ARCHIVE | CVAR_LATCH );
-	r_modeFullscreen = Cvar_Get( "r_modeFullscreen", "-2", CVAR_ARCHIVE | CVAR_LATCH );
-
-	// shared with renderer
-	r_colorbits = Cvar_Get( "r_colorbits", "0", CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE );
-	r_stencilbits = Cvar_Get( "r_stencilbits", "8", CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE );
-	r_depthbits = Cvar_Get( "r_depthbits", "0", CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE );
-	r_drawBuffer = Cvar_Get( "r_drawBuffer", "GL_BACK", CVAR_CHEAT );
 
 	// feedback to renderer configuration
 	glw_state.config = config;

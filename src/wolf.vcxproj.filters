@@ -298,9 +298,6 @@
     <ClInclude Include="renderer\tr_public.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="cgame\tr_types.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="ui\ui_public.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -311,6 +308,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="win32\win_local.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="win32\glw_win.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\main\ui\menudef.h">

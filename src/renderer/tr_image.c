@@ -83,10 +83,8 @@ void R_FreeImageBuffer( void ) {
 */
 void R_GammaCorrect( byte *buffer, int bufSize ) {
 	int i;
-#ifdef USE_PMLIGHT
 	if ( fboEnabled )
 		return;
-#endif
 	for ( i = 0; i < bufSize; i++ ) {
 		buffer[i] = s_gammatable[buffer[i]];
 	}
@@ -1425,11 +1423,7 @@ void R_SetColorMappings( void ) {
 		tr.overbrightBits = 0;		// need hardware gamma for overbright
 
 	// never overbright in windowed mode
-#ifdef USE_PMLIGHT
 	if ( !glConfig.isFullscreen && r_overBrightBits->integer >= 0 && !fboEnabled )
-#else
-	if ( !glConfig.isFullscreen && r_overBrightBits->integer >= 0 )
-#endif
 		tr.overbrightBits = 0;
 
 	// allow 2 overbright bits in 24 bit, but only 1 in 16 bit

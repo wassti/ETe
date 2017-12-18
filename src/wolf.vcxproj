@@ -81,6 +81,7 @@
       <AdditionalIncludeDirectories>$(SolutionDir)libcurl\windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ExceptionHandling>Async</ExceptionHandling>
       <EnableEnhancedInstructionSet>NoExtensions</EnableEnhancedInstructionSet>
+      <FloatingPointModel>Fast</FloatingPointModel>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -130,7 +131,7 @@ nmake /f Makefile.vc6 CFG=release
     </Midl>
     <ClCompile>
       <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS;USE_PBMD5;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS;USE_PBMD5;USE_CURL;CURL_STATICLIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <BufferSecurityCheck>false</BufferSecurityCheck>
@@ -253,9 +254,12 @@ nmake /f Makefile.vc6 CFG=release
     <ClCompile Include="server\sv_snapshot.c" />
     <ClCompile Include="server\sv_world.c" />
     <ClCompile Include="win32\win_eh.cpp" />
+    <ClCompile Include="win32\win_gamma.c" />
+    <ClCompile Include="win32\win_glimp.c" />
     <ClCompile Include="win32\win_input.c" />
     <ClCompile Include="win32\win_main.c" />
     <ClCompile Include="win32\win_minimize.c" />
+    <ClCompile Include="win32\win_qgl.c" />
     <ClCompile Include="win32\win_shared.c" />
     <ClCompile Include="win32\win_snd.c" />
     <ClCompile Include="win32\win_syscon.c" />
@@ -265,7 +269,6 @@ nmake /f Makefile.vc6 CFG=release
     <ClInclude Include="..\main\ui\menudef.h" />
     <ClInclude Include="botai\botai.h" />
     <ClInclude Include="cgame\cg_public.h" />
-    <ClInclude Include="cgame\tr_types.h" />
     <ClInclude Include="client\client.h" />
     <ClInclude Include="client\cl_curl.h" />
     <ClInclude Include="client\keys.h" />
@@ -289,12 +292,13 @@ nmake /f Makefile.vc6 CFG=release
     <ClInclude Include="qcommon\unzip.h" />
     <ClInclude Include="qcommon\vm_local.h" />
     <ClInclude Include="renderer\qgl.h" />
-    <ClInclude Include="renderer\tr_local.h" />
     <ClInclude Include="renderer\tr_public.h" />
     <ClInclude Include="server\server.h" />
     <ClInclude Include="ui\keycodes.h" />
     <ClInclude Include="ui\ui_public.h" />
     <ClInclude Include="win32\win_local.h" />
+    <ClInclude Include="win32\glw_win.h" />
+    <ClInclude Include="win32\resource.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\main\scripts\ai.shader" />

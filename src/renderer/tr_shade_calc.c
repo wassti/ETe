@@ -145,7 +145,7 @@ void RB_CalcDeformVertexes( deformStage_t *ds ) {
 			VectorCopy( backEnd.currentEntity->e.fireRiseDir, worldUp );
 		}
 		// don't go so far if sideways, since they must be moving
-		VectorScale( worldUp, 0.4 + 0.6 * Q_fabs( backEnd.currentEntity->e.fireRiseDir[2] ), worldUp );
+		VectorScale( worldUp, 0.4 + 0.6 * fabs( backEnd.currentEntity->e.fireRiseDir[2] ), worldUp );
 
 		ds->deformationWave.frequency *= -1;
 		if ( ds->deformationWave.frequency > 999 ) {  // hack for negative Z deformation (ack)
@@ -994,7 +994,6 @@ projected textures, but I don't trust the drivers and it
 doesn't fit our shader data.
 ========================
 */
-
 void RB_CalcFogTexCoords( float *st ) {
 	int i;
 	float       *v;
@@ -1099,6 +1098,92 @@ void RB_CalcFogTexCoords( float *st ) {
 			st += 2;
 		}
 	}
+}
+
+
+/*
+========================
+RB_CalcFogProgramParms
+========================
+*/
+const fogProgramParms_t *RB_CalcFogProgramParms( void )
+{
+	static fogProgramParms_t parm;
+	const fog_t	*fog;
+	vec3_t		local;
+	vec4_t		fogSurface;
+	bmodel_t    *bmodel;
+
+	Com_Memset( parm.fogDepthVector, 0, sizeof( parm.fogDepthVector ) );
+
+	// get fog stuff
+	fog = tr.world->fogs + tess.fogNum;
+	bmodel = tr.world->bmodels + fog->modelNum;
+
+	// if the brush model containing the fog volume wasn't in the scene, then don't bother rendering the fog
+	//	if( bmodel->visible[ backEnd.smpFrame ] == qfalse )
+	//		return;
+
+	// all fogging distance is based on world Z units
+	VectorSubtract( backEnd.orientation.origin, backEnd.viewParms.orientation.origin, local );
+	//%	VectorSubtract( local, bmodel->origin[ backEnd.smpFrame ], local );
+	parm.fogDistanceVector[0] = -backEnd.orientation.modelMatrix[2];
+	parm.fogDistanceVector[1] = -backEnd.orientation.modelMatrix[6];
+	parm.fogDistanceVector[2] = -backEnd.orientation.modelMatrix[10];
+	parm.fogDistanceVector[3] = DotProduct( local, backEnd.viewParms.orientation.axis[0] );
+
+	// scale the fog vectors based on the fog's thickness
+	parm.fogDistanceVector[0] *= fog->shader->fogParms.tcScale * 1.0;
+	parm.fogDistanceVector[1] *= fog->shader->fogParms.tcScale * 1.0;
+	parm.fogDistanceVector[2] *= fog->shader->fogParms.tcScale * 1.0;
+	parm.fogDistanceVector[3] *= fog->shader->fogParms.tcScale * 1.0;
+
+	// offset view origin by fog brush origin (fixme: really necessary?)
+	//%	VectorSubtract( backEnd.orientation.viewOrigin, bmodel->origin[ backEnd.smpFrame ], viewOrigin );
+	//VectorCopy( backEnd.orientation.viewOrigin, viewOrigin );
+
+	// offset fog surface
+	VectorCopy( fog->surface, fogSurface );
+	fogSurface[3] = fog->surface[3] + DotProduct( fogSurface, bmodel->orientation.origin );
+
+	parm.fogColor = fog->parms.color;
+
+	// ydnar: general fog case
+	if ( fog->originalBrushNumber >= 0 ) {
+		// rotate the gradient vector for this orientation
+		if (fog->hasSurface) {
+			parm.fogDepthVector[0] = fogSurface[0] * backEnd.orientation.axis[0][0] +
+				fogSurface[1] * backEnd.orientation.axis[0][1] + fogSurface[2] * backEnd.orientation.axis[0][2];
+			parm.fogDepthVector[1] = fogSurface[0] * backEnd.orientation.axis[1][0] +
+				fogSurface[1] * backEnd.orientation.axis[1][1] + fogSurface[2] * backEnd.orientation.axis[1][2];
+			parm.fogDepthVector[2] = fogSurface[0] * backEnd.orientation.axis[2][0] +
+				fogSurface[1] * backEnd.orientation.axis[2][1] + fogSurface[2] * backEnd.orientation.axis[2][2];
+			parm.fogDepthVector[3] = -fogSurface[3] + DotProduct( backEnd.orientation.origin, fogSurface );
+
+			// scale the fog vectors based on the fog's thickness
+			parm.fogDepthVector[0] *= fog->shader->fogParms.tcScale * 1.0;
+			parm.fogDepthVector[1] *= fog->shader->fogParms.tcScale * 1.0;
+			parm.fogDepthVector[2] *= fog->shader->fogParms.tcScale * 1.0;
+			parm.fogDepthVector[3] *= fog->shader->fogParms.tcScale * 1.0;
+
+			parm.eyeT = DotProduct( backEnd.orientation.viewOrigin, parm.fogDepthVector ) + parm.fogDepthVector[3];
+		}
+		else 
+		{
+			parm.eyeT = 1;   // non-surface fog always has eye inside
+
+		}
+
+		// see if the viewpoint is outside
+		parm.eyeInside = parm.eyeT < 0 ? 0.0 : 1.0;
+		parm.level = qfalse;
+	}
+	else
+	{
+		parm.level = qtrue;
+	}
+
+	return &parm;
 }
 
 

@@ -133,7 +133,7 @@ WIN32 MOUSE CONTROL
 IN_MouseActive
 ================
 */
-qboolean IN_MouseActive( void ) 
+qboolean IN_MouseActive( void )
 {
 	return ( in_nograb->integer == 0 && s_wmv.mouseActive );
 }
@@ -147,7 +147,7 @@ Called when window gets resized/moved
 Updates window center and clip region
 ================
 */
-void IN_UpdateWindow( RECT *window_rect, qboolean updateClipRegion ) 
+void IN_UpdateWindow( RECT *window_rect, qboolean updateClipRegion )
 {
 	RECT		rect, rc;
 
@@ -180,7 +180,7 @@ void IN_UpdateWindow( RECT *window_rect, qboolean updateClipRegion )
 IN_CaptureMouse
 ================
 */
-static void IN_CaptureMouse( const RECT *clipRect ) 
+static void IN_CaptureMouse( const RECT *clipRect )
 {
 	while( ShowCursor( FALSE ) >= 0 )
 		;
@@ -195,7 +195,7 @@ static void IN_CaptureMouse( const RECT *clipRect )
 IN_ActivateWin32Mouse
 ================
 */
-static void IN_ActivateWin32Mouse( void ) 
+static void IN_ActivateWin32Mouse( void )
 {
 	RECT window_rect;
 	IN_UpdateWindow( &window_rect, qfalse );
@@ -226,7 +226,8 @@ static void IN_DeactivateWin32Mouse( void )
 IN_Win32Mouse
 ================
 */
-static void IN_Win32Mouse( int *mx, int *my ) {
+static void IN_Win32Mouse( int *mx, int *my ) 
+{
 	POINT		current_pos;
 
 	// find mouse movement
@@ -308,7 +309,7 @@ static BOOL IN_InitRawMouse( void ) {
 IN_ActivateRawMouse
 ================
 */
-static void IN_ActivateRawMouse( void ) 
+static void IN_ActivateRawMouse( void )
 {
 	RECT		window_rect;
 	RAWINPUTDEVICE Rid;
@@ -669,8 +670,8 @@ static void IN_DIMouse( int *mx, int *my ) {
 				Sys_QueEvent( od.dwTimeStamp, SE_KEY, K_MOUSE4, qtrue, 0, NULL );
 			else
 				Sys_QueEvent( od.dwTimeStamp, SE_KEY, K_MOUSE4, qfalse, 0, NULL );
-			break;      
-    // https://zerowing.idsoftware.com/bugzilla/show_bug.cgi?id=50
+			break;
+		// https://zerowing.idsoftware.com/bugzilla/show_bug.cgi?id=50
 		case DIMOFS_Z:
 			value = od.dwData;
 			if (value == 0) {
@@ -713,7 +714,7 @@ IN_ActivateMouse
 Called when the window gains focus or changes in some way
 ===========
 */
-static void IN_ActivateMouse( void ) 
+static void IN_ActivateMouse( void )
 {
 	if ( !s_wmv.mouseInitialized )
 		return;
@@ -723,7 +724,7 @@ static void IN_ActivateMouse( void )
 		return;
 	}
 
-	if ( s_wmv.mouseActive ) 
+	if ( s_wmv.mouseActive )
 		return;
 
 	s_wmv.mouseActive = qtrue;
@@ -746,7 +747,7 @@ IN_DeactivateMouse
 Called when the window loses focus
 ===========
 */
-static void IN_DeactivateMouse( void ) 
+static void IN_DeactivateMouse( void )
 {
 	if ( !s_wmv.mouseActive )
 		return;
@@ -768,7 +769,7 @@ static void IN_DeactivateMouse( void )
 IN_StartupMouse
 ===========
 */
-static void IN_StartupMouse( void ) 
+static void IN_StartupMouse( void )
 {
 	s_wmv.mouseInitialized = qfalse;
 	s_wmv.mouseStartupDelayed = qfalse;
@@ -1199,9 +1200,8 @@ void IN_Frame( void ) {
 
 	if ( Key_GetCatcher() & KEYCATCH_CONSOLE ) {
 		// temporarily deactivate if not in the game and
-		// running on the desktop
-		// voodoo always counts as full screen
-		if ( !glw_state.cdsFullscreen )
+		// running on the desktop with multimonitor configuration
+		if ( !glw_state.cdsFullscreen || glw_state.monitorCount > 1 )
 		{
 			IN_DeactivateMouse();
 			WIN_EnableAltTab();
@@ -1216,7 +1216,7 @@ void IN_Frame( void ) {
 	}
 
 	IN_ActivateMouse();
-	
+
 	WIN_DisableAltTab();
 	WIN_EnableHook();
 

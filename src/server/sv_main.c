@@ -252,6 +252,7 @@ but not on every player enter or exit.
 #define HEARTBEAT_GAME  "EnemyTerritory-1"
 #define HEARTBEAT_DEAD  "ETFlatline-1"           // NERVE - SMF
 
+#define	MASTERDNS_MSEC	24*60*60*1000
 void SV_MasterHeartbeat( const char *hbname ) {
 	static netadr_t	adr[MAX_MASTER_SERVERS][2]; // [2] for v4 and v6 address for the same address string.
 	int			i;
@@ -932,7 +933,7 @@ static void SVC_RemoteCommand( const netadr_t *from, msg_t *msg ) {
 		return;
 	}
 
-	if ( !strlen( sv_rconPassword->string ) ||
+	if ( !sv_rconPassword->string[0] ||
 		strcmp (Cmd_Argv(1), sv_rconPassword->string) ) {
 		static leakyBucket_t bucket;
 
@@ -953,34 +954,35 @@ static void SVC_RemoteCommand( const netadr_t *from, msg_t *msg ) {
 	svs.redirectAddress = *from;
 	Com_BeginRedirect (sv_outputbuf, SV_OUTPUTBUF_LENGTH, SV_FlushRedirect);
 
-	if ( !strlen( sv_rconPassword->string ) ) {
+	if ( !sv_rconPassword->string[0] ) {
 		Com_Printf ("No rconpassword set on the server.\n");
 	} else if ( !valid ) {
 		Com_Printf ("Bad rconpassword.\n");
 	} else {
-		remaining[0] = 0;
+		remaining[0] = '\0';
 
 		// ATVI Wolfenstein Misc #284
 		// get the command directly, "rcon <pass> <command>" to avoid quoting issues
 		// extract the command by walking
 		// since the cmd formatting can fuckup (amount of spaces), using a dumb step by step parsing
 		cmd_aux = Cmd_Cmd();
-		cmd_aux += 4;
-		while ( cmd_aux[0] == ' ' )
+		cmd_aux+=4;
+		while(cmd_aux[0]==' ')
 			cmd_aux++;
-		while ( cmd_aux[0] && cmd_aux[0] != ' ' ) // password
+		while(cmd_aux[0] && cmd_aux[0]!=' ') // password
 			cmd_aux++;
-		while ( cmd_aux[0] == ' ' )
+		while(cmd_aux[0]==' ')
 			cmd_aux++;
-
-		Q_strcat( remaining, sizeof( remaining ), cmd_aux );
-
-		Cmd_ExecuteString( remaining );
+		
+		Q_strcat( remaining, sizeof(remaining), cmd_aux);
+		
+		Cmd_ExecuteString (remaining);
 
 	}
 
-	Com_EndRedirect();
+	Com_EndRedirect ();
 }
+
 
 /*
 =================

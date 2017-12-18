@@ -267,6 +267,7 @@ typedef struct {
 	// demo information
 	char		demoName[MAX_OSPATH];
 	char		recordName[MAX_OSPATH]; // without extension
+	qboolean	explicitRecordName;
 	char		recordNameShort[TRUNCATE_LENGTH]; // for recording message
 	qboolean	dm84compat;
 	qboolean	demorecording;
@@ -451,7 +452,6 @@ extern cvar_t  *cl_showSend;
 extern cvar_t  *cl_showServerCommands;      // NERVE - SMF
 extern cvar_t  *cl_timeNudge;
 extern cvar_t  *cl_showTimeDelta;
-extern cvar_t  *cl_freezeDemo;
 
 extern	cvar_t	*cl_yawspeed;
 extern	cvar_t	*cl_pitchspeed;
@@ -508,6 +508,22 @@ extern qboolean sv_cheats;
 
 extern	cvar_t	*com_maxfps;
 
+extern	cvar_t	*r_allowSoftwareGL;
+extern	cvar_t	*r_swapInterval;
+extern	cvar_t	*r_glDriver;
+
+extern	cvar_t	*r_displayRefresh;
+extern	cvar_t	*r_fullscreen;
+extern	cvar_t	*r_mode;
+extern	cvar_t	*r_modeFullscreen;
+extern	cvar_t	*r_customwidth;
+extern	cvar_t	*r_customheight;
+extern	cvar_t	*r_customaspect;
+extern	cvar_t	*r_colorbits;
+extern	cvar_t	*r_stencilbits;
+extern	cvar_t	*r_depthbits;
+extern	cvar_t	*r_drawBuffer;
+
 //=================================================
 
 //
@@ -552,6 +568,9 @@ void CL_OpenURL( const char *url ); // TTimo
 
 qboolean CL_CheckPaused( void );
 qboolean CL_NoDelay( void );
+
+qboolean CL_GetModeInfo( int *width, int *height, float *windowAspect, int mode, const char *modeFS, int dw, int dh, qboolean fullscreen );
+
 
 //
 // cl_input
@@ -687,7 +706,6 @@ extern console_t con;
 void Con_CheckResize( void );
 void Con_Init( void );
 void Con_Shutdown( void );
-void Con_Clear_f( void );
 void Con_ToggleConsole_f( void );
 void Con_DrawNotify( void );
 void Con_ClearNotify( void );

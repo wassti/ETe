@@ -100,7 +100,7 @@ static float ProjectRadius( float r, vec3_t location ) {
 	}
 
 	p[0] = 0;
-	p[1] = Q_fabs( r );
+	p[1] = fabs( r );
 	p[2] = -dist;
 
 	projected[0] = p[0] * tr.viewParms.projectionMatrix[0] +
@@ -413,7 +413,7 @@ void R_AddAnimSurfaces( trRefEntity_t *ent ) {
 			for ( n = 0; n < numDlights; n++ ) {
 				dl = dlights[n];
 				tr.light = dl;
-				R_AddLitSurf( (void *)surface, shader /*, fogNum*/ );
+				R_AddLitSurf( (void *)surface, shader, fogNum );
 			}
 		}
 #endif
@@ -1209,6 +1209,8 @@ void RB_SurfaceAnim( mdsSurface_t *surface ) {
 	dt = ri.Milliseconds();
 	ldt = dt;
 #endif
+
+	VBO_Flush();
 
 	refent = &backEnd.currentEntity->e;
 	boneList = ( int * )( (byte *)surface + surface->ofsBoneReferences );

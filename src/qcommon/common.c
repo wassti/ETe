@@ -1650,7 +1650,7 @@ void Com_TouchMemory( void ) {
 	const memzone_t *zone;
 	int		start, end;
 	int		i, j;
-	int		sum;
+	unsigned int sum;
 
 	Z_CheckHeap();
 
@@ -1660,13 +1660,13 @@ void Com_TouchMemory( void ) {
 
 	j = hunk_low.permanent >> 2;
 	for ( i = 0 ; i < j ; i+=64 ) {			// only need to touch each page
-		sum += ((int *)s_hunkData)[i];
+		sum += ((unsigned int *)s_hunkData)[i];
 	}
 
 	i = ( s_hunkTotal - hunk_high.permanent ) >> 2;
 	j = hunk_high.permanent >> 2;
 	for (  ; i < j ; i+=64 ) {			// only need to touch each page
-		sum += ((int *)s_hunkData)[i];
+		sum += ((unsigned int *)s_hunkData)[i];
 	}
 
 	zone = mainzone;
@@ -1674,7 +1674,7 @@ void Com_TouchMemory( void ) {
 		if ( block->tag != TAG_FREE ) {
 			j = block->size >> 2;
 			for ( i = 0 ; i < j ; i+=64 ) {				// only need to touch each page
-				sum += ((int *)block)[i];
+				sum += ((unsigned int *)block)[i];
 			}
 		}
 		if ( block->next == &zone->blocklist ) {
@@ -3308,7 +3308,8 @@ void Com_Init( char *commandLine ) {
 
 	com_logfile = Cvar_Get ("logfile", "0", CVAR_TEMP );
 
-	com_timescale = Cvar_Get ("timescale", "1", CVAR_CHEAT | CVAR_SYSTEMINFO );
+	com_timescale = Cvar_Get( "timescale", "1", CVAR_CHEAT | CVAR_SYSTEMINFO );
+	Cvar_CheckRange( com_timescale, "0", NULL, CV_FLOAT );
 	com_fixedtime = Cvar_Get ("fixedtime", "0", CVAR_CHEAT);
 	com_showtrace = Cvar_Get ("com_showtrace", "0", CVAR_CHEAT);
 	com_viewlog = Cvar_Get( "viewlog", "0", 0 );
@@ -3424,20 +3425,19 @@ void Com_Init( char *commandLine ) {
 		}
 	}
 
-	// start in full screen ui mode
-	Cvar_Set("r_uiFullScreen", "1");
-
 #ifndef DEDICATED
-	CL_StartHunkUsers( );
+	// start in full screen ui mode
+	Cvar_Set( "r_uiFullScreen", "1" );
+	CL_StartHunkUsers();
 #endif
 
 	if ( !com_errorEntered )
 		Sys_ShowConsole( com_viewlog->integer, qfalse );
 
-	// make sure single player is off by default
-	Cvar_Set("ui_singlePlayerActive", "0");
-
 #ifndef DEDICATED
+	// make sure single player is off by default
+	Cvar_Set( "ui_singlePlayerActive", "0" );
+
 	// NERVE - SMF - force recommendedSet and don't do vid_restart if in safe mode
 	if ( !com_recommendedSet->integer && !safeMode ) {
 		Com_SetRecommended();
@@ -3664,7 +3664,7 @@ void Com_Frame( qboolean noDelay ) {
 	// main event loop
 	//
 	if ( com_speeds->integer ) {
-		timeBeforeFirstEvents = Sys_Milliseconds ();
+		timeBeforeFirstEvents = Sys_Milliseconds();
 	}
 	
 	// we may want to spin here if things are going too fast
@@ -3698,7 +3698,7 @@ void Com_Frame( qboolean noDelay ) {
 			if ( timeValSV < timeVal )
 				timeVal = timeValSV;
 		} else {
-			timeVal = Com_TimeVal(minMsec);
+			timeVal = Com_TimeVal( minMsec );
 		}
 		if ( com_dedicated->integer ) {
 			NET_Sleep( timeVal );
@@ -3729,7 +3729,7 @@ void Com_Frame( qboolean noDelay ) {
 	// server side
 	//
 	if ( com_speeds->integer ) {
-		timeBeforeServer = Sys_Milliseconds ();
+		timeBeforeServer = Sys_Milliseconds();
 	}
 
 	SV_Frame( msec );
@@ -3778,22 +3778,22 @@ void Com_Frame( qboolean noDelay ) {
 		// without a frame of latency
 		//
 		if ( com_speeds->integer ) {
-			timeBeforeEvents = Sys_Milliseconds ();
+			timeBeforeEvents = Sys_Milliseconds();
 		}
 		Com_EventLoop();
-		Cbuf_Execute ();
+		Cbuf_Execute();
 
 		//
 		// client side
 		//
 		if ( com_speeds->integer ) {
-			timeBeforeClient = Sys_Milliseconds ();
+			timeBeforeClient = Sys_Milliseconds();
 		}
 
 		CL_Frame( msec );
 
 		if ( com_speeds->integer ) {
-			timeAfter = Sys_Milliseconds ();
+			timeAfter = Sys_Milliseconds();
 		}
 	}
 #endif

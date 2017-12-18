@@ -352,7 +352,7 @@ qhandle_t R_RegisterIQM(const char *name, model_t *mod)
 
 typedef struct
 {
-	char *ext;
+	const char *ext;
 	qhandle_t (*ModelLoader)( const char *, model_t * );
 } modelExtToLoaderMap_t;
 
@@ -364,8 +364,8 @@ static modelExtToLoaderMap_t modelLoaders[ ] =
 	{ "mds", R_RegisterMDS },
 	{ "mdm", R_RegisterMDM },
 	{ "mdx", R_RegisterMDX },
-	{ "mdc", R_RegisterMDC },
-	{ "md3", R_RegisterMD3 }
+	{ "md3", R_RegisterMD3 },
+	{ "mdc", R_RegisterMDC }
 };
 
 static int numModelLoaders = ARRAY_LEN(modelLoaders);

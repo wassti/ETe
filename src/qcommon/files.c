@@ -343,7 +343,7 @@ qboolean FS_Initialized( void ) {
 FS_PakIsPure
 =================
 */
-qboolean FS_PakIsPure( const pack_t *pack ) {
+static qboolean FS_PakIsPure( const pack_t *pack ) {
 	int i;
 
 	if ( fs_numServerPaks ) {
@@ -352,7 +352,7 @@ qboolean FS_PakIsPure( const pack_t *pack ) {
 			// NOTE TTimo: a pk3 with same checksum but different name would be validated too
 			//   I don't see this as allowing for any exploit, it would only happen if the client does manips of its file names 'not a bug'
 			if ( pack->checksum == fs_serverPaks[i] ) {
-				return qtrue;       // on the approved list
+				return qtrue;		// on the aproved list
 			}
 		}
 		return qfalse;	// not on the pure server pak list
@@ -4577,9 +4577,6 @@ void FS_Restart( int checksumFeed ) {
 
 	// set the checksum feed
 	fs_checksumFeed = checksumFeed;
-
-	// clear pak references
-	FS_ClearPakReferences(0);
 
 	// try to start up normally
 	FS_Startup();

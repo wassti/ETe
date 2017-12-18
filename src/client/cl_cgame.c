@@ -278,8 +278,8 @@ Set up argc/argv for the given command
 ===================
 */
 static qboolean CL_GetServerCommand( int serverCommandNumber ) {
-	char	*s;
-	char	*cmd;
+	const char *s;
+	const char *cmd;
 	static char bigConfigString[BIG_INFO_STRING];
 	int argc;
 
@@ -543,7 +543,7 @@ static void *VM_ArgPtr( intptr_t intValue ) {
 	  return NULL;
 
 	if ( cgvm->entryPoint )
-		return (void *)(cgvm->dataBase + intValue);
+		return (void *)(intValue);
 	else
 		return (void *)(cgvm->dataBase + (intValue & cgvm->dataMask));
 }
@@ -1415,6 +1415,8 @@ CL_SetCGameTime
 ==================
 */
 void CL_SetCGameTime( void ) {
+	qboolean demoFreezed;
+
 	// getting a valid frame message ends the connection process
 	if ( cls.state != CA_ACTIVE ) {
 		if ( cls.state != CA_PRIMED ) {
@@ -1460,26 +1462,16 @@ void CL_SetCGameTime( void ) {
 	}
 	cl.oldFrameServerTime = cl.snap.serverTime;
 
-
 	// get our current view of time
-
-	if ( clc.demoplaying && cl_freezeDemo->integer ) {
-		// cl_freezeDemo is used to lock a demo in place for single frame advances
-
+	demoFreezed = clc.demoplaying && com_timescale->value == 0.0f;
+	if ( demoFreezed ) {
+		// \timescale 0 is used to lock a demo in place for single frame advances
+		cl.serverTimeDelta -= cls.frametime;
 	} else {
 		// cl_timeNudge is a user adjustable cvar that allows more
 		// or less latency to be added in the interest of better 
 		// smoothness or better responsiveness.
-		/*int tn;
-
-		tn = cl_timeNudge->integer;
-		if ( tn < -30 ) {
-			tn = -30;
-		} else if ( tn > 30 ) {
-			tn = 30;
-		}*/
-
-		cl.serverTime = cls.realtime + cl.serverTimeDelta - cl_timeNudge->integer/*tn*/;
+		cl.serverTime = cls.realtime + cl.serverTimeDelta - cl_timeNudge->integer;
 
 		// guarantee that time will never flow backwards, even if
 		// serverTimeDelta made an adjustment or cl_timeNudge was changed
@@ -1528,7 +1520,7 @@ void CL_SetCGameTime( void ) {
 		CL_ReadDemoMessage();
 		if ( cls.state != CA_ACTIVE ) {
 			Cvar_Set( "timescale", "1" );
-			return;     // end of demo
+			return; // end of demo
 		}
 	}
 

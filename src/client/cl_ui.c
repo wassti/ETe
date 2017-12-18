@@ -59,9 +59,9 @@ static void GetClientState( uiClientState_t *state ) {
 LAN_LoadCachedServers
 ====================
 */
-void LAN_LoadCachedServers() {
-	int size;
+void LAN_LoadCachedServers( void ) {
 	fileHandle_t fileIn;
+	int size, file_size;
 	char filename[MAX_QPATH];
 
 	cls.numglobalservers = cls.numfavoriteservers = 0;
@@ -74,30 +74,41 @@ void LAN_LoadCachedServers() {
 	}
 
 	// Arnout: moved to mod/profiles dir
-	//if (FS_SV_FOpenFileRead(filename, &fileIn)) {
-	if ( FS_FOpenFileRead( filename, &fileIn, qtrue ) ) {
-		FS_Read( &cls.numglobalservers, sizeof( int ), fileIn );
-		FS_Read( &cls.numfavoriteservers, sizeof( int ), fileIn );
-		FS_Read( &size, sizeof( int ), fileIn );
-		if ( size == sizeof( cls.globalServers ) + sizeof( cls.favoriteServers ) ) {
-			FS_Read( &cls.globalServers, sizeof( cls.globalServers ), fileIn );
-			FS_Read( &cls.favoriteServers, sizeof( cls.favoriteServers ), fileIn );
-		} else {
-			cls.numglobalservers = cls.numfavoriteservers = 0;
-			cls.numGlobalServerAddresses = 0;
+	//if (FS_SV_FOpenFileRead(filename, &fileIn)) { 
+	//if ( FS_FOpenFileRead( filename, &fileIn, qtrue ) ) { 
+	file_size = FS_Home_FOpenFileRead( filename, &fileIn );
+	if ( file_size < (3*sizeof(int)) ) {
+		if ( fileIn != FS_INVALID_HANDLE ) {
+			FS_FCloseFile( fileIn );
 		}
-		FS_FCloseFile( fileIn );
+		return;
+	} 
+
+	FS_Read( &cls.numglobalservers, sizeof(int), fileIn );
+	FS_Read( &cls.numfavoriteservers, sizeof(int), fileIn );
+	FS_Read( &size, sizeof(int), fileIn );
+
+	if ( size == sizeof(cls.globalServers) + sizeof(cls.favoriteServers) ) {
+		FS_Read( &cls.globalServers, sizeof(cls.globalServers), fileIn );
+		FS_Read( &cls.favoriteServers, sizeof(cls.favoriteServers), fileIn );
+	} else {
+		cls.numglobalservers = cls.numfavoriteservers = 0;
+		cls.numGlobalServerAddresses = 0;
 	}
+
+	FS_FCloseFile( fileIn );
 }
+
 
 /*
 ====================
 LAN_SaveServersToCache
 ====================
 */
-void LAN_SaveServersToCache() {
-	int size;
+void LAN_SaveServersToCache( void ) {
+	
 	fileHandle_t fileOut;
+	int size;
 	char filename[MAX_QPATH];
 
 	if ( com_gameInfo.usesProfiles && cl_profile->string[0] ) {
@@ -109,13 +120,17 @@ void LAN_SaveServersToCache() {
 	// Arnout: moved to mod/profiles dir
 	//fileOut = FS_SV_FOpenFileWrite(filename);
 	fileOut = FS_FOpenFileWrite( filename );
-	FS_Write( &cls.numglobalservers, sizeof( int ), fileOut );
-	FS_Write( &cls.numfavoriteservers, sizeof( int ), fileOut );
-	size = sizeof( cls.globalServers ) + sizeof( cls.favoriteServers );
-	FS_Write( &size, sizeof( int ), fileOut );
-	FS_Write( &cls.globalServers, sizeof( cls.globalServers ), fileOut );
-	FS_Write( &cls.favoriteServers, sizeof( cls.favoriteServers ), fileOut );
-	FS_FCloseFile( fileOut );
+	if ( fileOut == FS_INVALID_HANDLE )
+		return;
+
+	FS_Write(&cls.numglobalservers, sizeof(int), fileOut);
+	FS_Write(&cls.numfavoriteservers, sizeof(int), fileOut);
+	size = sizeof(cls.globalServers) + sizeof(cls.favoriteServers);
+	FS_Write(&size, sizeof(int), fileOut);
+	FS_Write(&cls.globalServers, sizeof(cls.globalServers), fileOut);
+	FS_Write(&cls.favoriteServers, sizeof(cls.favoriteServers), fileOut);
+
+	FS_FCloseFile(fileOut);
 }
 
 
@@ -619,6 +634,7 @@ static int LAN_ServerIsVisible(int source, int n ) {
 	return qfalse;
 }
 
+
 /*
 =======================
 LAN_UpdateVisiblePings
@@ -627,6 +643,7 @@ LAN_UpdateVisiblePings
 qboolean LAN_UpdateVisiblePings(int source ) {
 	return CL_UpdateVisiblePings_f(source);
 }
+
 
 /*
 ====================
@@ -683,8 +700,9 @@ CL_GetGlConfig
 ====================
 */
 static void CL_GetGlconfig( glconfig_t *config ) {
-	*config = cls.glconfig;
+	*config = *re.GetConfig();
 }
+
 
 /*
 ====================
@@ -697,7 +715,7 @@ static void CL_GetClipboardData( char *buf, int buflen ) {
 	cbd = Sys_GetClipboardData();
 
 	if ( !cbd ) {
-		*buf = 0;
+		*buf = '\0';
 		return;
 	}
 
@@ -705,6 +723,7 @@ static void CL_GetClipboardData( char *buf, int buflen ) {
 
 	Z_Free( cbd );
 }
+
 
 /*
 ====================
@@ -714,6 +733,7 @@ Key_KeynumToStringBuf
 void Key_KeynumToStringBuf( int keynum, char *buf, int buflen ) {
 	Q_strncpyz( buf, Key_KeynumToString( keynum, qtrue ), buflen );
 }
+
 
 /*
 ====================
@@ -739,7 +759,7 @@ CLUI_GetCDKey
 ====================
 */
 static void CLUI_GetCDKey( char *buf, int buflen ) {
-	*buf = 0;
+	*buf = '\0';
 }
 
 
@@ -792,7 +812,7 @@ static void *VM_ArgPtr( intptr_t intValue ) {
 	  return NULL;
 
 	if ( uivm->entryPoint )
-		return (void *)(uivm->dataBase + intValue);
+		return (void *)(intValue);
 	else
 		return (void *)(uivm->dataBase + (intValue & uivm->dataMask));
 }
@@ -988,7 +1008,7 @@ intptr_t CL_UISystemCalls( intptr_t *args ) {
 		return 0;
 
 	case UI_R_MODELBOUNDS:
-		re.ModelBounds( args[1], VMA( 2 ), VMA( 3 ) );
+		re.ModelBounds( args[1], VMA(2), VMA(3) );
 		return 0;
 
 	case UI_UPDATESCREEN:
@@ -1297,13 +1317,13 @@ static intptr_t QDECL UI_DllSyscall( intptr_t arg, ... ) {
 	intptr_t	args[10]; // max.count for UI
 	va_list	ap;
 	int i;
-  
+
 	args[0] = arg;
 	va_start( ap, arg );
 	for (i = 1; i < ARRAY_LEN( args ); i++ )
 		args[ i ] = va_arg( ap, intptr_t );
 	va_end( ap );
-  
+
 	return CL_UISystemCalls( args );
 #else
 	return CL_UISystemCalls( &arg );
@@ -1333,7 +1353,7 @@ CL_ShutdownUI
 ====================
 */
 void CL_ShutdownUI( void ) {
-    Key_SetCatcher( Key_GetCatcher( ) & ~KEYCATCH_UI );
+	Key_SetCatcher( Key_GetCatcher() & ~KEYCATCH_UI );
 	cls.uiStarted = qfalse;
 	if ( !uivm ) {
 		return;

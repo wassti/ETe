@@ -45,7 +45,7 @@ static float s_flipMatrix[16] = {
 ** GL_Bind
 */
 void GL_Bind( image_t *image ) {
-	int texnum;
+	GLuint texnum;
 
 	if ( !image ) {
 		ri.Printf( PRINT_WARNING, "GL_Bind: NULL image\n" );
@@ -94,7 +94,7 @@ void GL_SelectTexture( int unit )
 ** GL_BindMultitexture
 */
 void GL_BindMultitexture( image_t *image0, GLuint env0, image_t *image1, GLuint env1 ) {
-	int		texnum0, texnum1;
+	GLuint	texnum0, texnum1;
 
 	texnum0 = image0->texnum;
 	texnum1 = image1->texnum;
@@ -121,11 +121,14 @@ void GL_BindMultitexture( image_t *image0, GLuint env0, image_t *image1, GLuint 
 /*
 ** GL_BindTexture
 */
-void GL_BindTexture( int unit, GLuint texnum ) 
+void GL_BindTexture( int unit, GLuint texnum )
 {
-	GL_SelectTexture( unit );
-	glState.currenttextures[ unit ] = texnum;
-	qglBindTexture( GL_TEXTURE_2D, texnum );
+	if ( glState.currenttextures[ unit ] != texnum )
+	{
+		GL_SelectTexture( unit );
+		glState.currenttextures[ unit ] = texnum;
+		qglBindTexture( GL_TEXTURE_2D, texnum );
+	}
 }
 
 
@@ -620,9 +623,6 @@ static void RB_RenderDrawSurfList( drawSurf_t *drawSurfs, int numDrawSurfs ) {
 	// save original time for entity shader offsets
 	originalTime = backEnd.refdef.floatTime;
 
-	// clear the z buffer, set the modelview, etc
-	RB_BeginDrawingView();
-
 	// draw everything
 	oldEntityNum = -1;
 	backEnd.currentEntity = &tr.worldEntity;
@@ -656,7 +656,7 @@ static void RB_RenderDrawSurfList( drawSurf_t *drawSurfs, int numDrawSurfs ) {
 				RB_EndSurface();
 			}
 #ifdef USE_PMLIGHT
-			#define INSERT_POINT SS_UNDERWATER
+			#define INSERT_POINT SS_FOG
 			if ( backEnd.refdef.numLitSurfs && oldShaderSort < INSERT_POINT && shader->sort >= INSERT_POINT ) {
 				//RB_BeginDrawingLitSurfs(); // no need, already setup in RB_BeginDrawingView()
 				qglDepthRange( 0, 1 );
@@ -697,7 +697,7 @@ static void RB_RenderDrawSurfList( drawSurf_t *drawSurfs, int numDrawSurfs ) {
 #ifdef USE_LEGACY_DLIGHTS
 #ifdef USE_PMLIGHT
 				if ( !r_dlightMode->integer )
-#endif // USE_PMLIGHT
+#endif 
 				if ( backEnd.currentEntity->needDlights ) {
 					R_TransformDlights( backEnd.refdef.num_dlights, backEnd.refdef.dlights, &backEnd.orientation );
 				}
@@ -806,16 +806,6 @@ static void RB_RenderDrawSurfList( drawSurf_t *drawSurfs, int numDrawSurfs ) {
 	if ( depthRange ) {
 		qglDepthRange (0, 1);
 	}
-
-	// (SA) draw sun
-	RB_DrawSun();
-
-
-	// darken down any stencil shadows
-	RB_ShadowFinish();
-
-	// add light flares on lights that aren't obscured
-	RB_RenderFlares();
 }
 
 
@@ -872,7 +862,7 @@ RB_RenderLitSurfList
 */
 static void RB_RenderLitSurfList( dlight_t* dl ) {
 	shader_t		*shader, *oldShader;
-	//int			fogNum, oldFogNum;
+	int				fogNum, oldFogNum;
 	int				entityNum, oldEntityNum;
 	qboolean		depthRange, oldDepthRange, isCrosshair, wasCrosshair;
 	const litSurf_t	*litSurf;
@@ -886,7 +876,7 @@ static void RB_RenderLitSurfList( dlight_t* dl ) {
 	oldEntityNum = -1;
 	backEnd.currentEntity = &tr.worldEntity;
 	oldShader = NULL;
-	//oldFogNum = -1;
+	oldFogNum = -1;
 	oldDepthRange = qfalse;
 	wasCrosshair = qfalse;
 	oldSort = MAX_UINT;
@@ -900,7 +890,7 @@ static void RB_RenderLitSurfList( dlight_t* dl ) {
 			continue;
 		}
 		oldSort = litSurf->sort;
-		R_DecomposeLitSort( litSurf->sort, &entityNum, &shader /*, &fogNum*/ );
+		R_DecomposeLitSort( litSurf->sort, &entityNum, &shader, &fogNum );
 
 		// anything BEFORE opaque is sky/portal, anything AFTER it should never have been added
 		//assert( shader->sort == SS_OPAQUE );
@@ -912,14 +902,14 @@ static void RB_RenderLitSurfList( dlight_t* dl ) {
 		// change the tess parameters if needed
 		// a "entityMergable" shader is a shader that can have surfaces from seperate
 		// entities merged into a single batch, like smoke and blood puff sprites
-		if ( shader != NULL && ( shader != oldShader /*|| fogNum != oldFogNum*/
+		if ( shader != NULL && ( shader != oldShader || fogNum != oldFogNum
 			|| ( entityNum != oldEntityNum && !shader->entityMergable ) ) ) {
 			if (oldShader != NULL) {
 				RB_EndSurface();
 			}
-			RB_BeginSurface( shader, 0 /*fogNum*/ );
+			RB_BeginSurface( shader, fogNum );
 			oldShader = shader;
-			//oldFogNum = fogNum;
+			oldFogNum = fogNum;
 		}
 
 		//
@@ -1026,7 +1016,7 @@ static void RB_RenderLitSurfList( dlight_t* dl ) {
 	backEnd.refdef.floatTime = originalTime;
 
 	// draw the contents of the last shader batch
-	if ( oldShader != NULL) {
+	if ( oldShader != NULL ) {
 		RB_EndSurface();
 	}
 
@@ -1098,6 +1088,7 @@ void RE_StretchRaw( int x, int y, int w, int h, int cols, int rows, const byte *
 
 	if ( tess.numIndexes ) {
 		RB_EndSurface();
+		VBO_UnBind();
 	}
 
 	// sync with gl if needed
@@ -1219,10 +1210,13 @@ static const void *RB_StretchPic( const void *data ) {
 	if ( shader != tess.shader ) {
 		if ( tess.numIndexes ) {
 			RB_EndSurface();
+			//VBO_UnBind();
 		}
 		backEnd.currentEntity = &backEnd.entity2D;
 		RB_BeginSurface( shader, 0 );
 	}
+
+	VBO_UnBind();
 	
 	if ( !backEnd.projection2D ) {
 		RB_SetGL2D();
@@ -1282,12 +1276,17 @@ static const void *RB_StretchPic( const void *data ) {
 }
 
 
+#ifdef USE_PMLIGHT
 static void RB_LightingPass( void )
 {
 	dlight_t	*dl;
 	int	i;
 
+	VBO_Flush();
+
 	tess.dlightPass = qtrue;
+	tess.allowVBO = qfalse; // for now
+
 	for ( i = 0; i < backEnd.viewParms.num_dlights; i++ )
 	{
 		dl = &backEnd.viewParms.dlights[i];
@@ -1297,11 +1296,13 @@ static void RB_LightingPass( void )
 			RB_RenderLitSurfList( dl );
 		}
 	}
+
 	tess.dlightPass = qfalse;
 
 	backEnd.viewParms.num_dlights = 0;
 	GL_ProgramDisable();
 }
+#endif
 
 static const void* RB_Draw2dPolys( const void* data ) {
 	const poly2dCommand_t* cmd;
@@ -1540,7 +1541,22 @@ static const void *RB_DrawSurfs( const void *data ) {
 	backEnd.refdef = cmd->refdef;
 	backEnd.viewParms = cmd->viewParms;
 
+	VBO_UnBind();
+
+	// clear the z buffer, set the modelview, etc
+	RB_BeginDrawingView();
+
 	RB_RenderDrawSurfList( cmd->drawSurfs, cmd->numDrawSurfs );
+
+	VBO_UnBind();
+
+	RB_DrawSun();
+
+	// darken down any stencil shadows
+	RB_ShadowFinish();
+
+	// add light flares on lights that aren't obscured
+	RB_RenderFlares();
 
 #ifdef USE_PMLIGHT
 	if ( backEnd.refdef.numLitSurfs ) {
@@ -1695,9 +1711,9 @@ static const void *RB_FinishBloom( const void *data )
 {
 	const finishBloomCommand_t *cmd = data;
 
-	if ( r_bloom->integer > 1 && fboEnabled )
+	if ( r_bloom->integer && fboEnabled )
 	{
-		if ( !backEnd.doneBloom2fbo && backEnd.doneSurfaces )
+		if ( !backEnd.doneBloom && backEnd.doneSurfaces )
 		{
 			if ( !backEnd.projection2D )
 				RB_SetGL2D();

@@ -146,9 +146,9 @@ Show the early console as an error dialog
 =============
 */
 void QDECL Sys_Error( const char *error, ... ) {
-	va_list		argptr;
-	char		text[4096];
-    MSG        msg;
+	va_list	argptr;
+	char	text[4096];
+	MSG		msg;
 
 	va_start( argptr, error );
 	Q_vsnprintf( text, sizeof( text ), error, argptr );
@@ -168,15 +168,17 @@ void QDECL Sys_Error( const char *error, ... ) {
 
 	// wait for the user to quit
 	while ( 1 ) {
-		if ( GetMessage( &msg, NULL, 0, 0 ) <= 0 )
+		if ( GetMessage( &msg, NULL, 0, 0 ) <= 0 ) {
+			Cmd_Clear();
 			Com_Quit_f();
-		TranslateMessage (&msg);
-      	DispatchMessage (&msg);
+		}
+		TranslateMessage( &msg );
+		DispatchMessage( &msg );
 	}
 
 	Sys_DestroyConsole();
 
-	exit (1);
+	exit( 1 );
 }
 
 
@@ -194,7 +196,7 @@ void Sys_Quit( void ) {
 #endif
 
 	Sys_DestroyConsole();
-	exit (0);
+	exit( 0 );
 }
 
 
@@ -818,10 +820,12 @@ Platform-dependent event handling
 */
 void Sys_SendKeyEvents( void ) 
 {
-    MSG	msg;
+	MSG msg;
+
 	// pump the message loop
 	while ( PeekMessage( &msg, NULL, 0, 0, PM_NOREMOVE ) ) {
 		if ( GetMessage( &msg, NULL, 0, 0 ) <= 0 ) {
+			Cmd_Clear();
 			Com_Quit_f();
 		}
 
@@ -829,8 +833,8 @@ void Sys_SendKeyEvents( void )
 		//g_wv.sysMsgTime = msg.time;
 		g_wv.sysMsgTime = Sys_Milliseconds();
 
-		TranslateMessage (&msg);
-      	DispatchMessage (&msg);
+		TranslateMessage( &msg );
+		DispatchMessage( &msg );
 	}
 }
 
@@ -979,6 +983,30 @@ static void SetupHighDPISupport( void ) {
 	//}
 }
 
+
+#ifndef DEDICATED
+/*
+==================
+ExceptionFilter
+
+Restore gamma and hide fullscreen window in case of crash
+==================
+*/
+static LONG WINAPI ExceptionFilter( struct _EXCEPTION_POINTERS *ExceptionInfo )
+{
+	if ( glw_state.gammaSet )
+		GLW_RestoreGamma();
+
+	if ( g_wv.hWnd && glw_state.cdsFullscreen )
+	{
+		ShowWindow( g_wv.hWnd, SW_HIDE );
+	}
+
+	return EXCEPTION_CONTINUE_SEARCH;
+}
+#endif
+
+
 /*
 ==================
 WinMain
@@ -988,7 +1016,7 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 {
 	static char	sys_cmdline[ MAX_STRING_CHARS ];
 	char con_title[ MAX_CVAR_VALUE_STRING ];
-	int vid_xpos, vid_ypos;
+	int xpos, ypos;
 	qboolean useXYpos;
 
 	// should never get a previous instance in Win32
@@ -1001,13 +1029,17 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 	g_wv.hInstance = hInstance;
 	Q_strncpyz( sys_cmdline, lpCmdLine, sizeof( sys_cmdline ) );
 
-	useXYpos = Com_EarlyParseCmdLine( sys_cmdline, con_title, sizeof( con_title ), &vid_xpos, &vid_ypos );
+	useXYpos = Com_EarlyParseCmdLine( sys_cmdline, con_title, sizeof( con_title ), &xpos, &ypos );
 
 	// done before Com/Sys_Init since we need this for error output
-	Sys_CreateConsole( con_title, vid_xpos, vid_ypos, useXYpos );
+	Sys_CreateConsole( con_title, xpos, ypos, useXYpos );
 
 	// no abort/retry/fail errors
 	SetErrorMode( SEM_FAILCRITICALERRORS );
+
+#ifndef DEDICATED
+	SetUnhandledExceptionFilter( ExceptionFilter );
+#endif
 
 	// get the initial time base
 	Sys_Milliseconds();
@@ -1040,6 +1072,7 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 		Com_Frame( CL_NoDelay() );
 #endif
 	}
+
 	// never gets here
 	return 0;
 }

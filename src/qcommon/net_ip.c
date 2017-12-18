@@ -250,7 +250,7 @@ static void NetadrToSockadr( const netadr_t *a, struct sockaddr *s ) {
 }
 
 
-static void SockadrToNetadr( struct sockaddr *s, netadr_t *a ) {
+static void SockadrToNetadr( const struct sockaddr *s, netadr_t *a ) {
 	if (s->sa_family == AF_INET) {
 		a->type = NA_IP;
 		*(int *)&a->ip = ((struct sockaddr_in *)s)->sin_addr.s_addr;
@@ -579,6 +579,7 @@ static qboolean NET_GetPacket( netadr_t *net_from, msg_t *net_message, fd_set *f
 				net_message->readcount = 10;
 			}
 			else {
+				net_from->type = NA_BAD;
 				SockadrToNetadr( (struct sockaddr *) &from, net_from );
 				net_message->readcount = 0;
 			}
@@ -607,6 +608,7 @@ static qboolean NET_GetPacket( netadr_t *net_from, msg_t *net_message, fd_set *f
 		}
 		else
 		{
+			net_from->type = NA_BAD;
 			SockadrToNetadr((struct sockaddr *) &from, net_from);
 			net_message->readcount = 0;
 		
@@ -635,6 +637,7 @@ static qboolean NET_GetPacket( netadr_t *net_from, msg_t *net_message, fd_set *f
 		}
 		else
 		{
+			net_from->type = NA_BAD;
 			SockadrToNetadr((struct sockaddr *) &from, net_from);
 			net_message->readcount = 0;
 		
@@ -987,7 +990,7 @@ NET_SetMulticast
 Set the current multicast group
 ====================
 */
-void NET_SetMulticast6( void )
+static void NET_SetMulticast6( void )
 {
 	struct sockaddr_in6 addr;
 
@@ -1376,7 +1379,7 @@ static void NET_GetLocalAddress( void ) {
 NET_OpenIP
 ====================
 */
-void NET_OpenIP( void ) {
+static void NET_OpenIP( void ) {
 	int		i;
 	int		err;
 	int		port;
@@ -1518,7 +1521,7 @@ static qboolean NET_GetCvars( void ) {
 NET_Config
 ====================
 */
-void NET_Config( qboolean enableNetworking ) {
+static void NET_Config( qboolean enableNetworking ) {
 	qboolean	modified;
 	qboolean	stop;
 	qboolean	start;
@@ -1603,7 +1606,7 @@ void NET_Init( void ) {
 #ifdef _WIN32
 	int		r;
 
-	r = WSAStartup( MAKEWORD( 1, 1 ), &winsockdata );
+	r = WSAStartup( MAKEWORD( 2, 0 ), &winsockdata );
 	if( r ) {
 		Com_Printf( "WARNING: Winsock initialization failed, returned %d\n", r );
 		return;
@@ -1646,7 +1649,7 @@ Called from NET_Sleep which uses select() to determine which sockets have seen a
 ====================
 */
 
-void NET_Event(fd_set *fdr)
+static void NET_Event(fd_set *fdr)
 {
 	byte bufData[ MAX_MSGLEN_BUF ];
 	netadr_t from;
@@ -1732,6 +1735,9 @@ void NET_Sleep( int msec )
 	}
 
 	if ( retval == SOCKET_ERROR ) {
+#ifndef _WIN32
+		if ( socketError != EINTR )
+#endif
 		Com_Printf( S_COLOR_YELLOW "Warning: select() syscall failed: %s\n", 
 			NET_ErrorString() );
 	}

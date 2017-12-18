@@ -1516,7 +1516,7 @@ void ParseSort( const char **text ) {
 // this table is also present in q3map
 
 typedef struct {
-	char    *name;
+	const char    *name;
 	int clearSolid, surfaceFlags, contents;
 } infoParm_t;
 
@@ -1654,10 +1654,14 @@ if ( $cvar|<integer value> [<condition> $cvar|<integer value> [ [ || .. ] && .. 
 */
 static qboolean ParseCondition( const char **text, resultType *res )
 {
-	const char*token;
-	int lval, rval;
+	char lval_str[ MAX_CVAR_VALUE_STRING ];
+	char rval_str[ MAX_CVAR_VALUE_STRING ];
+	tokenType_t lval_type;
+	tokenType_t rval_type;
+	const char *token;
 	tokenType_t op;
 	resultMask	rm;
+	qboolean	str;
 	int r, r0;
 
 	r = 0;			// resulting value
@@ -1665,17 +1669,18 @@ static qboolean ParseCondition( const char **text, resultType *res )
 
 	for ( ;; )
 	{
+		rval_str[0] = '\0';
+		rval_type = TK_GENEGIC;
+
 		// expect l-value at least
 		token = COM_ParseComplex( text, qfalse );
 		if ( token[0] == '\0' ) {
 			ri.Printf( PRINT_WARNING, "WARNING: expecting lvalue for condition in shader %s\n", shader.name );
 			return qfalse;
 		}
-		// dereference
-		if ( token[0] == '$' )
-			lval = ri.Cvar_VariableIntegerValue( token+1 );
-		else
-			lval = atoi( token );
+	
+		Q_strncpyz( lval_str, token, sizeof( lval_str ) );
+		lval_type = com_tokentype;
 
 		// get operator
 		token = COM_ParseComplex( text, qfalse );
@@ -1689,11 +1694,9 @@ static qboolean ParseCondition( const char **text, resultType *res )
 				ri.Printf( PRINT_WARNING, "WARNING: expecting rvalue for condition in shader %s\n", shader.name );
 				return qfalse;
 			}
-			// dereference
-			if ( token[0] == '$' )
-				rval = ri.Cvar_VariableIntegerValue( token+1 );
-			else
-				rval = atoi( token );
+
+			Q_strncpyz( rval_str, token, sizeof( rval_str ) );
+			rval_type = com_tokentype;
 
 			// read next token, expect '||', '&&' or ')', allow newlines
 			token = COM_ParseComplex( text, qtrue );
@@ -1702,24 +1705,58 @@ static qboolean ParseCondition( const char **text, resultType *res )
 		{
 			// no r-value, assume 'not zero' comparison
 			op = TK_NEQ;
-			rval = 0;
 		}
 		else 
 		{
 			ri.Printf( PRINT_WARNING, "WARNING: unexpected operator '%s' for comparison in shader %s\n", token, shader.name );
 			return qfalse;
 		}
+		
+		str = qfalse;
+
+		if ( lval_type == TK_QUOTED ) {
+			str = qtrue;
+		} else {
+			// dereference l-value
+			if ( lval_str[0] == '$' ) {
+				ri.Cvar_VariableStringBuffer( lval_str+1, lval_str, sizeof( lval_str ) ); 
+			}
+		}
+
+		if ( rval_type == TK_QUOTED ) {
+			str = qtrue;
+		} else {
+			// dereference r-value
+			if ( rval_str[0] == '$' ) {
+				ri.Cvar_VariableStringBuffer( rval_str+1, rval_str, sizeof( rval_str ) ); 
+			}
+		}
 
 		// evaluate expression
-		// TODO: string comparisons
-		switch ( op ) {
-			case TK_EQ:  r0 = ( lval == rval ); break;
-			case TK_NEQ: r0 = ( lval != rval ); break;
-			case TK_GT:  r0 = ( lval >  rval ); break;
-			case TK_GTE: r0 = ( lval >= rval ); break;
-			case TK_LT:  r0 = ( lval <  rval ); break;
-			case TK_LTE: r0 = ( lval <= rval ); break;
-			default:     r0 = 0; break;
+		if ( str ) {
+			// string comparison
+			switch ( op ) {
+				case TK_EQ:  r0 = strcmp( lval_str, rval_str ) == 0; break;
+				case TK_NEQ: r0 = strcmp( lval_str, rval_str ) != 0; break;
+				case TK_GT:  r0 = strcmp( lval_str, rval_str ) >  0; break;
+				case TK_GTE: r0 = strcmp( lval_str, rval_str ) >= 0; break;
+				case TK_LT:  r0 = strcmp( lval_str, rval_str ) <  0; break;
+				case TK_LTE: r0 = strcmp( lval_str, rval_str ) <= 0; break;
+				default:     r0 = 0; break;
+			}
+		} else {
+			// integer comparison
+			int lval = atoi( lval_str );
+			int rval = atoi( rval_str );
+			switch ( op ) {
+				case TK_EQ:  r0 = ( lval == rval ); break;
+				case TK_NEQ: r0 = ( lval != rval ); break;
+				case TK_GT:  r0 = ( lval >  rval ); break;
+				case TK_GTE: r0 = ( lval >= rval ); break;
+				case TK_LT:  r0 = ( lval <  rval ); break;
+				case TK_LTE: r0 = ( lval <= rval ); break;
+				default:     r0 = 0; break;
+			}
 		}
 
 		if ( rm == maskOR )
@@ -1909,6 +1946,8 @@ static qboolean ParseShader( const char **text )
 			shader.fogParms.colorInt = ColorBytes4( shader.fogParms.color[0] * tr.identityLight,
 													shader.fogParms.color[1] * tr.identityLight,
 													shader.fogParms.color[2] * tr.identityLight, 1.0 );
+
+			shader.fogParms.color[3] = 1.0;
 
 			token = COM_ParseExt( text, qfalse );
 			if ( !token[0] ) {
@@ -2635,11 +2674,16 @@ static shader_t *GeneratePermanentShader( void ) {
 			}
 			size = newShader->stages[i]->bundle[b].numTexMods * sizeof( texModInfo_t );
 			// Ridah, caching system
-			newShader->stages[i]->bundle[b].texMods = R_CacheShaderAlloc( NULL, size );
-
-			memcpy( newShader->stages[i]->bundle[b].texMods, stages[i].bundle[b].texMods, size );
+			if ( size ) {
+				newShader->stages[i]->bundle[b].texMods = R_CacheShaderAlloc( NULL, size );
+				Com_Memcpy( newShader->stages[i]->bundle[b].texMods, stages[i].bundle[b].texMods, size );
+			}
 		}
 	}
+
+#ifdef USE_PMLIGHT
+	FindLightingStages( newShader );
+#endif
 
 	SortNewShader();
 
@@ -2660,30 +2704,47 @@ Find proper stage for dlight pass
 ====================
 */
 #define GLS_BLEND_BITS (GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS)
-static void FindLightingStages( void )
+void FindLightingStages( shader_t *sh )
 {
+	shaderStage_t *st;
 	int i;
-	shader.lightingStage = -1;
 
-	if ( shader.isSky || ( shader.surfaceFlags & (SURF_NODLIGHT | SURF_SKY) ) || shader.sort > SS_OPAQUE )
+	sh->lightingStage = -1;
+
+	if ( sh->isSky || ( sh->surfaceFlags & (SURF_NODLIGHT | SURF_SKY) ) || sh->sort > SS_OPAQUE )
 		return;
 
-	for ( i = 0; i < shader.numUnfoggedPasses; i++ ) {
-		if ( !stages[i].bundle[0].isLightmap ) {
-			if ( stages[i].bundle[0].tcGen != TCGEN_TEXTURE )
+	for ( i = 0; i < sh->numUnfoggedPasses; i++ ) {
+		st = sh->stages[ i ];
+		if ( !st )
+			break;
+		if ( !st->bundle[0].isLightmap ) {
+			if ( st->bundle[0].tcGen != TCGEN_TEXTURE )
 				continue;
-			if ( (stages[i].stateBits & GLS_BLEND_BITS) == (GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE) )
+			if ( (st->stateBits & GLS_BLEND_BITS) == (GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE) )
 				continue;
 			 // fix for q3wcp17' textures/scanctf2/bounce_white and others
-			if ( stages[i].rgbGen == CGEN_IDENTITY && (stages[i].stateBits & GLS_BLEND_BITS) == (GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ZERO) ) {
-				if ( shader.lightingStage >= 0 ) {
+			if ( st->rgbGen == CGEN_IDENTITY && (st->stateBits & GLS_BLEND_BITS) == (GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ZERO) ) {
+				if ( sh->lightingStage >= 0 ) {
 					continue;
 				}
 			}
-			shader.lightingStage = i;
+			sh->lightingStage = i;
+		}
+	}
+
+	// check for collapsed multitexture with lightmap in first bundle
+	if ( sh->lightingStage == -1 && i == 1 && sh->multitextureEnv == GL_MODULATE ) {
+		st = sh->stages[ 0 ];
+		if ( !st->bundle[0].isLightmap && st->bundle[1].image[0] && st->rgbGen == CGEN_IDENTITY ) {
+			if ( st->bundle[0].tcGen == TCGEN_LIGHTMAP && st->bundle[1].tcGen == TCGEN_TEXTURE ) {
+				sh->lightingStage = 0;
+				sh->lightingBundle = 1; // select second bundle for lighting pass
+			}
 		}
 	}
 }
+
 #undef GLS_BLEND_BITS
 #endif // USE_PMLIGHT
 
@@ -3103,11 +3164,9 @@ static shader_t *FinishShader( void ) {
 	// compute number of passes
 	//
 	shader.numUnfoggedPasses = stage;
-#ifdef USE_PMLIGHT
-	FindLightingStages();
-#endif
+
 	// fogonly shaders don't have any normal passes
-	if (stage == 0 && !shader.isSky)
+	if ( stage == 0 && !shader.isSky )
 		shader.sort = SS_FOG;
 
 	// determine which stage iterator function is appropriate
@@ -3951,13 +4010,10 @@ static void ScanAndLoadShaderFiles( void )
 	// scan for legacy shader files
 	shaderFiles = ri.FS_ListFiles( "scripts", ".shader", &numShaderFiles );
 
-#ifdef USE_PMLIGHT
 	if ( GL_ProgramAvailable() ) {
 		// if ARB shaders available - scan for extended shader files
 		shaderxFiles = ri.FS_ListFiles( "scripts", ".shaderx", &numShaderxFiles );
-	} else 
-#endif
-	{
+	} else {
 		shaderxFiles = NULL;
 		numShaderxFiles = 0;
 	}

@@ -127,10 +127,6 @@ typedef struct {
 	byte			baselineUsed[ MAX_GENTITIES ];
 } server_t;
 
-
-
-
-
 typedef struct {
 	int				areabytes;
 	byte			areabits[MAX_MAP_AREA_BYTES];		// portalarea visibility bits
@@ -299,6 +295,8 @@ typedef struct {
 	netadr_t authorizeAddress;
 #endif // AUTHORIZE_SUPPORT
 
+	int			masterResolveTime[MAX_MASTER_SERVERS]; // next svs.time that server should do dns lookup for master server
+
 	int sampleTimes[SERVER_PERFORMANCECOUNTER_SAMPLES];
 	int currentSampleIndex;
 	int totalFrameTime;
@@ -368,6 +366,8 @@ extern cvar_t  *sv_onlyVisibleClients;
 extern cvar_t  *sv_showAverageBPS;          // NERVE - SMF - net debugging
 
 extern cvar_t* g_gameType;
+
+extern cvar_t  *sv_leanPakRefs;
 
 // Rafael gameskill
 //extern	cvar_t	*sv_gameskill;
@@ -473,15 +473,15 @@ void SV_ExecuteClientMessage( client_t *cl, msg_t *msg );
 void SV_UserinfoChanged( client_t *cl );
 
 void SV_ClientEnterWorld( client_t *client, usercmd_t *cmd );
-void SV_FreeClient(client_t *client);
+void SV_FreeClient( client_t *client );
 void SV_DropClient( client_t *drop, const char *reason );
 
 void SV_ExecuteClientCommand( client_t *cl, const char *s, qboolean clientOK, qboolean premaprestart );
 void SV_ClientThink( client_t *cl, usercmd_t *cmd );
 
-int SV_WriteDownloadToClient(client_t *cl , msg_t *msg);
-int SV_SendDownloadMessages(void);
-int SV_SendQueuedMessages(void);
+int SV_SendDownloadMessages( void );
+int SV_SendQueuedMessages( void );
+
 
 //
 // sv_ccmds.c

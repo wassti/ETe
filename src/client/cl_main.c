@@ -48,7 +48,6 @@ cvar_t  *cl_maxpackets;
 cvar_t  *cl_packetdup;
 cvar_t  *cl_timeNudge;
 cvar_t  *cl_showTimeDelta;
-cvar_t  *cl_freezeDemo;
 
 cvar_t  *cl_shownet = NULL;     // NERVE - SMF - This is referenced in msg.c and we need to make sure it is NULL
 cvar_t  *cl_shownuments;        // DHM - Nerve
@@ -122,6 +121,25 @@ cvar_t	*cl_lanForcePackets;
 //cvar_t	*cl_guidServerUniq;
 
 cvar_t	*cl_dlURL;
+
+// common cvars for GLimp modules
+cvar_t *r_allowSoftwareGL;		// don't abort out if the pixelformat claims software
+cvar_t *r_swapInterval;
+cvar_t *r_glDriver;
+cvar_t *r_displayRefresh;
+cvar_t *r_fullscreen;
+cvar_t *r_mode;
+cvar_t *r_modeFullscreen;
+cvar_t *r_oldMode;
+cvar_t *r_customwidth;
+cvar_t *r_customheight;
+cvar_t *r_customaspect;
+
+cvar_t *r_colorbits;
+// these also shared with renderers:
+cvar_t *r_stencilbits;
+cvar_t *r_depthbits;
+cvar_t *r_drawBuffer;
 
 clientActive_t		cl;
 clientConnection_t	clc;
@@ -291,7 +309,7 @@ void CL_StopRecord_f( void ) {
 		char tempName[MAX_OSPATH];
 		char finalName[MAX_OSPATH];
 		int protocol;
-		int	len;
+		int	len, sequence;
 
 		// finish up
 		len = -1;
@@ -306,8 +324,20 @@ void CL_StopRecord_f( void ) {
 		else
 			protocol = NEW_PROTOCOL_VERSION;
 
-		Com_sprintf( finalName, sizeof( finalName ), "%s.%s%d", clc.recordName, DEMOEXT, protocol );
 		Com_sprintf( tempName, sizeof( tempName ), "%s.tmp", clc.recordName );
+
+		Com_sprintf( finalName, sizeof( finalName ), "%s.%s%d", clc.recordName, DEMOEXT, protocol );
+
+		if ( clc.explicitRecordName ) {
+			FS_Remove( finalName );
+		} else {
+			// add sequence suffix to avoid overwrite
+			sequence = 0;
+			while ( FS_FileExists( finalName ) && ++sequence < 1000 ) {
+				Com_sprintf( finalName, sizeof( finalName ), "%s-%02d.%s%d",
+					clc.recordName, sequence, DEMOEXT, protocol );
+			}
+		}
 
 		FS_Rename( tempName, finalName );
 	}
@@ -586,7 +616,7 @@ static void CL_Record_f( void ) {
 	char		name[MAX_OSPATH];
 	char		demoExt[16];
 	const char	*ext;
-	int			number;
+	qtime_t		t;
 
 	if ( Cmd_Argc() > 2 ) {
 		Com_Printf( "record <demoname>\n" );
@@ -615,6 +645,7 @@ static void CL_Record_f( void ) {
 		Q_strncpyz( demoName, Cmd_Argv( 1 ), sizeof( demoName ) );
 		ext = COM_GetExtension( demoName );
 		if ( *ext ) {
+			// strip demo extension
 			sprintf( demoExt, "%s%d", DEMOEXT, PROTOCOL_VERSION );
 			if ( Q_stricmp( ext, demoExt ) == 0 ) {
 				*(strrchr( demoName, '.' )) = '\0';
@@ -627,20 +658,15 @@ static void CL_Record_f( void ) {
 			}
 		}
 		Com_sprintf( name, sizeof( name ), "demos/%s", demoName );
+
+		clc.explicitRecordName = qtrue;
 	} else {
 
-		// scan for a free demo name
-		for ( number = 0 ; number <= 9999 ; number++ ) {
-			Com_sprintf( name, sizeof( name ), "demos/demo%04d.%s%d", number, DEMOEXT, PROTOCOL_VERSION );
-			if ( !FS_FileExists( name ) ) {
-				// check both protocols
-				Com_sprintf( name, sizeof( name ), "demos/demo%04d.%s%d", number, DEMOEXT, NEW_PROTOCOL_VERSION );
-				if ( !FS_FileExists( name ) ) {
-					break;	// file doesn't exist
-				}
-			}
-		}
-		Com_sprintf( name, sizeof( name ), "demos/demo%04d", number );
+		Com_RealTime( &t );
+		Com_sprintf( name, sizeof( name ), "demos/demo-%04d%02d%02d-%02d%02d%02d",
+			1900 + t.tm_year, 1 + t.tm_mon,	t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec );
+
+		clc.explicitRecordName = qfalse;
 	}
 
 	// save desired filename without extension
@@ -724,7 +750,6 @@ static void CL_DemoCompleted( void ) {
 	//}
 
 	CL_Disconnect( qtrue );
-	CL_ShutdownCGame();
 	CL_NextDemo();
 }
 
@@ -1105,6 +1130,7 @@ void CL_FlushMemory( void ) {
 	CL_StartHunkUsers();
 }
 
+
 /*
 =====================
 CL_MapLoading
@@ -1155,6 +1181,7 @@ void CL_MapLoading( void ) {
 		CL_CheckForResend();
 	}
 }
+
 
 /*
 =====================
@@ -1280,6 +1307,7 @@ void CL_ClearStaticDownload( void ) {
 	cls.originalDownloadName[0] = '\0';
 }
 
+
 /*
 =====================
 CL_ResetOldGame
@@ -1321,9 +1349,17 @@ This is also called on Com_Error and Com_Quit, so it shouldn't cause any errors
 =====================
 */
 void CL_Disconnect( qboolean showMainMenu ) {
+	static qboolean cl_disconnecting = qfalse;
+	
 	if ( !com_cl_running || !com_cl_running->integer ) {
 		return;
 	}
+
+	if ( cl_disconnecting ) {
+		return;
+	}
+
+	cl_disconnecting = qtrue;
 
 	// shutting down the client so enter full screen ui mode
 	Cvar_Set( "r_uiFullScreen", "1" );
@@ -1356,6 +1392,11 @@ void CL_Disconnect( qboolean showMainMenu ) {
 		CL_CloseAVI();
 	}
 
+	if ( cgvm ) {
+		// do that right after we rendered last video frame
+		CL_ShutdownCGame();
+	}
+
 	SCR_StopCinematic();
 	S_StopAllSounds();
 	Key_ClearStates();
@@ -1376,7 +1417,9 @@ void CL_Disconnect( qboolean showMainMenu ) {
 	// Remove pure paks
 	FS_PureServerSetLoadedPaks( "", "" );
 	FS_PureServerSetReferencedPaks( "", "" );
-	
+
+	FS_ClearPakReferences( FS_GENERAL_REF | FS_UI_REF | FS_CGAME_REF );
+
 	CL_ClearState();
 
 	// wipe the client connection
@@ -1397,25 +1440,12 @@ void CL_Disconnect( qboolean showMainMenu ) {
 
 	Cmd_RemoveCommand( "callvote" );
 
-	// show_bug.cgi?id=589
-	// don't try a restart if uivm is NULL, as we might be in the middle of a restart already
-/*	if ( uivm && cls.state > CA_DISCONNECTED ) {
-		// restart the UI
-		cls.state = CA_DISCONNECTED;
-
-		// shutdown the UI
-		CL_ShutdownUI();
-
-		// init the UI
-		CL_InitUI();
-	} else {
-		cls.state = CA_DISCONNECTED;
-	}*/
-	
 	if ( noGameRestart )
 		noGameRestart = qfalse;
 	else
 		CL_RestoreOldGame();
+
+	cl_disconnecting = qfalse;
 }
 
 
@@ -1429,9 +1459,9 @@ so when they are typed in at the console, they will need to be forwarded.
 ===================
 */
 void CL_ForwardCommandToServer( const char *string ) {
-	char	*cmd;
+	const char *cmd;
 
-	cmd = Cmd_Argv(0);
+	cmd = Cmd_Argv( 0 );
 
 	// ignore key up commands
 	if ( cmd[0] == '-' ) {
@@ -1449,6 +1479,7 @@ void CL_ForwardCommandToServer( const char *string ) {
 		CL_AddReliableCommand( cmd, qfalse );
 	}
 }
+
 
 /*
 ===================
@@ -1501,12 +1532,13 @@ static void CL_ForwardToServer_f( void ) {
 		Com_Printf ("Not connected to a server.\n");
 		return;
 	}
-
+	
 	// don't forward the first argument
 	if ( Cmd_Argc() > 1 ) {
 		CL_AddReliableCommand( Cmd_Args(), qfalse );
 	}
 }
+
 
 /*
 ==================
@@ -1518,7 +1550,7 @@ void CL_Disconnect_f( void ) {
 	Cvar_Set( "savegame_loading", "0" );
 	Cvar_Set( "g_reloading", "0" );
 	if ( cls.state != CA_DISCONNECTED && cls.state != CA_CINEMATIC ) {
-		Com_Error( ERR_DISCONNECT, "Disconnected from server" );
+		Com_Error (ERR_DISCONNECT, "Disconnected from server");
 	}
 }
 
@@ -1526,19 +1558,18 @@ void CL_Disconnect_f( void ) {
 /*
 ================
 CL_Reconnect_f
-
 ================
 */
 void CL_Reconnect_f( void ) {
-	if ( !strlen( cl_reconnectArgs ) )
+	if ( cl_reconnectArgs[0] == '\0' )
 		return;
-	Cbuf_AddText( va("connect %s\n", cl_reconnectArgs ) );
+	Cbuf_AddText( va( "connect %s\n", cl_reconnectArgs ) );
 }
+
 
 /*
 ================
 CL_Connect_f
-
 ================
 */
 void CL_Connect_f( void ) {
@@ -1673,7 +1704,7 @@ void CL_Connect_f( void ) {
 	Cvar_Set( "com_errorMessage", "" );
 
 	Key_SetCatcher( 0 );
-	clc.connectTime = -99999;   // CL_CheckForResend() will fire immediately
+	clc.connectTime = -99999;	// CL_CheckForResend() will fire immediately
 	clc.connectPacketCount = 0;
 
 	// server connection string
@@ -1736,7 +1767,7 @@ void CL_Rcon_f( void ) {
 	message[1] = -1;
 	message[2] = -1;
 	message[3] = -1;
-	message[4] = 0;
+	message[4] = '\0';
 
 	Q_strcat (message, MAX_RCON_MESSAGE, "rcon ");
 
@@ -1788,7 +1819,7 @@ void CL_SendPureChecksums( void ) {
 CL_ResetPureClientAtServer
 =================
 */
-void CL_ResetPureClientAtServer( void ) {
+static void CL_ResetPureClientAtServer( void ) {
 	CL_AddReliableCommand( "vdr", qfalse );
 }
 
@@ -2482,8 +2513,8 @@ CL_MotdPacket
 ===================
 */
 static void CL_MotdPacket( const netadr_t *from ) {
-	char	*challenge;
-	char	*info;
+	const char *challenge;
+	const char *info;
 
 	// if not from our server, ignore it
 	if ( !NET_CompareAdr( from, &cls.updateServer ) ) {
@@ -3068,8 +3099,8 @@ void CL_CheckTimeout( void ) {
 	//
 	if ( ( !CL_CheckPaused() || !sv_paused->integer ) 
 		&& cls.state >= CA_CONNECTED && cls.state != CA_CINEMATIC
-	    && cls.realtime - clc.lastPacketTime > cl_timeout->value*1000) {
-		if (++cl.timeoutcount > 5) {	// timeoutcount saves debugger
+		&& cls.realtime - clc.lastPacketTime > cl_timeout->integer * 1000 ) {
+		if ( ++cl.timeoutcount > 5 ) { // timeoutcount saves debugger
 			Cvar_Set( "com_errorMessage", "Server connection timed out." );
 			CL_Disconnect( qtrue );
 			return;
@@ -3078,6 +3109,7 @@ void CL_CheckTimeout( void ) {
 		cl.timeoutcount = 0;
 	}
 }
+
 
 /*
 ==================
@@ -3251,7 +3283,6 @@ qboolean CL_WWWBadChecksum( const char *pakname ) {
 /*
 ==================
 CL_Frame
-
 ==================
 */
 void CL_Frame( int msec ) {
@@ -3371,9 +3402,10 @@ void CL_Frame( int msec ) {
 	// see if we need to update any userinfo
 	CL_CheckUserinfo();
 
-	// if we haven't gotten a packet in a long time,
-	// drop the connection
-	CL_CheckTimeout();
+	// if we haven't gotten a packet in a long time, drop the connection
+	if ( !clc.demoplaying ) {
+		CL_CheckTimeout();
+	}
 
 	// wwwdl download may survive a server disconnect
 	if ( ( cls.state == CA_CONNECTED && clc.bWWWDl ) || cls.bWWWDlDisconnected ) {
@@ -3681,9 +3713,12 @@ int CL_ScaledMilliseconds(void) {
 CL_InitRef
 ============
 */
+void CL_InitGLimp_Cvars( void );
 void CL_InitRef( void ) {
 	refimport_t	ri;
 	refexport_t	*ret;
+
+	CL_InitGLimp_Cvars();
 
 	Com_Printf( "----- Initializing Renderer ----\n" );
 
@@ -3723,6 +3758,7 @@ void CL_InitRef( void ) {
 	ri.Cvar_SetValue = Cvar_SetValue;
 	ri.Cvar_CheckRange = Cvar_CheckRange;
 	ri.Cvar_SetDescription = Cvar_SetDescription;
+	ri.Cvar_VariableStringBuffer = Cvar_VariableStringBuffer;
 	ri.Cvar_VariableString = Cvar_VariableString;
 	ri.Cvar_VariableIntegerValue = Cvar_VariableIntegerValue;
 
@@ -3941,6 +3977,138 @@ static void CL_ListFavorites_f( void ) {
 	}
 }
 
+
+/*
+** CL_GetModeInfo
+*/
+typedef struct vidmode_s
+{
+	const char	*description;
+	int			width, height;
+	float		pixelAspect;		// pixel width / height
+} vidmode_t;
+
+static const vidmode_t cl_vidModes[] =
+{
+	{ "Mode  0: 320x240",			320,	240,	1 },
+	{ "Mode  1: 400x300",			400,	300,	1 },
+	{ "Mode  2: 512x384",			512,	384,	1 },
+	{ "Mode  3: 640x480",			640,	480,	1 },
+	{ "Mode  4: 800x600",			800,	600,	1 },
+	{ "Mode  5: 960x720",			960,	720,	1 },
+	{ "Mode  6: 1024x768",			1024,	768,	1 },
+	{ "Mode  7: 1152x864",			1152,	864,	1 },
+	{ "Mode  8: 1280x1024 (5:4)",	1280,	1024,	1 },
+	{ "Mode  9: 1600x1200",			1600,	1200,	1 },
+	{ "Mode 10: 2048x1536",			2048,	1536,	1 },
+	{ "Mode 11: 856x480 (wide)",	856,	480,	1 },
+	// extra modes:
+	{ "Mode 12: 1280x960",			1280,	960,	1 },
+	{ "Mode 13: 1280x720",			1280,	720,	1 },
+	{ "Mode 14: 1280x800 (16:10)",	1280,	800,	1 },
+	{ "Mode 15: 1366x768",			1366,	768,	1 },
+	{ "Mode 16: 1440x900 (16:10)",	1440,	900,	1 },
+	{ "Mode 17: 1600x900",			1600,	900,	1 },
+	{ "Mode 18: 1680x1050 (16:10)",	1680,	1050,	1 },
+	{ "Mode 19: 1920x1080",			1920,	1080,	1 },
+	{ "Mode 20: 1920x1200 (16:10)",	1920,	1200,	1 },
+	{ "Mode 21: 2560x1080 (21:9)",	2560,	1080,	1 },
+	{ "Mode 22: 3440x1440 (21:9)",	3440,	1440,	1 },
+	{ "Mode 23: 3840x2160",			3840,	2160,	1 },
+	{ "Mode 24: 4096x2160 (4K)",	4096,	2160,	1 }
+};
+static const int s_numVidModes = ARRAY_LEN( cl_vidModes );
+
+qboolean CL_GetModeInfo( int *width, int *height, float *windowAspect, int mode, const char *modeFS, int dw, int dh, qboolean fullscreen )
+{
+	const	vidmode_t *vm;
+	float	pixelAspect;
+
+	// set dedicated fullscreen mode
+	if ( fullscreen && *modeFS )
+		mode = atoi( modeFS );
+
+	if ( mode < -2 )
+		return qfalse;
+
+	if ( mode >= s_numVidModes )
+		return qfalse;
+
+	// fix unknown desktop resolution
+	if ( mode == -2 && (dw == 0 || dh == 0) )
+		mode = 3;
+
+	if ( mode == -2 ) { // desktop resolution
+		*width = dw;
+		*height = dh;
+		pixelAspect = r_customaspect->value;
+	} else if ( mode == -1 ) { // custom resolution
+		*width = r_customwidth->integer;
+		*height = r_customheight->integer;
+		pixelAspect = r_customaspect->value;
+	} else { // predefined resolution
+		vm = &cl_vidModes[ mode ];
+		*width  = vm->width;
+		*height = vm->height;
+		pixelAspect = vm->pixelAspect;
+	}
+
+	*windowAspect = (float)*width / ( *height * pixelAspect );
+
+	return qtrue;
+}
+
+
+/*
+** CL_ModeList_f
+*/
+static void CL_ModeList_f( void )
+{
+	int i;
+
+	Com_Printf( "\n" );
+	for ( i = 0; i < s_numVidModes; i++ )
+	{
+		Com_Printf( "%s\n", cl_vidModes[ i ].description );
+	}
+	Com_Printf( "\n" );
+}
+
+
+void CL_InitGLimp_Cvars( void )
+{
+	// shared with GLimp
+	r_allowSoftwareGL = Cvar_Get( "r_allowSoftwareGL", "0", CVAR_LATCH );
+	r_swapInterval = Cvar_Get( "r_swapInterval", "0", CVAR_ARCHIVE_ND );
+	r_glDriver = Cvar_Get( "r_glDriver", OPENGL_DRIVER_NAME, CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE );
+	
+	r_displayRefresh = Cvar_Get( "r_displayRefresh", "0", CVAR_LATCH | CVAR_UNSAFE );
+	Cvar_CheckRange( r_displayRefresh, "0", "250", CV_INTEGER );
+
+	r_mode = Cvar_Get( "r_mode", "-2", CVAR_ARCHIVE | CVAR_LATCH );
+	r_modeFullscreen = Cvar_Get( "r_modeFullscreen", "-2", CVAR_ARCHIVE | CVAR_LATCH );
+	r_oldMode = Cvar_Get( "r_oldMode", "", CVAR_ARCHIVE );                             // ydnar: previous "good" video mode
+	Cvar_CheckRange( r_mode, "-2", va( "%i", s_numVidModes-1 ), CV_INTEGER );
+	Cvar_SetDescription( r_mode, "Set video mode:\n -2 - use current desktop resolution\n -1 - use \\r_customWidth and \\r_customHeight\n  0..N - enter \\modelist for details" );
+	Cvar_SetDescription( r_modeFullscreen, "Dedicated fullscreen mode, set to \"\" to use \\r_mode in all cases" );
+
+	r_fullscreen = Cvar_Get( "r_fullscreen", "1", CVAR_ARCHIVE | CVAR_LATCH );
+	r_customaspect = Cvar_Get( "r_customaspect", "1", CVAR_ARCHIVE_ND | CVAR_LATCH );
+	r_customwidth = Cvar_Get( "r_customWidth", "1600", CVAR_ARCHIVE | CVAR_LATCH );
+	r_customheight = Cvar_Get( "r_customHeight", "1024", CVAR_ARCHIVE | CVAR_LATCH );
+	Cvar_CheckRange( r_customwidth, "4", NULL, CV_INTEGER );
+	Cvar_CheckRange( r_customheight, "4", NULL, CV_INTEGER );
+	Cvar_SetDescription( r_customwidth, "Custom width to use with \\r_mode -1" );
+	Cvar_SetDescription( r_customheight, "Custom height to use with \\r_mode -1" );
+
+	r_colorbits = Cvar_Get( "r_colorbits", "0", CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE );
+	// shared with renderer:
+	r_stencilbits = Cvar_Get( "r_stencilbits", "8", CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE );
+	r_depthbits = Cvar_Get( "r_depthbits", "0", CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE );
+	r_drawBuffer = Cvar_Get( "r_drawBuffer", "GL_BACK", CVAR_CHEAT );
+}
+
+
 /*
 ====================
 CL_Init
@@ -3961,12 +4129,13 @@ void CL_Init( void ) {
 	CL_InitInput();
 
 	//
-	// register our variables
+	// register client variables
 	//
 	cl_noprint = Cvar_Get( "cl_noprint", "0", 0 );
 	cl_motd = Cvar_Get( "cl_motd", "1", 0 );
 
 	cl_timeout = Cvar_Get( "cl_timeout", "200", 0 );
+	Cvar_CheckRange( cl_timeout, "5", NULL, CV_INTEGER );
 
 	cl_wavefilerecord = Cvar_Get( "cl_wavefilerecord", "0", CVAR_TEMP );
 
@@ -3978,7 +4147,6 @@ void CL_Init( void ) {
 	cl_showServerCommands = Cvar_Get( "cl_showServerCommands", "0", 0 );
 	cl_showSend = Cvar_Get( "cl_showSend", "0", CVAR_TEMP );
 	cl_showTimeDelta = Cvar_Get( "cl_showTimeDelta", "0", CVAR_TEMP );
-	cl_freezeDemo = Cvar_Get( "cl_freezeDemo", "0", CVAR_TEMP );
 	rcon_client_password = Cvar_Get( "rconPassword", "", CVAR_TEMP );
 	Cvar_SetDescription( rcon_client_password, "Password for remote console access" );
 	cl_activeAction = Cvar_Get( "activeAction", "", CVAR_TEMP );
@@ -4144,7 +4312,7 @@ void CL_Init( void ) {
 	// -NERVE - SMF
 
 	//
-	// register our commands
+	// register client commands
 	//
 	Cmd_AddCommand( "cmd", CL_ForwardToServer_f );
 	Cmd_AddCommand( "configstrings", CL_Configstrings_f );
@@ -4220,6 +4388,8 @@ void CL_Init( void ) {
 	Cmd_AddCommand( "addFavorite", CL_AddFavorite_f );
 	Cmd_AddCommand( "listFavorites", CL_ListFavorites_f );
 
+	Cmd_AddCommand( "modelist", CL_ModeList_f );
+
 	CL_InitRef();
 
 	SCR_Init();
@@ -4243,7 +4413,6 @@ void CL_Init( void ) {
 /*
 ===============
 CL_Shutdown
-
 ===============
 */
 void CL_Shutdown( const char *finalmsg, qboolean quit ) {
@@ -4256,7 +4425,7 @@ void CL_Shutdown( const char *finalmsg, qboolean quit ) {
 	Com_Printf( "----- Client Shutdown (%s) -----\n", finalmsg );
 
 	if ( recursive ) {
-		Com_Printf( "WARNING: Recursive shutdown\n" );
+		Com_Printf( "WARNING: Recursive CL_Shutdown()\n" );
 		return;
 	}
 	recursive = qtrue;
@@ -4319,6 +4488,15 @@ void CL_Shutdown( const char *finalmsg, qboolean quit ) {
 	Cmd_RemoveCommand( "addFavorite" );
 	Cmd_RemoveCommand( "listFavorites" );
 
+	Cmd_RemoveCommand ("modelist");
+
+#ifdef USE_CURL
+	Com_DL_Cleanup( &download );
+
+	Cmd_RemoveCommand( "download" );
+	Cmd_RemoveCommand( "dlmap" );
+#endif
+
 	CL_ShutdownInput();
 	Con_Shutdown();
 	Cvar_Set( "cl_running", "0" );
@@ -4379,7 +4557,6 @@ static void CL_SetServerInfoByAddress(const netadr_t *from, const char *info, in
 			CL_SetServerInfo(&cls.favoriteServers[i], info, ping);
 		}
 	}
-
 }
 
 
@@ -4482,6 +4659,7 @@ static void CL_ServerInfoPacket( const netadr_t *from, msg_t *msg ) {
 		Com_Printf( "%s: %s", NET_AdrToStringwPort( from ), info );
 	}
 }
+
 
 /*
 ===================

@@ -25,7 +25,6 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-
 // tr_shade.c
 
 #include "tr_local.h"
@@ -55,10 +54,10 @@ static void APIENTRY R_ArrayElementDiscrete( GLint index ) {
 	qglVertex3fv( tess.xyz[ index ] );
 }
 
+
 /*
 ===================
 R_DrawStripElements
-
 ===================
 */
 static int		c_vertexes;		// for seeing how long our average strips are
@@ -157,7 +156,6 @@ static void R_DrawStripElements( int numIndexes, const glIndex_t *indexes, void 
 }
 
 
-
 /*
 ==================
 R_DrawElements
@@ -218,7 +216,6 @@ static qboolean	setArraysOnce;
 /*
 =================
 R_BindAnimatedImage
-
 =================
 */
 void R_BindAnimatedImage( const textureBundle_t *bundle ) {
@@ -361,9 +358,9 @@ DrawNormals
 Draws vertex normals for debugging
 ================
 */
-static void DrawNormals( shaderCommands_t *input ) {
-	int i;
-	vec3_t temp;
+static void DrawNormals( const shaderCommands_t *input ) {
+	int		i;
+	vec3_t	temp;
 
 	GL_Bind( tr.whiteImage );
 	qglColor3f( 1,1,1 );
@@ -419,6 +416,7 @@ static void DrawNormals( shaderCommands_t *input ) {
 	qglDepthRange( 0, 1 );
 }
 
+
 /*
 ==============
 RB_BeginSurface
@@ -432,21 +430,38 @@ void RB_BeginSurface( shader_t *shader, int fogNum ) {
 
 	shader_t *state = ( shader->remappedShader ) ? shader->remappedShader : shader;
 
+#ifdef USE_PMLIGHT
+	if ( tess.fogNum != fogNum ) {
+		tess.dlightUpdateParams = qtrue;
+	}
+#endif
+
 	tess.numIndexes = 0;
 	tess.numVertexes = 0;
 	tess.shader = state;
 	tess.fogNum = fogNum;
-	tess.dlightBits = 0;        // will be OR'd in by surface functions
+
+#ifdef USE_PMLIGHT
+	if ( !tess.dlightPass && state->isStaticShader )
+#else
+	if ( state->isStaticShader )
+#endif
+		tess.allowVBO = qtrue;
+	else
+		tess.allowVBO = qfalse;
+	
+#ifdef USE_LEGACY_DLIGHTS
+	tess.dlightBits = 0;		// will be OR'd in by surface functions
+#endif
 	tess.xstages = state->stages;
 	tess.numPasses = state->numUnfoggedPasses;
-	tess.currentStageIteratorFunc = state->optimalStageIteratorFunc;
 
 	tess.shaderTime = backEnd.refdef.floatTime - tess.shader->timeOffset;
 	if ( tess.shader->clampTime && tess.shaderTime >= tess.shader->clampTime ) {
 		tess.shaderTime = tess.shader->clampTime;
 	}
-	// done.
 }
+
 
 /*
 ===================
@@ -459,9 +474,9 @@ t1 = most downstream according to spec
 ===================
 */
 static void DrawMultitextured( shaderCommands_t *input, int stage ) {
-	shaderStage_t   *pStage;
+	const shaderStage_t *pStage;
 
-	pStage = tess.xstages[stage];
+	pStage = tess.xstages[ stage ];
 
 	// Ridah
 	if ( tess.shader->noFog && pStage->isFogged ) {
@@ -486,6 +501,7 @@ static void DrawMultitextured( shaderCommands_t *input, int stage ) {
 	//
 	GL_SelectTexture( 0 );
 	qglTexCoordPointer( 2, GL_FLOAT, 0, input->svars.texcoords[0] );
+
 	R_BindAnimatedImage( &pStage->bundle[0] );
 
 	//
@@ -510,7 +526,14 @@ static void DrawMultitextured( shaderCommands_t *input, int stage ) {
 	//
 	// disable texturing on TEXTURE1, then select TEXTURE0
 	//
-	//qglDisableClientState( GL_TEXTURE_COORD_ARRAY );
+	if ( r_vbo->integer ) {
+		// some drivers may try to load texcoord[1] data even with multi-texturing disabled
+		// (and actually gpu shaders doesn't care about conventional GL_TEXTURE_2D states)
+		// which doesn't cause problems while data pointer is the same or represents fixed-size set
+		// but when we switch to/from vbo - texcoord[1] data may point on larger set (it's ok)
+		// or smaller set - which will cause out-of-bounds index access/crash during non-multitexture rendering
+		qglDisableClientState( GL_TEXTURE_COORD_ARRAY );
+	}
 	qglDisable( GL_TEXTURE_2D );
 
 	GL_SelectTexture( 0 );
@@ -848,7 +871,7 @@ static void RB_FogPass( void ) {
 ComputeColors
 ===============
 */
-static void ComputeColors( shaderStage_t *pStage ) {
+void R_ComputeColors( const shaderStage_t *pStage ) {
 	int i;
 
 	//
@@ -1191,18 +1214,18 @@ void SetIteratorFog( void ) {
 /*
 ** RB_IterateStagesGeneric
 */
-static void RB_IterateStagesGeneric( shaderCommands_t *input ) {
+static void RB_IterateStagesGeneric( shaderCommands_t *input )
+{
+	const shaderStage_t *pStage;
 	int stage;
 
 	for ( stage = 0; stage < MAX_SHADER_STAGES; stage++ )
 	{
-		shaderStage_t *pStage = tess.xstages[stage];
-
-		if ( !pStage ) {
+		pStage = tess.xstages[ stage ];
+		if ( !pStage )
 			break;
-		}
 
-		ComputeColors( pStage );
+		R_ComputeColors( pStage );
 		R_ComputeTexCoords( pStage );
 
 		if ( !setArraysOnce ) {
@@ -1213,13 +1236,16 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input ) {
 		//
 		// do multitexture
 		//
-		if ( pStage->bundle[1].image[0] != 0 ) {
+		if ( pStage->bundle[1].image[0] != 0 )
+		{
 			DrawMultitextured( input, stage );
-		} else
+		}
+		else
 		{
 			int fadeStart, fadeEnd;
 
-			if ( !setArraysOnce ) {
+			if ( !setArraysOnce )
+			{
 				qglTexCoordPointer( 2, GL_FLOAT, 0, input->svars.texcoords[0] );
 			}
 
@@ -1290,8 +1316,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input ) {
 			// draw
 			//
 			R_DrawElements( input->numIndexes, input->indexes );
-#ifdef USE_PMLIGHT
-			if ( pStage->depthFragment ) 
+			if ( pStage->depthFragment )
 			{
 				GL_State( pStage->stateBits | GLS_DEPTHMASK_TRUE );
 				GL_ProgramEnable();
@@ -1299,13 +1324,10 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input ) {
 				GL_ProgramDisable();
 				//GL_State( pStage->stateBits &= ~GLS_DEPTHMASK_TRUE );
 			}
-#endif
 		}
-
 		// allow skipping out to show just lightmaps during development
-		if ( r_lightmap->integer && ( pStage->bundle[0].isLightmap || pStage->bundle[1].isLightmap ) ) {
+		if ( r_lightmap->integer && ( pStage->bundle[0].isLightmap || pStage->bundle[1].isLightmap ) )
 			break;
-		}
 	}
 }
 
@@ -1332,6 +1354,14 @@ void RB_StageIteratorGeneric( void )
 		GL_ProgramDisable();
 	}
 #endif // USE_PMLIGHT
+
+	if ( tess.vboIndex )
+	{
+		RB_StageIteratorVBO();
+		return;
+	}
+
+	VBO_UnBind();
 
 	input = &tess;
 	shader = input->shader;
@@ -1364,24 +1394,24 @@ void RB_StageIteratorGeneric( void )
 	if ( tess.numPasses > 1 || shader->multitextureEnv )
 	{
 		setArraysOnce = qfalse;
-		qglDisableClientState (GL_COLOR_ARRAY);
-		qglDisableClientState (GL_TEXTURE_COORD_ARRAY);
+		qglDisableClientState( GL_COLOR_ARRAY );
+		qglDisableClientState( GL_TEXTURE_COORD_ARRAY );
 	}
 	else
 	{
 		setArraysOnce = qtrue;
 
-		qglEnableClientState( GL_COLOR_ARRAY);
+		qglEnableClientState( GL_COLOR_ARRAY );
 		qglColorPointer( 4, GL_UNSIGNED_BYTE, 0, tess.svars.colors );
 
-		qglEnableClientState( GL_TEXTURE_COORD_ARRAY);
+		qglEnableClientState( GL_TEXTURE_COORD_ARRAY );
 		qglTexCoordPointer( 2, GL_FLOAT, 0, tess.svars.texcoords[0] );
 	}
 
 	//
 	// lock XYZ
 	//
-	qglVertexPointer (3, GL_FLOAT, 16, input->xyz);	// padded for SIMD
+	qglVertexPointer( 3, GL_FLOAT, sizeof( input->xyz[0] ), input->xyz ); // padded for SIMD
 	if ( qglLockArraysEXT )
 	{
 		qglLockArraysEXT( 0, input->numVertexes );
@@ -1423,14 +1453,15 @@ void RB_StageIteratorGeneric( void )
 	//
 	// now do fog
 	//
-	if ( tess.fogNum && tess.shader->fogPass ) {
+	if ( tess.fogNum && tess.shader->fogPass )
+	{
 		RB_FogPass();
 	}
 
 	//
 	// unlock arrays
 	//
-	if ( qglUnlockArraysEXT ) 
+	if ( qglUnlockArraysEXT )
 	{
 		qglUnlockArraysEXT();
 	}
@@ -1468,6 +1499,14 @@ void RB_StageIteratorVertexLitTexture( void )
 	}
 #endif // USE_PMLIGHT
 
+	if ( tess.vboIndex )
+	{
+		RB_StageIteratorVBO();
+		return;
+	}
+
+	VBO_UnBind();
+
 	//
 	// compute colors
 	//
@@ -1504,8 +1543,7 @@ void RB_StageIteratorVertexLitTexture( void )
 	R_BindAnimatedImage( &tess.xstages[0]->bundle[0] );
 	GL_State( tess.xstages[0]->stateBits );
 	R_DrawElements( input->numIndexes, input->indexes );
-#ifdef USE_PMLIGHT
-	if ( tess.xstages[0]->depthFragment ) 
+	if ( tess.xstages[0]->depthFragment )
 	{
 		GL_State( tess.xstages[0]->stateBits | GLS_DEPTHMASK_TRUE );
 		GL_ProgramEnable();
@@ -1513,7 +1551,7 @@ void RB_StageIteratorVertexLitTexture( void )
 		GL_ProgramDisable();
 		//GL_State( tess.xstages[0]->stateBits &= ~GLS_DEPTHMASK_TRUE );
 	}
-#endif
+
 	// 
 	// now do any dynamic lighting needed
 	//
@@ -1570,6 +1608,14 @@ void RB_StageIteratorLightmappedMultitexture( void ) {
 		GL_ProgramDisable();
 	}
 #endif // USE_PMLIGHT
+
+	if ( tess.vboIndex )
+	{
+		RB_StageIteratorVBO();
+		return;
+	}
+
+	VBO_UnBind();
 
 	//
 	// set GL fog
@@ -1634,8 +1680,7 @@ void RB_StageIteratorLightmappedMultitexture( void ) {
 	}
 
 	R_DrawElements( input->numIndexes, input->indexes );
-#ifdef USE_PMLIGHT
-	if ( tess.xstages[0]->depthFragment ) 
+	if ( tess.xstages[0]->depthFragment )
 	{
 		GL_State( tess.xstages[0]->stateBits | GLS_DEPTHMASK_TRUE );
 		GL_ProgramEnable();
@@ -1643,7 +1688,7 @@ void RB_StageIteratorLightmappedMultitexture( void ) {
 		GL_ProgramDisable();
 		//GL_State( tess.xstages[0]->stateBits &= ~GLS_DEPTHMASK_TRUE );
 	}
-#endif
+
 	//
 	// disable texturing on TEXTURE1, then select TEXTURE0
 	//
@@ -1689,6 +1734,7 @@ void RB_StageIteratorLightmappedMultitexture( void ) {
 	}
 }
 
+
 /*
 ** RB_EndSurface
 */
@@ -1697,15 +1743,17 @@ void RB_EndSurface( void ) {
 
 	input = &tess;
 
-	if (input->numIndexes == 0) {
+	if ( input->numIndexes == 0 ) {
+		VBO_UnBind();
 		return;
 	}
 
-	if (input->indexes[SHADER_MAX_INDEXES-1] != 0) {
-		ri.Error (ERR_DROP, "RB_EndSurface() - SHADER_MAX_INDEXES hit");
+	if ( input->numIndexes > SHADER_MAX_INDEXES ) {
+		ri.Error( ERR_DROP, "RB_EndSurface() - SHADER_MAX_INDEXES hit" );
 	}	
-	if (input->xyz[SHADER_MAX_VERTEXES-1][0] != 0) {
-		ri.Error (ERR_DROP, "RB_EndSurface() - SHADER_MAX_VERTEXES hit");
+
+	if ( input->numVertexes > SHADER_MAX_VERTEXES ) {
+		ri.Error( ERR_DROP, "RB_EndSurface() - SHADER_MAX_VERTEXES hit" );
 	}
 
 	if ( tess.shader == tr.shadowShader ) {
@@ -1715,6 +1763,7 @@ void RB_EndSurface( void ) {
 
 	// for debugging of sort order issues, stop rendering after a given sort value
 	if ( r_debugSort->integer && r_debugSort->integer < tess.shader->sort && !backEnd.doneSurfaces ) {
+		VBO_UnBind();
 		return;
 	}
 
@@ -1738,20 +1787,21 @@ void RB_EndSurface( void ) {
 	//
 	// call off to shader specific tess end function
 	//
-	tess.currentStageIteratorFunc();
+	tess.shader->optimalStageIteratorFunc();
 
 	//
 	// draw debugging stuff
 	//
-	if ( r_showtris->integer ) {
-		DrawTris( input );
-	}
-	if ( r_shownormals->integer ) {
-		DrawNormals( input );
+	if ( !VBO_Active() ) {
+		if ( r_showtris->integer ) {
+			DrawTris( input );
+		}
+		if ( r_shownormals->integer ) {
+			DrawNormals( input );
+		}
 	}
 
 	// clear shader so we can tell we don't have any unclosed surfaces
 	tess.numIndexes = 0;
 	tess.numVertexes = 0;
 }
-

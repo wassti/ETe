@@ -29,15 +29,20 @@ If you have questions concerning this license or the applicable additional terms
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/time.h>
+#include <sys/resource.h>
+#include <sys/syscall.h>
+#include <sys/types.h>
 #include <alsa/asoundlib.h>
 #include <pthread.h>
 
 #include "../client/snd_local.h"
 #include "../qcommon/q_shared.h"
 
+#define USE_SPINLOCK
+
 #define NUM_SAMPLES 8192
 #define NUM_PERIODS 3
-#define PERIOD_TIME 20000
+#define PERIOD_TIME 20000 // wishable latency
 
 /* engine variables */
 
@@ -50,10 +55,18 @@ extern cvar_t *s_numchannels;
 
 #ifdef USE_ALSA_STATIC
 
+#ifdef USE_SPINLOCK
+#define	_pthread_spin_init pthread_spin_init
+#define	_pthread_spin_destroy pthread_spin_destroy
+#define	_pthread_spin_lock pthread_spin_lock
+#define	_pthread_spin_unlock pthread_spin_unlock
+#else // mutex
 #define _pthread_mutex_init pthread_mutex_init
 #define _pthread_mutex_destroy pthread_mutex_destroy
 #define	_pthread_mutex_lock pthread_mutex_lock
 #define	_pthread_mutex_unlock pthread_mutex_unlock
+#endif
+
 #define	_pthread_join pthread_join
 #define	_pthread_create pthread_create
 #define	_pthread_exit pthread_exit
@@ -65,6 +78,8 @@ extern cvar_t *s_numchannels;
 #define	_snd_pcm_hw_params_sizeof snd_pcm_hw_params_sizeof
 #define	_snd_pcm_sw_params_sizeof snd_pcm_sw_params_sizeof
 #define	_snd_pcm_hw_params_any snd_pcm_hw_params_any
+#define _snd_async_add_pcm_handler snd_async_add_pcm_handler
+#define _snd_async_handler_get_pcm snd_async_handler_get_pcm
 #define	_snd_pcm_hw_params_set_rate_resample snd_pcm_hw_params_set_rate_resample
 #define	_snd_pcm_hw_params_set_access snd_pcm_hw_params_set_access
 #define	_snd_pcm_hw_params_set_format snd_pcm_hw_params_set_format
@@ -72,6 +87,7 @@ extern cvar_t *s_numchannels;
 #define	_snd_pcm_hw_params_set_rate_near snd_pcm_hw_params_set_rate_near
 #define	_snd_pcm_hw_params_set_period_time_near snd_pcm_hw_params_set_period_time_near
 #define	_snd_pcm_hw_params_set_periods snd_pcm_hw_params_set_periods
+#define	_snd_pcm_hw_params_set_periods_near snd_pcm_hw_params_set_periods_near
 #define	_snd_pcm_hw_params_get_period_size snd_pcm_hw_params_get_period_size
 #define	_snd_pcm_hw_params snd_pcm_hw_params
 #define	_snd_pcm_sw_params_current snd_pcm_sw_params_current
@@ -84,6 +100,7 @@ extern cvar_t *s_numchannels;
 #define	_snd_pcm_resume snd_pcm_resume
 #define	_snd_pcm_wait snd_pcm_wait
 #define	__snd_pcm_state snd_pcm_state
+#define	_snd_pcm_avail snd_pcm_avail
 #define	_snd_pcm_avail_update snd_pcm_avail_update
 #define	_snd_pcm_mmap_begin snd_pcm_mmap_begin
 #define	_snd_pcm_mmap_commit snd_pcm_mmap_commit
@@ -91,12 +108,21 @@ extern cvar_t *s_numchannels;
 
 #else
 
+/* pthreads private variables */
+
 static void *t_lib = NULL;
 
+#ifdef USE_SPINLOCK
+static int (*_pthread_spin_init)(pthread_spinlock_t *lock, int pshared);
+static int (*_pthread_spin_destroy)(pthread_spinlock_t *lock);
+static int (*_pthread_spin_lock)(pthread_spinlock_t *lock);
+static int (*_pthread_spin_unlock)(pthread_spinlock_t *lock);
+#else
 static int (*_pthread_mutex_init)(pthread_mutex_t *mutex, const pthread_mutexattr_t *mutexattr);
 static int (*_pthread_mutex_destroy)(pthread_mutex_t *mutex);
 static int (*_pthread_mutex_lock)(pthread_mutex_t *mutex);
 static int (*_pthread_mutex_unlock)(pthread_mutex_t *mutex);
+#endif
 static int (*_pthread_join)(pthread_t __th, void **__thread_return);
 static int (*_pthread_create)(pthread_t *thread, const pthread_attr_t *attr, void *(*func) (void *), void *arg);
 static void (*_pthread_exit)(void *retval);
@@ -111,6 +137,8 @@ static int (*_snd_pcm_drop)(snd_pcm_t *pcm);
 static int (*_snd_pcm_close)(snd_pcm_t *pcm);
 static size_t (*_snd_pcm_hw_params_sizeof)(void);
 static size_t (*_snd_pcm_sw_params_sizeof)(void);
+static snd_pcm_t* (*_snd_async_handler_get_pcm)(snd_async_handler_t *handler);
+static int (*_snd_async_add_pcm_handler)(snd_async_handler_t **handler, snd_pcm_t *pcm, snd_async_callback_t callback, void *private_data);
 static int (*_snd_pcm_hw_params_any)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
 static int (*_snd_pcm_hw_params_set_rate_resample)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int val);
 static int (*_snd_pcm_hw_params_set_access)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, snd_pcm_access_t _access);
@@ -119,6 +147,7 @@ static int (*_snd_pcm_hw_params_set_channels)(snd_pcm_t *pcm, snd_pcm_hw_params_
 static int (*_snd_pcm_hw_params_set_rate_near)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir);
 static int (*_snd_pcm_hw_params_set_period_time_near)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir);
 static int (*_snd_pcm_hw_params_set_periods)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int val, int dir);
+static int (*_snd_pcm_hw_params_set_periods_near)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params, unsigned int *val, int *dir);
 static int (*_snd_pcm_hw_params_get_period_size)(const snd_pcm_hw_params_t *params, snd_pcm_uframes_t *frames, int *dir);
 static int (*_snd_pcm_hw_params)(snd_pcm_t *pcm, snd_pcm_hw_params_t *params);
 static int (*_snd_pcm_sw_params_current)(snd_pcm_t *pcm, snd_pcm_sw_params_t *params);
@@ -131,6 +160,7 @@ static int (*_snd_pcm_prepare)(snd_pcm_t *pcm);
 static int (*_snd_pcm_resume)(snd_pcm_t *pcm);
 static int (*_snd_pcm_wait)(snd_pcm_t *pcm, int timeout);
 static snd_pcm_state_t (*__snd_pcm_state)(snd_pcm_t *pcm);
+static snd_pcm_sframes_t (*_snd_pcm_avail)(snd_pcm_t *pcm);
 static snd_pcm_sframes_t (*_snd_pcm_avail_update)(snd_pcm_t *pcm);
 static int (*_snd_pcm_mmap_begin)(snd_pcm_t *pcm, const snd_pcm_channel_area_t **areas, snd_pcm_uframes_t *offset, snd_pcm_uframes_t *frames);
 static snd_pcm_sframes_t (*_snd_pcm_mmap_commit)(snd_pcm_t *pcm, snd_pcm_uframes_t offset, snd_pcm_uframes_t frames);
@@ -142,10 +172,17 @@ typedef struct {
 } sym_t;
 
 sym_t t_list[] = {
+#ifdef USE_SPINLOCK
+	{ (void**)&_pthread_spin_init, "pthread_spin_init" },
+	{ (void**)&_pthread_spin_destroy, "pthread_spin_destroy" },
+	{ (void**)&_pthread_spin_lock, "pthread_spin_lock" },
+	{ (void**)&_pthread_spin_unlock, "pthread_spin_unlock" },
+#else
 	{ (void**)&_pthread_mutex_init, "pthread_mutex_init" },
 	{ (void**)&_pthread_mutex_destroy, "pthread_mutex_destroy" },
 	{ (void**)&_pthread_mutex_lock, "pthread_mutex_lock" },
 	{ (void**)&_pthread_mutex_unlock, "pthread_mutex_unlock" },
+#endif
 	{ (void**)&_pthread_join, "pthread_join" },
 	{ (void**)&_pthread_create, "pthread_create" },
 	{ (void**)&_pthread_exit, "pthread_exit" }
@@ -158,6 +195,8 @@ sym_t a_list[] = {
 	{ (void**)&_snd_pcm_close, "snd_pcm_close" },
 	{ (void**)&_snd_pcm_hw_params_sizeof, "snd_pcm_hw_params_sizeof" },
 	{ (void**)&_snd_pcm_sw_params_sizeof, "snd_pcm_sw_params_sizeof" },
+	{ (void**)&_snd_async_handler_get_pcm, "snd_async_handler_get_pcm" },
+	{ (void**)&_snd_async_add_pcm_handler, "snd_async_add_pcm_handler" },
 	{ (void**)&_snd_pcm_hw_params_any, "snd_pcm_hw_params_any" },
 	{ (void**)&_snd_pcm_hw_params_set_rate_resample, "snd_pcm_hw_params_set_rate_resample" },
 	{ (void**)&_snd_pcm_hw_params_set_access, "snd_pcm_hw_params_set_access" },
@@ -166,6 +205,7 @@ sym_t a_list[] = {
 	{ (void**)&_snd_pcm_hw_params_set_rate_near, "snd_pcm_hw_params_set_rate_near" },
 	{ (void**)&_snd_pcm_hw_params_set_period_time_near, "snd_pcm_hw_params_set_period_time_near" },
 	{ (void**)&_snd_pcm_hw_params_set_periods, "snd_pcm_hw_params_set_periods" },
+	{ (void**)&_snd_pcm_hw_params_set_periods_near, "snd_pcm_hw_params_set_periods_near" },
 	{ (void**)&_snd_pcm_hw_params_get_period_size, "snd_pcm_hw_params_get_period_size" },
 	{ (void**)&_snd_pcm_hw_params, "snd_pcm_hw_params" },
 	{ (void**)&_snd_pcm_sw_params_current, "snd_pcm_sw_params_current" },
@@ -178,6 +218,7 @@ sym_t a_list[] = {
 	{ (void**)&_snd_pcm_resume, "snd_pcm_resume" },
 	{ (void**)&_snd_pcm_wait, "snd_pcm_wait" },
 	{ (void**)&__snd_pcm_state, "snd_pcm_state" },
+	{ (void**)&_snd_pcm_avail, "snd_pcm_avail" },
 	{ (void**)&_snd_pcm_avail_update, "snd_pcm_avail_update" },
 	{ (void**)&_snd_pcm_mmap_begin, "snd_pcm_mmap_begin" },
 	{ (void**)&_snd_pcm_mmap_commit, "snd_pcm_mmap_commit" },
@@ -188,42 +229,52 @@ sym_t a_list[] = {
 
 qboolean alsa_used = qfalse; /* will be checked in oss engine */
 
-pthread_t thread;
+static pthread_t thread;
+#ifdef USE_SPINLOCK
+static pthread_spinlock_t lock;
+#else
+static pthread_mutex_t mutex;
+#endif
 
 static qboolean snd_inited = qfalse;
 
 /* we will use static dma buffer */
 static unsigned char buffer[NUM_SAMPLES*4];
-
-static unsigned int periods = NUM_PERIODS;
-
-static unsigned int period_time = PERIOD_TIME;  // wishable latency
-
+static unsigned int periods;
+static unsigned int period_time;  // wishable latency
 static snd_pcm_t *handle;
 
-static pthread_mutex_t mutex;
 
 static volatile qboolean snd_loop;
+static qboolean snd_async;
 
-static snd_pcm_sframes_t buffer_pos; // buffer position
+static snd_pcm_uframes_t period_size;
+static snd_pcm_sframes_t buffer_pos;	// buffer position, in mono samples
+static int buffer_sz;					// buffers size, in bytes
+static int frame_sz;					// frame size, in bytes
+
+static void async_proc( snd_async_handler_t *ahandler );
+static void thread_proc_mmap( void );
+static void thread_proc_direct( void );
+
 
 void Snd_Memset( void* dest, const int val, const size_t count )
 {
     Com_Memset( dest, val, count );
 }
 
+
 void SNDDMA_BeginPainting( void )
 {
 
 }
+
 
 void SNDDMA_Submit( void )
 {
 
 }
 
-static void thread_proc_mmap( void );
-static void thread_proc_direct( void );
 
 static void UnloadLibs( void )
 {
@@ -238,9 +289,9 @@ static void UnloadLibs( void )
 
 qboolean SNDDMA_Init( void )
 {
+	snd_async_handler_t *ahandler;
 	snd_pcm_hw_params_t *hwparams;
 	snd_pcm_sw_params_t *swparams;
-	snd_pcm_uframes_t period_size;
 	unsigned int speed, rrate;
 	int err, dir, bps, channels;
 	qboolean use_mmap;
@@ -252,6 +303,7 @@ qboolean SNDDMA_Init( void )
 	}
 
 	alsa_used = qfalse;
+	snd_async = qfalse;
 
 #ifndef USE_ALSA_STATIC
 	if ( t_lib == NULL )
@@ -268,7 +320,7 @@ qboolean SNDDMA_Init( void )
 		}
 	}
 
-	for ( i = 0 ; i < sizeof(t_list)/sizeof(t_list[0]) ; i++ )
+	for ( i = 0 ; i < ARRAY_LEN( t_list ) ; i++ )
 	{
 		*t_list[i].symbol = Sys_LoadFunction( t_lib, t_list[i].name );
 		if ( *t_list[i].symbol == NULL )
@@ -290,31 +342,27 @@ qboolean SNDDMA_Init( void )
 		if ( a_lib == NULL )
 		{
 			Com_Printf( "Error loading ALSA library.\n" );
-			UnloadLibs();
-			return qfalse;
+			goto __fail;
 		}
 	}
 
-	for ( i = 0 ; i < sizeof(a_list)/sizeof(a_list[0]) ; i++ )
+	for ( i = 0 ; i < ARRAY_LEN( a_list ) ; i++ )
 	{
 		*a_list[i].symbol = Sys_LoadFunction( a_lib, a_list[i].name );
 		if ( *a_list[i].symbol == NULL )
 		{
 			Com_Printf( "Couldn't find '%s' symbol, disabling ALSA support.\n",
 				a_list[i].name );
-			UnloadLibs();
-			return qfalse;
+			goto __fail;
 		}
 	}
 #endif
 
 	err = _snd_pcm_open( &handle, s_device->string, SND_PCM_STREAM_PLAYBACK, SND_PCM_NONBLOCK );
-
 	if ( err < 0 )
 	{
 		Com_Printf( "Playback device open error: %s\n", _snd_strerror( err ) );
-		UnloadLibs();
-		return qfalse;
+		goto __fail;
 	}
 
 	hwparams = alloca( _snd_pcm_hw_params_sizeof() );
@@ -325,35 +373,46 @@ qboolean SNDDMA_Init( void )
 	{
 		Com_Printf( "Broken configuration for playback: " \
 			"no configurations available: %s\n", _snd_strerror( err ) );
-		_snd_pcm_close( handle );
-		UnloadLibs();
-		return qfalse;
+		goto __fail;
 	}
 
-	/* set the interleaved read/write format */
-	err = _snd_pcm_hw_params_set_access( handle,
-		hwparams, SND_PCM_ACCESS_MMAP_INTERLEAVED );
-	if ( err < 0 ) {
+	err = _snd_async_add_pcm_handler( &ahandler, handle, async_proc, NULL );
+	if ( err >= 0 )
+	{
+		Com_Printf( "... using async sound handler\n" );
+		snd_async = qtrue;
 		err = _snd_pcm_hw_params_set_access( handle,
-		hwparams, SND_PCM_ACCESS_RW_INTERLEAVED );
+			hwparams, SND_PCM_ACCESS_RW_INTERLEAVED );
 		use_mmap = qfalse;
-	} else {
-		use_mmap = qtrue;
+	}
+	else
+	{
+		/* set the interleaved read/write format */
+		err = _snd_pcm_hw_params_set_access( handle,
+			hwparams, SND_PCM_ACCESS_MMAP_INTERLEAVED );
+		if ( err < 0 ) {
+			err = _snd_pcm_hw_params_set_access( handle,
+			hwparams, SND_PCM_ACCESS_RW_INTERLEAVED );
+			use_mmap = qfalse;
+		} else {
+			use_mmap = qtrue;
+		}
 	}
 
 	if ( err < 0 )
 	{
 		Com_Printf( "Access type not available for playback: %s\n",
 			_snd_strerror( err ) );
-		_snd_pcm_close( handle );
-		UnloadLibs();
-		return qfalse;
+		goto __fail;
 	}
-	
-	if ( use_mmap ) {
-		Com_Printf( "Use mmap access\n" );
-	} else {
-		Com_Printf( "Use direct access\n" );
+
+	if ( !snd_async )
+	{
+		if ( use_mmap ) {
+			Com_Printf( "Use mmap access\n" );
+		} else {
+			Com_Printf( "Use direct access\n" );
+		}
 	}
 
 	/* set hw resampling */
@@ -362,9 +421,7 @@ qboolean SNDDMA_Init( void )
 	{
 		Com_Printf( "Resampling setup failed for playback: %s\n",
 			_snd_strerror( err ) );
-		_snd_pcm_close( handle );
-		UnloadLibs();
-		return qfalse;
+		goto __fail;
 	}
 
 	/* set the sample format */
@@ -379,9 +436,7 @@ qboolean SNDDMA_Init( void )
 	{
 		Com_Printf( "Sample format not available for playback: " \
 			"%s\n", _snd_strerror( err ) );
-		_snd_pcm_close( handle );
-		UnloadLibs();
-		return qfalse;
+		goto __fail;
 	}
 
 	channels = (int)s_numchannels->value;
@@ -398,15 +453,13 @@ qboolean SNDDMA_Init( void )
 		err = _snd_pcm_hw_params_set_channels( handle, hwparams, channels );
 		Com_Printf( "Channels count (%i) not available for playbacks: %s\n",
 			channels, _snd_strerror( err ) );
-		_snd_pcm_close( handle );
-		UnloadLibs();
-		return qfalse;
+		goto __fail;
 	}
 
 	switch ( s_khz->integer )
 	{
-		case 48: speed = 48000; break;
-		case 44: speed = 44100; break;
+		//case 48: speed = 48000; break;
+		//case 44: speed = 44100; break;
 		case 11: speed = 11025; break;
 		case 22:
 		default: speed = 22050; break;
@@ -418,39 +471,33 @@ qboolean SNDDMA_Init( void )
 	{
 		Com_Printf("Rate %iHz not available for playback: %s\n",
 			speed, _snd_strerror( err ) );
-		_snd_pcm_close( handle );
-		UnloadLibs();
-		return qfalse;
+		goto __fail;
 	}
 	if ( rrate != speed )
 	{
 		Com_Printf( "Rate doesn't match (requested %iHz, get %iHz)\n",
 			speed, err );
-		_snd_pcm_close( handle );
-		UnloadLibs();
-		return qfalse;
+		goto __fail;
 	}
 
 	/* set the period time */
+	period_time = PERIOD_TIME;
 	err = _snd_pcm_hw_params_set_period_time_near( handle, hwparams,
 		&period_time, &dir );
 	if ( err < 0 )
 	{
 		Com_Printf( "Unable to set period time %i for playback: %s\n",
 			period_time, _snd_strerror( err ) );
-		_snd_pcm_close( handle );
-		UnloadLibs();
-		return qfalse;
+		goto __fail;
 	}
 
-	err = _snd_pcm_hw_params_set_periods( handle, hwparams, periods, 0 );
+	periods = NUM_PERIODS;
+	err = _snd_pcm_hw_params_set_periods_near( handle, hwparams, &periods, &dir );
 	if ( err < 0 )
 	{
 		Com_Printf( "Unable to set periods (%i): %s",
 			periods, _snd_strerror( err ) );
-		_snd_pcm_close( handle );
-		UnloadLibs();
-		return qfalse;
+		goto __fail;
 	}
 
 	/* get period size */
@@ -459,9 +506,7 @@ qboolean SNDDMA_Init( void )
 	{
 		Com_Printf( "Unable to get period size for playback: %s\n",
 			_snd_strerror( err ) );
-		_snd_pcm_close( handle );
-		UnloadLibs();
-		return qfalse;
+		goto __fail;
 	}
 
 	/* write the parameters to device */
@@ -470,9 +515,7 @@ qboolean SNDDMA_Init( void )
 	{
 		Com_Printf( "Unable to set hw params for playback: %s\n",
 			_snd_strerror( err ) );
-		_snd_pcm_close( handle );
-		UnloadLibs();
-		return qfalse;
+		goto __fail;
 	}
 
 	err = _snd_pcm_sw_params_current( handle, swparams );
@@ -480,9 +523,7 @@ qboolean SNDDMA_Init( void )
 	{
 		Com_Printf( "Unable to determine current swparams for playback: %s\n",
 			_snd_strerror( err ) );
-		_snd_pcm_close( handle );
-		UnloadLibs();
-		return qfalse;
+		goto __fail;
 	}
 
 	err = _snd_pcm_sw_params_set_start_threshold( handle, swparams, 1 /*period_size*/ );
@@ -490,9 +531,7 @@ qboolean SNDDMA_Init( void )
 	{
 		Com_Printf( "Unable to set start threshold mode for playback: %s\n",
 			_snd_strerror( err ) );
-		_snd_pcm_close( handle );
-		UnloadLibs();
-		return qfalse;
+		goto __fail;
 	}
 
 	/* disable XRUN */
@@ -501,9 +540,7 @@ qboolean SNDDMA_Init( void )
 	{
 		Com_Printf( "Unable to set stop threshold for playback: " \
 			"%s\n", _snd_strerror( err ) );
-		_snd_pcm_close( handle );
-		UnloadLibs();
-		return qfalse;
+		goto __fail;
 	}
 
 	err = _snd_pcm_sw_params_set_avail_min( handle, swparams, period_size );
@@ -511,9 +548,7 @@ qboolean SNDDMA_Init( void )
 	{
 		Com_Printf( "Unable to set avail min for playback: %s\n",
 			_snd_strerror( err ) );
-		_snd_pcm_close( handle );
-		UnloadLibs();
-		return qfalse;
+		goto __fail;
 	}
 
 	err = _snd_pcm_sw_params( handle, swparams );
@@ -521,9 +556,7 @@ qboolean SNDDMA_Init( void )
 	{
 		Com_Printf( "Unable to set sw params for playback: %s\n",
 			_snd_strerror( err ) );
-		_snd_pcm_close( handle );
-		UnloadLibs();
-		return qfalse;
+		goto __fail;
 	}
 
 #ifdef INT
@@ -538,37 +571,89 @@ qboolean SNDDMA_Init( void )
 	dma.submission_chunk = 1;
 	dma.buffer = buffer;
 
+	buffer_pos = 0; // in monosamples
+	buffer_sz = dma.samples * dma.samplebits / 8; // buffer size, in bytes
+	frame_sz = dma.channels * dma.samplebits / 8; // frame size, in bytes
+
 	memset( buffer, 0, sizeof( buffer ) );
 
-	_pthread_mutex_init( &mutex, NULL );
-
 	snd_inited = qtrue;
-	snd_loop = qtrue;
 
-	 /* will be unlocked after thread creation */
-	_pthread_mutex_lock( &mutex );
-	
-	if ( use_mmap ==  qfalse )
-		err = _pthread_create( &thread, NULL, (void*)&thread_proc_direct, NULL );
-	else
-		err = _pthread_create( &thread, NULL, (void*)&thread_proc_mmap, NULL );
+#ifdef USE_SPINLOCK
+	_pthread_spin_init( &lock, 0 );
+#else
+	_pthread_mutex_init( &mutex, NULL );
+#endif
 
-	if ( err != 0 )
+	if ( snd_async )
 	{
-		Com_Printf( "Error creating sound thread (%i)\n", err );
+		err = _snd_pcm_writei( handle, dma.buffer, period_size * 2 );
+		if ( err < 0 )
+		{
+			Com_Printf( S_COLOR_YELLOW "ALSA initial write error: %s\n", _snd_strerror( err ) );
+			goto __fail;
+		}
+		if ( err != period_size * 2 )
+		{
+			Com_Printf( S_COLOR_YELLOW "ALSA initial write error: written %i expected %li\n", err,
+				period_size * 2 );
+			goto __fail;
+		}
+		if ( __snd_pcm_state( handle ) == SND_PCM_STATE_PREPARED )
+		{
+			err = _snd_pcm_start( handle );
+			if ( err < 0 )
+			{
+				Com_Printf( "ALSA start error: %s\n", _snd_strerror( err ) );
+				goto __fail;
+			}
+		}
+	}
+	else
+	{
+		snd_loop = qtrue;
+
+		 /* will be unlocked after thread creation */
+#ifdef USE_SPINLOCK
+		_pthread_spin_lock( &lock );
+#else
+		_pthread_mutex_lock( &mutex );
+#endif
+	
+		if ( use_mmap )
+			err = _pthread_create( &thread, NULL, (void*)&thread_proc_mmap, NULL );
+		else
+			err = _pthread_create( &thread, NULL, (void*)&thread_proc_direct, NULL );
+
+		if ( err != 0 )
+		{
+			Com_Printf( "Error creating sound thread (%i)\n", err );
+#ifdef USE_SPINLOCK
+			_pthread_spin_unlock( &lock );
+#else
+			_pthread_mutex_unlock( &mutex );
+#endif
+			goto __fail;
+		}
+
+		/* wait for thread creation */
+#ifdef USE_SPINLOCK
+		_pthread_spin_lock( &lock );
+		_pthread_spin_unlock( &lock );
+#else
+		_pthread_mutex_lock( &mutex );
 		_pthread_mutex_unlock( &mutex );
-		_snd_pcm_close( handle );
-		UnloadLibs();
-		return qfalse;
+#endif
 	}
 
-	/* wait for thread creation */
-	_pthread_mutex_lock( &mutex );
-	_pthread_mutex_unlock( &mutex );
-
 	alsa_used = qtrue;
-
 	return qtrue;
+
+__fail:
+	_snd_pcm_close( handle );
+	UnloadLibs();
+	alsa_used = qfalse;
+	return qfalse;
 }
 
 
@@ -577,20 +662,29 @@ void SNDDMA_Shutdown( void )
 	if ( snd_inited == qfalse )
 		return;
 
-	snd_loop = qfalse;
+	if ( !snd_async )
+	{
+		snd_loop = qfalse;
 
-	/* wait for thread loop exit */
-	_pthread_join( thread, NULL );
+		/* wait for thread loop exit */
+		_pthread_join( thread, NULL );
+	}
 
 	_snd_pcm_drop( handle );
 	_snd_pcm_close( handle );
 
 	snd_inited = qfalse;
+	snd_async = qfalse;
 
+#ifdef USE_SPINLOCK
+	_pthread_spin_destroy( &lock );
+#else
 	_pthread_mutex_destroy( &mutex );
+#endif
 
 	UnloadLibs();
 }
+
 
 void print_state( snd_pcm_state_t state )
 {
@@ -615,7 +709,7 @@ static int xrun_recovery( snd_pcm_t *handle, int err )
 		err = _snd_pcm_prepare( handle );
 		if ( err < 0 )
 		{
-			Com_Printf( "Can't recovery from underrun, prepare failed: %s\n",
+			fprintf( stderr, "Can't recovery from underrun, prepare failed: %s\n",
 				_snd_strerror( err ) );
 			return err;
 		}
@@ -625,7 +719,7 @@ static int xrun_recovery( snd_pcm_t *handle, int err )
 	{
 		int tries = 0;
 		/* wait until the suspend flag is released */
-		while ( ( err = _snd_pcm_resume( handle ) ) == -EAGAIN ) 
+		while ( ( err = _snd_pcm_resume( handle ) ) == -EAGAIN )
 		{
 			usleep( period_time );
 			if ( tries++ < 16 )
@@ -638,7 +732,7 @@ static int xrun_recovery( snd_pcm_t *handle, int err )
 			err = _snd_pcm_prepare( handle );
 			if ( err < 0 )
 			{
-				Com_Printf( "Can't recovery from suspend, prepare failed: %s\n",
+				fprintf( stderr, "Can't recovery from suspend, prepare failed: %s\n",
 					_snd_strerror( err ) );
 				return err;
 			}
@@ -663,7 +757,7 @@ static int restore_transfer( void )
 		err = xrun_recovery( handle, -EPIPE );
 		if ( err < 0 )
 		{
-			Com_Printf( "XRUN recovery failed: %s\n",
+			fprintf( stderr, "XRUN recovery failed: %s\n",
 				_snd_strerror( err ) );
 			return err;
 		}
@@ -675,14 +769,15 @@ static int restore_transfer( void )
 		err = xrun_recovery( handle, -ESTRPIPE );
 		if ( err < 0 )
 		{
-			Com_Printf( "SUSPEND recovery failed: %s\n",
+			fprintf( stderr, "SUSPEND recovery failed: %s\n",
 				_snd_strerror( err ) );
 			return err;
 		}
 		buffer_pos = 0;
 	}
 	return 0;
-};
+}
+
 
 /*
 ==============
@@ -699,14 +794,22 @@ int SNDDMA_GetDMAPos( void )
 	if ( snd_inited == qfalse )
 		return 0;
 
+#ifdef USE_SPINLOCK
+	_pthread_spin_lock( &lock );
+#else
 	_pthread_mutex_lock( &mutex );
+#endif
 
 	if ( dma.samples )
 		samples = (buffer_pos) % dma.samples;
 	else
 		samples = 0;
 
+#ifdef USE_SPINLOCK
+	_pthread_spin_unlock( &lock );
+#else
 	_pthread_mutex_unlock( &mutex );
+#endif
 
 	return samples;
 }
@@ -721,24 +824,27 @@ static void thread_proc_mmap( void )
 	snd_pcm_sframes_t avail;
 	snd_pcm_state_t state;
 	unsigned char *addr;
-	int frame_sz;	// in bytes
-	int buffer_sz;	// in bytes
 	int sz0, sz1;
 	int err, p;
+	pid_t thread_id;
 
-	frame_sz = dma.channels * dma.samplebits / 8;
-	buffer_sz = dma.samples * dma.samplebits / 8;
+	// adjust thread priority
+	thread_id = syscall( SYS_gettid );
+	setpriority( PRIO_PROCESS, thread_id, -10 );
 
-	buffer_pos = 0;
+	// thread is running now
+#ifdef USE_SPINLOCK
+	_pthread_spin_unlock( &lock );
+#else
+	_pthread_mutex_unlock( &mutex );
+#endif
 
-	_pthread_mutex_unlock( &mutex ); // thread is running
-
-	while ( snd_loop == qtrue )
+	while ( snd_loop )
 	{
 		if ( restore_transfer() < 0 )
 			break;
 
-		_snd_pcm_wait( handle, period_time * 2 );
+		_snd_pcm_wait( handle, period_time );
 		avail = _snd_pcm_avail_update( handle );
 
 		if ( avail < 0 )
@@ -749,25 +855,33 @@ static void thread_proc_mmap( void )
 		if ( state == SND_PCM_STATE_PREPARED )
 		{
 			_snd_pcm_start( handle );
-			avail = _snd_pcm_avail_update( handle );
+			avail = _snd_pcm_avail( handle ); // sync with hardware
 			buffer_pos = 0;
 		}
 
-		if ( avail < 0 )
+		if ( avail <= 0 )
 			continue;
 
+#ifdef USE_SPINLOCK
+		_pthread_spin_lock( &lock );
+#else
 		_pthread_mutex_lock( &mutex );
-
+#endif
 		frames = avail;
+
 		err = _snd_pcm_mmap_begin( handle, &areas, &offset, &frames );
 
 		if ( err < 0 )
 		{
 			if ( (err = xrun_recovery( handle, err ) ) < 0 )
 			{
-				Com_Printf( "MMAP begin error: %s\n",
+				fprintf( stderr, "MMAP begin error: %s\n",
 					_snd_strerror( err ) );
+#ifdef USE_SPINLOCK
+				_pthread_spin_unlock( &lock );
+#else
 				_pthread_mutex_unlock( &mutex );
+#endif
 				continue;
 			}
 		}
@@ -794,12 +908,20 @@ static void thread_proc_mmap( void )
 		{
 			if ( ( err = xrun_recovery( handle, commitres >= 0 ? -EPIPE : commitres ) ) < 0 )
 			{
-				Com_Printf( "MMAP commit error: %s\n", _snd_strerror( err ) );
+				fprintf( stderr, "MMAP commit error: %s\n", _snd_strerror( err ) );
+#ifdef USE_SPINLOCK
+				_pthread_spin_unlock( &lock );
+#else
 				_pthread_mutex_unlock( &mutex );
+#endif
 				break;
 			}
 		}
+#ifdef USE_SPINLOCK
+		_pthread_spin_unlock( &lock );
+#else
 		_pthread_mutex_unlock( &mutex );
+#endif
 	}
 
 	_pthread_exit( 0 );
@@ -808,34 +930,37 @@ static void thread_proc_mmap( void )
 
 static void thread_proc_direct( void )
 {
-    snd_pcm_uframes_t size;
-    snd_pcm_uframes_t pos;
-    snd_pcm_sframes_t avail, x;
-    snd_pcm_state_t state;
+	snd_pcm_uframes_t size;
+	snd_pcm_uframes_t pos;
+	snd_pcm_sframes_t avail, x;
+	snd_pcm_state_t state;
+	pid_t thread_id;
+	int err;
 
-    int frame_sz;
-    int err;
+	// adjust thread priority
+	thread_id = syscall( SYS_gettid );
+	setpriority( PRIO_PROCESS, thread_id, -10 );
 
-    /* buffer size in full samples */
-    size = dma.samples / dma.channels;
-    frame_sz = dma.samplebits / 8 * dma.channels;
+	/* buffer size in full samples */
+	size = dma.samples / dma.channels;
 
-    buffer_pos = 0;
+	// thread is running now
+#ifdef USE_SPINLOCK
+	_pthread_spin_unlock( &lock );
+#else
+	_pthread_mutex_unlock( &mutex );
+#endif
 
-    _pthread_mutex_unlock( &mutex ); /* thread is running */
+	while ( snd_loop )
+	{
+		if ( restore_transfer() < 0 )
+			break;
 
-    while ( snd_loop == qtrue )
-    {
-	if ( restore_transfer() < 0 )
-	    break;
-
-		_snd_pcm_wait( handle, period_time * 2 );
+		_snd_pcm_wait( handle, period_time );
 		avail = _snd_pcm_avail_update( handle );
 
 		if ( avail < 0 )
 			continue;
-
-//		Com_Printf( "write\n" );
 
 		if ( snd_loop == qfalse )
 			break;
@@ -845,30 +970,27 @@ static void thread_proc_direct( void )
 		if ( state == SND_PCM_STATE_PREPARED )
 		{
 			_snd_pcm_start( handle );
-			avail = _snd_pcm_avail_update( handle );
+			avail = _snd_pcm_avail( handle ); // sync with hardware
 			//_snd_pcm_writei( handle, dma.buffer, size );
 			buffer_pos = 0;
 		}
 
-		if ( avail < 0 )
-		{
+		if ( avail <= 0 )
 			continue;
-		}
 
-		if ( avail == 0 )
-		{
-		  continue;
-		}
-
+#ifdef USE_SPINLOCK
+		_pthread_spin_lock( &lock );
+#else
 		_pthread_mutex_lock( &mutex );
+#endif
 
 		// buffer position in full samples
 		pos = buffer_pos / dma.channels;
 
 		while ( avail > 0 ) {
 			x = avail;
-			if ( pos + x > size  ) {
-				x =  size - pos;
+			if ( pos + x > size ) {
+				x = size - pos;
 			}
 			err = _snd_pcm_writei( handle, dma.buffer + pos * frame_sz, x );
 			if ( err >= 0 ) {
@@ -882,8 +1004,71 @@ static void thread_proc_direct( void )
 		// buffer pos in mono samples again
 		buffer_pos = pos * dma.channels;
 
+#ifdef USE_SPINLOCK
+		_pthread_spin_unlock( &lock );
+#else
 		_pthread_mutex_unlock( &mutex );
+#endif
 	}
 
 	_pthread_exit( 0 );
+}
+
+
+static void async_proc( snd_async_handler_t *ahandler )
+{
+	snd_pcm_sframes_t avail;
+	snd_pcm_sframes_t x;
+	snd_pcm_uframes_t pos;
+	snd_pcm_uframes_t size;
+	int err;
+
+	if ( !snd_async || !dma.samples )
+		return;
+
+	if ( restore_transfer() < 0 )
+		return;
+
+	size = dma.samples / dma.channels;
+
+	while ( ( avail = _snd_pcm_avail_update( handle ) ) >= period_size )
+	{
+#ifdef USE_SPINLOCK
+		_pthread_spin_lock( &lock );
+#else
+		_pthread_mutex_lock( &mutex );
+#endif
+		pos = buffer_pos / dma.channels; // buffer position in full samples
+
+		while ( avail >= period_size )
+		{
+			if ( avail > period_size )
+				x = period_size;
+			else
+				x = avail;
+
+			if ( pos + x > size )
+				x = size - pos;
+
+			err = _snd_pcm_writei( handle, dma.buffer + pos * frame_sz, x );
+			if ( err >= 0 )
+			{
+				pos = (pos + x) % size;
+				avail -= x;
+			}
+			else
+			{
+				fprintf( stderr, "ALSA write error: %s\n", _snd_strerror( err ) );
+				break;
+			}
+		}
+
+		buffer_pos = pos * dma.channels; // buffer pos in mono samples again
+
+#ifdef USE_SPINLOCK
+		_pthread_spin_unlock( &lock );
+#else
+		_pthread_mutex_unlock( &mutex );
+#endif
+	}
 }

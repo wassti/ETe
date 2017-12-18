@@ -58,7 +58,6 @@ cvar_t	*r_stereoSeparation;
 
 cvar_t  *r_skipBackEnd;
 
-cvar_t	*r_stereoEnabled;
 cvar_t	*r_anaglyphMode;
 
 cvar_t	*r_greyscale;
@@ -76,10 +75,24 @@ cvar_t	*r_dlightSpecPower;
 cvar_t	*r_dlightSpecColor;
 cvar_t	*r_dlightScale;
 cvar_t	*r_dlightIntensity;
+#endif
+cvar_t	*r_vbo;
 cvar_t	*r_fbo;
 cvar_t	*r_hdr;
-#endif
 cvar_t	*r_bloom;
+cvar_t	*r_bloom_threshold;
+cvar_t	*r_bloom_threshold_mode;
+cvar_t	*r_bloom_modulate;
+cvar_t	*r_bloom_passes;
+cvar_t	*r_bloom_blend_base;
+cvar_t	*r_bloom_intensity;
+cvar_t	*r_bloom_filter_size;
+cvar_t	*r_bloom_reflection;
+
+cvar_t	*r_renderWidth;
+cvar_t	*r_renderHeight;
+cvar_t	*r_renderScale;
+
 cvar_t	*r_dlightBacks;
 
 cvar_t  *r_lodbias;
@@ -133,9 +146,6 @@ cvar_t  *r_uiFullScreen;
 cvar_t  *r_shadows;
 cvar_t  *r_portalsky;   //----(SA)	added
 cvar_t  *r_flares;
-cvar_t  *r_mode;
-cvar_t	*r_modeFullscreen;
-cvar_t  *r_oldMode;     // ydnar
 cvar_t  *r_nobind;
 cvar_t  *r_singleShader;
 cvar_t  *r_roundImagesDown;
@@ -162,10 +172,6 @@ cvar_t  *r_portalOnly;
 
 cvar_t  *r_subdivisions;
 cvar_t  *r_lodCurveError;
-
-cvar_t  *r_customwidth;
-cvar_t  *r_customheight;
-cvar_t  *r_customaspect;
 
 cvar_t  *r_overBrightBits;
 cvar_t  *r_mapOverBrightBits;
@@ -216,6 +222,10 @@ static const char *gl_extensions = NULL;
 #define GLE( ret, name, ... ) ret ( APIENTRY * q##name )( __VA_ARGS__ );
 	QGL_Core_PROCS;
 	QGL_Ext_PROCS;
+	QGL_ARB_PROGRAM_PROCS;
+	QGL_VBO_PROCS;
+	QGL_FBO_PROCS;
+	QGL_FBO_OPT_PROCS;
 #undef GLE
 
 // for modular renderer
@@ -359,6 +369,7 @@ static void R_InitExtensions( void )
 	}
 
 	// GL_ARB_multitexture
+	glConfig.maxActiveTextures = 0;
 	qglMultiTexCoord2fARB = NULL;
 	qglActiveTextureARB = NULL;
 	qglClientActiveTextureARB = NULL;
@@ -448,6 +459,27 @@ static void R_InitExtensions( void )
 		ri.Printf( PRINT_ALL, "...GL_EXT_texture_filter_anisotropic not found\n" );
 	}
 
+	if ( R_HaveExtension( "GL_ARB_vertex_program" ) && R_HaveExtension( "GL_ARB_fragment_program" ) ) {
+#define GLE( ret, name, ... ) q##name = ri.GL_GetProcAddress( XSTRING( name ) );
+		QGL_ARB_PROGRAM_PROCS;
+#undef GLE
+		ri.Printf( PRINT_ALL, "...using ARB vertex/fragment programs\n" );
+	}
+
+	if ( R_HaveExtension( "ARB_vertex_buffer_object" ) && qglActiveTextureARB ) {
+#define GLE( ret, name, ... ) q##name = ri.GL_GetProcAddress( XSTRING( name ) ); // if ( !q##name ) ri.Error( ERR_FATAL, "Error resolving VBO functions" );
+		QGL_VBO_PROCS;
+#undef GLE
+		ri.Printf( PRINT_ALL, "...using ARB vertex buffer objects\n" );
+	}
+
+	if ( R_HaveExtension( "GL_EXT_framebuffer_object" ) && R_HaveExtension( "GL_EXT_framebuffer_blit" ) ) {
+#define GLE( ret, name, ... ) q##name = ri.GL_GetProcAddress( XSTRING( name ) );
+		QGL_FBO_PROCS;
+		QGL_FBO_OPT_PROCS;
+#undef GLE
+	}
+
 	// GL_NV_fog_distance
 	if ( R_HaveExtension( "GL_NV_fog_distance" ) ) {
 		if ( r_ext_NV_fog_dist->integer ) {
@@ -497,11 +529,15 @@ static void InitOpenGL( void )
 		QGL_Core_PROCS;
 #undef GLE
 
+		R_InitExtensions();
+
 		// OpenGL driver constants
 		qglGetIntegerv( GL_MAX_TEXTURE_SIZE, &max_texture_size );
 		glConfig.maxTextureSize = max_texture_size;
 
-		R_InitExtensions();
+		// stubbed or broken drivers may have reported 0...
+		if ( glConfig.maxTextureSize <= 0 ) 
+			glConfig.maxTextureSize = 0;
 
 		ri.Cvar_Set( "r_highQualityVideo", "1" );
 		ri.Cvar_Set( "r_lastValidRenderer", glConfig.renderer_string );
@@ -517,15 +553,8 @@ static void InitOpenGL( void )
 		if ( glConfig.maxActiveTextures && max_bind_units > 0 )
 			glConfig.maxActiveTextures = max_bind_units;
 
-		// stubbed or broken drivers may have reported 0...
-		if ( glConfig.maxTextureSize <= 0 ) 
-		{
-			glConfig.maxTextureSize = 0;
-		}
-
-#if defined(USE_PMLIGHT)
 		QGL_InitARB();
-#endif
+
 		glConfig.deviceSupportsGamma = qfalse;
 
 		if ( !r_ignorehwgamma->integer )
@@ -589,101 +618,6 @@ void GL_CheckErrors( void ) {
 	ri.Error( ERR_VID_FATAL, "GL_CheckErrors: %s", s );
 }
 
-
-/*
-** R_GetModeInfo
-*/
-typedef struct vidmode_s
-{
-    const char *description;
-    int         width, height;
-	float		pixelAspect;		// pixel width / height
-} vidmode_t;
-
-static const vidmode_t r_vidModes[] =
-{
-	{ "Mode  0: 320x240",			320,	240,	1 },
-	{ "Mode  1: 400x300",			400,	300,	1 },
-	{ "Mode  2: 512x384",			512,	384,	1 },
-	{ "Mode  3: 640x480",			640,	480,	1 },
-	{ "Mode  4: 800x600",			800,	600,	1 },
-	{ "Mode  5: 960x720",			960,	720,	1 },
-	{ "Mode  6: 1024x768",			1024,	768,	1 },
-	{ "Mode  7: 1152x864",			1152,	864,	1 },
-	{ "Mode  8: 1280x1024 (5:4)",	1280,	1024,	1 },
-	{ "Mode  9: 1600x1200",			1600,	1200,	1 },
-	{ "Mode 10: 2048x1536",			2048,	1536,	1 },
-	{ "Mode 11: 856x480 (wide)",	856,	480,	1 },
-	// extra modes:
-	{ "Mode 12: 1280x960",			1280,	960,	1 },
-	{ "Mode 13: 1280x720",			1280,	720,	1 },
-	{ "Mode 14: 1280x800 (16:10)",	1280,	800,	1 },
-	{ "Mode 15: 1366x768",			1366,	768,	1 },
-	{ "Mode 16: 1440x900 (16:10)",	1440,	900,	1 },
-	{ "Mode 17: 1600x900",			1600,	900,	1 },
-	{ "Mode 18: 1680x1050 (16:10)",	1680,	1050,	1 },
-	{ "Mode 19: 1920x1080",			1920,	1080,	1 },
-	{ "Mode 20: 1920x1200 (16:10)",	1920,	1200,	1 },
-	{ "Mode 21: 2560x1080 (21:9)",	2560,	1080,	1 },
-	{ "Mode 22: 3440x1440 (21:9)",	3440,	1440,	1 },
-	{ "Mode 23: 3840x2160",			3840,	2160,	1 },
-	{ "Mode 24: 4096x2160 (4K)",	4096,	2160,	1 }
-};
-static int	s_numVidModes = ARRAY_LEN( r_vidModes );
-
-static qboolean R_GetModeInfo( int *width, int *height, float *windowAspect, int mode, const char *modeFS, int dw, int dh, qboolean fullscreen ) {
-	const	vidmode_t *vm;
-	float	pixelAspect;
-
-	// set dedicated fullscreen mode
-	if ( fullscreen && *modeFS )
-		mode = atoi( modeFS );
-
-	if ( mode < -2 )
-		return qfalse;
-
-	if ( mode >= s_numVidModes )
-		return qfalse;
-
-	// fix unknown desktop resolution
-	if ( mode == -2 && (dw == 0 || dh == 0) ) 
-		mode = 3;
-
-	if ( mode == -2 ) { // desktop resolution
-		*width = dw;
-		*height = dh;
-		pixelAspect = r_customaspect->value;
-	} else if ( mode == -1 ) { // custom resolution
-		*width = r_customwidth->integer;
-		*height = r_customheight->integer;
-		pixelAspect = r_customaspect->value;
-	} else { // predefined resolution
-		vm = &r_vidModes[ mode ];
-		*width  = vm->width;
-		*height = vm->height;
-		pixelAspect = vm->pixelAspect;
-	}
-
-	*windowAspect = (float)*width / ( *height * pixelAspect );
-
-	return qtrue;
-}
-
-
-/*
-** R_ModeList_f
-*/
-static void R_ModeList_f( void )
-{
-	int i;
-
-	ri.Printf( PRINT_ALL, "\n" );
-	for ( i = 0; i < s_numVidModes; i++ )
-	{
-		ri.Printf( PRINT_ALL, "%s\n", r_vidModes[i].description );
-	}
-	ri.Printf( PRINT_ALL, "\n" );
-}
 
 
 /*
@@ -1321,7 +1255,7 @@ void GfxInfo_f( void )
 	ri.Printf( PRINT_ALL, "GL_MAX_TEXTURE_SIZE: %d\n", glConfig.maxTextureSize );
 	ri.Printf( PRINT_ALL, "GL_MAX_ACTIVE_TEXTURES_ARB: %d\n", glConfig.maxActiveTextures );
 	ri.Printf( PRINT_ALL, "\nPIXELFORMAT: color(%d-bits) Z(%d-bit) stencil(%d-bits)\n", glConfig.colorBits, glConfig.depthBits, glConfig.stencilBits );
-	ri.Printf( PRINT_ALL, "MODE: %d, %d x %d %s hz:", r_mode->integer, glConfig.vidWidth, glConfig.vidHeight, fsstrings[ glConfig.isFullscreen != 0 ] );
+	ri.Printf( PRINT_ALL, "MODE: %d, %d x %d %s hz:", ri.Cvar_VariableIntegerValue( "r_mode" ), glConfig.vidWidth, glConfig.vidHeight, fsstrings[ glConfig.isFullscreen != 0 ] );
 	if ( glConfig.displayFrequency )
 	{
 		ri.Printf( PRINT_ALL, "%d\n", glConfig.displayFrequency );
@@ -1465,26 +1399,9 @@ static void R_Register( void )
 	r_overBrightBits = ri.Cvar_Get( "r_overBrightBits", "0", CVAR_ARCHIVE_ND | CVAR_LATCH ); // Arnout: disable overbrightbits by default
 	ri.Cvar_CheckRange( r_overBrightBits, "0", "1", CV_INTEGER );                                   // ydnar: limit to overbrightbits 1 (sorry 1337 players)
 	r_ignorehwgamma = ri.Cvar_Get( "r_ignorehwgamma", "0", CVAR_ARCHIVE_ND | CVAR_LATCH );        // ydnar: use hw gamma by default
-	r_mode = ri.Cvar_Get( "r_mode", "4", CVAR_ARCHIVE | CVAR_LATCH );
-	ri.Cvar_CheckRange( r_mode, "-2", va( "%i", s_numVidModes-1 ), CV_INTEGER );
-	ri.Cvar_SetDescription( r_mode, "Set video mode:\n -2 - use current desktop resolution\n -1 - use \\r_customWidth and \\r_customHeight\n  0..N - enter \\modelist for details" );
-	
-	r_modeFullscreen = ri.Cvar_Get( "r_modeFullscreen", "-2", CVAR_ARCHIVE | CVAR_LATCH );
-	ri.Cvar_SetDescription( r_modeFullscreen, "Dedicated fullscreen mode, set to \"\" to use \\r_mode in all cases" );
-	r_oldMode = ri.Cvar_Get( "r_oldMode", "", CVAR_ARCHIVE );                             // ydnar: previous "good" video mode
-
-	r_customwidth = ri.Cvar_Get( "r_customWidth", "1600", CVAR_ARCHIVE | CVAR_LATCH );
-	ri.Cvar_CheckRange( r_customwidth, "1", NULL, CV_INTEGER );
-	ri.Cvar_SetDescription( r_customwidth, "Custom width to use with \\r_mode -1" );
-
-	r_customheight = ri.Cvar_Get( "r_customHeight", "1024", CVAR_ARCHIVE | CVAR_LATCH );
-	ri.Cvar_CheckRange( r_customheight, "1", NULL, CV_INTEGER );
-	ri.Cvar_SetDescription( r_customheight, "Custom height to use with \\r_mode -1" );
-	r_customaspect = ri.Cvar_Get( "r_customaspect", "1", CVAR_ARCHIVE_ND | CVAR_LATCH );
 	r_simpleMipMaps = ri.Cvar_Get( "r_simpleMipMaps", "1", CVAR_ARCHIVE_ND | CVAR_LATCH );
 	r_uiFullScreen = ri.Cvar_Get( "r_uifullscreen", "0", 0 );
 	r_subdivisions = ri.Cvar_Get( "r_subdivisions", "4", CVAR_ARCHIVE_ND | CVAR_LATCH );
-	r_stereoEnabled = ri.Cvar_Get( "r_stereoEnabled", "0", CVAR_ARCHIVE_ND | CVAR_LATCH );
 	r_ignoreFastPath = ri.Cvar_Get( "r_ignoreFastPath", "0", CVAR_ARCHIVE_ND | CVAR_LATCH ); // ydnar: use fast path by default
 	r_greyscale = ri.Cvar_Get( "r_greyscale", "0", CVAR_ARCHIVE_ND );
 	ri.Cvar_CheckRange( r_greyscale, "-1", "1", CV_FLOAT );
@@ -1495,8 +1412,6 @@ static void R_Register( void )
 	//
 	// temporary latched variables that can only change over a restart
 	//
-	r_displayRefresh = ri.Cvar_Get( "r_displayRefresh", "0", CVAR_LATCH | CVAR_UNSAFE );
-	ri.Cvar_CheckRange( r_displayRefresh, "0", "250", CV_INTEGER );
 	r_mapOverBrightBits = ri.Cvar_Get( "r_mapOverBrightBits", "2", CVAR_ARCHIVE_ND | CVAR_LATCH );
 	ri.Cvar_CheckRange( r_mapOverBrightBits, "0", "3", CV_INTEGER );
 	r_intensity = ri.Cvar_Get( "r_intensity", "1", CVAR_LATCH );
@@ -1538,12 +1453,44 @@ static void R_Register( void )
 	ri.Cvar_SetGroup( r_dlightSpecColor, CVG_RENDERER );
 	r_dlightIntensity = ri.Cvar_Get( "r_dlightIntensity", "1.0", CVAR_ARCHIVE_ND );
 	ri.Cvar_CheckRange( r_dlightIntensity, "0.1", "1", CV_FLOAT );
-
+#endif // USE_PMLIGHT
+	r_vbo = ri.Cvar_Get( "r_vbo", "0", CVAR_ARCHIVE_ND | CVAR_LATCH );
 	r_fbo = ri.Cvar_Get( "r_fbo", "0", CVAR_ARCHIVE_ND | CVAR_LATCH );
 	r_hdr = ri.Cvar_Get( "r_hdr", "0", CVAR_ARCHIVE_ND );
 	ri.Cvar_SetGroup( r_hdr, CVG_RENDERER );
-#endif
+	// bloom
 	r_bloom = ri.Cvar_Get( "r_bloom", "0", CVAR_ARCHIVE_ND );
+	r_bloom_threshold = ri.Cvar_Get( "r_bloom_threshold", "0.6", CVAR_ARCHIVE_ND );
+	ri.Cvar_SetGroup( r_bloom_threshold, CVG_RENDERER );
+	r_bloom_threshold_mode = ri.Cvar_Get( "r_bloom_threshold_mode", "0", CVAR_ARCHIVE_ND );
+	ri.Cvar_SetGroup( r_bloom_threshold_mode, CVG_RENDERER );
+	r_bloom_intensity = ri.Cvar_Get( "r_bloom_intensity", "0.5", CVAR_ARCHIVE_ND );
+	r_bloom_passes = ri.Cvar_Get( "r_bloom_passes", "5", CVAR_ARCHIVE_ND | CVAR_LATCH );
+	ri.Cvar_CheckRange( r_bloom_passes, "3", XSTRING( MAX_BLUR_PASSES ), CV_INTEGER );
+	r_bloom_blend_base = ri.Cvar_Get( "r_bloom_blend_base", "1", CVAR_ARCHIVE_ND );
+	ri.Cvar_SetGroup( r_bloom_blend_base, CVG_RENDERER );
+	ri.Cvar_CheckRange( r_bloom_blend_base, "0", va("%i", r_bloom_passes->integer-1), CV_INTEGER );
+	r_bloom_modulate = ri.Cvar_Get( "r_bloom_modulate", "0", CVAR_ARCHIVE_ND );
+	ri.Cvar_SetGroup( r_bloom_modulate, CVG_RENDERER );
+	r_bloom_filter_size = ri.Cvar_Get( "r_bloom_filter_size", "6", CVAR_ARCHIVE_ND );
+	ri.Cvar_CheckRange( r_bloom_filter_size, XSTRING( MIN_FILTER_SIZE ), XSTRING( MAX_FILTER_SIZE ), CV_INTEGER );
+	ri.Cvar_SetGroup( r_bloom_filter_size, CVG_RENDERER );
+
+	r_bloom_reflection = ri.Cvar_Get( "r_bloom_reflection", "0", CVAR_ARCHIVE_ND );
+	ri.Cvar_CheckRange( r_bloom_reflection, "-4", "4", CV_FLOAT );
+
+	r_renderWidth = ri.Cvar_Get( "r_renderWidth", "0", CVAR_ARCHIVE_ND | CVAR_LATCH );
+	r_renderHeight = ri.Cvar_Get( "r_renderHeight", "0", CVAR_ARCHIVE_ND | CVAR_LATCH );
+	ri.Cvar_CheckRange( r_renderWidth, "0", NULL, CV_INTEGER );
+	ri.Cvar_CheckRange( r_renderHeight, "0", NULL, CV_INTEGER );
+	
+	r_renderScale = ri.Cvar_Get( "r_renderScale", "1", CVAR_ARCHIVE_ND | CVAR_LATCH );
+	ri.Cvar_CheckRange( r_renderScale, "0", "3", CV_INTEGER );
+	ri.Cvar_SetDescription( r_renderScale, "Scaling mode to be used with custom render resolution:\n"
+		" 0 - nearest filtering, stretch to full size\n"
+		" 1 - nearest filtering, preserve aspect ratio (black bars on sides)\n"
+		" 2 - linear filtering, stretch to full size\n"
+		" 3 - linear filtering, preserve aspect ratio (black bars on sides)\n" );
 
 	r_dlightBacks = ri.Cvar_Get( "r_dlightBacks", "1", CVAR_ARCHIVE_ND );
 	r_finish = ri.Cvar_Get( "r_finish", "0", CVAR_ARCHIVE_ND );
@@ -1651,7 +1598,6 @@ static void R_Register( void )
 	ri.Cmd_AddCommand( "shaderlist", R_ShaderList_f );
 	ri.Cmd_AddCommand( "skinlist", R_SkinList_f );
 	ri.Cmd_AddCommand( "modellist", R_Modellist_f );
-	ri.Cmd_AddCommand( "modelist", R_ModeList_f );
 	ri.Cmd_AddCommand( "screenshot", R_ScreenShot_f );
 	ri.Cmd_AddCommand( "screenshotJPEG", R_ScreenShot_f );
 	ri.Cmd_AddCommand( "screenshotBMP", R_ScreenShot_f );
@@ -1726,8 +1672,6 @@ void R_Init( void ) {
 	R_NoiseInit();
 
 	R_Register();
-
-	R_BloomInit();
 
 	max_polys = r_maxpolys->integer;
 	if (max_polys < MAX_POLYS)
@@ -1821,14 +1765,19 @@ static void RE_Shutdown( qboolean destroyWindow ) {
 	// shut down platform specific OpenGL stuff
 	if ( destroyWindow ) {
 
-#if defined(USE_PMLIGHT)
 		QGL_DoneARB();
-#endif
+
+		VBO_Cleanup();
+
 		ri.GLimp_Shutdown();
 
 #define GLE( ret, name, ... ) q##name = NULL;
 		QGL_Core_PROCS;
 		QGL_Ext_PROCS;
+		QGL_ARB_PROGRAM_PROCS;
+		QGL_VBO_PROCS;
+		QGL_FBO_PROCS;
+		QGL_FBO_OPT_PROCS;
 #undef GLE
 
 		Com_Memset( &glConfig, 0, sizeof( glConfig ) );
@@ -1853,6 +1802,7 @@ Touch all images to make sure they are resident
 =============
 */
 static void RE_EndRegistration( void ) {
+	FBO_BindMain(); // otherwise we may draw images to the back buffer
 	R_IssuePendingRenderCommands();
 	if ( !ri.Sys_LowPhysicalMemory() ) {
 //		RB_ShowImages();
@@ -1960,10 +1910,10 @@ refexport_t *GetRefAPI ( int apiVersion, refimport_t *rimp ) {
 
 	re.TakeVideoFrame = RE_TakeVideoFrame;
 	re.SetColorMappings = R_SetColorMappings;
-	re.GetModeInfo = R_GetModeInfo;
 
 	re.FinishBloom = RE_FinishBloom;
 	re.CanMinimize = RE_CanMinimize;
+	re.GetConfig = RE_GetConfig;
 
 	return &re;
 }

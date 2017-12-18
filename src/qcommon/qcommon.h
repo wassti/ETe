@@ -197,7 +197,6 @@ typedef struct {
 void		NET_Init( void );
 void		NET_Shutdown( void );
 void		NET_Restart_f( void );
-void		NET_Config( qboolean enableNetworking );
 void		NET_FlushPacketQueue(void);
 void		NET_SendPacket( netsrc_t sock, int length, const void *data, const netadr_t *to );
 void		QDECL NET_OutOfBandPrint( netsrc_t net_socket, const netadr_t *adr, const char *format, ...) __attribute__ ((format (printf, 3, 4)));
@@ -530,8 +529,9 @@ void Cmd_CompleteArgument( const char *command, char *args, int argNum );
 void Cmd_CompleteCfgName( char *args, int argNum );
 void Cmd_CompleteWriteCfgName( char *args, int argNum );
 
-int		Cmd_Argc (void);
-char	*Cmd_Argv (int arg);
+int		Cmd_Argc( void );
+void	Cmd_Clear( void );
+char	*Cmd_Argv( int arg );
 void	Cmd_ArgvBuffer( int arg, char *buffer, int bufferLength );
 char	*Cmd_Args (void);
 char	*Cmd_ArgsFrom( int arg );

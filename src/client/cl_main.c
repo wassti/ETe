@@ -2091,9 +2091,9 @@ CL_EatMe_f
 Eat misc console commands to prevent exploits
 ==============
 */
-void CL_EatMe_f( void ) {
+//void CL_EatMe_f( void ) {
 	//do nothing kthxbye
-}
+//}
 
 //====================================================================
 
@@ -4380,7 +4380,7 @@ void CL_Init( void ) {
 	Cmd_AddCommand( "setRecommended", CL_SetRecommended_f );
 
 	//bani - we eat these commands to prevent exploits
-	Cmd_AddCommand( "userinfo", CL_EatMe_f );
+	//Cmd_AddCommand( "userinfo", CL_EatMe_f );
 
 //	Cmd_AddCommand( "wav_record", CL_WavRecord_f );
 //	Cmd_AddCommand( "wav_stoprecord", CL_WavStopRecord_f );

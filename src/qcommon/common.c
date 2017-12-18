@@ -308,7 +308,7 @@ Both client and server can use this, and it will
 do the apropriate things.
 =============
 */
-void QDECL Com_Error( errorParm_t code, const char *fmt, ... ) {
+void NORETURN QDECL Com_Error( errorParm_t code, const char *fmt, ... ) {
 	va_list		argptr;
 	static int	lastErrorTime;
 	static int	errorCount;
@@ -426,7 +426,7 @@ void QDECL Com_Error( errorParm_t code, const char *fmt, ... ) {
 	calledSysError = qtrue;
 	Sys_Error( "%s", com_errorMessage );
 }
-void QDECL Com_Error( errorParm_t code, const char *fmt, ... ) __attribute__ ( ( format( printf,2,3 ) ) );
+void NORETURN QDECL Com_Error( errorParm_t code, const char *fmt, ... ) __attribute__ ( ( format( printf,2,3 ) ) );
 
 /*
 =============

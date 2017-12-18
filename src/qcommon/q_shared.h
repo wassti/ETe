@@ -109,12 +109,25 @@ If you have questions concerning this license or the applicable additional terms
 
 #if (defined _MSC_VER)
 #define Q_EXPORT __declspec(dllexport)
+#define Q_NORETURN __declspec(noreturn)
 #elif (defined __SUNPRO_C)
 #define Q_EXPORT __global
 #elif ((__GNUC__ >= 3) && (!__EMX__) && (!sun))
 #define Q_EXPORT __attribute__((visibility("default")))
 #else
 #define Q_EXPORT
+#endif
+
+#if defined(__GNUC__)
+#define NORETURN __attribute__((noreturn))
+#define NORETURN_PTR __attribute__((noreturn))
+#elif defined(_MSC_VER)
+#define NORETURN __declspec(noreturn)
+// __declspec doesn't work on function pointers
+#define NORETURN_PTR /* nothing */
+#else
+#define NORETURN /* nothing */
+#define NORETURN_PTR /* nothing */
 #endif
 
 /**********************************************************************
@@ -996,7 +1009,7 @@ qboolean Info_Validate( const char *s );
 void Info_NextPair( const char **s, char *key, char *value );
 
 // this is only here so the functions in q_shared.c and bg_*.c can link
-void	QDECL Com_Error( errorParm_t level, const char *fmt, ... ) __attribute__ ((noreturn, format (printf, 2, 3)));
+void	NORETURN QDECL Com_Error( errorParm_t level, const char *fmt, ... ) __attribute__ ((format (printf, 2, 3)));
 void	QDECL Com_Printf( const char *msg, ... ) __attribute__ ((format (printf, 1, 2)));
 
 /*

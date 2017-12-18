@@ -102,6 +102,16 @@ void Con_ToggleConsole_f( void ) {
 }
 
 /*
+===================
+Con_ToggleMenu_f
+===================
+*/
+void Con_ToggleMenu_f( void ) {
+	CL_KeyEvent( K_ESCAPE, qtrue, Sys_Milliseconds() );
+	CL_KeyEvent( K_ESCAPE, qfalse, Sys_Milliseconds() );
+}
+
+/*
 ================
 Con_MessageMode_f
 ================
@@ -360,6 +370,7 @@ void Con_Init( void )
 	g_consoleField.widthInChars = g_console_field_width;
 
 	Cmd_AddCommand( "toggleConsole", Con_ToggleConsole_f );
+	Cmd_AddCommand( "toggleMenu", Con_ToggleMenu_f );
 	// ydnar: these are deprecated in favor of cgame/ui based version
 	Cmd_AddCommand( "clMessageMode", Con_MessageMode_f );
 	Cmd_AddCommand( "clMessageMode2", Con_MessageMode2_f );
@@ -378,6 +389,7 @@ Con_Shutdown
 void Con_Shutdown( void )
 {
 	Cmd_RemoveCommand( "toggleConsole" );
+	Cmd_RemoveCommand( "toggleMenu" );
 	Cmd_RemoveCommand( "clMessageMode" );
 	Cmd_RemoveCommand( "clMessageMode2" );
 	Cmd_RemoveCommand( "clMessageMode3" );

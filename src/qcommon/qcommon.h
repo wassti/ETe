@@ -990,7 +990,7 @@ void		Com_EndRedirect( void );
 int			QDECL Com_VPrintf( const char *fmt, va_list argptr ) __attribute__ ((format (printf, 1, 0))); // conforms to vprintf prototype for print callback passing
 void 		QDECL Com_Printf( const char *fmt, ... ) __attribute__ ((format (printf, 1, 2)));
 void 		QDECL Com_DPrintf( const char *fmt, ... ) __attribute__ ((format (printf, 1, 2)));
-void 		QDECL Com_Error( errorParm_t code, const char *fmt, ... ) __attribute__ ((noreturn, format (printf, 2, 3)));
+void 		NORETURN QDECL Com_Error( errorParm_t code, const char *fmt, ... ) __attribute__ ((format (printf, 2, 3)));
 void 		Com_Quit_f( void );
 void		Com_GameRestart( int checksumFeed, qboolean clientRestart );
 void		(*Com_DelayFunc)( void );

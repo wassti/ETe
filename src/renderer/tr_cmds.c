@@ -89,19 +89,22 @@ static void R_PerformanceCounters( void ) {
 R_IssueRenderCommands
 ====================
 */
-static void R_IssueRenderCommands( qboolean runPerformanceCounters ) {
+static void R_IssueRenderCommands( void ) {
 	renderCommandList_t	*cmdList;
 
 	cmdList = &backEndData->commands;
-	assert(cmdList);
+
 	// add an end-of-list command
 	*(int *)(cmdList->cmds + cmdList->used) = RC_END_OF_LIST;
 
 	// clear it out, in case this is a sync and not a buffer flip
 	cmdList->used = 0;
 
-	if ( runPerformanceCounters ) {
-		R_PerformanceCounters();
+	if ( backEnd.screenshotMask == 0 ) {
+		if ( ri.CL_IsMinimized() )
+			return; // skip backend when minimized
+		if ( backEnd.throttle )
+			return; // or throttled on demand
 	}
 
 	// actually start the commands going
@@ -123,7 +126,7 @@ void R_IssuePendingRenderCommands( void ) {
 	if ( !tr.registered ) {
 		return;
 	}
-	R_IssueRenderCommands( qfalse );
+	R_IssueRenderCommands();
 }
 
 
@@ -169,7 +172,6 @@ static void *R_GetCommandBuffer( int bytes ) {
 /*
 =============
 R_AddDrawSurfCmd
-
 =============
 */
 void	R_AddDrawSurfCmd( drawSurf_t *drawSurfs, int numDrawSurfs ) {
@@ -517,6 +519,8 @@ void RE_BeginFrame( stereoFrame_t stereoFrame ) {
 	// ENSI NOTE CHECKME wasn't in ET here
 	if ( r_fastsky->integer ) {
 		if ( stereoFrame != STEREO_RIGHT ) {
+			qglViewport( 0, 0, glConfig.vidWidth, glConfig.vidHeight );
+			qglScissor( 0, 0, glConfig.vidWidth, glConfig.vidHeight );
 			if ( r_anaglyphMode->integer )
 				qglColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
 			qglClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
@@ -623,65 +627,21 @@ Returns the number of msec spent in the back end
 */
 void RE_EndFrame( int *frontEndMsec, int *backEndMsec ) {
 
+	swapBuffersCommand_t *cmd;
+
 	if ( !tr.registered ) {
 		return;
 	}
 
-	R_IssueRenderCommands( qtrue );
-
-	// finish any 2D drawing if needed
-	if ( tess.numIndexes ) {
-		RB_EndSurface();
+	cmd = R_GetCommandBufferReserved( sizeof( *cmd ), 0 );
+	if ( !cmd ) {
+		return;
 	}
+	cmd->commandId = RC_SWAP_BUFFERS;
 
-	VBO_UnBind();
+	R_PerformanceCounters();
 
-	// texture swapping test
-	if ( r_showImages->integer ) {
-		RB_ShowImages();
-	}
-
-	if ( r_finish->integer == 1 && !glState.finishCalled ) {
-		qglFinish();
-	}
-
-	FBO_PostProcess();
-
-	if ( backEnd.screenshotMask && tr.frameCount > 1 ) {
-		if ( backEnd.screenshotMask & SCREENSHOT_TGA && backEnd.screenshotTGA[0] ) {
-			RB_TakeScreenshot( 0, 0, glConfig.vidWidth, glConfig.vidHeight, backEnd.screenshotTGA );
-			if ( !backEnd.screenShotTGAsilent ) {
-				ri.Printf( PRINT_ALL, "Wrote %s\n", backEnd.screenshotTGA );
-			}
-		}
-		if ( backEnd.screenshotMask & SCREENSHOT_JPG && backEnd.screenshotJPG[0] ) {
-			RB_TakeScreenshotJPEG( 0, 0, glConfig.vidWidth, glConfig.vidHeight, backEnd.screenshotJPG );
-			if ( !backEnd.screenShotJPGsilent ) {
-				ri.Printf( PRINT_ALL, "Wrote %s\n", backEnd.screenshotJPG );
-			}
-		}
-		if ( backEnd.screenshotMask & SCREENSHOT_BMP && ( backEnd.screenshotBMP[0] || ( backEnd.screenshotMask & SCREENSHOT_BMP_CLIPBOARD ) ) ) {
-			RB_TakeScreenshotBMP( 0, 0, glConfig.vidWidth, glConfig.vidHeight, backEnd.screenshotBMP, backEnd.screenshotMask & SCREENSHOT_BMP_CLIPBOARD );
-			if ( !backEnd.screenShotBMPsilent ) {
-				ri.Printf( PRINT_ALL, "Wrote %s\n", backEnd.screenshotBMP );
-			}
-		}
-		if ( backEnd.screenshotMask & SCREENSHOT_AVI ) {
-			RB_TakeVideoFrameCmd( &backEnd.vcmd );
-		}
-
-		backEnd.screenshotJPG[0] = '\0';
-		backEnd.screenshotTGA[0] = '\0';
-		backEnd.screenshotBMP[0] = '\0';
-		backEnd.screenshotMask = 0;
-	}
-
-	ri.GLimp_EndFrame();
-
-	backEnd.projection2D = qfalse;
-
-	backEnd.doneBloom = qfalse;
-	backEnd.doneSurfaces = qfalse;
+	R_IssueRenderCommands();
 
 	R_InitNextFrame();
 
@@ -693,6 +653,7 @@ void RE_EndFrame( int *frontEndMsec, int *backEndMsec ) {
 		*backEndMsec = backEnd.pc.msec;
 	}
 	backEnd.pc.msec = 0;
+	backEnd.throttle = qfalse;
 
 	// recompile GPU shaders if needed
 	if ( ri.Cvar_CheckGroup( CVG_RENDERER ) )
@@ -730,6 +691,12 @@ void RE_TakeVideoFrame( int width, int height,
 	cmd->captureBuffer = captureBuffer;
 	cmd->encodeBuffer = encodeBuffer;
 	cmd->motionJpeg = motionJpeg;
+}
+
+
+void RE_ThrottleBackend( void )
+{
+	backEnd.throttle = qtrue;
 }
 
 

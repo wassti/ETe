@@ -481,6 +481,7 @@ vm_t *VM_Create( vmIndex_t index, syscall_t systemCalls, dllSyscall_t dllSyscall
 	vm->systemCall = systemCalls;
 	vm->dllSyscall = dllSyscalls;
 	vm->vmMainArgs = vmMainArgs;
+	vm->privateFlag = CVAR_PRIVATE;
 
 
 	if ( interpret == VMI_NATIVE ) {
@@ -489,6 +490,7 @@ vm_t *VM_Create( vmIndex_t index, syscall_t systemCalls, dllSyscall_t dllSyscall
 		vm->dllHandle = Sys_LoadDll( name, &vm->entryPoint, dllSyscalls );
 		// TTimo - never try qvm
 		if ( vm->dllHandle ) {
+			vm->privateFlag = 0; // allow reading private cvars
 			return vm;
 		}
 		return NULL;

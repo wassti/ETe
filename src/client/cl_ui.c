@@ -54,6 +54,7 @@ static void GetClientState( uiClientState_t *state ) {
 	state->clientNum = cl.snap.ps.clientNum;
 }
 
+
 /*
 ====================
 LAN_LoadCachedServers
@@ -511,17 +512,16 @@ static int LAN_CompareServers( int source, int sortKey, int sortDir, int s1, int
 		break;
 	}
 
-	if ( sortDir ) {
-		if ( res < 0 ) {
+	if (sortDir) {
+		if (res < 0)
 			return 1;
-		}
-		if ( res > 0 ) {
+		if (res > 0)
 			return -1;
-		}
 		return 0;
 	}
 	return res;
 }
+
 
 /*
 ====================
@@ -529,8 +529,9 @@ LAN_GetPingQueueCount
 ====================
 */
 static int LAN_GetPingQueueCount( void ) {
-	return ( CL_GetPingQueueCount() );
+	return (CL_GetPingQueueCount());
 }
+
 
 /*
 ====================
@@ -541,6 +542,7 @@ static void LAN_ClearPing( int n ) {
 	CL_ClearPing( n );
 }
 
+
 /*
 ====================
 LAN_GetPing
@@ -550,6 +552,7 @@ static void LAN_GetPing( int n, char *buf, int buflen, int *pingtime ) {
 	CL_GetPing( n, buf, buflen, pingtime );
 }
 
+
 /*
 ====================
 LAN_GetPingInfo
@@ -558,6 +561,7 @@ LAN_GetPingInfo
 static void LAN_GetPingInfo( int n, char *buf, int buflen ) {
 	CL_GetPingInfo( n, buf, buflen );
 }
+
 
 /*
 ====================
@@ -872,7 +876,7 @@ intptr_t CL_UISystemCalls( intptr_t *args ) {
 		return FloatAsInt( Cvar_VariableValue( VMA(1) ) );
 
 	case UI_CVAR_VARIABLESTRINGBUFFER:
-		Cvar_VariableStringBuffer( VMA(1), VMA(2), args[3] );
+		Cvar_VariableStringBufferSafe( VMA(1), VMA(2), args[3], CVAR_PRIVATE );
 		return 0;
 
 	case UI_CVAR_LATCHEDVARIABLESTRINGBUFFER:
@@ -906,6 +910,7 @@ intptr_t CL_UISystemCalls( intptr_t *args ) {
 		if(args[1] == EXEC_NOW
 		&& (!strncmp(VMA(2), "snd_restart", 11)
 		|| !strncmp(VMA(2), "vid_restart", 11)
+		|| !strncmp(VMA(2), "disconnect", 10)
 		|| !strncmp(VMA(2), "quit", 5)))
 		{
 			Com_Printf (S_COLOR_YELLOW "turning EXEC_NOW '%.11s' into EXEC_INSERT\n", (const char*)VMA(2));

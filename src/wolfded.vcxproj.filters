@@ -125,12 +125,6 @@
     <ClCompile Include="qcommon\pbmd5.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="null\null_client.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="null\null_snddma.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="game\bg_public.h">

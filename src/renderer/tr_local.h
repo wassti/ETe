@@ -282,6 +282,7 @@ typedef struct {
 	int				videoMapHandle;
 	qboolean		isLightmap;
 	qboolean		isVideoMap;
+	qboolean		isScreenMap;
 } textureBundle_t;
 
 #define NUM_TEXTURE_BUNDLES 2
@@ -401,6 +402,7 @@ typedef struct shader_s {
 	qboolean	isStaticShader;
 	short		vboVPindex;
 	short		vboFPindex;
+	qboolean	hasScreenMap;
 
 	void	(*optimalStageIteratorFunc)( void );
 
@@ -1207,7 +1209,7 @@ typedef struct {
 	qboolean	finishCalled;
 	int			texEnv[2];
 	int			faceCulling;
-	unsigned long	glStateBits;
+	GLbitfield	glStateBits;
 } glstate_t;
 
 typedef struct {
@@ -1275,6 +1277,8 @@ typedef struct {
 	qboolean screenShotJPGsilent;
 	qboolean screenShotBMPsilent;
 	videoFrameCommand_t	vcmd;	// avi capture
+	
+	qboolean throttle;
 
 } backEndState_t;
 
@@ -1391,6 +1395,7 @@ typedef struct {
 	float					fogTable[FOG_TABLE_SIZE];
 
 	qboolean				mapLoading;
+	qboolean				needScreenMap;
 } trGlobals_t;
 
 extern backEndState_t backEnd;
@@ -1579,11 +1584,11 @@ void R_AddLitSurf( surfaceType_t *surface, shader_t *shader, int fogIndex );
 #define CULL_IN     0       // completely unclipped
 #define CULL_CLIP   1       // clipped by one or more planes
 #define CULL_OUT    2       // completely outside the clipping planes
-void R_LocalNormalToWorld( vec3_t local, vec3_t world );
-void R_LocalPointToWorld( vec3_t local, vec3_t world );
-int R_CullLocalBox( vec3_t bounds[2] );
-int R_CullPointAndRadius( vec3_t origin, float radius );
-int R_CullLocalPointAndRadius( vec3_t origin, float radius );
+void R_LocalNormalToWorld( const vec3_t local, vec3_t world );
+void R_LocalPointToWorld( const vec3_t local, vec3_t world );
+int R_CullLocalBox( vec3_t bounds[] );
+int R_CullPointAndRadius( const vec3_t origin, float radius );
+int R_CullLocalPointAndRadius( const vec3_t origin, float radius );
 int R_CullDlight( const dlight_t *dl );
 
 void R_SetupProjection(viewParms_t *dest, float zProj, qboolean computeFrustum);
@@ -1593,11 +1598,12 @@ void R_RotateForEntity( const trRefEntity_t *ent, const viewParms_t *viewParms, 
 ** GL wrapper/helper functions
 */
 void    GL_Bind( image_t *image );
+void	GL_BindTexNum( GLuint texnum );
 void    GL_SelectTexture( int unit );
 void	GL_BindTexture( int unit, GLuint texnum );
 void    GL_TextureMode( const char *string );
 void    GL_CheckErrors( void );
-void    GL_State( unsigned long stateVector );
+void    GL_State( GLbitfield stateVector );
 void    GL_TexEnv( int env );
 void    GL_Cull( int cullType );
 
@@ -1664,7 +1670,6 @@ void        R_GammaCorrect( byte *buffer, int bufSize );
 
 void    R_ImageList_f( void );
 void    R_SkinList_f( void );
-void    R_ScreenShot_f( void );
 
 void    R_InitFogTable( void );
 float   R_FogFactor( float s, float t );
@@ -1853,6 +1858,8 @@ void FBO_BindMain( void );
 void FBO_PostProcess( void );
 void FBO_BlitMS( qboolean depthOnly );
 qboolean FBO_Bloom( const float gamma, const float obScale, qboolean finalPass );
+void FBO_CopyScreen( void );
+GLuint FBO_ScreenTexture( void );
 
 /*
 ============================================================
@@ -2000,7 +2007,7 @@ void    R_TransformClipToWindow( const vec4_t clip, const viewParms_t *view, vec
 void    RB_DeformTessGeometry( void );
 
 void    RB_CalcEnvironmentTexCoords( float *dstTexCoords );
-void	RB_CalcEnvironmentTexCoordsFP( float *dstTexCoords );
+void	RB_CalcEnvironmentTexCoordsFP( float *dstTexCoords, qboolean screenMap );
 void    RB_CalcFireRiseEnvTexCoords( float *st );
 void    RB_CalcFogTexCoords( float *dstTexCoords );
 const fogProgramParms_t *RB_CalcFogProgramParms( void );
@@ -2139,6 +2146,7 @@ typedef enum {
 	RC_STRETCH_PIC_GRADIENT,    // (SA) added
 	RC_DRAW_SURFS,
 	RC_DRAW_BUFFER,
+	RC_SWAP_BUFFERS,
 	RC_FINISHBLOOM,
 	RC_COLORMASK,
 	RC_CLEARDEPTH,
@@ -2217,6 +2225,7 @@ void RE_TakeVideoFrame( int width, int height,
 		byte *captureBuffer, byte *encodeBuffer, qboolean motionJpeg );
 
 void RE_FinishBloom( void );
+void RE_ThrottleBackend( void );
 qboolean RE_CanMinimize( void );
 const glconfig_t *RE_GetConfig( void );
 
@@ -2398,6 +2407,7 @@ typedef enum {
 	GAMMA_FRAGMENT,
 	BLOOM_EXTRACT_FRAGMENT,
 	BLUR_FRAGMENT,
+	BLUR2_FRAGMENT,
 	BLENDX_FRAGMENT,
 	BLEND2_FRAGMENT,
 	BLEND2_GAMMA_FRAGMENT,

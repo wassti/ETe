@@ -175,9 +175,28 @@ void Cvar_VariableStringBuffer( const char *var_name, char *buffer, int bufsize 
 	}
 }
 
+
 /*
 ============
-Cvar_VariableStringBuffer
+Cvar_VariableStringBufferSafe
+============
+*/
+void Cvar_VariableStringBufferSafe( const char *var_name, char *buffer, int bufsize, int flag ) {
+	cvar_t *var;
+	
+	var = Cvar_FindVar( var_name );
+	if ( !var || var->flags & flag ) {
+		*buffer = '\0';
+	}
+	else {
+		Q_strncpyz( buffer, var->string, bufsize );
+	}
+}
+
+
+/*
+============
+Cvar_LatchedVariableStringBuffer
 ============
 */
 void Cvar_LatchedVariableStringBuffer( const char *var_name, char *buffer, int bufsize ) {
@@ -334,12 +353,28 @@ static const char *Cvar_Validate( cvar_t *var, const char *value, qboolean warn 
 		} // Q_isanumber
 	} // CV_INTEGER || CV_FLOAT
 	// TODO: stringlist
+	else if ( var->validator == CV_FSPATH ) {
+		// check for directory traversal patterns
+		if ( FS_InvalidGameDir( value ) ) {
+			if ( warn ) {
+				Com_Printf( "WARNING: cvar '%s' contains invalid patterns", var->name );
+			}
+			// try to use current value if it is valid
+			if ( !FS_InvalidGameDir( var->string ) ) {
+				if ( warn ) {
+					Com_Printf( "\n" );
+				}
+				return var->string;
+			}
+			limit = var->resetString;
+		}
+	}
 
 	if ( limit || value == intbuf ) {
 		if ( !limit )
 			limit = value;
 		if ( warn )
-			Com_Printf( ", setting to %s\n", limit );
+			Com_Printf( ", setting to '%s'\n", limit );
 		return limit;
 	} else {
 		return value;
@@ -785,18 +820,29 @@ Cvar_SetSafe
 void Cvar_SetSafe( const char *var_name, const char *value )
 {
 	int flags = Cvar_Flags( var_name );
+	qboolean force = qtrue;
 
-	if((flags != CVAR_NONEXISTENT) && (flags & CVAR_PROTECTED))
+	if ( flags != CVAR_NONEXISTENT )
 	{
-		if( value )
-			Com_Printf( S_COLOR_YELLOW "Restricted source tried to set "
-				"\"%s\" to \"%s\"\n", var_name, value );
-		else
-			Com_Printf( S_COLOR_YELLOW "Restricted source tried to "
-				"modify \"%s\"\n", var_name );
-		return;
+		if ( flags & ( CVAR_PROTECTED | CVAR_PRIVATE ) )
+		{
+			if( value )
+				Com_Printf( S_COLOR_YELLOW "Restricted source tried to set "
+					"\"%s\" to \"%s\"\n", var_name, value );
+			else
+				Com_Printf( S_COLOR_YELLOW "Restricted source tried to "
+					"modify \"%s\"\n", var_name );
+			return;
+		}
+
+		// don't let VMs or server change engine latched cvars instantly
+		//if ( ( flags & CVAR_LATCH ) && !( flags & CVAR_VM_CREATED ) )
+		//{
+		//	force = qfalse;
+		//}
 	}
-	Cvar_Set( var_name, value );
+
+	Cvar_Set2( var_name, value, force );
 }
 
 
@@ -833,6 +879,19 @@ void Cvar_SetValue( const char *var_name, float value ) {
 void Cvar_SetValueNoForce( const char *var_name, float value ) {
 	Cvar_SetValueExt( var_name, value, qfalse );
 }
+
+/*
+============
+Cvar_SetIntegerValue
+============
+*/
+void Cvar_SetIntegerValue( const char *var_name, int value ) {
+	char	val[32];
+
+	Com_sprintf( val, sizeof( val ), "%i", value );
+	Cvar_Set( var_name, val );
+}
+
 
 /*
 ============
@@ -1747,9 +1806,9 @@ Cvar_InfoString
 char *Cvar_InfoString( int bit )
 {
 	static char	info[ MAX_INFO_STRING ];
-	cvar_t	*var;
+	const cvar_t *var;
 
-	info[0] = 0;
+	info[0] = '\0';
 
 	for( var = cvar_vars; var; var = var->next )
 	{
@@ -1909,6 +1968,7 @@ Cvar_Register
 basically a slightly modified Cvar_Get for the interpreted modules
 =====================
 */
+#define INVALID_FLAGS ( CVAR_USER_CREATED | CVAR_SERVER_CREATED | CVAR_PROTECTED | CVAR_PRIVATE | CVAR_MODIFIED | CVAR_NONEXISTENT )
 void Cvar_Register(vmCvar_t *vmCvar, const char *varName, const char *defaultValue, int flags)
 {
 	cvar_t	*cv;
@@ -1918,12 +1978,28 @@ void Cvar_Register(vmCvar_t *vmCvar, const char *varName, const char *defaultVal
 	// flags. Unfortunately some historical game code (including single player
 	// baseq3) sets both flags. We unset CVAR_ROM for such cvars.
 	if ((flags & (CVAR_ARCHIVE | CVAR_ROM)) == (CVAR_ARCHIVE | CVAR_ROM)) {
-		Com_DPrintf( S_COLOR_YELLOW "WARNING: Unsetting CVAR_ROM cvar '%s', "
+		Com_DPrintf( S_COLOR_YELLOW "WARNING: Unsetting CVAR_ROM from cvar '%s', "
 			"since it is also CVAR_ARCHIVE\n", varName );
 		flags &= ~CVAR_ROM;
 	}
 
-	cv = Cvar_Get(varName, defaultValue, flags | CVAR_VM_CREATED);
+	// Don't allow VM to specific a different creator or other internal flags.
+	if ( flags & INVALID_FLAGS ) {
+		Com_DPrintf( S_COLOR_YELLOW "WARNING: VM tried to set invalid flags 0x%02x on cvar '%s'\n", ( flags & INVALID_FLAGS ), varName );
+		flags &= ~INVALID_FLAGS;
+	}
+
+	cv = Cvar_FindVar( varName );
+
+	// Don't modify cvar if it's protected.
+	if ( cv && ( cv->flags & ( CVAR_PROTECTED | CVAR_PRIVATE ) ) ) {
+		Com_DPrintf( S_COLOR_YELLOW "WARNING: VM tried to register protected cvar '%s' with value '%s'%s\n",
+			varName, defaultValue, ( flags & ~cv->flags ) != 0 ? " and new flags" : "" );
+		if ( cv->flags & CVAR_PRIVATE )
+			return;
+	} else {
+		cv = Cvar_Get(varName, defaultValue, flags | CVAR_VM_CREATED);
+	}
 
 	if (!vmCvar)
 		return;
@@ -1957,6 +2033,9 @@ void	Cvar_Update( vmCvar_t *vmCvar ) {
 	}
 	if ( !cv->string ) {
 		return;		// variable might have been cleared by a cvar_restart
+	} 
+	if ( cv->flags & CVAR_PRIVATE ) {
+		return;
 	}
 	vmCvar->modificationCount = cv->modificationCount;
 

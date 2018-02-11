@@ -1189,12 +1189,41 @@ const fogProgramParms_t *RB_CalcFogProgramParms( void )
 
 /*
 ========================
+RB_CalcEnvironmentTexCoordsFPscr
+========================
+*/
+static void RB_CalcEnvironmentTexCoordsFPscr( float *st ) {
+	int			i;
+	const float	*v, *normal;
+	vec3_t		viewer, reflected;
+	float		d;
+
+	v = tess.xyz[0];
+	normal = tess.normal[0];
+
+	for (i = 0 ; i < tess.numVertexes ; i++, v += 4, normal += 4, st += 2 ) {
+		VectorSubtract( backEnd.orientation.viewOrigin, v, viewer );
+		VectorNormalizeFast( viewer );
+
+		d = DotProduct( normal, viewer ) * 0.8;
+
+		reflected[1] = normal[1]*2*d - viewer[1];
+		reflected[2] = normal[2]*2*d - viewer[2];
+
+		st[0] = 0.5 - reflected[1] * 0.5;
+		st[1] = 0.5 + reflected[2] * 0.5;
+	}
+}
+
+
+/*
+========================
 RB_CalcEnvironmentTexCoordsFP
 
 Special version for first-person models, borrowed from OpenArena
 ========================
 */
-void RB_CalcEnvironmentTexCoordsFP( float *st ) {
+void RB_CalcEnvironmentTexCoordsFP( float *st, qboolean screenMap ) {
 	int			i;
 	const float	*v, *normal;
 	vec3_t		viewer, reflected, where, what, why, who;
@@ -1203,6 +1232,11 @@ void RB_CalcEnvironmentTexCoordsFP( float *st ) {
 	if ( !backEnd.currentEntity || ( backEnd.currentEntity->e.renderfx & RF_FIRST_PERSON ) == 0 || r_useFirstPersonEnvMaps->integer == 0 )
 	{
 		RB_CalcEnvironmentTexCoords( st );
+		return;
+	}
+
+	if ( screenMap && backEnd.viewParms.frameSceneNum == 1 ) {
+		RB_CalcEnvironmentTexCoordsFPscr( st );
 		return;
 	}
 

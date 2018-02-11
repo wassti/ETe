@@ -607,7 +607,7 @@ intptr_t CL_CgameSystemCalls( intptr_t *args ) {
 		Cvar_SetSafe( VMA(1), VMA(2) );
 		return 0;
 	case CG_CVAR_VARIABLESTRINGBUFFER:
-		Cvar_VariableStringBuffer( VMA( 1 ), VMA( 2 ), args[3] );
+		Cvar_VariableStringBufferSafe( VMA(1), VMA(2), args[3], CVAR_PRIVATE );
 		return 0;
 	case CG_CVAR_LATCHEDVARIABLESTRINGBUFFER:
 		Cvar_LatchedVariableStringBuffer( VMA( 1 ), VMA( 2 ), args[3] );

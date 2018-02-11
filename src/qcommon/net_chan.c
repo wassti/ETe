@@ -26,7 +26,6 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-
 #include "q_shared.h"
 #include "qcommon.h"
 
@@ -59,13 +58,13 @@ to the new value before sending out any replies.
 #define	FRAGMENT_SIZE			(MAX_PACKETLEN - 100)
 #define	PACKET_HEADER			10			// two ints and a short
 
-#define	FRAGMENT_BIT	(1<<31)
+#define	FRAGMENT_BIT			(1U<<31)
 
 cvar_t		*showpackets;
 cvar_t		*showdrop;
 cvar_t		*qport;
 
-static char *netsrcString[2] = {
+static const char *netsrcString[2] = {
 	"client",
 	"server"
 };
@@ -82,6 +81,7 @@ void Netchan_Init( int port ) {
 	showdrop = Cvar_Get ("showdrop", "0", CVAR_TEMP );
 	qport = Cvar_Get ("net_qport", va("%i", port), CVAR_INIT );
 }
+
 
 /*
 ==============
@@ -104,6 +104,7 @@ void Netchan_Setup( netsrc_t sock, netchan_t *chan, const netadr_t *adr, int por
 	chan->isLANAddress = Sys_IsLANAddress( adr );
 }
 
+
 /*
 =================
 Netchan_TransmitNextFragment
@@ -113,15 +114,15 @@ Send one fragment of the current message
 */
 void Netchan_TransmitNextFragment( netchan_t *chan ) {
 	msg_t		send;
-	byte		send_buf[MAX_PACKETLEN];
+	byte		send_buf[MAX_PACKETLEN+8];
 	int			fragmentLength;
 	int			outgoingSequence;
 
 	// write the packet header
-	MSG_InitOOB (&send, send_buf, sizeof(send_buf));				// <-- only do the oob here
+	MSG_InitOOB( &send, send_buf, sizeof(send_buf)-8 );
 
 	outgoingSequence = chan->outgoingSequence | FRAGMENT_BIT;
-	MSG_WriteLong(&send, outgoingSequence);
+	MSG_WriteLong( &send, outgoingSequence );
 
 	// send the qport if we are a client
 	if ( chan->sock == NS_CLIENT ) {
@@ -133,7 +134,7 @@ void Netchan_TransmitNextFragment( netchan_t *chan ) {
 
 	// copy the reliable message to the packet first
 	fragmentLength = FRAGMENT_SIZE;
-	if ( chan->unsentFragmentStart  + fragmentLength > chan->unsentLength ) {
+	if ( chan->unsentFragmentStart + fragmentLength > chan->unsentLength ) {
 		fragmentLength = chan->unsentLength - chan->unsentFragmentStart;
 	}
 
@@ -179,7 +180,7 @@ A 0 length will still generate a packet.
 */
 void Netchan_Transmit( netchan_t *chan, int length, const byte *data ) {
 	msg_t		send;
-	byte		send_buf[MAX_PACKETLEN];
+	byte		send_buf[MAX_PACKETLEN+8];
 
 	if ( length > MAX_MSGLEN ) {
 		Com_Error( ERR_DROP, "Netchan_Transmit: length = %i", length );
@@ -194,12 +195,11 @@ void Netchan_Transmit( netchan_t *chan, int length, const byte *data ) {
 
 		// only send the first fragment now
 		Netchan_TransmitNextFragment( chan );
-
 		return;
 	}
 
 	// write the packet header
-	MSG_InitOOB (&send, send_buf, sizeof(send_buf));
+	MSG_InitOOB( &send, send_buf, sizeof(send_buf)-8 );
 
 	MSG_WriteLong( &send, chan->outgoingSequence );
 
@@ -433,7 +433,7 @@ typedef struct {
 loopback_t	loopbacks[2];
 
 
-qboolean	NET_GetLoopPacket (netsrc_t sock, netadr_t *net_from, msg_t *net_message)
+qboolean NET_GetLoopPacket( netsrc_t sock, netadr_t *net_from, msg_t *net_message )
 {
 	int		i;
 	loopback_t	*loop;
@@ -458,7 +458,7 @@ qboolean	NET_GetLoopPacket (netsrc_t sock, netadr_t *net_from, msg_t *net_messag
 }
 
 
-void NET_SendLoopPacket( netsrc_t sock, int length, const void *data )
+static void NET_SendLoopPacket( netsrc_t sock, int length, const void *data )
 {
 	int		i;
 	loopback_t	*loop;

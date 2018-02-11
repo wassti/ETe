@@ -40,6 +40,50 @@ If you have questions concerning this license or the applicable additional terms
 #define BOX_MODEL_HANDLE        511
 #define CAPSULE_MODEL_HANDLE    510
 
+
+// forced double-precison functions
+#define DotProductDP(x,y)		((double)(x)[0]*(y)[0]+(double)(x)[1]*(y)[1]+(double)(x)[2]*(y)[2])
+#define VectorSubtractDP(a,b,c)	((c)[0]=(double)((a)[0]-(b)[0]),(c)[1]=(double)((a)[1]-(b)[1]),(c)[2]=(double)((a)[2]-(b)[2]))
+#define VectorAddDP(a,b,c)		((c)[0]=(double)((a)[0]+(b)[0]),(c)[1]=(double)((a)[1]+(b)[1]),(c)[2]=(double)((a)[2]+(b)[2]))
+
+
+static ID_INLINE double DotProductDPf( const float *v1, const float *v2 ) {
+	double x[3], y[3];
+	VectorCopy( v1, x );
+	VectorCopy( v2, y );
+	return x[0]*y[0]+x[1]*y[1]+x[2]*y[2];
+}
+
+
+static ID_INLINE void CrossProductDP( const vec3_t v1, const vec3_t v2, vec3_t cross ) {
+	double d1[3], d2[3];
+	VectorCopy( v1, d1 );
+	VectorCopy( v2, d2 );
+	cross[0] = d1[1]*d2[2] - d1[2]*d2[1];
+	cross[1] = d1[2]*d2[0] - d1[0]*d2[2];
+	cross[2] = d1[0]*d2[1] - d1[1]*d2[0];
+}
+
+
+static ID_INLINE vec_t VectorNormalizeDP( vec3_t v ) {
+	double	length, ilength, d[3];
+
+	VectorCopy( v, d );
+	length = d[0]*d[0] + d[1]*d[1] + d[2]*d[2];
+
+	if ( length ) {
+		/* writing it this way allows gcc to recognize that rsqrt can be used */
+		ilength = 1.0/(double)sqrt( length );
+		/* sqrt(length) = length * (1 / sqrt(length)) */
+		length *= ilength;
+		v[0] = d[0] * ilength;
+		v[1] = d[1] * ilength;
+		v[2] = d[2] * ilength;
+	}
+		
+	return length;
+}
+
 // enable to make the collision detection a bunch faster
 #define MRE_OPTIMIZE
 
@@ -206,13 +250,13 @@ void CM_StoreBrushes( leafList_t *ll, int nodenum );
 
 void CM_BoxLeafnums_r( leafList_t *ll, int nodenum );
 
-cmodel_t    *CM_ClipHandleToModel( clipHandle_t handle );
+cmodel_t	*CM_ClipHandleToModel( clipHandle_t handle );
 qboolean CM_BoundsIntersect( const vec3_t mins, const vec3_t maxs, const vec3_t mins2, const vec3_t maxs2 );
 qboolean CM_BoundsIntersectPoint( const vec3_t mins, const vec3_t maxs, const vec3_t point );
 
 // cm_patch.c
 
-struct patchCollide_s   *CM_GeneratePatchCollide( int width, int height, vec3_t *points, qboolean addBevels );
+struct patchCollide_s	*CM_GeneratePatchCollide( int width, int height, vec3_t *points );
 void CM_TraceThroughPatchCollide( traceWork_t *tw, const struct patchCollide_s *pc );
 qboolean CM_PositionTestInPatchCollide( traceWork_t *tw, const struct patchCollide_s *pc );
 void CM_ClearLevelPatches( void );

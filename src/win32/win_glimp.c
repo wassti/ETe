@@ -80,7 +80,7 @@ static qboolean s_classRegistered = qfalse;
 // function declaration
 //
 qboolean QGL_Init( const char *dllname );
-void     QGL_Shutdown( void );
+void     QGL_Shutdown( qboolean unloadDLL );
 
 //
 // variable declarations
@@ -358,7 +358,10 @@ static void GLW_CreatePFD( PIXELFORMATDESCRIPTOR *pPFD, int colorbits, int depth
 	src.cDepthBits = depthbits;
 	src.cStencilBits = stencilbits;
 
-	// src.dwFlags |= PFD_SUPPORT_COMPOSITION;
+	if ( !glw_state.cdsFullscreen )
+	{
+		src.dwFlags |= PFD_SUPPORT_COMPOSITION;
+	}
 
 	if ( stereo )
 	{
@@ -1254,7 +1257,7 @@ static qboolean GLW_LoadOpenGL( const char *drivername )
 	}
 fail:
 
-	QGL_Shutdown();
+	QGL_Shutdown( qtrue );
 
 	return qfalse;
 }
@@ -1385,7 +1388,7 @@ void GLimp_Init( glconfig_t *config )
 ** This routine does all OS specific shutdown procedures for the OpenGL
 ** subsystem.
 */
-void GLimp_Shutdown( void )
+void GLimp_Shutdown( qboolean unloadDLL )
 {
 	const char *success[] = { "failed", "success" };
 	int retVal;
@@ -1452,5 +1455,5 @@ void GLimp_Shutdown( void )
 	}
 
 	// shutdown QGL subsystem
-	QGL_Shutdown();
+	QGL_Shutdown( unloadDLL );
 }

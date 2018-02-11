@@ -532,14 +532,6 @@ int MSG_HashKey(const char *string, int maxlen) {
 	return hash;
 }
 
-/*
-=============================================================================
-
-delta functions
-
-=============================================================================
-*/
-
 #ifndef DEDICATED
 extern cvar_t *cl_shownet;
 #define	LOG(x) if( cl_shownet && cl_shownet->integer == 4 ) { Com_Printf("%s ", x ); };
@@ -547,61 +539,25 @@ extern cvar_t *cl_shownet;
 #define	LOG(x)
 #endif
 
-void MSG_WriteDelta( msg_t *msg, int oldV, int newV, int bits ) {
-	if ( oldV == newV ) {
-		MSG_WriteBits( msg, 0, 1 );
-		return;
-	}
-	MSG_WriteBits( msg, 1, 1 );
-	MSG_WriteBits( msg, newV, bits );
-}
-
-int MSG_ReadDelta( msg_t *msg, int oldV, int bits ) {
-	if ( MSG_ReadBits( msg, 1 ) ) {
-		return MSG_ReadBits( msg, bits );
-	}
-	return oldV;
-}
-
-void MSG_WriteDeltaFloat( msg_t *msg, float oldV, float newV ) {
-	floatint_t fi;
-	if ( oldV == newV ) {
-		MSG_WriteBits( msg, 0, 1 );
-		return;
-	}
-	fi.f = newV;
-	MSG_WriteBits( msg, 1, 1 );
-	MSG_WriteBits( msg, fi.i, 32 );
-}
-
-float MSG_ReadDeltaFloat( msg_t *msg, float oldV ) {
-	if ( MSG_ReadBits( msg, 1 ) ) {
-		floatint_t fi;
-
-		fi.i = MSG_ReadBits( msg, 32 );
-		return fi.f;
-	}
-	return oldV;
-}
-
 /*
 =============================================================================
 
 delta functions with keys
-
+  
 =============================================================================
 */
 
-int kbitmask[32] = {
+static const int kbitmask[32] = {
 	0x00000001, 0x00000003, 0x00000007, 0x0000000F,
-	0x0000001F, 0x0000003F, 0x0000007F, 0x000000FF,
-	0x000001FF, 0x000003FF, 0x000007FF, 0x00000FFF,
-	0x00001FFF, 0x00003FFF, 0x00007FFF, 0x0000FFFF,
-	0x0001FFFF, 0x0003FFFF, 0x0007FFFF, 0x000FFFFF,
-	0x001FFFFf, 0x003FFFFF, 0x007FFFFF, 0x00FFFFFF,
-	0x01FFFFFF, 0x03FFFFFF, 0x07FFFFFF, 0x0FFFFFFF,
-	0x1FFFFFFF, 0x3FFFFFFF, 0x7FFFFFFF, 0xFFFFFFFF,
+	0x0000001F,	0x0000003F,	0x0000007F,	0x000000FF,
+	0x000001FF,	0x000003FF,	0x000007FF,	0x00000FFF,
+	0x00001FFF,	0x00003FFF,	0x00007FFF,	0x0000FFFF,
+	0x0001FFFF,	0x0003FFFF,	0x0007FFFF,	0x000FFFFF,
+	0x001FFFFf,	0x003FFFFF,	0x007FFFFF,	0x00FFFFFF,
+	0x01FFFFFF,	0x03FFFFFF,	0x07FFFFFF,	0x0FFFFFFF,
+	0x1FFFFFFF,	0x3FFFFFFF,	0x7FFFFFFF,	0xFFFFFFFF,
 };
+
 
 void MSG_WriteDeltaKey( msg_t *msg, int key, int oldV, int newV, int bits ) {
 	if ( oldV == newV ) {
@@ -612,30 +568,10 @@ void MSG_WriteDeltaKey( msg_t *msg, int key, int oldV, int newV, int bits ) {
 	MSG_WriteBits( msg, newV ^ key, bits );
 }
 
+
 int	MSG_ReadDeltaKey( msg_t *msg, int key, int oldV, int bits ) {
 	if ( MSG_ReadBits( msg, 1 ) ) {
 		return MSG_ReadBits( msg, bits ) ^ (key & kbitmask[ bits - 1 ]);
-	}
-	return oldV;
-}
-
-void MSG_WriteDeltaKeyFloat( msg_t *msg, int key, float oldV, float newV ) {
-	floatint_t fi;
-	if ( oldV == newV ) {
-		MSG_WriteBits( msg, 0, 1 );
-		return;
-	}
-	fi.f = newV;
-	MSG_WriteBits( msg, 1, 1 );
-	MSG_WriteBits( msg, fi.i ^ key, 32 );
-}
-
-float MSG_ReadDeltaKeyFloat( msg_t *msg, int key, float oldV ) {
-	if ( MSG_ReadBits( msg, 1 ) ) {
-		floatint_t fi;
-
-		fi.i = MSG_ReadBits( msg, 32 ) ^ key;
-		return fi.f;
 	}
 	return oldV;
 }
@@ -661,63 +597,10 @@ usercmd_t communication
 
 /*
 =====================
-MSG_WriteDeltaUsercmd
+MSG_WriteDeltaUsercmdKey
 =====================
 */
-void MSG_WriteDeltaUsercmd( msg_t *msg, usercmd_t *from, usercmd_t *to ) {
-	if ( to->serverTime - from->serverTime < 256 ) {
-		MSG_WriteBits( msg, 1, 1 );
-		MSG_WriteBits( msg, to->serverTime - from->serverTime, 8 );
-	} else {
-		MSG_WriteBits( msg, 0, 1 );
-		MSG_WriteBits( msg, to->serverTime, 32 );
-	}
-	MSG_WriteDelta( msg, from->angles[0], to->angles[0], 16 );
-	MSG_WriteDelta( msg, from->angles[1], to->angles[1], 16 );
-	MSG_WriteDelta( msg, from->angles[2], to->angles[2], 16 );
-	MSG_WriteDelta( msg, from->forwardmove, to->forwardmove, 8 );
-	MSG_WriteDelta( msg, from->rightmove, to->rightmove, 8 );
-	MSG_WriteDelta( msg, from->upmove, to->upmove, 8 );
-	MSG_WriteDelta( msg, from->buttons, to->buttons, 8 );
-	MSG_WriteDelta( msg, from->wbuttons, to->wbuttons, 8 );
-	MSG_WriteDelta( msg, from->weapon, to->weapon, 8 );
-	MSG_WriteDelta( msg, from->flags, to->flags, 8 );
-	MSG_WriteDelta( msg, from->doubleTap, to->doubleTap, 3 );
-	MSG_WriteDelta( msg, from->identClient, to->identClient, 8 );           // NERVE - SMF
-}
-
-
-/*
-=====================
-MSG_ReadDeltaUsercmd
-=====================
-*/
-void MSG_ReadDeltaUsercmd( msg_t *msg, usercmd_t *from, usercmd_t *to ) {
-	if ( MSG_ReadBits( msg, 1 ) ) {
-		to->serverTime = from->serverTime + MSG_ReadBits( msg, 8 );
-	} else {
-		to->serverTime = MSG_ReadBits( msg, 32 );
-	}
-	to->angles[0] = MSG_ReadDelta( msg, from->angles[0], 16 );
-	to->angles[1] = MSG_ReadDelta( msg, from->angles[1], 16 );
-	to->angles[2] = MSG_ReadDelta( msg, from->angles[2], 16 );
-	to->forwardmove = MSG_ReadDelta( msg, from->forwardmove, 8 );
-	to->rightmove = MSG_ReadDelta( msg, from->rightmove, 8 );
-	to->upmove = MSG_ReadDelta( msg, from->upmove, 8 );
-	to->buttons = MSG_ReadDelta( msg, from->buttons, 8 );
-	to->wbuttons = MSG_ReadDelta( msg, from->wbuttons, 8 );
-	to->weapon = MSG_ReadDelta( msg, from->weapon, 8 );
-	to->flags = MSG_ReadDelta( msg, from->flags, 8 );
-	to->doubleTap = MSG_ReadDelta( msg, from->doubleTap, 3 ) & 0x7;
-	to->identClient = MSG_ReadDelta( msg, from->identClient, 8 );    // NERVE - SMF
-}
-
-/*
-=====================
-MSG_WriteDeltaUsercmd
-=====================
-*/
-void MSG_WriteDeltaUsercmdKey( msg_t *msg, int key, usercmd_t *from, usercmd_t *to ) {
+void MSG_WriteDeltaUsercmdKey( msg_t *msg, int key, const usercmd_t *from, const usercmd_t *to ) {
 	if ( to->serverTime - from->serverTime < 256 ) {
 		MSG_WriteBits( msg, 1, 1 );
 		MSG_WriteBits( msg, to->serverTime - from->serverTime, 8 );
@@ -759,10 +642,10 @@ void MSG_WriteDeltaUsercmdKey( msg_t *msg, int key, usercmd_t *from, usercmd_t *
 
 /*
 =====================
-MSG_ReadDeltaUsercmd
+MSG_ReadDeltaUsercmdKey
 =====================
 */
-void MSG_ReadDeltaUsercmdKey( msg_t *msg, int key, usercmd_t *from, usercmd_t *to ) {
+void MSG_ReadDeltaUsercmdKey( msg_t *msg, int key, const usercmd_t *from, usercmd_t *to ) {
 	if ( MSG_ReadBits( msg, 1 ) ) {
 		to->serverTime = from->serverTime + MSG_ReadBits( msg, 8 );
 	} else {
@@ -804,12 +687,11 @@ void MSG_ReadDeltaUsercmdKey( msg_t *msg, int key, usercmd_t *from, usercmd_t *t
 	}
 }
 
-
 /*
 =============================================================================
 
 entityState_t communication
-
+  
 =============================================================================
 */
 

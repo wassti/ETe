@@ -1317,76 +1317,63 @@ int Com_HexStrToInt( const char *str )
 ============================================================================
 */
 
-int Q_isprint( int c ) {
-	if ( c >= 0x20 && c <= 0x7E ) {
+int Q_isprint( int c )
+{
+	if ( c >= 0x20 && c <= 0x7E )
 		return ( 1 );
-	}
 	return ( 0 );
 }
 
-int Q_islower( int c ) {
-	if ( c >= 'a' && c <= 'z' ) {
+
+int Q_islower( int c )
+{
+	if (c >= 'a' && c <= 'z')
 		return ( 1 );
-	}
 	return ( 0 );
 }
 
-int Q_isupper( int c ) {
-	if ( c >= 'A' && c <= 'Z' ) {
+
+int Q_isupper( int c )
+{
+	if (c >= 'A' && c <= 'Z')
 		return ( 1 );
-	}
 	return ( 0 );
 }
 
-int Q_isalpha( int c ) {
-	if ( ( c >= 'a' && c <= 'z' ) || ( c >= 'A' && c <= 'Z' ) ) {
+
+int Q_isalpha( int c )
+{
+	if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'))
 		return ( 1 );
-	}
 	return ( 0 );
 }
 
-int Q_isnumeric( int c ) {
-	if ( c >= '0' && c <= '9' ) {
+
+int Q_isnumeric( int c )
+{
+	if (c >= '0' && c <= '9')
 		return ( 1 );
-	}
 	return ( 0 );
 }
 
-int Q_isalphanumeric( int c ) {
-	if ( Q_isalpha( c ) ||
-		 Q_isnumeric( c ) ) {
+
+int Q_isalphanumeric( int c )
+{
+	if ( Q_isalpha( c ) || Q_isnumeric( c ) )
 		return( 1 );
-	}
 	return ( 0 );
 }
 
-int Q_isforfilename( int c ) {
-	if ( ( Q_isalphanumeric( c ) || c == '_' ) && c != ' ' ) { // space not allowed in filename
+
+int Q_isforfilename( int c )
+{
+	// space not allowed in filename
+	if ( ( Q_isalphanumeric( c ) || c == '_' ) && c != ' ' )
 		return( 1 );
-	}
+
 	return ( 0 );
 }
 
-char* Q_strrchr( const char* string, int c ) {
-	char cc = c;
-	char *s;
-	char *sp = (char *)0;
-
-	s = (char*)string;
-
-	while ( *s )
-	{
-		if ( *s == cc ) {
-			sp = s;
-		}
-		s++;
-	}
-	if ( cc == 0 ) {
-		sp = s;
-	}
-
-	return sp;
-}
 
 qboolean Q_isanumber( const char *s )
 {
@@ -1405,28 +1392,29 @@ qboolean Q_isanumber( const char *s )
 #endif
 }
 
+
 qboolean Q_isintegral( float f )
 {
     return (int)f == f;
 }
 
-#ifdef _MSC_VER
+
+#ifdef _WIN32
 /*
 =============
 Q_vsnprintf
  
-Special wrapper function for Microsoft's broken _vsnprintf() function.
-MinGW comes with its own snprintf() which is not broken.
+Special wrapper function for Microsoft's broken _vsnprintf() function. mingw-w64
+however, uses Microsoft's broken _vsnprintf() function.
 =============
 */
-
-int Q_vsnprintf(char *str, size_t size, const char *format, va_list ap)
+int Q_vsnprintf( char *str, size_t size, const char *format, va_list ap )
 {
 	int retval;
 	
-	retval = _vsnprintf(str, size, format, ap);
+	retval = _vsnprintf( str, size, format, ap );
 
-	if( retval < 0 || (size_t)retval == size)
+	if ( retval < 0 || (size_t)retval == size )
 	{
 		// Microsoft doesn't adhere to the C99 standard of vsnprintf,
 		// which states that the return value must be the number of
@@ -1873,6 +1861,7 @@ int QDECL Com_sprintf( char *dest, int size, const char *fmt, ... ) {
 	return ret;
 }
 
+
 /*
 ============
 va
@@ -1885,32 +1874,27 @@ Ridah, modified this into a circular list, to further prevent stepping on
 previous strings
 ============
 */
-const char    * QDECL va( const char *format, ... ) {
-	va_list argptr;
+const char *QDECL va( const char *format, ... ) 
+{
+	char	*buf;
+	va_list		argptr;
 	#define MAX_VA_STRING   32000
-	static char temp_buffer[MAX_VA_STRING];
-	static char string[MAX_VA_STRING];      // in case va is called by nested functions
-	static int index = 0;
-	char    *buf;
-	int len;
+	static int	index = 0;
+	static char	string[2][MAX_VA_STRING];	// in case va is called by nested functions
+	int ret;
 
+	buf = string[ index ];
+	index ^= 1;
 
 	va_start( argptr, format );
-	vsprintf( temp_buffer, format,argptr );
+	ret = Q_vsnprintf( buf, sizeof(string[0]), format, argptr );
 	va_end( argptr );
 
-	if ( ( len = strlen( temp_buffer ) ) >= MAX_VA_STRING ) {
-		Com_Error( ERR_DROP, "Attempted to overrun string in call to va()\n" );
+	//if ( ( len = strlen( temp_buffer ) ) >= MAX_VA_STRING ) {
+	if ( ret == -1 ) {
+		Com_Printf( "va(): overflow of %i bytes buffer\n", MAX_VA_STRING );
+		//Com_Error( ERR_DROP, "Attempted to overrun string in call to va()\n" );
 	}
-
-	if ( len + index >= MAX_VA_STRING - 1 ) {
-		index = 0;
-	}
-
-	buf = &string[index];
-	memcpy( buf, temp_buffer, len + 1 );
-
-	index += len + 1;
 
 	return buf;
 }

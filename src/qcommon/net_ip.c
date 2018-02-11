@@ -160,6 +160,7 @@ typedef struct
 static nip_localaddr_t localIP[MAX_IPS];
 static int numIP;
 
+static void	NET_Restart_f( void );
 
 //=============================================================================
 
@@ -169,7 +170,7 @@ static int numIP;
 NET_ErrorString
 ====================
 */
-char *NET_ErrorString( void ) {
+static char *NET_ErrorString( void ) {
 #ifdef _WIN32
 	//FIXME: replace with FormatMessage?
 	switch( socketError ) {
@@ -224,6 +225,7 @@ char *NET_ErrorString( void ) {
 #endif
 }
 
+
 static void NetadrToSockadr( const netadr_t *a, struct sockaddr *s ) {
 	if( a->type == NA_BROADCAST ) {
 		((struct sockaddr_in *)s)->sin_family = AF_INET;
@@ -232,12 +234,12 @@ static void NetadrToSockadr( const netadr_t *a, struct sockaddr *s ) {
 	}
 	else if( a->type == NA_IP ) {
 		((struct sockaddr_in *)s)->sin_family = AF_INET;
-		((struct sockaddr_in *)s)->sin_addr.s_addr = *(int *)&a->ip;
+		((struct sockaddr_in *)s)->sin_addr.s_addr = *(int *)&a->ipv._4;
 		((struct sockaddr_in *)s)->sin_port = a->port;
 	}
 	else if( a->type == NA_IP6 ) {
 		((struct sockaddr_in6 *)s)->sin6_family = AF_INET6;
-		((struct sockaddr_in6 *)s)->sin6_addr = * ((struct in6_addr *) &a->ip6);
+		((struct sockaddr_in6 *)s)->sin6_addr = * ((struct in6_addr *) &a->ipv._6);
 		((struct sockaddr_in6 *)s)->sin6_port = a->port;
 		((struct sockaddr_in6 *)s)->sin6_scope_id = a->scope_id;
 	}
@@ -253,13 +255,13 @@ static void NetadrToSockadr( const netadr_t *a, struct sockaddr *s ) {
 static void SockadrToNetadr( const struct sockaddr *s, netadr_t *a ) {
 	if (s->sa_family == AF_INET) {
 		a->type = NA_IP;
-		*(int *)&a->ip = ((struct sockaddr_in *)s)->sin_addr.s_addr;
+		*(int *)&a->ipv._4 = ((struct sockaddr_in *)s)->sin_addr.s_addr;
 		a->port = ((struct sockaddr_in *)s)->sin_port;
 	}
 	else if(s->sa_family == AF_INET6)
 	{
 		a->type = NA_IP6;
-		memcpy(a->ip6, &((struct sockaddr_in6 *)s)->sin6_addr, sizeof(a->ip6));
+		memcpy(a->ipv._6, &((struct sockaddr_in6 *)s)->sin6_addr, sizeof(a->ipv._6));
 		a->port = ((struct sockaddr_in6 *)s)->sin6_port;
 		a->scope_id = ((struct sockaddr_in6 *)s)->sin6_scope_id;
 	}
@@ -278,6 +280,7 @@ static struct addrinfo *SearchAddrInfo(struct addrinfo *hints, sa_family_t famil
 	
 	return NULL;
 }
+
 
 /*
 =============
@@ -419,16 +422,16 @@ qboolean NET_CompareBaseAdrMask( const netadr_t *a, const netadr_t *b, int netma
 
 	if (a->type == NA_IP)
 	{
-		addra = (byte *) &a->ip;
-		addrb = (byte *) &b->ip;
+		addra = (byte *) &a->ipv._4;
+		addrb = (byte *) &b->ipv._4;
 		
 		if(netmask < 0 || netmask > 32)
 			netmask = 32;
 	}
 	else if(a->type == NA_IP6)
 	{
-		addra = (byte *) &a->ip6;
-		addrb = (byte *) &b->ip6;
+		addra = (byte *) &a->ipv._6;
+		addrb = (byte *) &b->ipv._6;
 		
 		if(netmask < 0 || netmask > 128)
 			netmask = 128;
@@ -473,9 +476,9 @@ qboolean NET_CompareBaseAdr( const netadr_t *a, const netadr_t *b )
 }
 
 
-const char	*NET_AdrToString( const netadr_t *a )
+const char *NET_AdrToString( const netadr_t *a )
 {
-	static	char	s[NET_ADDRSTRMAXLEN];
+	static char s[NET_ADDRSTRMAXLEN];
 
 	if (a->type == NA_LOOPBACK)
 		Com_sprintf (s, sizeof(s), "loopback");
@@ -494,7 +497,7 @@ const char	*NET_AdrToString( const netadr_t *a )
 }
 
 
-const char	*NET_AdrToStringwPort( const netadr_t *a )
+const char *NET_AdrToStringwPort( const netadr_t *a )
 {
 	static	char	s[NET_ADDRSTRMAXLEN];
 
@@ -542,7 +545,7 @@ NET_GetPacket
 Receive one packet
 ==================
 */
-static qboolean NET_GetPacket( netadr_t *net_from, msg_t *net_message, fd_set *fdr )
+static qboolean NET_GetPacket( netadr_t *net_from, msg_t *net_message, const fd_set *fdr )
 {
 	int 	ret;
 	struct sockaddr_storage from;
@@ -571,10 +574,10 @@ static qboolean NET_GetPacket( netadr_t *net_from, msg_t *net_message, fd_set *f
 					return qfalse;
 				}
 				net_from->type = NA_IP;
-				net_from->ip[0] = net_message->data[4];
-				net_from->ip[1] = net_message->data[5];
-				net_from->ip[2] = net_message->data[6];
-				net_from->ip[3] = net_message->data[7];
+				net_from->ipv._4[0] = net_message->data[4];
+				net_from->ipv._4[1] = net_message->data[5];
+				net_from->ipv._4[2] = net_message->data[6];
+				net_from->ipv._4[3] = net_message->data[7];
 				net_from->port = *(short *)&net_message->data[8];
 				net_message->readcount = 10;
 			}
@@ -745,21 +748,21 @@ qboolean Sys_IsLANAddress( const netadr_t *adr ) {
 		// 10.0.0.0        -   10.255.255.255  (10/8 prefix)
 		// 172.16.0.0      -   172.31.255.255  (172.16/12 prefix)
 		// 192.168.0.0     -   192.168.255.255 (192.168/16 prefix)
-		if(adr->ip[0] == 10)
+		if(adr->ipv._4[0] == 10)
 			return qtrue;
-		if(adr->ip[0] == 172 && (adr->ip[1]&0xf0) == 16)
+		if(adr->ipv._4[0] == 172 && (adr->ipv._4[1]&0xf0) == 16)
 			return qtrue;
-		if(adr->ip[0] == 192 && adr->ip[1] == 168)
+		if(adr->ipv._4[0] == 192 && adr->ipv._4[1] == 168)
 			return qtrue;
 
-		if(adr->ip[0] == 127)
+		if(adr->ipv._4[0] == 127)
 			return qtrue;
 	}
 	else if(adr->type == NA_IP6)
 	{
-		if(adr->ip6[0] == 0xfe && (adr->ip6[1] & 0xc0) == 0x80)
+		if(adr->ipv._6[0] == 0xfe && (adr->ipv._6[1] & 0xc0) == 0x80)
 			return qtrue;
-		if((adr->ip6[0] & 0xfe) == 0xfc)
+		if((adr->ipv._6[0] & 0xfe) == 0xfc)
 			return qtrue;
 	}
 	
@@ -772,9 +775,9 @@ qboolean Sys_IsLANAddress( const netadr_t *adr ) {
 			{
 				compareip = (byte *) &((struct sockaddr_in *) &localIP[index].addr)->sin_addr.s_addr;
 				comparemask = (byte *) &((struct sockaddr_in *) &localIP[index].netmask)->sin_addr.s_addr;
-				compareadr = adr->ip;
+				compareadr = adr->ipv._4;
 				
-				addrsize = sizeof(adr->ip);
+				addrsize = sizeof(adr->ipv._4);
 			}
 			else
 			{
@@ -782,9 +785,9 @@ qboolean Sys_IsLANAddress( const netadr_t *adr ) {
 
 				compareip = (byte *) &((struct sockaddr_in6 *) &localIP[index].addr)->sin6_addr;
 				comparemask = (byte *) &((struct sockaddr_in6 *) &localIP[index].netmask)->sin6_addr;
-				compareadr = adr->ip6;
+				compareadr = adr->ipv._6;
 				
-				addrsize = sizeof(adr->ip6);
+				addrsize = sizeof(adr->ipv._6);
 			}
 
 			differed = qfalse;
@@ -812,7 +815,7 @@ qboolean Sys_IsLANAddress( const netadr_t *adr ) {
 Sys_ShowIP
 ==================
 */
-void Sys_ShowIP(void) {
+void Sys_ShowIP( void ) {
 	int i;
 	char addrbuf[NET_ADDRSTRMAXLEN];
 
@@ -999,7 +1002,7 @@ static void NET_SetMulticast6( void )
 		Com_Printf("WARNING: NET_JoinMulticast6: Incorrect multicast address given, "
 			   "please set cvar %s to a sane value.\n", net_mcast6addr->name);
 		
-		Cvar_SetValue(net_enabled->name, net_enabled->integer | NET_DISABLEMCAST);
+		Cvar_SetIntegerValue( net_enabled->name, net_enabled->integer | NET_DISABLEMCAST );
 		
 		return;
 	}
@@ -1401,7 +1404,7 @@ static void NET_OpenIP( void ) {
 			ip6_socket = NET_IP6Socket(net_ip6->string, port6 + i, &boundto, &err);
 			if (ip6_socket != INVALID_SOCKET)
 			{
-				Cvar_SetValue( "net_port6", port6 + i );
+				Cvar_SetIntegerValue( "net_port6", port6 + i );
 				break;
 			}
 			else
@@ -1419,7 +1422,7 @@ static void NET_OpenIP( void ) {
 		for( i = 0 ; i < 10 ; i++ ) {
 			ip_socket = NET_IPSocket( net_ip->string, port + i, &err );
 			if (ip_socket != INVALID_SOCKET) {
-				Cvar_SetValue( "net_port", port + i );
+				Cvar_SetIntegerValue( "net_port", port + i );
 
 				if (net_socksEnabled->integer)
 					NET_OpenSocks( port + i );
@@ -1618,7 +1621,7 @@ void NET_Init( void ) {
 
 	NET_Config( qtrue );
 	
-	Cmd_AddCommand ("net_restart", NET_Restart_f);
+	Cmd_AddCommand( "net_restart", NET_Restart_f );
 }
 
 
@@ -1648,8 +1651,7 @@ NET_Event
 Called from NET_Sleep which uses select() to determine which sockets have seen action.
 ====================
 */
-
-static void NET_Event(fd_set *fdr)
+static void NET_Event( const fd_set *fdr )
 {
 	byte bufData[ MAX_MSGLEN_BUF ];
 	netadr_t from;
@@ -1688,15 +1690,17 @@ NET_Sleep
 Sleeps msec or until something happens on the network
 ====================
 */
-void NET_Sleep( int msec )
+void NET_Sleep( int msec, int usec_bias )
 {
-	struct timeval timeout;
+	struct timeval tv;
+	int timeout;
 	fd_set fdr;
 	int retval;
 	SOCKET highestfd = INVALID_SOCKET;
 
-	if ( msec < 0 )
-		msec = 0;
+	timeout = msec * 1000 + usec_bias;
+	if ( timeout < 0 )
+		timeout = 0;
 
 	FD_ZERO( &fdr );
 
@@ -1719,15 +1723,15 @@ void NET_Sleep( int msec )
 	if ( highestfd == INVALID_SOCKET ) 
 	{
 		// windows ain't happy when select is called without valid FDs
-		Sleep( msec );
+		Sleep( timeout / 1000 );
 		return;
 	}
 #endif
 
-	timeout.tv_sec = msec/1000;
-	timeout.tv_usec = (msec%1000)*1000;
+	tv.tv_sec = timeout / 1000000;
+	tv.tv_usec = timeout - tv.tv_sec * 1000000;
 
-	retval = select( highestfd + 1, &fdr, NULL, NULL, &timeout );
+	retval = select( highestfd + 1, &fdr, NULL, NULL, &tv );
 
 	if ( retval > 0 ) {
 		NET_Event( &fdr );
@@ -1749,7 +1753,7 @@ void NET_Sleep( int msec )
 NET_Restart_f
 ====================
 */
-void NET_Restart_f(void)
+void NET_Restart_f( void )
 {
-	NET_Config(qtrue);
+	NET_Config( qtrue );
 }

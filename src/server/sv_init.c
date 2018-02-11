@@ -568,11 +568,14 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 	// clear the whole hunk because we're (re)loading the server
 	Hunk_Clear();
 
-	// clear collision map data		// (SA) NOTE: TODO: used in missionpack
+	// clear collision map data
 	CM_ClearMap();
 
-    // Restart renderer?
-    // CL_StartHunkUsers( );
+	// timescale can be updated before SV_Frame() and cause division-by-zero in SV_RateMsec()
+	Cvar_CheckRange( com_timescale, "0.001", NULL, CV_FLOAT );
+
+	// Restart renderer?
+	// CL_StartHunkUsers( );
 
 	// init client structures and svs.numSnapshotEntities 
 	if ( !Cvar_VariableIntegerValue( "sv_running" ) ) {
@@ -628,7 +631,9 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 //	}
 
 	// make sure we are not paused
+#ifndef DEDICATED
 	Cvar_Set( "cl_paused", "0" );
+#endif
 
 	// get a new checksum feed and restart the file system
 	srand( Com_Milliseconds() );
@@ -650,7 +655,7 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 	Cvar_Set( "sv_serverid", va( "%i", sv.serverId ) );
 
 	// clear physics interaction links
-	SV_ClearWorld ();
+	SV_ClearWorld();
 	
 	// media configstring setting should be done during
 	// the loading stage, so connected clients don't have
@@ -677,10 +682,10 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 	// create a baseline for more efficient communications
 	SV_CreateBaseline();
 
-	for ( i = 0 ; i < sv_maxclients->integer ; i++ ) {
+	for (i=0 ; i<sv_maxclients->integer ; i++) {
 		// send the new gamestate to all connected clients
-		if ( svs.clients[i].state >= CS_CONNECTED ) {
-			char    *denied;
+		if (svs.clients[i].state >= CS_CONNECTED) {
+			char	*denied;
 
 			if ( svs.clients[i].netchan.remoteAddress.type == NA_BOT ) {
 				if ( killBots || SV_GameIsSinglePlayer() || SV_GameIsCoop() ) {
@@ -824,8 +829,6 @@ void SV_Init( void )
 
 	sv_minRate = Cvar_Get ("sv_minRate", "0", CVAR_ARCHIVE_ND | CVAR_SERVERINFO );
 	sv_maxRate = Cvar_Get( "sv_maxRate", "0", CVAR_ARCHIVE_ND | CVAR_SERVERINFO );
-	sv_minPing = Cvar_Get( "sv_minPing", "0", CVAR_ARCHIVE_ND | CVAR_SERVERINFO );
-	sv_maxPing = Cvar_Get( "sv_maxPing", "0", CVAR_ARCHIVE_ND | CVAR_SERVERINFO );
 	sv_floodProtect = Cvar_Get( "sv_floodProtect", "1", CVAR_ARCHIVE | CVAR_SERVERINFO );
 	sv_allowAnonymous = Cvar_Get( "sv_allowAnonymous", "0", CVAR_SERVERINFO );
 	sv_friendlyFire = Cvar_Get( "g_friendlyFire", "1", CVAR_SERVERINFO | CVAR_ARCHIVE );           // NERVE - SMF
@@ -848,8 +851,12 @@ void SV_Init( void )
 	sv_fps = Cvar_Get( "sv_fps", "20", CVAR_TEMP );
 	Cvar_CheckRange( sv_fps, "10", "125", CV_INTEGER );
 	sv_timeout = Cvar_Get( "sv_timeout", "240", CVAR_TEMP );
+	Cvar_CheckRange( sv_timeout, "4", NULL, CV_INTEGER );
+	Cvar_SetDescription( sv_timeout, "Seconds without any message before automatic client disconnect" );
 	sv_zombietime = Cvar_Get( "sv_zombietime", "2", CVAR_TEMP );
-	Cvar_Get( "nextmap", "", CVAR_TEMP );
+	Cvar_CheckRange( sv_zombietime, "1", NULL, CV_INTEGER );
+	Cvar_SetDescription( sv_zombietime, "Seconds to sink messages after disconnect" );
+	Cvar_Get ("nextmap", "", CVAR_TEMP );
 
 	sv_allowDownload = Cvar_Get( "sv_allowDownload", "1", CVAR_ARCHIVE );
 	sv_master[0] = Cvar_Get( "sv_master1", MASTER_SERVER_NAME, 0 );
@@ -859,7 +866,6 @@ void SV_Init( void )
 	sv_master[4] = Cvar_Get( "sv_master5", "", CVAR_ARCHIVE );
 	sv_reconnectlimit = Cvar_Get( "sv_reconnectlimit", "3", 0 );
 	sv_tempbanmessage = Cvar_Get( "sv_tempbanmessage", "You have been kicked and are temporarily banned from joining this server.", 0 );
-	sv_showloss = Cvar_Get( "sv_showloss", "0", 0 );
 	sv_padPackets = Cvar_Get( "sv_padPackets", "0", 0 );
 	sv_killserver = Cvar_Get( "sv_killserver", "0", 0 );
 	sv_mapChecksum = Cvar_Get( "sv_mapChecksum", "", CVAR_ROM );
@@ -924,6 +930,8 @@ void SV_Init( void )
 
 	sv_levelTimeReset = Cvar_Get( "sv_levelTimeReset", "0", CVAR_ARCHIVE_ND );
 
+	sv_leanPakRefs = Cvar_Get( "sv_leanPakRefs", "0", CVAR_LATCH );
+
 	//extented version marker
 	Cvar_Get( "sv_version_ex", "1", CVAR_ROM );
 
@@ -938,6 +946,7 @@ void SV_Init( void )
 	Cbuf_AddText("rehashbans\n");
 #endif
 
+	SV_InitChallenger();
 	svs.serverLoad = -1;
 }
 
@@ -1004,6 +1013,7 @@ void SV_Shutdown( const char *finalmsg ) {
 	SV_RemoveOperatorCommands();
 	SV_MasterShutdown();
 	SV_ShutdownGameProgs();
+	SV_InitChallenger();
 
 	// free current level
 	SV_ClearServer();
@@ -1023,6 +1033,10 @@ void SV_Shutdown( const char *finalmsg ) {
 	svs.serverLoad = -1;
 
 	Cvar_Set( "sv_running", "0" );
+
+	// allow setting timescale 0 for demo playback
+	Cvar_CheckRange( com_timescale, "0", NULL, CV_FLOAT );
+
 
 	Com_Printf( "---------------------------\n" );
 

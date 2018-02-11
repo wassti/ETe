@@ -69,6 +69,22 @@ void GL_Bind( image_t *image ) {
 
 
 /*
+** GL_BindTexNum
+*/
+void GL_BindTexNum( GLuint texnum ) {
+
+	if ( r_nobind->integer && tr.dlightImage ) {	// performance evaluation option
+		texnum = tr.dlightImage->texnum;
+	}
+
+	if ( glState.currenttextures[ glState.currenttmu ] != texnum ) {
+		glState.currenttextures[ glState.currenttmu ] = texnum;
+		qglBindTexture( GL_TEXTURE_2D, texnum );
+	}
+}
+
+
+/*
 ** GL_SelectTexture
 */
 void GL_SelectTexture( int unit )
@@ -202,9 +218,9 @@ void GL_TexEnv( int env )
 ** This routine is responsible for setting the most commonly changed state
 ** in Q3.
 */
-void GL_State( unsigned long stateBits )
+void GL_State( GLbitfield stateBits )
 {
-	unsigned long diff = stateBits ^ glState.glStateBits;
+	GLbitfield diff = stateBits ^ glState.glStateBits;
 
 	if ( !diff )
 	{
@@ -659,10 +675,14 @@ static void RB_RenderDrawSurfList( drawSurf_t *drawSurfs, int numDrawSurfs ) {
 			#define INSERT_POINT SS_FOG
 			if ( backEnd.refdef.numLitSurfs && oldShaderSort < INSERT_POINT && shader->sort >= INSERT_POINT ) {
 				//RB_BeginDrawingLitSurfs(); // no need, already setup in RB_BeginDrawingView()
-				qglDepthRange( 0, 1 );
-				RB_LightingPass();
+				if ( depthRange ) {
+					qglDepthRange( 0, 1 );
+					RB_LightingPass();
+					qglDepthRange( 0, 0.3 );
+				} else {
+					RB_LightingPass();
+				}
 				oldEntityNum = -1; // force matrix setup
-				oldDepthRange = qtrue; // force depthRange setup
 			}
 			oldShaderSort = shader->sort;
 #endif
@@ -1565,6 +1585,12 @@ static const void *RB_DrawSurfs( const void *data ) {
 	}
 #endif
 
+	if ( !backEnd.doneSurfaces && tr.needScreenMap ) {
+		if ( backEnd.viewParms.frameSceneNum == 1 ) {
+			FBO_CopyScreen();
+		}
+	}
+
 	//TODO Maybe check for rdf_noworld stuff but q3mme has full 3d ui
 	backEnd.doneSurfaces = qtrue; // for bloom
 
@@ -1726,6 +1752,70 @@ static const void *RB_FinishBloom( const void *data )
 }
 
 
+static const void *RB_SwapBuffers( const void *data ) {
+
+	const swapBuffersCommand_t	*cmd;
+
+	// finish any 2D drawing if needed
+	if ( tess.numIndexes ) {
+		RB_EndSurface();
+	}
+
+	VBO_UnBind();
+
+	// texture swapping test
+	if ( r_showImages->integer ) {
+		RB_ShowImages();
+	}
+
+	cmd = (const swapBuffersCommand_t *)data;
+
+	if ( r_finish->integer == 1 && !glState.finishCalled ) {
+		qglFinish();
+	}
+
+	FBO_PostProcess();
+
+	if ( backEnd.screenshotMask && tr.frameCount > 1 ) {
+		if ( backEnd.screenshotMask & SCREENSHOT_TGA && backEnd.screenshotTGA[0] ) {
+			RB_TakeScreenshot( 0, 0, glConfig.vidWidth, glConfig.vidHeight, backEnd.screenshotTGA );
+			if ( !backEnd.screenShotTGAsilent ) {
+				ri.Printf( PRINT_ALL, "Wrote %s\n", backEnd.screenshotTGA );
+			}
+		}
+		if ( backEnd.screenshotMask & SCREENSHOT_JPG && backEnd.screenshotJPG[0] ) {
+			RB_TakeScreenshotJPEG( 0, 0, glConfig.vidWidth, glConfig.vidHeight, backEnd.screenshotJPG );
+			if ( !backEnd.screenShotJPGsilent ) {
+				ri.Printf( PRINT_ALL, "Wrote %s\n", backEnd.screenshotJPG );
+			}
+		}
+		if ( backEnd.screenshotMask & SCREENSHOT_BMP && ( backEnd.screenshotBMP[0] || ( backEnd.screenshotMask & SCREENSHOT_BMP_CLIPBOARD ) ) ) {
+			RB_TakeScreenshotBMP( 0, 0, glConfig.vidWidth, glConfig.vidHeight, backEnd.screenshotBMP, backEnd.screenshotMask & SCREENSHOT_BMP_CLIPBOARD );
+			if ( !backEnd.screenShotBMPsilent ) {
+				ri.Printf( PRINT_ALL, "Wrote %s\n", backEnd.screenshotBMP );
+			}
+		}
+		if ( backEnd.screenshotMask & SCREENSHOT_AVI ) {
+			RB_TakeVideoFrameCmd( &backEnd.vcmd );
+		}
+
+		backEnd.screenshotJPG[0] = '\0';
+		backEnd.screenshotTGA[0] = '\0';
+		backEnd.screenshotBMP[0] = '\0';
+		backEnd.screenshotMask = 0;
+	}
+
+	ri.GLimp_EndFrame();
+
+	backEnd.projection2D = qfalse;
+	backEnd.doneBloom = qfalse;
+	backEnd.doneSurfaces = qfalse;
+
+	return (const void *)(cmd + 1);
+}
+
+
+
 /*
 =============
 RB_DrawBounds - ydnar
@@ -1856,6 +1946,9 @@ void RB_ExecuteRenderCommands( const void *data ) {
 			break;
 		case RC_DRAW_BUFFER:
 			data = RB_DrawBuffer( data );
+			break;
+		case RC_SWAP_BUFFERS:
+			data = RB_SwapBuffers( data );
 			break;
 		case RC_FINISHBLOOM:
 			data = RB_FinishBloom(data);

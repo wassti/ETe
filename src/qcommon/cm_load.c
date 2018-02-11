@@ -575,7 +575,7 @@ void CMod_LoadPatches( lump_t *surfs, lump_t *verts ) {
 		patch->surfaceFlags = cm.shaders[shaderNum].surfaceFlags;
 
 		// create the internal facet structure
-		patch->pc = CM_GeneratePatchCollide( width, height, points, qtrue );
+		patch->pc = CM_GeneratePatchCollide( width, height, points );
 	}
 }
 
@@ -639,7 +639,7 @@ void CM_LoadMap( const char *name, qboolean clientload, int *checksum ) {
 #ifndef BSPC
 	cm_noAreas = Cvar_Get( "cm_noAreas", "0", CVAR_CHEAT );
 	cm_noCurves = Cvar_Get( "cm_noCurves", "0", CVAR_CHEAT );
-	cm_playerCurveClip = Cvar_Get( "cm_playerCurveClip", "1", CVAR_ARCHIVE | CVAR_CHEAT );
+	cm_playerCurveClip = Cvar_Get( "cm_playerCurveClip", "1", CVAR_ARCHIVE_ND | CVAR_CHEAT );
 	cm_optimize = Cvar_Get( "cm_optimize", "1", CVAR_CHEAT );
 #endif
 	Com_DPrintf( "CM_LoadMap( %s, %i )\n", name, clientload );

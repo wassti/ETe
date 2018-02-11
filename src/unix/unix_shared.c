@@ -77,7 +77,7 @@ int Sys_Milliseconds (void)
 	return curtime;
 }
 
-#if !defined( DEDICATED )
+#if (defined(__linux__) || defined(__FreeBSD__) || defined(__sun)) && !defined(DEDICATED)
 /*
 ================
 Sys_XTimeToSysTime
@@ -456,22 +456,6 @@ Sys_ShowConsole
 void Sys_ShowConsole( int visLevel, qboolean quitOnClose )
 {
 	// not implemented
-}
-
-
-/*
-=================
-Sys_GetCurentUser
-=================
-*/
-char *Sys_GetCurrentUser( void )
-{
-	struct passwd *p;
-
-	if ( (p = getpwuid( getuid() )) == NULL ) {
-		return "player";
-	}
-	return p->pw_name;
 }
 
 

@@ -822,15 +822,15 @@ SV_SendMessageToClient
 Called by SV_SendClientSnapshot and SV_SendClientGameState
 =======================
 */
-void SV_SendMessageToClient(msg_t *msg, client_t *client)
+void SV_SendMessageToClient( msg_t *msg, client_t *client )
 {
 	// record information about the message
 	client->frames[client->netchan.outgoingSequence & PACKET_MASK].messageSize = msg->cursize;
-	client->frames[client->netchan.outgoingSequence & PACKET_MASK].messageSent = svs.time;
-	client->frames[client->netchan.outgoingSequence & PACKET_MASK].messageAcked = -1;
+	client->frames[client->netchan.outgoingSequence & PACKET_MASK].messageSent = svs.msgTime;
+	client->frames[client->netchan.outgoingSequence & PACKET_MASK].messageAcked = 0;
 
 	// send the datagram
-	SV_Netchan_Transmit(client, msg);
+	SV_Netchan_Transmit( client, msg );
 }
 
 
@@ -953,6 +953,8 @@ void SV_SendClientMessages( void )
 	qboolean	lanRate;
 	int numclients = 0;         // NERVE - SMF - net debugging
 
+	svs.msgTime = Sys_Milliseconds();
+
 	sv.bpsTotalBytes = 0;       // NERVE - SMF - net debugging
 	sv.ubpsTotalBytes = 0;      // NERVE - SMF - net debugging
 
@@ -978,19 +980,16 @@ void SV_SendClientMessages( void )
 			continue;
 		}
 
+		// 1. Local clients get snapshots every server frame
+		// 2. Remote clients get snapshots depending from rate and requested number of updates
+
+		if ( svs.time - c->lastSnapshotTime < c->snapshotMsec * com_timescale->value )
+			continue;		// It's not time yet
+
 		if ( c->netchan.unsentFragments || c->netchan_start_queue )
 		{
 			c->rateDelayed = qtrue;
 			continue;		// Drop this snapshot if the packet queue is still full or delta compression will break
-		}
-
-		// 1. Local clients get snapshots every server frame
-		// 2. Remote clients get snapshots depending from rate and requested number of updates
-
-		if ( svs.time - c->lastSnapshotTime < c->snapshotMsec * com_timescale->value ) 
-		{
-			// It's not time yet
-			continue; 
 		}
 	
 		lanRate = c->netchan.remoteAddress.type == NA_LOOPBACK || (sv_lanForceRate->integer && c->netchan.isLANAddress);

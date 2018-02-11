@@ -223,9 +223,9 @@ static int CL_cURL_CallbackProgress( void *dummy, double dltotal, double dlnow,
 	double ultotal, double ulnow )
 {
 	clc.downloadSize = (int)dltotal;
-	Cvar_SetValue( "cl_downloadSize", clc.downloadSize );
+	Cvar_SetIntegerValue( "cl_downloadSize", clc.downloadSize );
 	clc.downloadCount = (int)dlnow;
-	Cvar_SetValue( "cl_downloadCount", clc.downloadCount );
+	Cvar_SetIntegerValue( "cl_downloadCount", clc.downloadCount );
 	return 0;
 }
 
@@ -301,10 +301,10 @@ void CL_cURL_BeginDownload( const char *localName, const char *remoteURL )
 		"%s.tmp", localName);
 
 	// Set so UI gets access to it
-	Cvar_Set("cl_downloadName", localName);
-	Cvar_Set("cl_downloadSize", "0");
-	Cvar_Set("cl_downloadCount", "0");
-	Cvar_SetValue("cl_downloadTime", cls.realtime);
+	Cvar_Set( "cl_downloadName", localName );
+	Cvar_Set( "cl_downloadSize", "0" );
+	Cvar_Set( "cl_downloadCount", "0" );
+	Cvar_SetIntegerValue( "cl_downloadTime", cls.realtime );
 
 	CL_cURL_CloseDownload();
 
@@ -889,11 +889,15 @@ qboolean Com_DL_Begin( download_t *dl, const char *localName, const char *remote
 
 	Q_strncpyz( dl->URL, remoteURL, sizeof( dl->URL ) );
 
-	Q_strncpyz( dl->gameDir, FS_GetCurrentGameDir(), sizeof( dl->gameDir ) );
+	if ( cl_dlDirectory->integer ) {
+		Q_strncpyz( dl->gameDir, FS_GetBaseGameDir(), sizeof( dl->gameDir ) );
+	} else {
+		Q_strncpyz( dl->gameDir, FS_GetCurrentGameDir(), sizeof( dl->gameDir ) );
+	}
 
 	// try to extract game path from localName
 	// dl->Name should contain only pak name without game dir and extension
-	s = Q_strrchr( localName, '/' );
+	s = strrchr( localName, '/' );
 	if ( s ) 
 		Q_strncpyz( dl->Name, s+1, sizeof( dl->Name ) );
 	else

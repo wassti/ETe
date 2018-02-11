@@ -715,15 +715,27 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 		//
 		// clampmap <name>
 		//
-		else if ( !Q_stricmp( token, "clampmap" ) )
+		else if ( !Q_stricmp( token, "clampmap" ) || !Q_stricmp( token, "screenMap" ) )
 		{
 			imgType_t type = IMGTYPE_COLORALPHA;
-			imgFlags_t flags = IMGFLAG_CLAMPTOEDGE;
+			imgFlags_t flags;
+
+			if ( !Q_stricmp( token, "screenMap" ) ) {
+				flags = IMGFLAG_NONE;
+				if ( fboEnabled ) {
+					stage->bundle[0].isScreenMap = qtrue;
+					shader.hasScreenMap = qtrue;
+					tr.needScreenMap = qtrue;
+				}
+			} else {
+				flags = IMGFLAG_CLAMPTOEDGE;
+			}
 
 			token = COM_ParseExt( text, qfalse );
 			if ( !token[0] )
 			{
-				ri.Printf( PRINT_WARNING, "WARNING: missing parameter for 'clampmap' keyword in shader '%s'\n", shader.name );
+				ri.Printf( PRINT_WARNING, "WARNING: missing parameter for '%s' keyword in shader '%s'\n",
+					stage->bundle[0].isScreenMap ? "screenMap" : "clampMap", shader.name );
 				return qfalse;
 			}
 
@@ -2557,6 +2569,12 @@ static void FixRenderCommandList( int newShader ) {
 			case RC_DRAW_BUFFER:
 				{
 				const drawBufferCommand_t *db_cmd = (const drawBufferCommand_t *)curCmd;
+				curCmd = (const void *)(db_cmd + 1);
+				break;
+				}
+			case RC_SWAP_BUFFERS:
+				{
+				const swapBuffersCommand_t *db_cmd = (const swapBuffersCommand_t *)curCmd;
 				curCmd = (const void *)(db_cmd + 1);
 				break;
 				}

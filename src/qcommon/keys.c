@@ -921,6 +921,7 @@ const char *Key_KeynumToString( int keynum, qboolean bTranslate ) {
 	}
 
 	kn = keynames;    //init to english
+#ifndef DEDICATED
 #ifndef __MACOS__   //DAJ USA
 	if ( bTranslate ) {
 		if ( cl_language->integer - 1 == LANGUAGE_FRENCH ) {
@@ -933,6 +934,7 @@ const char *Key_KeynumToString( int keynum, qboolean bTranslate ) {
 			kn = keynames_s;  //use spanish
 		}
 	}
+#endif
 #endif
 
 	// check for a key string

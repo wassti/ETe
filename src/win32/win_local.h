@@ -25,7 +25,6 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-
 // win_local.h: Win32-specific Quake3 header file
 
 #define RAW_INPUT
@@ -111,11 +110,12 @@ void	IN_RawMouseEvent( LPARAM lParam );
 void	Sys_CreateConsole( const char *title, int xPos, int yPos, qboolean usePos );
 void	Sys_DestroyConsole( void );
 
+void	Sys_ClearViewlog_f( void );
+
 // Input subsystem
 
 void	IN_Init (void);
 void	IN_Shutdown (void);
-void	IN_JoystickCommands (void);
 
 void	IN_Activate( qboolean active );
 void	IN_Frame( void );
@@ -123,14 +123,10 @@ void	IN_Frame( void );
 void	IN_UpdateWindow( RECT *window_rect, qboolean updateClipRegion );
 void	UpdateMonitorInfo( const RECT *target );
 
-qboolean IN_MouseActive( void );
-
 // window procedure
 LRESULT WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM  wParam, LPARAM  lParam );
 
 void Conbuf_AppendText( const char *msg );
-void Conbuf_BeginPrint( void );
-void Conbuf_EndPrint( void );
 
 void SNDDMA_Activate( void );
 qboolean SNDDMA_InitDS( void );

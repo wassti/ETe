@@ -25,18 +25,17 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-
 // cl_scrn.c -- master for refresh, status bar, console, chat, notify, etc
 
 #include "client.h"
 
-qboolean scr_initialized;           // ready to draw
+qboolean	scr_initialized;		// ready to draw
 
-cvar_t      *cl_timegraph;
-cvar_t      *cl_debuggraph;
-cvar_t      *cl_graphheight;
-cvar_t      *cl_graphscale;
-cvar_t      *cl_graphshift;
+cvar_t		*cl_timegraph;
+cvar_t		*cl_debuggraph;
+cvar_t		*cl_graphheight;
+cvar_t		*cl_graphscale;
+cvar_t		*cl_graphshift;
 
 /*
 ================
@@ -46,7 +45,7 @@ Coordinates are 640*480 virtual values
 =================
 */
 void SCR_DrawNamedPic( float x, float y, float width, float height, const char *picname ) {
-	qhandle_t hShader;
+	qhandle_t	hShader;
 
 	assert( width != 0 );
 
@@ -64,8 +63,8 @@ Adjusted for resolution and screen aspect ratio
 ================
 */
 void SCR_AdjustFrom640( float *x, float *y, float *w, float *h ) {
-	float xscale;
-	float yscale;
+	float	xscale;
+	float	yscale;
 
 #if 0
 	// adjust for wide screens
@@ -129,7 +128,7 @@ void SCR_DrawPic( float x, float y, float width, float height, qhandle_t hShader
 static void SCR_DrawChar( int x, int y, float size, int ch ) {
 	int row, col;
 	float frow, fcol;
-	float ax, ay, aw, ah;
+	float	ax, ay, aw, ah;
 
 	ch &= 255;
 
@@ -147,16 +146,16 @@ static void SCR_DrawChar( int x, int y, float size, int ch ) {
 	ah = size;
 	SCR_AdjustFrom640( &ax, &ay, &aw, &ah );
 
-	row = ch >> 4;
-	col = ch & 15;
+	row = ch>>4;
+	col = ch&15;
 
-	frow = row * 0.0625;
-	fcol = col * 0.0625;
+	frow = row*0.0625;
+	fcol = col*0.0625;
 	size = 0.0625;
 
 	re.DrawStretchPic( ax, ay, aw, ah,
-					   fcol, frow,
-					   fcol + size, frow + size,
+					   fcol, frow, 
+					   fcol + size, frow + size, 
 					   cls.charSetShader );
 }
 
@@ -179,16 +178,16 @@ void SCR_DrawSmallChar( int x, int y, int ch ) {
 		return;
 	}
 
-	row = ch >> 4;
-	col = ch & 15;
+	row = ch>>4;
+	col = ch&15;
 
-	frow = row * 0.0625;
-	fcol = col * 0.0625;
+	frow = row*0.0625;
+	fcol = col*0.0625;
 	size = 0.0625;
 
 	re.DrawStretchPic( x, y, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT,
-					   fcol, frow,
-					   fcol + size, frow + size,
+					   fcol, frow, 
+					   fcol + size, frow + size, 
 					   cls.charSetShader );
 }
 
@@ -251,7 +250,7 @@ void SCR_DrawStringExt( int x, int y, float size, const char *string, const floa
 			s += 2;
 			continue;
 		}
-		SCR_DrawChar( xx + 2, y + 2, size, *s );
+		SCR_DrawChar( xx+2, y+2, size, *s );
 		xx += size;
 		s++;
 	}
@@ -293,7 +292,6 @@ void SCR_DrawBigString( int x, int y, const char *s, float alpha, qboolean noCol
 	color[3] = alpha;
 	SCR_DrawStringExt( x, y, BIGCHAR_WIDTH, s, color, qfalse, noColorEscape );
 }
-
 
 
 /*
@@ -604,6 +602,7 @@ void SCR_DrawScreenField( stereoFrame_t stereoFrame ) {
 	}
 }
 
+
 /*
 ==================
 SCR_UpdateScreen
@@ -613,13 +612,27 @@ text to the screen.
 ==================
 */
 void SCR_UpdateScreen( void ) {
-	static int recursive = 0;
+	static int recursive;
+	static int framecount;
+	static int next_frametime;
 
-	if ( !scr_initialized ) {
-		return;             // not initialized yet
+	if ( !scr_initialized )
+		return; // not initialized yet
+
+	if ( framecount == cls.framecount ) {
+		int ms = Sys_Milliseconds();
+		if ( ms < next_frametime ) {
+			re.ThrottleBackend();
+		} else {
+			next_frametime = ms + 16; // limit to 60 FPS
+			framecount = cls.framecount;
+		}
+	} else {
+		next_frametime = 0;
+		framecount = cls.framecount;
 	}
 
-	if ( ++recursive >= 2 ) {
+	if ( ++recursive > 2 ) {
 		recursive = 0;
 		// Gordon: i'm breaking this again, because we've removed most of our cases but still have one which will not fix easily
 		return;

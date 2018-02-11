@@ -46,7 +46,6 @@ cvar_t  *sv_hostname;
 cvar_t  *sv_master[MAX_MASTER_SERVERS];     // master server ip address
 cvar_t  *sv_reconnectlimit;     // minimum seconds between connect messages
 cvar_t  *sv_tempbanmessage;
-cvar_t  *sv_showloss;           // report when usercmds are lost
 cvar_t  *sv_padPackets;         // add nop bytes to messages
 cvar_t  *sv_killserver;         // menu system can set to 1 to shut server down
 cvar_t  *sv_mapname;
@@ -54,8 +53,6 @@ cvar_t  *sv_mapChecksum;
 cvar_t  *sv_serverid;
 cvar_t	*sv_minRate;
 cvar_t  *sv_maxRate;
-cvar_t  *sv_minPing;
-cvar_t  *sv_maxPing;
 //cvar_t	*sv_gametype;
 cvar_t  *sv_pure;
 cvar_t  *sv_floodProtect;
@@ -96,6 +93,8 @@ cvar_t  *sv_fullmsg;
 cvar_t	*sv_banFile;
 
 cvar_t *sv_levelTimeReset;
+
+cvar_t  *sv_leanPakRefs = NULL;
 
 serverBan_t serverBans[SERVER_MAXBANS];
 int serverBansCount = 0;
@@ -281,12 +280,12 @@ void SV_MasterHeartbeat( const char *hbname ) {
 		if(!sv_master[i]->string[0])
 			continue;
 
-		// see if we haven't already resolved the name
-		// resolving usually causes hitches on win95, so only
-		// do it when needed
-		if(sv_master[i]->modified || (adr[i][0].type == NA_BAD && adr[i][1].type == NA_BAD))
+		// see if we haven't already resolved the name or if it's been over 24 hours
+		// resolving usually causes hitches on win95, so only do it when needed
+		if ( sv_master[i]->modified || svs.time > svs.masterResolveTime[i] )
 		{
 			sv_master[i]->modified = qfalse;
+			svs.masterResolveTime[i] = svs.time + MASTERDNS_MSEC;
 			
 			if(netenabled & NET_ENABLEV4)
 			{
@@ -321,16 +320,11 @@ void SV_MasterHeartbeat( const char *hbname ) {
 				else
 					Com_Printf( "%s has no IPv6 address.\n", sv_master[i]->string );
 			}
+		}
 
-			if(adr[i][0].type == NA_BAD && adr[i][1].type == NA_BAD)
-			{
-				// if the address failed to resolve, clear it
-				// so we don't take repeated dns hits
-				Com_Printf("Couldn't resolve address: %s\n", sv_master[i]->string);
-				Cvar_Set(sv_master[i]->name, "");
-				sv_master[i]->modified = qfalse;
-				continue;
-			}
+		if( adr[i][0].type == NA_BAD && adr[i][1].type == NA_BAD )
+		{
+			continue;
 		}
 
 
@@ -353,52 +347,87 @@ SV_MasterGameCompleteStatus
 NERVE - SMF - Sends gameCompleteStatus messages to all master servers
 =================
 */
-void SV_MasterGameCompleteStatus() {
-	static netadr_t adr[MAX_MASTER_SERVERS];
-	int i;
+void SV_MasterGameCompleteStatus( void ) {
+	static netadr_t	adr[MAX_MASTER_SERVERS][2]; // [2] for v4 and v6 address for the same address string.
+	int			i;
+	int			res;
+	int			netenabled;
 
 	if ( SV_GameIsSinglePlayer() ) {
 		return;     // no master game status for SP
 	}
 
+	netenabled = Cvar_VariableIntegerValue("net_enabled");
+
 	// "dedicated 1" is for lan play, "dedicated 2" is for inet public play
-	if ( !com_dedicated || com_dedicated->integer != 2 ) {
+	if (!com_dedicated || com_dedicated->integer != 2 || !(netenabled & (NET_ENABLEV4 | NET_ENABLEV6)))
 		return;     // only dedicated servers send master game status
-	}
+
 
 	// send to group masters
-	for ( i = 0 ; i < MAX_MASTER_SERVERS ; i++ ) {
-		if ( !sv_master[i]->string[0] ) {
+	for (i = 0; i < MAX_MASTER_SERVERS; i++)
+	{
+		if(!sv_master[i]->string[0])
 			continue;
-		}
 
 		// see if we haven't already resolved the name
 		// resolving usually causes hitches on win95, so only
 		// do it when needed
-		if ( sv_master[i]->modified ) {
+		if(sv_master[i]->modified || (adr[i][0].type == NA_BAD && adr[i][1].type == NA_BAD))
+		{
 			sv_master[i]->modified = qfalse;
+			svs.masterResolveTime[i] = svs.time + MASTERDNS_MSEC;
+			
+			if(netenabled & NET_ENABLEV4)
+			{
+				Com_Printf("Resolving %s (IPv4)\n", sv_master[i]->string);
+				res = NET_StringToAdr(sv_master[i]->string, &adr[i][0], NA_IP);
 
-			Com_Printf( "Resolving %s\n", sv_master[i]->string );
-			if ( !NET_StringToAdr( sv_master[i]->string, &adr[i], NA_UNSPEC ) ) {
-				// if the address failed to resolve, clear it
-				// so we don't take repeated dns hits
-				Com_Printf( "Couldn't resolve address: %s\n", sv_master[i]->string );
-				Cvar_Set( sv_master[i]->name, "" );
-				sv_master[i]->modified = qfalse;
-				continue;
+				if(res == 2)
+				{
+					// if no port was specified, use the default master port
+					adr[i][0].port = BigShort(PORT_MASTER);
+				}
+				
+				if(res)
+					Com_Printf( "%s resolved to %s\n", sv_master[i]->string, NET_AdrToStringwPort( &adr[i][0] ) );
+				else
+					Com_Printf( "%s has no IPv4 address.\n", sv_master[i]->string );
 			}
-			if ( !strstr( ":", sv_master[i]->string ) ) {
-				adr[i].port = BigShort( PORT_MASTER );
+			
+			if(netenabled & NET_ENABLEV6)
+			{
+				Com_Printf("Resolving %s (IPv6)\n", sv_master[i]->string);
+				res = NET_StringToAdr(sv_master[i]->string, &adr[i][1], NA_IP6);
+
+				if(res == 2)
+				{
+					// if no port was specified, use the default master port
+					adr[i][1].port = BigShort(PORT_MASTER);
+				}
+				
+				if(res)
+					Com_Printf( "%s resolved to %s\n", sv_master[i]->string, NET_AdrToStringwPort( &adr[i][1] ) );
+				else
+					Com_Printf( "%s has no IPv6 address.\n", sv_master[i]->string );
 			}
-			Com_Printf( "%s resolved to %i.%i.%i.%i:%i\n", sv_master[i]->string,
-						adr[i].ip[0], adr[i].ip[1], adr[i].ip[2], adr[i].ip[3],
-						BigShort( adr[i].port ) );
 		}
 
-		Com_Printf( "Sending gameCompleteStatus to %s\n", sv_master[i]->string );
+		if( adr[i][0].type == NA_BAD && adr[i][1].type == NA_BAD )
+		{
+			continue;
+		}
+
+
+		Com_Printf ("Sending gameCompleteStatus to %s\n", sv_master[i]->string );
+
 		// this command should be changed if the server info / status format
 		// ever incompatably changes
-		SVC_GameCompleteStatus( &adr[i] );
+
+		if(adr[i][0].type != NA_BAD)
+			SVC_GameCompleteStatus( &adr[i][0] );
+		if(adr[i][1].type != NA_BAD)
+			SVC_GameCompleteStatus( &adr[i][1] );
 	}
 }
 
@@ -451,8 +480,8 @@ static long SVC_HashForAddress( const netadr_t *address ) {
 	long		hash = 0;
 
 	switch ( address->type ) {
-		case NA_IP:  ip = address->ip;  size = 4; break;
-		case NA_IP6: ip = address->ip6; size = 16; break;
+		case NA_IP:  ip = address->ipv._4; size = 4;  break;
+		case NA_IP6: ip = address->ipv._6; size = 16; break;
 		default: break;
 	}
 
@@ -465,6 +494,7 @@ static long SVC_HashForAddress( const netadr_t *address ) {
 
 	return hash;
 }
+
 
 /*
 ================
@@ -482,13 +512,13 @@ static leakyBucket_t *SVC_BucketForAddress( const netadr_t *address, int burst, 
 	for ( bucket = bucketHashes[ hash ]; bucket; bucket = bucket->next ) {
 		switch ( bucket->type ) {
 			case NA_IP:
-				if ( memcmp( bucket->ipv._4, address->ip, 4 ) == 0 ) {
+				if ( memcmp( bucket->ipv._4, address->ipv._4, 4 ) == 0 ) {
 					return bucket;
 				}
 				break;
 
 			case NA_IP6:
-				if ( memcmp( bucket->ipv._6, address->ip6, 16 ) == 0 ) {
+				if ( memcmp( bucket->ipv._6, address->ipv._6, 16 ) == 0 ) {
 					return bucket;
 				}
 				break;
@@ -498,6 +528,9 @@ static leakyBucket_t *SVC_BucketForAddress( const netadr_t *address, int burst, 
 		}
 	}
 
+	// make sure we will never use time 0
+	now = now ? now : 1;
+
 	for ( i = 0; i < MAX_BUCKETS; i++ ) {
 		int interval;
 
@@ -505,8 +538,7 @@ static leakyBucket_t *SVC_BucketForAddress( const netadr_t *address, int burst, 
 		interval = now - bucket->lastTime;
 
 		// Reclaim expired buckets
-		if ( bucket->lastTime > 0 && ( interval > ( burst * period ) ||
-					interval < 0 ) ) {
+		if ( bucket->lastTime && (unsigned)interval > ( burst * period ) ) {
 			if ( bucket->prev != NULL ) {
 				bucket->prev->next = bucket->next;
 			} else {
@@ -523,8 +555,8 @@ static leakyBucket_t *SVC_BucketForAddress( const netadr_t *address, int burst, 
 		if ( bucket->type == NA_BAD ) {
 			bucket->type = address->type;
 			switch ( address->type ) {
-				case NA_IP:  Com_Memcpy( bucket->ipv._4, address->ip, 4 );   break;
-				case NA_IP6: Com_Memcpy( bucket->ipv._6, address->ip6, 16 ); break;
+				case NA_IP:  Com_Memcpy( bucket->ipv._4, address->ipv._4, 4 );  break;
+				case NA_IP6: Com_Memcpy( bucket->ipv._6, address->ipv._6, 16 ); break;
 				default: break;
 			}
 
@@ -597,7 +629,7 @@ qboolean SVC_RateLimitAddress( const netadr_t *from, int burst, int period ) {
 //bani - bugtraq 12534
 //returns qtrue if valid challenge
 //returns qfalse if m4d h4x0rz
-qboolean SV_VerifyChallenge( const char *challenge ) {
+qboolean SV_VerifyInfoChallenge( const char *challenge ) {
 	int i, j;
 
 	if ( !challenge ) {
@@ -669,7 +701,7 @@ static void SVC_Status( const netadr_t *from ) {
 		return;
 
 	//bani - bugtraq 12534
-	if ( !SV_VerifyChallenge( Cmd_Argv( 1 ) ) ) {
+	if ( !SV_VerifyInfoChallenge( Cmd_Argv( 1 ) ) ) {
 		return;
 	}
 
@@ -746,7 +778,7 @@ void SVC_GameCompleteStatus( const netadr_t *from ) {
 		return;
 
 	//bani - bugtraq 12534
-	if ( !SV_VerifyChallenge( Cmd_Argv( 1 ) ) ) {
+	if ( !SV_VerifyInfoChallenge( Cmd_Argv( 1 ) ) ) {
 		return;
 	}
 
@@ -824,7 +856,7 @@ static void SVC_Info( const netadr_t *from ) {
 		return;
 
 	//bani - bugtraq 12534
-	if ( !SV_VerifyChallenge( Cmd_Argv( 1 ) ) ) {
+	if ( !SV_VerifyInfoChallenge( Cmd_Argv( 1 ) ) ) {
 		return;
 	}
 
@@ -856,12 +888,6 @@ static void SVC_Info( const netadr_t *from ) {
 	Info_SetValueForKey( infostring, "gametype", Cvar_VariableString( "g_gametype" ) );
 	Info_SetValueForKey( infostring, "pure", va( "%i", sv_pure->integer ) );
 
-	if ( sv_minPing->integer ) {
-		Info_SetValueForKey( infostring, "minPing", va( "%i", sv_minPing->integer ) );
-	}
-	if ( sv_maxPing->integer ) {
-		Info_SetValueForKey( infostring, "maxPing", va( "%i", sv_maxPing->integer ) );
-	}
 	gamedir = Cvar_VariableString( "fs_game" );
 	if ( *gamedir ) {
 		Info_SetValueForKey( infostring, "game", gamedir );
@@ -896,15 +922,18 @@ static void SVC_Info( const netadr_t *from ) {
 	NET_OutOfBandPrint( NS_SERVER, from, "infoResponse\n%s", infostring );
 }
 
-/*
-==============
-SV_FlushRedirect
 
-==============
+/*
+================
+SVC_FlushRedirect
+
+================
 */
-static void SV_FlushRedirect( const char *outputbuf ) {
+static void SV_FlushRedirect( const char *outputbuf ) 
+{
 	NET_OutOfBandPrint( NS_SERVER, &svs.redirectAddress, "print\n%s", outputbuf );
 }
+
 
 /*
 ===============
@@ -1028,10 +1057,6 @@ static void SV_ConnectionlessPacket( const netadr_t *from, msg_t *msg ) {
 		SV_GetChallenge( from );
 	} else if ( !Q_stricmp( c,"connect" ) ) {
 		SV_DirectConnect( from );
-#ifdef AUTHORIZE_SUPPORT
-	} else if ( !Q_stricmp( c,"ipAuthorize" ) ) {
-		SV_AuthorizeIpPacket( from );
-#endif // AUTHORIZE_SUPPORT
 	} else if ( !Q_stricmp( c, "rcon" ) ) {
 		SVC_RemoteCommand( from, msg );
 	} else if ( !Q_stricmp( c,"disconnect" ) ) {
@@ -1144,17 +1169,17 @@ static void SV_CalcPings( void ) {
 		total = 0;
 		count = 0;
 		for ( j = 0 ; j < PACKET_BACKUP ; j++ ) {
-			if ( cl->frames[j].messageAcked <= 0 ) {
+			if ( cl->frames[j].messageAcked == 0 ) {
 				continue;
 			}
 			delta = cl->frames[j].messageAcked - cl->frames[j].messageSent;
 			count++;
 			total += delta;
 		}
-		if ( !count ) {
+		if (!count) {
 			cl->ping = 999;
 		} else {
-			cl->ping = total / count;
+			cl->ping = total/count;
 			if ( cl->ping > 999 ) {
 				cl->ping = 999;
 			}
@@ -1188,25 +1213,24 @@ static void SV_CheckTimeouts( void ) {
 	droppoint = svs.time - 1000 * sv_timeout->integer;
 	zombiepoint = svs.time - 1000 * sv_zombietime->integer;
 
-	for ( i = 0,cl = svs.clients ; i < sv_maxclients->integer ; i++,cl++ ) {
+	for (i=0,cl=svs.clients ; i < sv_maxclients->integer ; i++,cl++) {
 		// message times may be wrong across a changelevel
-		if ( cl->lastPacketTime > svs.time ) {
+		if (cl->lastPacketTime > svs.time) {
 			cl->lastPacketTime = svs.time;
 		}
 
 		if ( cl->state == CS_ZOMBIE && cl->lastPacketTime < zombiepoint ) {
 			// using the client id cause the cl->name is empty at this point
 			Com_DPrintf( "Going from CS_ZOMBIE to CS_FREE for client %d\n", i );
-			cl->state = CS_FREE;    // can now be reused
-
+			cl->state = CS_FREE;	// can now be reused
 			continue;
 		}
 		if ( cl->state >= CS_CONNECTED && cl->lastPacketTime < droppoint ) {
 			// wait several frames so a debugger session doesn't
 			// cause a timeout
 			if ( ++cl->timeoutCount > 5 ) {
-				SV_DropClient( cl, "timed out" );
-				cl->state = CS_FREE;    // don't bother with zombie state
+				SV_DropClient (cl, "timed out"); 
+				cl->state = CS_FREE;	// don't bother with zombie state
 			}
 		} else {
 			cl->timeoutCount = 0;
@@ -1236,7 +1260,7 @@ static qboolean SV_CheckPaused( void ) {
 
 	// only pause if there is just a single client connected
 	count = 0;
-	for ( i = 0,cl = svs.clients ; i < sv_maxclients->integer ; i++,cl++ ) {
+	for (i=0,cl=svs.clients ; i < sv_maxclients->integer ; i++,cl++) {
 		if ( cl->state >= CS_CONNECTED && cl->netchan.remoteAddress.type != NA_BOT ) {
 			count++;
 		}

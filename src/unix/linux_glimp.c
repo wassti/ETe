@@ -98,8 +98,9 @@ typedef enum
 
 glwstate_t glw_state;
 
-static Display *dpy = NULL;
-static int scrnum;
+Display *dpy = NULL;
+int scrnum;
+
 static Window win = 0;
 static GLXContext ctx = NULL;
 static Atom wmDeleteEvent = None;
@@ -826,10 +827,10 @@ void HandleX11Events( void )
 			win_x = event.xconfigure.x;
 			win_y = event.xconfigure.y;
 			
-			if ( !glw_state.cdsFullscreen && window_created )
+			if ( !glw_state.cdsFullscreen && window_created && !gw_minimized )
 			{
-				Cvar_Set( "vid_xpos", va( "%i", win_x ) );
-				Cvar_Set( "vid_ypos", va( "%i", win_y ) );
+				Cvar_SetIntegerValue( "vid_xpos", win_x );
+				Cvar_SetIntegerValue( "vid_ypos", win_y );
 				RandR_UpdateMonitor( win_x, win_y,
 					event.xconfigure.width,
 					event.xconfigure.height );
@@ -1082,11 +1083,8 @@ void GLimp_SetGamma( unsigned char red[256], unsigned char green[256], unsigned 
 ** for the window.  The state structure is also nulled out.
 **
 */
-void GLimp_Shutdown( void )
+void GLimp_Shutdown( qboolean unloadDLL )
 {
-	if ( !ctx || !dpy )
-		return;
-
 	IN_DeactivateMouse();
 
 	if ( dpy )
@@ -1101,9 +1099,9 @@ void GLimp_Shutdown( void )
 
 		if ( ctx )
 			qglXDestroyContext( dpy, ctx );
+
 		if ( win )
 			XDestroyWindow( dpy, win );
-
 
 		if ( glw_state.gammaSet )
 		{
@@ -1139,7 +1137,7 @@ void GLimp_Shutdown( void )
 		glw_state.cdsFullscreen = qfalse;
 	}
 
-	QGL_Shutdown();
+	QGL_Shutdown( unloadDLL );
 }
 
 
@@ -1253,11 +1251,11 @@ int GLW_SetMode( const char *drivername, int mode, const char *modeFS, qboolean 
 	root = RootWindow( dpy, scrnum );
 
 	// Init xrandr and get desktop resolution if available
-	RandR_Init( dpy, vid_xpos->integer, vid_ypos->integer, 320, 240 );
+	RandR_Init( vid_xpos->integer, vid_ypos->integer, 640, 480 );
 
 	if ( !glw_state.randr_ext )
 	{
-		VidMode_Init( dpy, scrnum );
+		VidMode_Init();
 	}
 
 #ifdef HAVE_XF86DGA
@@ -1419,7 +1417,8 @@ int GLW_SetMode( const char *drivername, int mode, const char *modeFS, qboolean 
 	attr.border_pixel = 0;
 	attr.colormap = XCreateColormap( dpy, root, visinfo->visual, AllocNone );
 	attr.event_mask = X_MASK;
-	if ( glw_state.vidmode_active || glw_state.randr_active )
+
+	if ( fullscreen )
 	{
 		mask = CWBackPixel | CWColormap | CWSaveUnder | CWBackingStore |
 			CWEventMask | CWOverrideRedirect;
@@ -1567,7 +1566,7 @@ static qboolean GLW_LoadOpenGL( const char *name )
 	}
 	fail:
 
-	QGL_Shutdown();
+	QGL_Shutdown( qtrue );
 
 	return qfalse;
 }

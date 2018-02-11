@@ -228,6 +228,11 @@ void R_BindAnimatedImage( const textureBundle_t *bundle ) {
 		return;
 	}
 
+	if ( bundle->isScreenMap && backEnd.viewParms.frameSceneNum == 1 ) {
+		GL_BindTexNum( FBO_ScreenTexture() );
+		return;
+	}
+
 	if ( bundle->numImageAnimations <= 1 ) {
 		if ( bundle->isLightmap && ( backEnd.refdef.rdflags & RDF_SNOOPERVIEW ) ) {
 			GL_Bind( tr.whiteImage );
@@ -1101,7 +1106,7 @@ void R_ComputeTexCoords( const shaderStage_t *pStage ) {
 			RB_CalcEnvironmentTexCoords( ( float * ) tess.svars.texcoords[b] );
 			break;
 		case TCGEN_ENVIRONMENT_MAPPED_FP:
-			RB_CalcEnvironmentTexCoordsFP( ( float * ) tess.svars.texcoords[b] );
+			RB_CalcEnvironmentTexCoordsFP( ( float * ) tess.svars.texcoords[b], pStage->bundle[b].isScreenMap );
 			break;
 		case TCGEN_FIRERISEENV_MAPPED:
 			RB_CalcFireRiseEnvTexCoords( ( float * ) tess.svars.texcoords[b] );
@@ -1117,7 +1122,7 @@ void R_ComputeTexCoords( const shaderStage_t *pStage ) {
 			switch ( pStage->bundle[b].texMods[tm].type )
 			{
 			case TMOD_NONE:
-				tm = TR_MAX_TEXMODS;        // break out of for loop
+				tm = TR_MAX_TEXMODS; // break out of for loop
 				break;
 
 			case TMOD_SWAP:
@@ -1125,38 +1130,38 @@ void R_ComputeTexCoords( const shaderStage_t *pStage ) {
 				break;
 
 			case TMOD_TURBULENT:
-				RB_CalcTurbulentTexCoords( &pStage->bundle[b].texMods[tm].wave,
-										   ( float * ) tess.svars.texcoords[b] );
+				RB_CalcTurbulentTexCoords( &pStage->bundle[b].texMods[tm].wave, 
+					( float * ) tess.svars.texcoords[b] );
 				break;
 
 			case TMOD_ENTITY_TRANSLATE:
 				RB_CalcScrollTexCoords( backEnd.currentEntity->e.shaderTexCoord,
-										( float * ) tess.svars.texcoords[b] );
+					( float * ) tess.svars.texcoords[b] );
 				break;
 
 			case TMOD_SCROLL:
 				RB_CalcScrollTexCoords( pStage->bundle[b].texMods[tm].scroll,
-										( float * ) tess.svars.texcoords[b] );
+					 ( float * ) tess.svars.texcoords[b] );
 				break;
 
 			case TMOD_SCALE:
 				RB_CalcScaleTexCoords( pStage->bundle[b].texMods[tm].scale,
-									   ( float * ) tess.svars.texcoords[b] );
+					( float * ) tess.svars.texcoords[b] );
 				break;
-
+			
 			case TMOD_STRETCH:
-				RB_CalcStretchTexCoords( &pStage->bundle[b].texMods[tm].wave,
-										 ( float * ) tess.svars.texcoords[b] );
+				RB_CalcStretchTexCoords( &pStage->bundle[b].texMods[tm].wave, 
+					( float * ) tess.svars.texcoords[b] );
 				break;
 
 			case TMOD_TRANSFORM:
 				RB_CalcTransformTexCoords( &pStage->bundle[b].texMods[tm],
-										   ( float * ) tess.svars.texcoords[b] );
+					( float * ) tess.svars.texcoords[b] );
 				break;
 
 			case TMOD_ROTATE:
 				RB_CalcRotateTexCoords( pStage->bundle[b].texMods[tm].rotateSpeed,
-										( float * ) tess.svars.texcoords[b] );
+					( float * ) tess.svars.texcoords[b] );
 				break;
 
 			default:

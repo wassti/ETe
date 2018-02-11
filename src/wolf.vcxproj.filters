@@ -230,6 +230,15 @@
     <ClCompile Include="client\cl_curl.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="win32\win_gamma.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="win32\win_glimp.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="win32\win_qgl.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="game\bg_public.h">
@@ -292,9 +301,6 @@
     <ClInclude Include="game\surfaceflags.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="renderer\tr_local.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="renderer\tr_public.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -329,6 +335,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="client\cl_curl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="win32\resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

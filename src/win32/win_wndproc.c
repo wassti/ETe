@@ -120,6 +120,14 @@ void WIN_DisableAltTab( void )
 	if ( s_alttab_disabled )
 		return;
 
+#if 0
+	if ( g_wv.hWnd && glw_state.cdsFullscreen && glw_state.monitorCount > 1 ) {
+		// topmost window
+		SetWindowLong( g_wv.hWnd, GWL_EXSTYLE, WINDOW_ESTYLE_FULLSCREEN );
+		SetWindowLong( g_wv.hWnd, GWL_STYLE, WINDOW_STYLE_FULLSCREEN );
+	}
+#endif
+
 	if ( !Q_stricmp( Cvar_VariableString( "arch" ), "winnt" ) )
 		RegisterHotKey( NULL, 0, MOD_ALT, VK_TAB );
 	else
@@ -141,7 +149,16 @@ void WIN_EnableAltTab( void )
 	if ( !s_alttab_disabled )
 		return;
 
-	if ( !Q_stricmp( Cvar_VariableString( "arch" ), "winnt" ) ) 
+#if 0
+	if ( g_wv.hWnd && glw_state.cdsFullscreen && glw_state.monitorCount > 1 ) {
+		// allow moving other windows on foreground
+		SetWindowLong( g_wv.hWnd, GWL_EXSTYLE, WINDOW_ESTYLE_NORMAL );
+		SetWindowLong( g_wv.hWnd, GWL_STYLE, WINDOW_STYLE_FULLSCREEN_MIN );
+		SetWindowPos( g_wv.hWnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE );
+	}
+#endif
+
+	if ( !Q_stricmp( Cvar_VariableString( "arch" ), "winnt" ) )
 		UnregisterHotKey( NULL, 0 );
 	else 
 		SystemParametersInfo( SPI_SETSCREENSAVERRUNNING, 0, &old, 0 );
@@ -598,7 +615,7 @@ LRESULT WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM  wParam, LPARAM lParam 
 		// Windows 98/Me, Windows NT 4.0 and later - uses WM_MOUSEWHEEL
 		// only relevant for non-DI input and when console is toggled in window mode
 		//   if console is toggled in window mode (KEYCATCH_CONSOLE) then mouse is released and DI doesn't see any mouse wheel
-		if (in_mouse->integer == -1 || (!glw_state.cdsFullscreen && (Key_GetCatcher( ) & KEYCATCH_CONSOLE)))
+		if ( in_mouse->integer || (!glw_state.cdsFullscreen && (Key_GetCatcher() & KEYCATCH_CONSOLE)) )
 		{
 			// 120 increments, might be 240 and multiples if wheel goes too fast
 			// NOTE Logitech: logitech drivers are screwed and send the message twice?
@@ -703,7 +720,7 @@ LRESULT WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM  wParam, LPARAM lParam 
 		// focus/activate messages may come in different order
 		// so process final result a bit later when we have all data set
 		if ( uTimerID_1 == 0 )
-			uTimerID_1 = SetTimer( g_wv.hWnd, TIMER_ID_1, 50, NULL );
+			uTimerID_1 = SetTimer( g_wv.hWnd, TIMER_ID_1, 100, NULL );
 
 		break;
 	
@@ -712,12 +729,18 @@ LRESULT WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM  wParam, LPARAM lParam 
 		fActive = ( uMsg == WM_SETFOCUS );
 
 		if ( uTimerID_1 == 0 )
-			uTimerID_1 = SetTimer( g_wv.hWnd, TIMER_ID_1, 50, NULL );
+			uTimerID_1 = SetTimer( g_wv.hWnd, TIMER_ID_1, 100, NULL );
 
 		Win_AddHotkey();
 
 		// We can't get correct minimized status on WM_KILLFOCUS
 		VID_AppActivate( fActive );
+
+		if ( fActive ) {
+			WIN_DisableAltTab();
+		} else {
+			WIN_EnableAltTab();
+		}
 
 		if ( glw_state.cdsFullscreen ) {
 			if ( fActive ) {
@@ -745,19 +768,13 @@ LRESULT WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM  wParam, LPARAM lParam 
 			}
 		}
 
-		if ( fActive ) {
-			WIN_DisableAltTab();
-		} else {
-			WIN_EnableAltTab();
-		}
-
 		SNDDMA_Activate();
 
 		break;
 
 	case WM_MOVE:
 		{
-			if ( !gw_active )
+			if ( !gw_active || gw_minimized )
 				break;
 			GetWindowRect( hWnd, &g_wv.winRect );
 			g_wv.winRectValid = qtrue;
@@ -769,8 +786,8 @@ LRESULT WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM  wParam, LPARAM lParam 
 
 			if ( !glw_state.cdsFullscreen )
 			{
-				Cvar_SetValue( "vid_xpos", g_wv.winRect.left );
-				Cvar_SetValue( "vid_ypos", g_wv.winRect.top );
+				Cvar_SetIntegerValue( "vid_xpos", g_wv.winRect.left );
+				Cvar_SetIntegerValue( "vid_ypos", g_wv.winRect.top );
 
 				vid_xpos->modified = qfalse;
 				vid_ypos->modified = qfalse;
@@ -798,6 +815,10 @@ LRESULT WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM  wParam, LPARAM lParam 
 
 		// delayed window minimize/deactivation
 		if ( wParam == TIMER_ID_1 && uTimerID_1 != 0 ) {
+			// we may not receive minimized flag with WM_ACTIVE
+			// with another opened topmost window app like TaskManager
+			if ( IsIconic( hWnd ) )
+				gw_minimized = qtrue;
 			if ( fMinimized ) {
 				GLW_RestoreGamma();
 				SetDesktopDisplaySettings();
@@ -816,15 +837,14 @@ LRESULT WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM  wParam, LPARAM lParam 
 	case WM_MBUTTONDOWN:
 	case WM_MBUTTONUP:
 	case WM_MOUSEMOVE:
-		if ( IN_MouseActive() ) {
+		{
 			int mstate = (wParam & (MK_LBUTTON|MK_RBUTTON)) + ((wParam & (MK_MBUTTON|MK_XBUTTON1|MK_XBUTTON2)) >> 2);
 			IN_Win32MouseEvent( LOWORD(lParam), HIWORD(lParam), mstate );
 		}
 		break;
 
 	case WM_INPUT:
-		if ( IN_MouseActive() )
-			IN_RawMouseEvent( lParam );
+		IN_RawMouseEvent( lParam );
 		break;
 
 	case WM_SYSCOMMAND:
@@ -868,7 +888,7 @@ LRESULT WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM  wParam, LPARAM lParam 
 	case WM_SYSKEYDOWN:
 	case WM_KEYDOWN:
 		if ( wParam == VK_RETURN && ( uMsg == WM_SYSKEYDOWN || GetAsyncKeyState( VK_RMENU ) & 0x8000 ) ) {
-			Cvar_SetValue( "r_fullscreen", glw_state.cdsFullscreen? 0 : 1 );
+			Cvar_SetIntegerValue( "r_fullscreen", glw_state.cdsFullscreen ? 0 : 1 );
 				Cbuf_AddText( "vid_restart\n" );
 			return 0;
 		}
@@ -892,7 +912,7 @@ LRESULT WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM  wParam, LPARAM lParam 
 		return 0;
 
 	case WM_SIZE:
-		if ( !gw_active )
+		if ( !gw_active || gw_minimized )
 			break;
 		GetWindowRect( hWnd, &g_wv.winRect );
 		g_wv.winRectValid = qtrue;

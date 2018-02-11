@@ -25,7 +25,6 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-
 // common.c -- misc functions used in client and server
 
 #include "q_shared.h"
@@ -34,6 +33,7 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef _WIN32
 #include <netinet/in.h>
 #include <sys/stat.h> // umask
+#include <sys/time.h>
 #endif
 // htons
 #ifdef __linux__
@@ -72,7 +72,6 @@ const int demo_protocols[] = { PROTOCOL_VERSION, NEW_PROTOCOL_VERSION, 0 };
 jmp_buf abortframe;		// an ERR_DROP occured, exit the entire frame
 
 int		CPU_Flags = 0;
-void	(*Com_DelayFunc)( void ) = NULL;
 
 FILE *debuglogfile;
 static fileHandle_t logfile = FS_INVALID_HANDLE;
@@ -148,8 +147,8 @@ qboolean	com_fullyInitialized = qfalse;
 qboolean	com_gameRestarting = qfalse;
 
 // renderer window states
+qboolean	gw_minimized = qfalse; // this will be always true for dedicated servers
 #ifndef DEDICATED
-qboolean	gw_minimized = qfalse;
 qboolean	gw_active = qtrue;
 #endif
 
@@ -159,6 +158,14 @@ void Com_WriteConfig_f( void );
 void CIN_CloseAllVideos( void );
 
 //============================================================================
+
+qboolean Com_DedicatedServer( void ) {
+#ifdef DEDICATED
+	return qtrue;
+#else
+	return Cvar_VariableIntegerValue("dedicated") != 0 ? qtrue : qfalse;
+#endif
+}
 
 static char	*rd_buffer;
 static int	rd_buffersize;
@@ -257,8 +264,8 @@ int QDECL Com_VPrintf( const char *fmt, va_list argptr ) {
 			}
 			else
 			{
-				Com_Printf("Opening etconsole.log failed!\n");
-				Cvar_SetValue("logfile", 0);
+				Com_Printf( "Opening etconsole.log failed!\n" );
+				Cvar_Set( "logfile", "0" );
 			}
 
 			opening_qconsole = qfalse;
@@ -874,6 +881,43 @@ int Com_RealTime(qtime_t *qtime) {
 		qtime->tm_isdst = tms->tm_isdst;
 	}
 	return t;
+}
+
+
+/*
+================
+Sys_Microseconds
+================
+*/
+int64_t Sys_Microseconds( void )
+{
+#ifdef _WIN32
+	static qboolean inited = qfalse;
+	static LARGE_INTEGER base;
+	static LARGE_INTEGER freq;
+	LARGE_INTEGER curr;
+
+	if ( !inited )
+	{
+		QueryPerformanceFrequency( &freq );
+		QueryPerformanceCounter( &base );
+		if ( !freq.QuadPart )
+		{
+			return (int64_t)Sys_Milliseconds() * 1000LL; // fallback
+		} 
+		inited = qtrue;
+		return 0;
+	}
+
+	QueryPerformanceCounter( &curr );
+
+	return ((curr.QuadPart - base.QuadPart) * 1000000LL) / freq.QuadPart;
+#else
+	struct timeval curr;
+	gettimeofday( &curr, NULL );
+
+	return (int64_t)curr.tv_sec * 1000000LL + (int64_t)curr.tv_usec;
+#endif
 }
 
 
@@ -2804,6 +2848,7 @@ void Com_GameRestart(int checksumFeed, qboolean clientRestart)
 	}
 }
 
+
 /*
 ==================
 Com_GameRestart_f
@@ -2811,12 +2856,11 @@ Com_GameRestart_f
 Expose possibility to change current running mod to the user
 ==================
 */
-
-void Com_GameRestart_f(void)
+void Com_GameRestart_f( void )
 {
-	Cvar_Set("fs_game", Cmd_Argv(1));
+	Cvar_Set( "fs_game", Cmd_Argv( 1 ) );
 
-	Com_GameRestart(0, qtrue);
+	Com_GameRestart( 0, qtrue );
 }
 
 void Com_SetRecommended() {
@@ -3298,10 +3342,13 @@ void Com_Init( char *commandLine ) {
 	//
 #ifndef DEDICATED
 	com_maxfps = Cvar_Get( "com_maxfps", "125", 0 ); // try to force that in some light way
-	com_maxfpsUnfocused = Cvar_Get ("com_maxfpsUnfocused", "60", CVAR_ARCHIVE_ND );
-	com_maxfpsMinimized = Cvar_Get ("com_maxfpsMinimized", "30", CVAR_ARCHIVE_ND );
-	com_yieldCPU = Cvar_Get( "com_yieldCPU", "1", CVAR_ARCHIVE_ND );
-	Cvar_CheckRange( com_yieldCPU, "0", "1", CV_INTEGER );
+	com_maxfpsUnfocused = Cvar_Get( "com_maxfpsUnfocused", "60", CVAR_ARCHIVE_ND );
+	com_maxfpsMinimized = Cvar_Get( "com_maxfpsMinimized", "30", CVAR_ARCHIVE_ND );
+	Cvar_CheckRange( com_maxfps, "0", "1000", CV_INTEGER );
+	Cvar_CheckRange( com_maxfpsUnfocused, "0", "1000", CV_INTEGER );
+	Cvar_CheckRange( com_maxfpsMinimized, "0", "1000", CV_INTEGER );
+	com_yieldCPU = Cvar_Get( "com_yieldCPU", "2", CVAR_ARCHIVE_ND );
+	Cvar_CheckRange( com_yieldCPU, "0", "4", CV_INTEGER );
 #endif
 	com_affinityMask = Cvar_Get( "com_affinityMask", "0", CVAR_ARCHIVE_ND );
 	com_affinityMask->modified = qfalse;
@@ -3351,6 +3398,9 @@ void Com_Init( char *commandLine ) {
 		if ( !com_viewlog->integer ) {
 			Cvar_Set( "viewlog", "1" );
 		}
+		gw_minimized = qtrue;
+	} else {
+		gw_minimized = qfalse;
 	}
 
 	if ( com_developer && com_developer->integer ) {
@@ -3540,6 +3590,7 @@ void Com_WriteConfig_f( void ) {
 	Com_WriteConfigToFile( filename );
 }
 
+
 /*
 ================
 Com_ModifyMsec
@@ -3619,11 +3670,14 @@ Com_Frame
 */
 void Com_Frame( qboolean noDelay ) {
 
-	int		msec, minMsec;
-	int		timeVal;
-	int		timeValSV;
-
 	static int lastTime = 0;
+#ifndef DEDICATED
+	static int bias = 0;
+#endif
+	int	msec, minMsec;
+	int	sleepMsec;
+	int	timeVal;
+	int	timeValSV;
 
 	int	timeBeforeFirstEvents;
 	int	timeBeforeServer;
@@ -3675,10 +3729,14 @@ void Com_Frame( qboolean noDelay ) {
 	// we may want to spin here if things are going too fast
 	if ( com_dedicated->integer ) {
 		minMsec = SV_FrameMsec();
+#ifndef DEDICATED
+		bias = 0;
+#endif
 	} else {
 #ifndef DEDICATED
 		if ( noDelay ) {
 			minMsec = 0;
+			bias = 0;
 		} else {
 			if ( gw_minimized && com_maxfpsMinimized->integer > 0 )
 				minMsec = 1000 / com_maxfpsMinimized->integer;
@@ -3690,12 +3748,22 @@ void Com_Frame( qboolean noDelay ) {
 				minMsec = 1000 / com_maxfps->integer;
 			else
 				minMsec = 1;
+
+			timeVal = com_frameTime - lastTime;
+			bias += timeVal - minMsec;
+			
+			if ( bias > minMsec / 2 )
+				bias = minMsec / 2;
+
+			// Adjust minMsec if previous frame took too long to render so
+			// that framerate is stable at the requested value.
+			minMsec -= bias;
 		}
 #endif
 	}
 
 	// waiting for incoming packets
-	if ( minMsec )
+	if ( noDelay == qfalse )
 	do {
 		if ( com_sv_running->integer ) {
 			timeValSV = SV_SendQueuedPackets();
@@ -3705,19 +3773,14 @@ void Com_Frame( qboolean noDelay ) {
 		} else {
 			timeVal = Com_TimeVal( minMsec );
 		}
-		if ( com_dedicated->integer ) {
-			NET_Sleep( timeVal );
-		} else {
+		sleepMsec = timeVal;
 #ifndef DEDICATED
-			if ( timeVal > com_yieldCPU->integer ) {
-				timeVal = com_yieldCPU->integer;
-				NET_Sleep( timeVal );
-				Com_EventLoop();
-			} else {
-				NET_Sleep( timeVal );
-			}
+		if ( !gw_minimized && timeVal > com_yieldCPU->integer )
+			sleepMsec = com_yieldCPU->integer;
+		if ( timeVal > sleepMsec )
+			Com_EventLoop();
 #endif
-		}
+		NET_Sleep( sleepMsec, -500 );
 	} while( Com_TimeVal( minMsec ) );
 	
 	lastTime = com_frameTime;
@@ -3755,6 +3818,7 @@ void Com_Frame( qboolean noDelay ) {
 #endif
 			Sys_ShowConsole( com_viewlog->integer, qfalse );
 #ifndef DEDICATED
+			gw_minimized = qfalse;
 			CL_StartHunkUsers();
 #endif
 		} else {
@@ -3764,6 +3828,7 @@ void Com_Frame( qboolean noDelay ) {
 #endif
 			Sys_ShowConsole( 1, qtrue );
 			SV_AddDedicatedCommands();
+			gw_minimized = qtrue;
 		}
 	}
 
@@ -3860,12 +3925,6 @@ void Com_Frame( qboolean noDelay ) {
 		c_brush_traces = 0;
 		c_patch_traces = 0;
 		c_pointcontents = 0;
-	}
-
-	//execute delayed function
-	if ( Com_DelayFunc ) {
-		Com_DelayFunc();
-		Com_DelayFunc = NULL;
 	}
 
 	com_frameNumber++;

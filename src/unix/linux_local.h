@@ -25,16 +25,15 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-
 // linux_local.h: Linux-specific Quake3 header file
 
 void HandleX11Events( void );
 
 // Input subsystem
 
-void IN_Init( void );
-void IN_Frame( void );
-void IN_Shutdown( void );
+void IN_Init (void);
+void IN_Frame (void);
+void IN_Shutdown (void);
 
 
 void IN_JoyMove( void );
@@ -42,9 +41,9 @@ void IN_StartupJoystick( void );
 
 // GL subsystem
 qboolean QGL_Init( const char *dllname );
-void QGL_Shutdown( void );
+void QGL_Shutdown( qboolean unloadDLL );
 
-char *strlwr( char *s );
+char *strlwr (char *s);
 
 // signals.c
-void InitSig( void );
+void InitSig(void);

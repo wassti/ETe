@@ -4,7 +4,7 @@
 Wolfenstein: Enemy Territory GPL Source Code
 Copyright (C) 1999-2010 id Software LLC, a ZeniMax Media company. 
 
-This file is part of the Wolfenstein: Enemy Territory GPL Source Code (Wolf ET Source Code).  
+This file is part of the Wolfenstein: Enemy Territory GPL Source Code (Wolf ET Source Code).  
 
 Wolf ET Source Code is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -400,9 +400,6 @@ SV_GameSystemCalls
 The module is making a system call
 ====================
 */
-// show_bug.cgi?id=574
-extern int S_RegisterSound( const char *name, qboolean compressed );
-extern int S_GetSoundLength( sfxHandle_t sfxHandle );
 
 intptr_t SV_GameSystemCalls( intptr_t *args ) {
 	switch ( args[0] ) {
@@ -426,7 +423,7 @@ intptr_t SV_GameSystemCalls( intptr_t *args ) {
 	case G_CVAR_VARIABLE_INTEGER_VALUE:
 		return Cvar_VariableIntegerValue( (const char *)VMA( 1 ) );
 	case G_CVAR_VARIABLE_STRING_BUFFER:
-		Cvar_VariableStringBuffer( VMA( 1 ), VMA( 2 ), args[3] );
+		Cvar_VariableStringBufferSafe( VMA(1), VMA(2), args[3], gvm->privateFlag );
 		return 0;
 	case G_CVAR_LATCHEDVARIABLESTRINGBUFFER:
 		Cvar_LatchedVariableStringBuffer( VMA( 1 ), VMA( 2 ), args[3] );
@@ -553,16 +550,11 @@ intptr_t SV_GameSystemCalls( intptr_t *args ) {
 	case G_REGISTERTAG:
 		return SV_LoadTag( VMA( 1 ) );
 
-		// START	xkan, 10/28/2002
 	case G_REGISTERSOUND:
-#ifdef DOOMSOUND    ///// (SA) DOOMSOUND
-		return S_RegisterSound( VMA( 1 ) );
-#else
-		return S_RegisterSound( VMA( 1 ), args[2] );
-#endif  ///// (SA) DOOMSOUND
+		return 0;
 	case G_GET_SOUND_LENGTH:
-		return S_GetSoundLength( args[1] );
-		// END		xkan, 10/28/2002
+		Com_Error( ERR_DROP, "S_GetSoundLength shouldn't be used in server mods\n" );
+		return 0;
 
 		//====================================
 
@@ -1113,6 +1105,8 @@ void SV_ShutdownGameProgs( void ) {
 	FS_VM_CloseFiles( H_QAGAME );
 }
 
+void SV_CompleteMapName( char *args, int argNum );
+
 /*
 ==================
 SV_InitGameVM
@@ -1122,6 +1116,7 @@ Called for both a full init and a restart
 */
 static void SV_InitGameVM( qboolean restart ) {
 	int		i;
+	const char *gamedir = NULL;
 
 	// start the entity parsing at the beginning
 	sv.entityParsePoint = CM_EntityString();
@@ -1137,6 +1132,15 @@ static void SV_InitGameVM( qboolean restart ) {
 	// use the current msec count for a random seed
 	// init for this gamestate
 	VM_Call( gvm, GAME_INIT, sv.time, Com_Milliseconds(), restart );
+
+	gamedir = FS_GetCurrentGameDir();
+
+	if ( !Q_stricmp( gamedir, "etf" ) ) {
+		Cmd_AddCommand( "etfmap", NULL );
+		Cmd_AddCommand( "etfdevmap", NULL );
+		Cmd_SetCommandCompletionFunc( "etfmap", SV_CompleteMapName );
+		Cmd_SetCommandCompletionFunc( "etfdevmap", SV_CompleteMapName );
+	}
 }
 
 

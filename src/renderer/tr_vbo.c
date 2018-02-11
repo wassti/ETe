@@ -47,6 +47,8 @@ No performance differences from 'Array of Structures' were observed.
 //#define USE_NORMALS
 #define MAX_VBO_STAGES 1
 
+#define MIN_IBO_RUN 256
+
 typedef struct vbo_stage_s {
 	int color_offset;
 	int tex_offset[2];
@@ -62,14 +64,22 @@ typedef struct vbo_item_s {
 	int			num_vertexes;
 } vbo_item_t;
 
+typedef struct ibo_item_s {
+	int offset;
+	int length;
+} ibo_item_t;
+
 typedef struct vbo_s {
 	byte *ibo_buffer;
 	int ibo_buffer_used;
 	int ibo_buffer_size;
 	int ibo_index_count;
 
-	glIndex_t *index_buffer;
-	int index_buffer_indexes;
+	glIndex_t *soft_buffer;
+	int soft_buffer_indexes;
+
+	ibo_item_t *ibo_items;
+	int ibo_items_count;
 
 	byte *vbo_buffer;
 	int vbo_buffer_used;
@@ -610,6 +620,7 @@ void R_BuildWorldVBO( msurface_t *surf, int surfCount )
 #ifdef USE_NORMALS
 	int norm_size;
 #endif
+	GLenum err;
 
 	int numStaticSurfaces = 0;
 	int numStaticIndexes = 0;
@@ -706,18 +717,24 @@ void R_BuildWorldVBO( msurface_t *surf, int surfCount )
 #endif
 	vbo_size *= numStaticVertexes;
 
-	vbo->vbo_buffer = ri.Hunk_Alloc( vbo_size, h_low );	
-
-	// index buffers
+	// index buffer
 	ibo_size = numStaticIndexes * sizeof( tess.indexes[0] );
 	vbo->ibo_buffer = ri.Hunk_Alloc( ibo_size, h_low );	
 
-	// scratch buffer
-	vbo->index_buffer = ri.Hunk_Alloc( ibo_size, h_low );	
-	vbo->index_buffer_indexes = 0;
+	// soft index buffer
+	vbo->soft_buffer = ri.Hunk_Alloc( ibo_size, h_low );
+	vbo->soft_buffer_indexes = 0;
+
+	// ibo runs buffer
+	vbo->ibo_items = ri.Hunk_Alloc( ( (numStaticIndexes / MIN_IBO_RUN) + 1 ) * sizeof( ibo_item_t ), h_low );
+	vbo->ibo_items_count = 0;
+
 	vbo->index_base = 0;
 
+	vbo->vbo_buffer = ri.Hunk_AllocateTempMemory( vbo_size );
+
 	surfList = ri.Hunk_AllocateTempMemory( numStaticSurfaces * sizeof( msurface_t* ) );
+
 	for ( i = 0, n = 0, sf = surf; i < surfCount; i++, sf++ ) {
 		face = (srfSurfaceFace_t *) sf->data;
 		if ( face->surfaceType == SF_FACE && face->vboItemIndex ) {
@@ -753,7 +770,7 @@ void R_BuildWorldVBO( msurface_t *surf, int surfCount )
 
 	backEnd.currentEntity = &tr.worldEntity;
 
-	for ( i = 0; i < numStaticSurfaces; i++ ) 
+	for ( i = 0; i < numStaticSurfaces; i++ )
 	{
 		sf = surfList[ i ];
 		face = (srfSurfaceFace_t *) sf->data;
@@ -797,26 +814,76 @@ void R_BuildWorldVBO( msurface_t *surf, int surfCount )
 	vbo->ibo_buffer_used = ibo_size;
 	vbo->vbo_buffer_used = vbo_size;
 
-	if ( !VBO_world_data )
+	// reset error state
+	qglGetError();
+	err = GL_NO_ERROR;
+
+	if ( !VBO_world_data ) {
 		qglGenBuffersARB( 1, &VBO_world_data );
+		if ( (err = qglGetError()) != GL_NO_ERROR )
+			goto __fail;
+	}
 
 	// upload vertex array & colors & textures
 	if ( VBO_world_data ) {
 		VBO_BindData();
 		qglBufferDataARB( GL_ARRAY_BUFFER_ARB, vbo->vbo_buffer_used, vbo->vbo_buffer, GL_STATIC_DRAW_ARB );
+		if ( (err = qglGetError()) != GL_NO_ERROR )
+			goto __fail;
 	}
 
 	if ( !VBO_world_indexes ) {
 		qglGenBuffersARB( 1, &VBO_world_indexes );
+		if ( (err = qglGetError()) != GL_NO_ERROR )
+			goto __fail;
 	}
 
 	// upload index array
 	if ( VBO_world_indexes ) {
 		VBO_BindIndex( qtrue );
 		qglBufferDataARB( GL_ELEMENT_ARRAY_BUFFER_ARB, vbo->ibo_buffer_used, vbo->ibo_buffer, GL_STATIC_DRAW_ARB );
+		if ( (err = qglGetError()) != GL_NO_ERROR )
+			goto __fail;
 	}
 
 	VBO_UnBind();
+	ri.Hunk_FreeTempMemory( vbo->vbo_buffer );
+	vbo->vbo_buffer = NULL;
+	return;
+
+__fail:
+
+	if ( err == GL_OUT_OF_MEMORY )
+		ri.Printf( PRINT_ALL, S_COLOR_YELLOW "%s: out of memory\n", __func__ );
+	else
+		ri.Printf( PRINT_ALL, S_COLOR_YELLOW "%s: error %i\n", __func__, err );
+
+	// reset vbo markers
+	for ( i = 0, n = 0, sf = surf; i < surfCount; i++, sf++ ) {
+		face = (srfSurfaceFace_t *) sf->data;
+		if ( face->surfaceType == SF_FACE ) {
+			face->vboItemIndex = 0;
+			continue;
+		}
+		tris = (srfTriangles_t *) sf->data;
+		if ( tris->surfaceType == SF_TRIANGLES ) {
+			tris->vboItemIndex = 0;
+			continue;
+		}
+		grid = (srfGridMesh_t *) sf->data;
+		if ( grid->surfaceType == SF_GRID ) {
+			grid->vboItemIndex = 0;
+			continue;
+		}
+	}
+
+	VBO_UnBind();
+
+	// release host memory
+	ri.Hunk_FreeTempMemory( vbo->vbo_buffer );
+	
+	// release GPU resources
+	VBO_Cleanup();
 }
 
 
@@ -855,6 +922,8 @@ void VBO_Cleanup( void )
 		}
 	}
 	memset( vbo_fp, 0, sizeof( vbo_fp ) );
+
+	memset( &world_vbo, 0, sizeof( world_vbo ) );
 }
 
 
@@ -949,20 +1018,76 @@ void VBO_Flush( void )
 }
 
 
-static void VBO_AddItemDataToBuffer( int itemIndex )
+static void VBO_AddItemDataToSoftBuffer( int itemIndex )
 {
 	vbo_t *vbo = &world_vbo;
 	vbo_item_t *vi = vbo->items + itemIndex;
 
-	memcpy( &vbo->index_buffer[ vbo->index_buffer_indexes ], 
+	memcpy( &vbo->soft_buffer[ vbo->soft_buffer_indexes ],
 		vbo->ibo_buffer + vi->index_offset,
 		vi->num_indexes * sizeof( glIndex_t ) );
 
-	vbo->index_buffer_indexes += vi->num_indexes;
+	vbo->soft_buffer_indexes += vi->num_indexes;
 }
 
 
-static void VBO_RenderIndexQueue( void )
+static void VBO_AddItemRangeToIBOBuffer( int offset, int length )
+{
+	vbo_t *vbo = &world_vbo;
+	ibo_item_t *it;
+
+	it = vbo->ibo_items + vbo->ibo_items_count++;
+
+	it->offset = offset;
+	it->length = length;
+}
+
+
+static void VBO_RenderSoftBuffer( void )
+{
+	vbo_t *vbo = &world_vbo;
+
+	if ( vbo->soft_buffer_indexes )
+	{
+		VBO_BindIndex( qfalse );
+		qglDrawElements( GL_TRIANGLES, vbo->soft_buffer_indexes, GL_INDEX_TYPE, vbo->soft_buffer );
+	}
+}
+
+
+static void VBO_RenderIBOBuffer( void )
+{
+	vbo_t *vbo = &world_vbo;
+	int i;
+
+	if ( vbo->ibo_items_count )
+	{ 
+		VBO_BindIndex( qtrue );
+
+		for ( i = 0; i < vbo->ibo_items_count; i++ )
+		{
+			qglDrawElements( GL_TRIANGLES, vbo->ibo_items[ i ].length, GL_INDEX_TYPE, (const GLvoid *)(intptr_t) vbo->ibo_items[ i ].offset );
+		}
+	}
+}
+
+
+static void VBO_RenderBuffers( void )
+{
+	if ( curr_index_bind )
+	{
+		VBO_RenderIBOBuffer();
+		VBO_RenderSoftBuffer();
+	}
+	else
+	{
+		VBO_RenderSoftBuffer();
+		VBO_RenderIBOBuffer();
+	}
+}
+
+
+static void VBO_RenderIndexQueue( qboolean mtx )
 {
 	vbo_t *vbo = &world_vbo;
 	int i, item_run, index_run, n;
@@ -974,63 +1099,57 @@ static void VBO_RenderIndexQueue( void )
 	if ( vbo->items_queue_count > 1 )
 		qsort_int( vbo->items_queue, vbo->items_queue_count-1 );
 	
-	// clear temporary index buffer
-	vbo->index_buffer_indexes = 0;
+	vbo->soft_buffer_indexes = 0;
+	vbo->ibo_items_count = 0;
 
-	if ( r_showtris->integer ) // only software index, for debug
+	a = vbo->items_queue;
+	i = 0;
+	while ( i < vbo->items_queue_count )
 	{
-		for ( i = 0; i < vbo->items_queue_count; i++ ) {
-			VBO_AddItemDataToBuffer( vbo->items_queue[ i ] );
-		}
-	} 
-	else // mixed with GPU-side IBO calls
-	{
-		a = vbo->items_queue;
-		i = 0;
-		while ( i < vbo->items_queue_count ) 
+		item_run = run_length( a, i, vbo->items_queue_count, &index_run );
+		if ( index_run < MIN_IBO_RUN )
 		{
-			item_run = run_length( a, i, vbo->items_queue_count, &index_run );
-			if ( index_run < 256 ) 
-			{
-				for ( n = 0; n < item_run; n++ )
-					VBO_AddItemDataToBuffer( a[ i + n ] );
-			}
-			else
-			{
-				vbo_item_t *start = vbo->items + a[ i ];
-				vbo_item_t *end = vbo->items + a[ i + item_run - 1 ];
-				VBO_BindIndex( qtrue );
-				n = (end->index_offset - start->index_offset) / sizeof(glIndex_t) + end->num_indexes;
-				qglDrawElements( GL_TRIANGLES, n, GL_INDEX_TYPE, (const GLvoid *)((intptr_t)start->index_offset) );
-			}
-			i += item_run;
+			for ( n = 0; n < item_run; n++ )
+				VBO_AddItemDataToSoftBuffer( a[ i + n ] );
 		}
+		else
+		{
+			vbo_item_t *start = vbo->items + a[ i ];
+			vbo_item_t *end = vbo->items + a[ i + item_run - 1 ];
+			VBO_BindIndex( qtrue );
+			n = (end->index_offset - start->index_offset) / sizeof(glIndex_t) + end->num_indexes;
+			VBO_AddItemRangeToIBOBuffer( start->index_offset, n );
+		}
+		i += item_run;
 	}
 
-	if ( vbo->index_buffer_indexes ) 
+	VBO_RenderBuffers();
+
+	if ( r_showtris->integer ) 
 	{
-		VBO_BindIndex( qfalse );
-		qglDrawElements( GL_TRIANGLES, vbo->index_buffer_indexes, GL_INDEX_TYPE, vbo->index_buffer ); // INDEX!
-
-		if ( r_showtris->integer ) // debug
+		if ( mtx )
 		{
-			GL_Bind( tr.whiteImage );
-			qglColor4f( 0.25f, 1.0f, 0.5f, 1.0f );
-
-			GL_State( GLS_POLYMODE_LINE | GLS_DEPTHMASK_TRUE );
-			qglDepthRange( 0, 0 );
-
-			qglDisableClientState( GL_COLOR_ARRAY );
 			qglDisableClientState( GL_TEXTURE_COORD_ARRAY );
-	
-			qglDrawElements( GL_TRIANGLES, vbo->index_buffer_indexes, GL_INDEX_TYPE, vbo->index_buffer );
-
-			qglDepthRange( 0, 1 );
+			qglDisable( GL_TEXTURE_2D );
+			GL_SelectTexture( 0 );
 		}
-
-		vbo->index_buffer_indexes = 0;
+		GL_Bind( tr.whiteImage );
+		qglColor3f( 0.25f, 1.0f, 0.25f );
+		GL_State( GLS_POLYMODE_LINE | GLS_DEPTHTEST_DISABLE | GLS_DEPTHMASK_TRUE );
+		qglDepthRange( 0, 0 );
+		qglDisableClientState( GL_COLOR_ARRAY );
+		qglDisableClientState( GL_TEXTURE_COORD_ARRAY );
+		qglColor3f( 0.25f, 1.0f, 0.25f );
+		VBO_RenderBuffers();
+		qglDepthRange( 0, 1 );
+		if ( mtx )
+		{
+			GL_SelectTexture( 1 );
+		}
 	}
 
+	//vbo->soft_buffer_indexes = 0;
+	//vbo->ibo_items_count = 0;
 	// VBO_UnBind();
 }
 
@@ -1145,7 +1264,7 @@ static void RB_IterateStagesVBO( const shaderCommands_t *input )
 	
 		R_BindAnimatedImage( &pStage->bundle[1] );
 
-		VBO_RenderIndexQueue();
+		VBO_RenderIndexQueue( qtrue );
 
 		// disable texturing on TEXTURE1, then select TEXTURE0
 		qglDisableClientState( GL_TEXTURE_COORD_ARRAY );
@@ -1154,7 +1273,7 @@ static void RB_IterateStagesVBO( const shaderCommands_t *input )
 	}
 	else
 	{
-		VBO_RenderIndexQueue();
+		VBO_RenderIndexQueue( qfalse );
 	}
 	
 	tess.vboIndex = 0;

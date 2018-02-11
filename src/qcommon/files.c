@@ -328,6 +328,11 @@ FILE*		missingFiles = NULL;
 
 qboolean legacy_mp_bin = qfalse;
 
+static int FS_GetModList( char *listbuf, int bufsize );
+static void FS_CheckIdPaks( void );
+void FS_Reload( void );
+
+
 /*
 ==============
 FS_Initialized
@@ -640,7 +645,7 @@ qboolean FS_AllowedExtension( const char *fileName, qboolean allowPk3s, const ch
 	const char *e;
 	int i, n;
 
-	e = Q_strrchr( fileName, '.' );
+	e = strrchr( fileName, '.' );
 
 	// check for unix '.so.[0-9]' pattern
 	if ( e >= (fileName + 3) && *(e+1) >= '0' && *(e+1) <= '9' && *(e+2) == '\0' ) 
@@ -1244,7 +1249,7 @@ qboolean FS_IsDemoExt( const char *filename, int namelen )
 	char *ext_test;
 	int index, protocol;
 
-	ext_test = Q_strrchr( filename, '.' );
+	ext_test = strrchr( filename, '.' );
 
 	if ( !ext_test )
 		return qfalse;
@@ -1269,7 +1274,7 @@ static const char *FS_HasExt( const char *fileName, const char **extList, int ex
 	const char *e;
 	int i;
 
-	e = Q_strrchr( fileName, '.' );
+	e = strrchr( fileName, '.' );
 
 	if ( !e ) 
 		return NULL;
@@ -1294,6 +1299,8 @@ static qboolean FS_GeneralRef( const char *filename )
 	
 //	if ( !Q_stricmp( filename, "vm/qagame.qvm" ) )
 //		return qfalse;
+	if ( FS_ShiftedStrStr( filename, SYS_DLLNAME_QAGAME, -SYS_DLLNAME_QAGAME_SHIFT ) )
+		return qfalse;
 
 	if ( strstr( filename, "levelshots" ) )
 		return qfalse;
@@ -1306,19 +1313,21 @@ static qboolean FS_DeniedPureFile( const char *filename )
 {
 	// allowed non-ref extensions
 	static const char *extList[] = { 
-		"cfg",	// config files
-		"txt",	// config/text files
-		"dat",	// misc. data files
-		"bot", // bot files
-		"c",	// bot files
-		"add",	// custom entities
-		"set",	// custom entities
-		"jpg",	// external hud images
-		"tga",	// external hud images
-		"png",	// external hud images
-		"menu",	// menu files
-		"game", // menu files
-		"botents" // bot files
+		"cfg",		// config files
+		"txt",		// config/text files
+		"dat",		// misc. data files
+		"bot",		// bot files
+		"c",		// bot files
+		"add",		// custom entities
+		"set",		// custom entities
+		"ent",		// custom entities
+		"jpg",		// external hud images
+		"tga",		// external hud images
+		"png",		// external hud images
+		"menu",		// menu files
+		"game",		// menu files
+		"h",		// menu files
+		"botents"	// bot files
 	};
 
 	if ( FS_HasExt( filename, extList, ARRAY_LEN( extList ) ) )
@@ -2456,6 +2465,7 @@ static pack_t *FS_LoadZipFile(const char *zipfile, const char *basename)
 		}
 		if ( file_info.compression_method != 0 && file_info.compression_method != 8 /*Z_DEFLATED*/ ) {
 			Com_Printf( S_COLOR_YELLOW "%s|%s: unsupported compression method %i\n", basename, filename_inzip, (int)file_info.compression_method );
+			unzGoToNextFile( uf );
 			continue;
 		} 
 		len += strlen( filename_inzip ) + 1;
@@ -2506,6 +2516,7 @@ static pack_t *FS_LoadZipFile(const char *zipfile, const char *basename)
 			break;
 		}
 		if ( file_info.compression_method != 0 && file_info.compression_method != 8 /*Z_DEFLATED*/ ) {
+			unzGoToNextFile( uf );
 			continue;
 		} 
 		if (file_info.uncompressed_size > 0) {
@@ -3668,14 +3679,32 @@ Check whether the string contains stuff like "../" to prevent directory traversa
 and return qtrue if it does.
 ================
 */
-
-qboolean FS_CheckDirTraversal(const char *checkdir)
+static qboolean FS_CheckDirTraversal( const char *checkdir )
 {
 	if(strstr(checkdir, "../") || strstr(checkdir, "..\\"))
 		return qtrue;
 	
 	return qfalse;
 }
+
+
+/*
+================
+FS_InvalidGameDir
+return true if path is a reference to current directory or directory traversal
+or a sub-directory
+================
+*/
+qboolean FS_InvalidGameDir( const char *gamedir ) 
+{
+	if ( !strcmp( gamedir, "." ) || !strcmp( gamedir, ".." )
+		|| strchr( gamedir, '/' ) || strchr( gamedir, '\\' ) ) {
+		return qtrue;
+	}
+
+	return qfalse;
+}
+
 
 /*
 ================
@@ -3954,7 +3983,7 @@ static void FS_Startup( void ) {
 	fs_packCount = 0;
 
 	fs_debug = Cvar_Get( "fs_debug", "0", 0 );
-	fs_basepath = Cvar_Get( "fs_basepath", Sys_DefaultBasePath(), CVAR_INIT | CVAR_PROTECTED );
+	fs_basepath = Cvar_Get( "fs_basepath", Sys_DefaultBasePath(), CVAR_INIT | CVAR_PROTECTED | CVAR_PRIVATE );
 	fs_basegame = Cvar_Get( "fs_basegame", BASEGAME, CVAR_INIT | CVAR_PROTECTED );
 
 	if ( !fs_basegame->string[0] )
@@ -3965,8 +3994,13 @@ static void FS_Startup( void ) {
 		homePath = fs_basepath->string;
 	}
 
-	fs_homepath = Cvar_Get( "fs_homepath", homePath, CVAR_INIT | CVAR_PROTECTED );
-	fs_gamedirvar = Cvar_Get( "fs_game", "", CVAR_INIT | CVAR_SYSTEMINFO );
+	fs_homepath = Cvar_Get( "fs_homepath", homePath, CVAR_INIT | CVAR_PROTECTED | CVAR_PRIVATE );
+	fs_gamedirvar = Cvar_Get( "fs_game", "", CVAR_LATCH | CVAR_NORESTART | CVAR_SYSTEMINFO );
+	Cvar_CheckRange( fs_gamedirvar, NULL, NULL, CV_FSPATH );
+
+	if ( !Q_stricmp( fs_basegame->string, fs_gamedirvar->string ) ) {
+		Cvar_ForceReset( "fs_game" );
+	}
 
 	// add search path elements in reverse priority order
 	if ( fs_basepath->string[0] ) {
@@ -4864,15 +4898,16 @@ const char *FS_GetHomePath( void )
 }
 
 
-const char *FS_GetGamePath( void ) 
+const char *FS_GetGamePath( void )
 {
-	static char buffer[MAX_CVAR_VALUE_STRING];
+	static char buffer[ MAX_OSPATH + MAX_CVAR_VALUE_STRING + 1 ];
 	if ( fs_gamedirvar && fs_gamedirvar->string[0] ) {
 		Com_sprintf( buffer, sizeof( buffer ), "%s%c%s", FS_GetHomePath(), 
 			PATH_SEP, fs_gamedirvar->string );
 		return buffer;
 	} else {
-		return "";
+		buffer[0] = '\0';
+		return buffer;
 	}
 }
 

@@ -109,7 +109,6 @@ If you have questions concerning this license or the applicable additional terms
 
 #if (defined _MSC_VER)
 #define Q_EXPORT __declspec(dllexport)
-#define Q_NORETURN __declspec(noreturn)
 #elif (defined __SUNPRO_C)
 #define Q_EXPORT __global
 #elif ((__GNUC__ >= 3) && (!__EMX__) && (!sun))
@@ -179,21 +178,32 @@ float FloatSwap( const float *f );
 #ifdef Q3_VM
 	typedef int intptr_t;
 #else
-	#ifdef _MSC_VER
-		#include <io.h>
-		typedef __int64 int64_t;
-		typedef __int32 int32_t;
-		typedef __int16 int16_t;
-		typedef __int8 int8_t;
-		typedef unsigned __int64 uint64_t;
-		typedef unsigned __int32 uint32_t;
-		typedef unsigned __int16 uint16_t;
-		typedef unsigned __int8 uint8_t;
+	#if defined (_MSC_VER)
+		#if _MSC_VER >= 1600
+			#include <stdint.h>
+		#else
+			#include <io.h>
+			typedef __int64 int64_t;
+			typedef __int32 int32_t;
+			typedef __int16 int16_t;
+			typedef __int8 int8_t;
+			typedef unsigned __int64 uint64_t;
+			typedef unsigned __int32 uint32_t;
+			typedef unsigned __int16 uint16_t;
+			typedef unsigned __int8 uint8_t;
+		#endif
+	#else
+		#if !defined(__STDC_LIMIT_MACROS)
+			#define __STDC_LIMIT_MACROS
+		#endif
+		#include <stdint.h>
+	#endif
+
+	#ifdef _WIN32
 		// vsnprintf is ISO/IEC 9899:1999
 		// abstracting this to make it portable
-		int Q_vsnprintf(char *str, size_t size, const char *format, va_list ap);
+		int Q_vsnprintf( char *str, size_t size, const char *format, va_list ap );
 	#else
-		#include <stdint.h>
 		#define Q_vsnprintf vsnprintf
 	#endif
 #endif
@@ -927,7 +937,6 @@ int     Q_strncmp( const char *s1, const char *s2, int n );
 int     Q_stricmpn( const char *s1, const char *s2, int n );
 char    *Q_strlwr( char *s1 );
 char    *Q_strupr( char *s1 );
-char    *Q_strrchr( const char* string, int c );
 const char	*Q_stristr( const char *s, const char *find);
 
 qboolean Q_isanumber( const char *s );
@@ -1067,6 +1076,8 @@ default values.
 
 #define CVAR_NODEFAULT		131072	// do not write to config if matching with default value
 
+#define CVAR_PRIVATE		262144	// can't be read from VM
+
 #define CVAR_ARCHIVE_ND		(CVAR_ARCHIVE | CVAR_NODEFAULT)
 
 // These flags are only returned by the Cvar_Flags() function
@@ -1078,6 +1089,7 @@ typedef enum {
 	CV_FLOAT,
 	CV_INTEGER,
 	CV_BOOLEAN,
+	CV_FSPATH,
 	CV_MAX,
 } cvarValidator_t;
 

@@ -8,8 +8,6 @@
 #include <X11/extensions/Xrandr.h>
 #include <X11/extensions/Xrender.h>
 
-static Display *dpy;
-
 #define MAX_MONITORS 16
 
 typedef struct
@@ -241,7 +239,7 @@ void RandR_RestoreMode( void )
 	XRROutputInfo *output_info;
 	XRRCrtcInfo *crtc_info;
 	
-	if ( !glw_state.randr_ext || !glw_state.randr_active )
+	if ( !glw_state.randr_ext || !glw_state.randr_active || !dpy )
 		return;
 
 	glw_state.randr_active = qfalse;
@@ -314,26 +312,54 @@ static void BuildMonitorList( void )
 
 static monitor_t *FindNearestMonitor( int x, int y, int w, int h )
 {
-	monitor_t *m, *found;
+	monitor_t *m, *found, *list[ MAX_MONITORS ];
 	unsigned long dx, dy, dist, nearest;
 	int cx, cy;
-	int i;
-
-	found = NULL;
-	nearest = 0xFFFFFFFF;
+	int i, cnt, minx, maxx, slen;
 
 	cx = x + w/2;
+
 	cy = y + h/2;
 
+	cnt = 0;
 	for ( i = 0; i < glw_state.monitorCount; i++ )
 	{
 		m = &monitors[ i ];
 		// window center intersection
 		if ( cx >= m->x && cx < (m->x + m->w) && cy >= m->y && cy < (m->y + m->h) )
+			list[ cnt++ ] = m;
+	}
+
+	if ( cnt == 1 ) // single monitor found
+	{
+		return list[ 0 ];
+	}
+
+	if ( cnt > 1 )
+	{
+		// divide screen width on segments
+		minx = 999999999;
+		maxx = 0;
+		for ( i = 0; i < cnt ; i++ )
 		{
-			//Com_Printf( "match by center on %s\n", m->name );
-			return m;
+			m = list[ i ];
+			if ( m->x < minx )
+				minx = m->x;
+			if ( m->x + m->w > maxx )
+				maxx = m->x + m->w;
 		}
+		slen = ( maxx - minx ) / cnt;
+
+		return list[ cx / slen ];
+	}
+
+	// search by nearest distance to window center
+	found = NULL;
+	nearest = 0xFFFFFFFF;
+
+	for ( i = 0; i < glw_state.monitorCount; i++ )
+	{
+		m = &monitors[ i ];
 		// nearest distance
 		//dx = MIN( abs( m->x - ( x + w ) ), abs( x - ( m->x + m->w ) ) );
 		//dy = MIN( abs( m->y - ( y + h ) ), abs( y - ( m->y + m->h ) ) );
@@ -473,7 +499,7 @@ void RandR_SetGamma( unsigned char red[256], unsigned char green[256], unsigned 
 }
 
 
-qboolean RandR_Init( Display *_dpy, int x, int y, int w, int h )
+qboolean RandR_Init( int x, int y, int w, int h )
 {
 	int event_base, error_base;
 	int ver_major = 1, ver_minor = 2;
@@ -511,8 +537,6 @@ qboolean RandR_Init( Display *_dpy, int x, int y, int w, int h )
 			goto __fail;
 		}
 	}
-
-	dpy = _dpy;
 
 	if ( !_XRRQueryExtension( dpy, &event_base, &error_base ) || !_XRRQueryVersion( dpy, &ver_major, &ver_minor ) )
 	{

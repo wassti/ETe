@@ -5,7 +5,7 @@
 //#define DEPTH_RENDER_BUFFER
 //#define USE_FBO_BLIT
 
-#define BLOOM_BASE 2
+#define BLOOM_BASE 4
 #define FBO_COUNT (BLOOM_BASE+(MAX_BLUR_PASSES*2))
 
 #if BLOOM_BASE < 2
@@ -64,6 +64,8 @@ qboolean blitMSfbo = qfalse;
 #ifndef GL_TEXTURE_IMAGE_TYPE
 #define GL_TEXTURE_IMAGE_TYPE 0x8290
 #endif
+
+extern void RB_SetGL2D( void );
 
 qboolean GL_ProgramAvailable( void )
 {
@@ -359,7 +361,7 @@ void ARB_LightingPass( void )
 	//		qglLockArraysEXT( 0, tess.numVertexes );
 
 	// CPU may limit performance in following cases
-	if ( tess.light->linear || gl_version >= 4 )
+	if ( tess.light->linear || gl_version >= 40 )
 		ARB_Lighting_Fast( pStage );
 	else
 		ARB_Lighting( pStage );
@@ -943,7 +945,7 @@ static void RenderQuad( int w, int h )
 }
 
 
-static void ARB_BloomParams( int width, int height, int ksize, qboolean horizontal ) 
+static void ARB_BlurParams( int width, int height, int ksize, qboolean horizontal )
 {
 	static float weight[ MAX_FILTER_SIZE ];
 	static int old_ksize = -1;
@@ -1143,6 +1145,9 @@ qboolean ARB_UpdatePrograms( void )
 	if ( !ARB_CompileProgram( Fragment, ARB_BuildBlurProgram( buf, fboBloomFilterSize ), programs[ BLUR_FRAGMENT ] ) )
 		return qfalse;
 
+	if ( !ARB_CompileProgram( Fragment, ARB_BuildBlurProgram( buf, 6 ), programs[ BLUR2_FRAGMENT ] ) )
+		return qfalse;
+
 	fboBloomBlendBase = r_bloom_blend_base->integer;
 	if ( !ARB_CompileProgram( Fragment, ARB_BuildBlendProgram( buf, r_bloom_passes->integer - fboBloomBlendBase ), programs[ BLENDX_FRAGMENT ] ) )
 		return qfalse;
@@ -1307,6 +1312,7 @@ static const char *glDefToStr( GLint define )
 		CASE_STR(GL_UNSIGNED_SHORT_4_4_4_4_REV);
 		CASE_STR(GL_UNSIGNED_INT_8_8_8_8_REV);
 		CASE_STR(GL_UNSIGNED_INT_2_10_10_10_REV);
+		CASE_STR(GL_UNSIGNED_NORMALIZED);
 		// error codes
 		CASE_STR(GL_NO_ERROR);
 		CASE_STR(GL_INVALID_ENUM);
@@ -1335,12 +1341,25 @@ static void getPreferredFormatAndType( GLint format, GLint *pFormat, GLint *pTyp
 	GLint preferredFormat;
 	GLint preferredType;
 
-	if ( qglGetInternalformativ ) {
+	if ( qglGetInternalformativ && gl_version >= 43 ) {
 		qglGetInternalformativ( GL_TEXTURE_2D, /*GL_RGBA8*/ format, GL_TEXTURE_IMAGE_FORMAT, 1, &preferredFormat );
+		if ( qglGetError() != GL_NO_ERROR ) {
+			goto __fallback;
+		}
 		qglGetInternalformativ( GL_TEXTURE_2D, /*GL_RGBA8*/ format, GL_TEXTURE_IMAGE_TYPE, 1, &preferredType );
+		if ( qglGetError() != GL_NO_ERROR ) {
+			goto __fallback;
+		}
 		if ( preferredFormat == 0 ) // nVidia ION drivers can do that
 			preferredFormat = GL_RGBA;
+		if ( preferredType == GL_UNSIGNED_NORMALIZED ) { // Intel HD 530 drivers can do that as well
+			if ( format == GL_RGBA12 || format == GL_RGBA16 )
+				preferredType = GL_UNSIGNED_SHORT;
+			else
+				preferredType = GL_UNSIGNED_BYTE;
+		}
 	} else {
+__fallback:
 		if ( format == GL_RGBA12 || format == GL_RGBA16 ) {
 			preferredFormat = GL_RGBA;
 			preferredType = GL_UNSIGNED_SHORT;
@@ -1554,6 +1573,12 @@ static qboolean FBO_CreateBloom( void )
 }
 
 
+GLuint FBO_ScreenTexture( void )
+{
+	return frameBuffers[ 2 ].color;
+}
+
+
 static void FBO_Bind( GLuint target, GLuint buffer )
 {
 #if 1
@@ -1605,6 +1630,7 @@ void FBO_BindMain( void )
 static void FBO_BlitToBackBuffer( int index )
 {
 	const frameBuffer_t *src = &frameBuffers[ index ];
+
 	FBO_Bind( GL_READ_FRAMEBUFFER, src->fbo );
 	FBO_Bind( GL_DRAW_FRAMEBUFFER, 0 );
 	//qglReadBuffer( GL_COLOR_ATTACHMENT0 );
@@ -1666,14 +1692,84 @@ static void FBO_Blur( const frameBuffer_t *fb1, const frameBuffer_t *fb2,  const
 	FBO_Bind( GL_DRAW_FRAMEBUFFER, fb2->fbo );
 	GL_BindTexture( 0, fb1->color );
 	ARB_ProgramEnable( DUMMY_VERTEX, BLUR_FRAGMENT );
-	ARB_BloomParams( fb1->width, fb1->height, fboBloomFilterSize, qtrue );
+	ARB_BlurParams( fb1->width, fb1->height, fboBloomFilterSize, qtrue );
 	RenderQuad( w, h );
 
 	// apply vectical blur - render from FBO2 to FBO3
 	FBO_Bind( GL_DRAW_FRAMEBUFFER, fb3->fbo );
 	GL_BindTexture( 0, fb2->color );
-	ARB_BloomParams( fb1->width, fb1->height, fboBloomFilterSize, qfalse );
+	ARB_BlurParams( fb1->width, fb1->height, fboBloomFilterSize, qfalse );
 	RenderQuad( w, h );
+}
+
+
+static void FBO_Blur2( const frameBuffer_t *fb1, const frameBuffer_t *fb2,  const frameBuffer_t *fb3 )
+{
+	const int w = glConfig.vidWidth;
+	const int h = glConfig.vidHeight;
+
+	qglViewport( 0, 0, fb1->width, fb1->height );
+
+	// apply horizontal blur - render from FBO1 to FBO2
+	FBO_Bind( GL_DRAW_FRAMEBUFFER, fb2->fbo );
+	GL_BindTexture( 0, fb1->color );
+	ARB_ProgramEnable( DUMMY_VERTEX, BLUR2_FRAGMENT );
+	ARB_BlurParams( fb1->width, fb1->height, 6, qtrue );
+	RenderQuad( w, h );
+
+	// apply vectical blur - render from FBO2 to FBO3
+	FBO_Bind( GL_DRAW_FRAMEBUFFER, fb3->fbo );
+	GL_BindTexture( 0, fb2->color );
+	ARB_BlurParams( fb1->width, fb1->height, 6, qfalse );
+	RenderQuad( w, h );
+}
+
+
+void FBO_CopyScreen( void )
+{
+	const frameBuffer_t *dst;
+	const frameBuffer_t *src;
+
+	// resolve multisample buffer first
+	if ( frameBufferMultiSampling && blitMSfbo ) 
+	{
+		src = &frameBufferMS;
+		dst = &frameBuffers[ 0 ];
+		FBO_Bind( GL_READ_FRAMEBUFFER, src->fbo );
+		FBO_Bind( GL_DRAW_FRAMEBUFFER, dst->fbo );
+		qglBlitFramebuffer( 0, 0, src->width, src->height, 0, 0, dst->width, dst->height, GL_COLOR_BUFFER_BIT, GL_NEAREST );
+	}
+
+	src = &frameBuffers[ 0 ];
+	dst = &frameBuffers[ 2 ];
+	FBO_Bind( GL_READ_FRAMEBUFFER, src->fbo );
+	FBO_Bind( GL_DRAW_FRAMEBUFFER, dst->fbo );
+	qglBlitFramebuffer( 0, 0, src->width, src->height, 0, 0, dst->width, dst->height, GL_COLOR_BUFFER_BIT, GL_LINEAR );
+
+	//if ( !backEnd.projection2D )
+	{
+		qglViewport( 0, 0, glConfig.vidWidth, glConfig.vidHeight );
+		qglScissor( 0, 0, glConfig.vidWidth, glConfig.vidHeight );
+		qglMatrixMode( GL_PROJECTION );
+		qglLoadIdentity();
+		qglOrtho( 0, glConfig.vidWidth, glConfig.vidHeight, 0, 0, 1 );
+		qglMatrixMode( GL_MODELVIEW );
+		qglLoadIdentity();
+		GL_Cull( CT_TWO_SIDED );
+		qglDisable( GL_CLIP_PLANE0 );
+	}
+
+	qglColor4f( 1, 1, 1, 1 );
+	GL_State( GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO );
+	FBO_Blur2( dst, dst+1, dst );
+	ARB_ProgramDisable();
+	//restore viewport and scissor
+	qglViewport( backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
+		backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight ); 
+	qglScissor( backEnd.viewParms.scissorX, backEnd.viewParms.scissorY,
+		backEnd.viewParms.scissorWidth, backEnd.viewParms.scissorHeight ); 
+
+	FBO_BindMain();
 }
 
 
@@ -1899,8 +1995,6 @@ qboolean FBO_Bloom( const float gamma, const float obScale, qboolean finalStage 
 }
 
 
-extern void RB_SetGL2D( void );
-
 void R_BloomScreen( void )
 {
 	if ( r_bloom->integer == 1 && fboEnabled )
@@ -1922,6 +2016,7 @@ void FBO_PostProcess( void )
 	const float gamma = 1.0f / r_gamma->value;
 	const float w = glConfig.vidWidth;
 	const float h = glConfig.vidHeight;
+	qboolean minimized;
 
 	if ( !fboEnabled )
 		return;
@@ -1950,14 +2045,16 @@ void FBO_PostProcess( void )
 	if ( r_anaglyphMode->integer )
 		qglColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
 
+	minimized = ri.CL_IsMinimized();
+
 	if ( r_bloom->integer && programCompiled ) {
-		if ( FBO_Bloom( gamma, obScale, qtrue ) ) {
+		if ( FBO_Bloom( gamma, obScale, !minimized ) ) {
 			return;
 		}
 	}
 
 	// check if we can perform final draw directly into back buffer
-	if ( backEnd.screenshotMask == 0 && !windowAdjusted ) {
+	if ( backEnd.screenshotMask == 0 && !windowAdjusted && !minimized ) {
 		FBO_Bind( GL_FRAMEBUFFER, 0 );
 		GL_BindTexture( 0, frameBuffers[ fboReadIndex ].color );
 		ARB_ProgramEnable( DUMMY_VERTEX, GAMMA_FRAGMENT );
@@ -1975,7 +2072,9 @@ void FBO_PostProcess( void )
 	RenderQuad( w, h );
 	ARB_ProgramDisable();
 
-	FBO_BlitToBackBuffer( 1 );
+	if ( !minimized ) {
+		FBO_BlitToBackBuffer( 1 );
+	}
 }
 
 
@@ -1989,7 +2088,7 @@ static void QGL_InitPrograms( void )
 
 	version = atof( (const char *)qglGetString( GL_VERSION ) );
 
-	gl_version = (int)version;
+	gl_version = (int)(version * 10.001);
 
 	programAvailable = 1;
 }
@@ -2063,6 +2162,8 @@ void QGL_DoneFBO( void )
 		FBO_Clean(&frameBufferMS);
 		FBO_Clean(&frameBuffers[0]);
 		FBO_Clean(&frameBuffers[1]);
+		FBO_Clean(&frameBuffers[2]);
+		FBO_Clean(&frameBuffers[3]);
 		FBO_CleanBloom();
 		FBO_CleanDepth();
 		fboEnabled = qfalse;
@@ -2070,6 +2171,7 @@ void QGL_DoneFBO( void )
 	}
 }
 
+#define SCR_SZ 128
 
 void QGL_InitFBO( void )
 {
@@ -2091,6 +2193,8 @@ void QGL_InitFBO( void )
 	if ( !r_fbo->integer || !programAvailable || !fboAvailable )
 		return;
 
+	qglGetError(); // reset error code
+
 	if ( windowAdjusted )
 		blitClear = 2; // front & back buffers
 	else
@@ -2110,12 +2214,18 @@ void QGL_InitFBO( void )
 			depthStencil = qtrue;
 		else
 			depthStencil = qfalse;
-		result = FBO_Create( &frameBuffers[ 0 ], w, h, depthStencil, &fboTextureFormat, &fboTextureType ) && FBO_Create( &frameBuffers[ 1 ], w, h, depthStencil, NULL, NULL );
+		result = FBO_Create( &frameBuffers[ 0 ], w, h, depthStencil, &fboTextureFormat, &fboTextureType )
+			&& FBO_Create( &frameBuffers[ 1 ], w, h, depthStencil, NULL, NULL )
+			&& FBO_Create( &frameBuffers[ 2 ], SCR_SZ, SCR_SZ, qfalse, NULL, NULL )
+			&& FBO_Create( &frameBuffers[ 3 ], SCR_SZ, SCR_SZ, qfalse, NULL, NULL );
 		frameBufferMultiSampling = result;
 	}
 	else
 	{
-		result = FBO_Create( &frameBuffers[ 0 ], w, h, qtrue, &fboTextureFormat, &fboTextureType ) && FBO_Create( &frameBuffers[ 1 ], w, h, qtrue, NULL, NULL );
+		result = FBO_Create( &frameBuffers[ 0 ], w, h, qtrue, &fboTextureFormat, &fboTextureType )
+			&& FBO_Create( &frameBuffers[ 1 ], w, h, qtrue, NULL, NULL )
+			&& FBO_Create( &frameBuffers[ 2 ], SCR_SZ, SCR_SZ, qfalse, NULL, NULL )
+			&& FBO_Create( &frameBuffers[ 3 ], SCR_SZ, SCR_SZ, qfalse, NULL, NULL );
 	}
 
 	if ( result )

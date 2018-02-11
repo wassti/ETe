@@ -2238,7 +2238,6 @@ int S_Base_GetVoiceAmplitude( int entityNum ) {
 S_FreeOldestSound
 ======================
 */
-
 void S_FreeOldestSound( void ) {
 	int	i, oldest, used;
 	sfx_t	*sfx;

@@ -179,8 +179,6 @@ nmake /f Makefile.vc6 CFG=release
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="null\null_client.c" />
-    <ClCompile Include="null\null_snddma.c" />
     <ClCompile Include="qcommon\cmd.c" />
     <ClCompile Include="qcommon\cm_load.c" />
     <ClCompile Include="qcommon\cm_patch.c" />

@@ -548,12 +548,11 @@ void CL_SystemInfoChanged( void ) {
 		// ehw!
 		if ( !Q_stricmp( key, "fs_game" ) )
 		{
-			if(FS_CheckDirTraversal(value))
+			if ( FS_InvalidGameDir( value ) )
 			{
-				Com_Printf(S_COLOR_YELLOW "WARNING: Server sent invalid fs_game value %s\n", value);
+				Com_Printf( S_COLOR_YELLOW "WARNING: Server sent invalid fs_game value %s\n", value );
 				continue;
 			}
-				
 			gameSet = qtrue;
 		}
 
@@ -618,6 +617,7 @@ static void CL_ParseServerInfo(void)
 //		clc.sv_dlURL[len-1] = '\0';
 }
 
+
 /*
 ==================
 CL_ParseGamestate
@@ -657,15 +657,14 @@ void CL_ParseGamestate( msg_t *msg ) {
 		}
 
 		if ( cmd == svc_configstring ) {
-			int len;
+			int		len;
 
 			i = MSG_ReadShort( msg );
 			if ( i < 0 || i >= MAX_CONFIGSTRINGS ) {
 				Com_Error( ERR_DROP, "configstring > MAX_CONFIGSTRINGS" );
 			}
-			
-			s = MSG_ReadBigString( msg );
 
+			s = MSG_ReadBigString( msg );
 			len = strlen( s );
 
 			if ( len + 1 + cl.gameState.dataCount > MAX_GAMESTATE_CHARS ) {
@@ -848,54 +847,67 @@ void CL_ParseDownload( msg_t *msg ) {
 		}
 	}
 
-	if ( !block ) {
+	if(!block && !clc.downloadBlock)
+	{
 		// block zero is special, contains file size
-		clc.downloadSize = MSG_ReadLong( msg );
+		clc.downloadSize = MSG_ReadLong ( msg );
 
-		Cvar_SetValue( "cl_downloadSize", clc.downloadSize );
+		Cvar_SetIntegerValue( "cl_downloadSize", clc.downloadSize );
 
-		if ( clc.downloadSize < 0 ) {
-			Com_Error( ERR_DROP, MSG_ReadString( msg ) );
+		if (clc.downloadSize < 0)
+		{
+			Com_Error( ERR_DROP, "%s", MSG_ReadString( msg ) );
 			return;
 		}
 	}
 
-	size = MSG_ReadShort( msg );
-	if ( size < 0 || size > sizeof( data ) ) {
-		Com_Error( ERR_DROP, "CL_ParseDownload: Invalid size %d for download chunk.", size );
+	size = MSG_ReadShort ( msg );
+	if (size < 0 || size > sizeof(data))
+	{
+		Com_Error(ERR_DROP, "CL_ParseDownload: Invalid size %d for download chunk", size);
 		return;
 	}
+	
+	MSG_ReadData(msg, data, size);
 
-	MSG_ReadData( msg, data, size );
-
-	if ( clc.downloadBlock != block ) {
-		Com_DPrintf( "CL_ParseDownload: Expected block %d, got %d\n", clc.downloadBlock, block );
+	if((clc.downloadBlock & 0xFFFF) != block)
+	{
+		Com_DPrintf( "CL_ParseDownload: Expected block %d, got %d\n", (clc.downloadBlock & 0xFFFF), block);
 		return;
 	}
 
 	// open the file if not opened yet
-	if ( !clc.download ) {
-		clc.download = FS_SV_FOpenFileWrite( cls.downloadTempName );
+	if ( clc.download == FS_INVALID_HANDLE ) 
+	{
+		if ( !CL_ValidPakSignature( data, size ) ) 
+		{
+			Com_Printf( S_COLOR_YELLOW "Invalid pak signature for %s\n", clc.downloadName );
+			CL_AddReliableCommand( "stopdl", qfalse );
+			CL_NextDownload();
+			return;
+		}
 
-		if ( !clc.download ) {
-			Com_Printf( "Could not create %s\n", cls.downloadTempName );
+		clc.download = FS_SV_FOpenFileWrite( clc.downloadTempName );
+
+		if ( clc.download == FS_INVALID_HANDLE ) 
+		{
+			Com_Printf( "Could not create %s\n", clc.downloadTempName );
 			CL_AddReliableCommand( "stopdl", qfalse );
 			CL_NextDownload();
 			return;
 		}
 	}
 
-	if ( size ) {
+	if (size)
 		FS_Write( data, size, clc.download );
-	}
 
-	CL_AddReliableCommand( va( "nextdl %d", clc.downloadBlock ), qfalse );
+	CL_AddReliableCommand( va("nextdl %d", clc.downloadBlock), qfalse );
 	clc.downloadBlock++;
 
 	clc.downloadCount += size;
 
 	// So UI gets access to it
-	Cvar_SetValue( "cl_downloadCount", clc.downloadCount );
+	Cvar_SetIntegerValue( "cl_downloadCount", clc.downloadCount );
 
 	if (!size) { // A zero length block means EOF
 		if ( clc.download != FS_INVALID_HANDLE ) {
@@ -917,7 +929,7 @@ void CL_ParseDownload( msg_t *msg ) {
 		CL_WritePacket();
 
 		// get another file if needed
-		CL_NextDownload ();
+		CL_NextDownload();
 	}
 }
 
@@ -962,7 +974,10 @@ void CL_ParseCommandString( msg_t *msg ) {
 			text = ( Cmd_Argc() > 1 ) ? va( "Server disconnected: %s", Cmd_Argv( 1 ) ) : "Server disconnected.";
 			Cvar_Set( "com_errorMessage", text );
 			Com_Printf( "%s\n", text );
-			CL_Disconnect( qtrue );
+			if ( !CL_Disconnect( qtrue ) ) { // restart client if not done already
+				CL_FlushMemory();
+			}
+			return;
 		}
 	}
 

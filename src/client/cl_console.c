@@ -31,10 +31,11 @@ If you have questions concerning this license or the applicable additional terms
 #include "client.h"
 
 #define DEFAULT_CONSOLE_WIDTH   78
+#define  MAX_CONSOLE_WIDTH 120
 
 int g_console_field_width = DEFAULT_CONSOLE_WIDTH;
 
-#define COLNSOLE_COLOR  COLOR_WHITE //COLOR_BLACK
+#define CONSOLE_COLOR  COLOR_WHITE //COLOR_BLACK
 
 console_t con;
 
@@ -161,7 +162,7 @@ static void Con_Clear_f( void ) {
 	int		i;
 
 	for ( i = 0 ; i < con.linewidth ; i++ ) {
-		con.text[i] = ( ColorIndex( COLNSOLE_COLOR ) << 8 ) | ' ';
+		con.text[i] = ( ColorIndex( CONSOLE_COLOR ) << 8 ) | ' ';
 	}
 
 	con.x = 0;
@@ -186,7 +187,7 @@ static void Con_Dump_f( void )
 	fileHandle_t	f;
 	int		bufferlen;
 	char	*buffer;
-	char	filename[MAX_QPATH];
+	char	filename[ MAX_OSPATH ];
 	const char *ext;
 
 	if ( Cmd_Argc() != 2 )
@@ -206,7 +207,7 @@ static void Con_Dump_f( void )
 	f = FS_FOpenFileWrite( filename );
 	if ( f == FS_INVALID_HANDLE )
 	{
-		Com_Printf( "ERROR: couldn't open %s.\n", filename );		
+		Com_Printf( "ERROR: couldn't open %s.\n", filename );
 		return;
 	}
 
@@ -298,6 +299,9 @@ void Con_CheckResize( void )
 	}
 	else
 	{
+		if ( width > MAX_CONSOLE_WIDTH )
+			width = MAX_CONSOLE_WIDTH;
+
 		oldwidth = con.linewidth;
 		oldtotallines = con.totallines;
 		oldcurrent = con.current;
@@ -320,7 +324,7 @@ void Con_CheckResize( void )
 		Com_Memcpy( tbuf, con.text, CON_TEXTSIZE * sizeof( short ) );
 
 		for ( i = 0; i < CON_TEXTSIZE; i++ ) 
-			con.text[i] = (ColorIndex(COLNSOLE_COLOR)<<8) | ' ';
+			con.text[i] = (ColorIndex(CONSOLE_COLOR)<<8) | ' ';
 
 		for ( i = 0; i < numlines; i++ )
 		{
@@ -442,7 +446,7 @@ void Con_NewLine( void )
 
 	s = &con.text[ ( con.current % con.totallines ) * con.linewidth ];
 	for ( i = 0; i < con.linewidth ; i++ ) 
-		*s++ = (ColorIndex(COLNSOLE_COLOR)<<8) | ' ';
+		*s++ = (ColorIndex(CONSOLE_COLOR)<<8) | ' ';
 
 	con.x = 0;
 }
@@ -514,9 +518,9 @@ void CL_ConsolePrint( const char *txt ) {
 	colorIndex = ColorIndex( COLOR_WHITE );
 
 	while ( (c = *txt) != 0 ) {
-		if ( Q_IsColorString( txt ) ) {
+		if ( Q_IsColorString( txt ) && *(txt+1) != '\n' ) {
 			if ( *(txt + 1) == COLOR_NULL ) {
-				colorIndex = ColorIndex( COLNSOLE_COLOR );
+				colorIndex = ColorIndex( CONSOLE_COLOR );
 			} else {
 				colorIndex = ColorIndexFromChar( *(txt+1) );
 			}
@@ -808,7 +812,7 @@ void Con_DrawSolidConsole( float frac ) {
 
 
 	// draw the version number
-	re.SetColor( g_color_table[ ColorIndex( COLNSOLE_COLOR ) ] );
+	re.SetColor( g_color_table[ ColorIndex( CONSOLE_COLOR ) ] );
 
 	SCR_DrawSmallString( cls.glconfig.vidWidth - ( ARRAY_LEN( Q3_VERSION ) ) * SMALLCHAR_WIDTH, 
 		lines - SMALLCHAR_HEIGHT, Q3_VERSION, ARRAY_LEN( Q3_VERSION ) - 1 );
@@ -826,7 +830,7 @@ void Con_DrawSolidConsole( float frac ) {
 	if ( con.display != con.current )
 	{
 		// draw arrows to show the buffer is backscrolled
-		re.SetColor( g_color_table[ ColorIndex( COLNSOLE_COLOR ) ] );
+		re.SetColor( g_color_table[ ColorIndex( CONSOLE_COLOR ) ] );
 		for ( x = 0 ; x < con.linewidth ; x += 4 )
 			SCR_DrawSmallChar( con.xadjust + (x+1)*SMALLCHAR_WIDTH, y, '^' );
 		y -= SMALLCHAR_HEIGHT;

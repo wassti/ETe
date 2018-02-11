@@ -214,9 +214,8 @@ int Export_BotLibSetup( qboolean singleplayer ) {
 int Export_BotLibShutdown( void ) {
 	static int recursive = 0;
 
-	if ( !BotLibSetup( "BotLibShutdown" ) ) {
+	if ( !botlibglobals.botlibsetup )
 		return BLERR_LIBRARYNOTSETUP;
-	}
 	//
 	if ( recursive ) {
 		return BLERR_NOERROR;

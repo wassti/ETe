@@ -25,8 +25,7 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-
-// win_main.h
+// win_main.c
 
 #include "../client/client.h"
 #include "../qcommon/qcommon.h"
@@ -38,8 +37,8 @@ If you have questions concerning this license or the applicable additional terms
 #include <fcntl.h>
 #include <stdio.h>
 #include <direct.h>
-//#include <io.h>
-//#include <conio.h>
+#include <io.h>
+#include <conio.h>
 
 #define MEM_THRESHOLD 96*1024*1024
 
@@ -154,6 +153,11 @@ void QDECL Sys_Error( const char *error, ... ) {
 	Q_vsnprintf( text, sizeof( text ), error, argptr );
 	va_end( argptr );
 
+#ifndef DEDICATED
+	IN_Shutdown();
+	CL_Shutdown( text, qtrue );
+#endif
+
 	Conbuf_AppendText( text );
 	Conbuf_AppendText( "\n" );
 
@@ -161,10 +165,6 @@ void QDECL Sys_Error( const char *error, ... ) {
 	Sys_ShowConsole( 1, qtrue );
 
 	timeEndPeriod( 1 );
-
-#ifndef DEDICATED
-	IN_Shutdown();
-#endif
 
 	// wait for the user to quit
 	while ( 1 ) {
@@ -205,7 +205,7 @@ void Sys_Quit( void ) {
 Sys_Print
 ==============
 */
-void Sys_Print( const char *msg ) 
+void Sys_Print( const char *msg )
 {
 	Conbuf_AppendText( msg );
 }
@@ -216,7 +216,7 @@ void Sys_Print( const char *msg )
 Sys_Mkdir
 ==============
 */
-void Sys_Mkdir( const char *path ) 
+void Sys_Mkdir( const char *path )
 {
 	_mkdir( path );
 }
@@ -229,6 +229,14 @@ Sys_FOpen
 */
 FILE *Sys_FOpen( const char *ospath, const char *mode )
 {
+	size_t length;
+
+	// Windows API ignores all trailing spaces and periods which can get around Quake 3 file system restrictions.
+	length = strlen( ospath );
+	if ( length == 0 || ospath[length-1] == ' ' || ospath[length-1] == '.' ) {
+		return NULL;
+	}
+
 	return fopen( ospath, mode );
 }
 
@@ -270,7 +278,7 @@ const char *Sys_Pwd( void )
 Sys_DefaultBasePath
 ==============
 */
-const char *Sys_DefaultBasePath( void ) 
+const char *Sys_DefaultBasePath( void )
 {
 	return Sys_Pwd();
 }
@@ -638,7 +646,6 @@ void Sys_UnloadLibrary( void *handle )
 /*
 =================
 Sys_UnloadDll
-
 =================
 */
 void Sys_UnloadDll( void *dllHandle ) {
@@ -859,6 +866,39 @@ void Sys_In_Restart_f( void ) {
 
 
 /*
+==================
+SetTimerResolution
+
+Try to set lower timer period
+==================
+*/
+static void SetTimerResolution( void )
+{
+	typedef HRESULT (WINAPI *pfnNtQueryTimerResolution)( PULONG MinRes, PULONG MaxRes, PULONG CurRes );
+	typedef HRESULT (WINAPI *pfnNtSetTimerResolution)( ULONG NewRes, BOOLEAN SetRes, PULONG CurRes );
+	pfnNtQueryTimerResolution pNtQueryTimerResolution;
+	pfnNtSetTimerResolution pNtSetTimerResolution;
+	ULONG curr, minr, maxr;
+	HMODULE dll;
+
+	dll = LoadLibrary( T( "ntdll" ) );
+	if ( dll )
+	{
+		pNtQueryTimerResolution = (pfnNtQueryTimerResolution) GetProcAddress( dll, "NtQueryTimerResolution" );
+		pNtSetTimerResolution = (pfnNtSetTimerResolution) GetProcAddress( dll, "NtSetTimerResolution" );
+		if ( pNtQueryTimerResolution && pNtSetTimerResolution )
+		{
+			pNtQueryTimerResolution( &minr, &maxr, &curr );
+			if ( maxr < 5000 ) // well, we don't need less than 0.5ms periods for select()
+				maxr = 5000;
+			pNtSetTimerResolution( maxr, TRUE, &curr );
+		}
+		FreeLibrary( dll );
+	}
+}
+
+
+/*
 ================
 Sys_Init
 
@@ -866,16 +906,13 @@ Called after the common systems (cvars, files, etc)
 are initialized
 ================
 */
-#define OSR2_BUILD_NUMBER 1111
-#define WIN98_BUILD_NUMBER 1998
-
-extern void Sys_ClearViewlog_f( void ); // fretn
-
 void Sys_Init( void ) {
 
 	// make sure the timer is high precision, otherwise
 	// NT gets 18ms resolution
 	timeBeginPeriod( 1 );
+
+	SetTimerResolution();
 
 #ifndef DEDICATED
 	Cmd_AddCommand( "in_restart", Sys_In_Restart_f );
@@ -883,8 +920,6 @@ void Sys_Init( void ) {
 	Cmd_AddCommand( "clearviewlog", Sys_ClearViewlog_f );
 
 	Cvar_Set( "arch", "winnt" );
-
-	Cvar_Set( "username", Sys_GetCurrentUser() );
 
 #ifndef DEDICATED
 	glw_state.wndproc = MainWndProc;

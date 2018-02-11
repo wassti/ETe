@@ -990,11 +990,16 @@ screenshot [filename]
 Doesn't print the pacifier message if there is a second arg
 ================== 
 */  
-void R_ScreenShot_f( void ) {
+static void R_ScreenShot_f( void ) {
 	char		checkname[MAX_OSPATH];
 	qboolean	silent;
 	int			typeMask;
 	const char	*ext;
+
+	if ( ri.CL_IsMinimized() && !RE_CanMinimize() ) {
+		ri.Printf( PRINT_WARNING, "WARNING: unable to take screenshot when minimized because FBO is not available/enabled.\n" );
+		return;
+	}
 
 	if ( !strcmp( ri.Cmd_Argv(1), "levelshot" ) ) {
 		R_LevelShot();
@@ -1443,7 +1448,7 @@ static void R_Register( void )
 #else
 	ri.Cvar_CheckRange( r_dlightMode, "1", "2", CV_INTEGER );
 #endif
-	r_dlightScale = ri.Cvar_Get( "r_dlightScale", "1", CVAR_ARCHIVE_ND );
+	r_dlightScale = ri.Cvar_Get( "r_dlightScale", "0.5", CVAR_ARCHIVE_ND );
 	ri.Cvar_CheckRange( r_dlightScale, "0.1", "1", CV_FLOAT );
 	r_dlightSpecPower = ri.Cvar_Get( "r_dlightSpecPower", "8", CVAR_ARCHIVE_ND );
 	ri.Cvar_CheckRange( r_dlightSpecPower, "1", "32", CV_FLOAT );
@@ -1585,8 +1590,8 @@ static void R_Register( void )
 
 	r_aviMotionJpegQuality = ri.Cvar_Get( "r_aviMotionJpegQuality", "90", CVAR_ARCHIVE_ND );
 	r_screenshotJpegQuality = ri.Cvar_Get( "r_screenshotJpegQuality", "90", CVAR_ARCHIVE_ND );
-	r_maxpolys = ri.Cvar_Get( "r_maxpolys", va( "%d", MAX_POLYS ), 0 );
-	r_maxpolyverts = ri.Cvar_Get( "r_maxpolyverts", va( "%d", MAX_POLYVERTS ), 0 );
+	r_maxpolys = ri.Cvar_Get( "r_maxpolys", XSTRING( MAX_POLYS ), 0 );
+	r_maxpolyverts = ri.Cvar_Get( "r_maxpolyverts", XSTRING( MAX_POLYVERTS ), 0 );
 
 	r_highQualityVideo = ri.Cvar_Get( "r_highQualityVideo", "1", CVAR_ARCHIVE );
 
@@ -1718,7 +1723,7 @@ void R_PurgeCache( void ) {
 RE_Shutdown
 ===============
 */
-static void RE_Shutdown( qboolean destroyWindow ) {
+static void RE_Shutdown( int destroyWindow ) {
 
 	ri.Printf( PRINT_ALL, "RE_Shutdown( %i )\n", destroyWindow );
 
@@ -1769,7 +1774,7 @@ static void RE_Shutdown( qboolean destroyWindow ) {
 
 		VBO_Cleanup();
 
-		ri.GLimp_Shutdown();
+		ri.GLimp_Shutdown( destroyWindow == 2 ? qtrue: qfalse );
 
 #define GLE( ret, name, ... ) q##name = NULL;
 		QGL_Core_PROCS;
@@ -1911,6 +1916,7 @@ refexport_t *GetRefAPI ( int apiVersion, refimport_t *rimp ) {
 	re.TakeVideoFrame = RE_TakeVideoFrame;
 	re.SetColorMappings = R_SetColorMappings;
 
+	re.ThrottleBackend = RE_ThrottleBackend;
 	re.FinishBloom = RE_FinishBloom;
 	re.CanMinimize = RE_CanMinimize;
 	re.GetConfig = RE_GetConfig;

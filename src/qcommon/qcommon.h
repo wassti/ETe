@@ -71,10 +71,10 @@ typedef struct {
 	int		bit;				// for bitwise reads and writes
 } msg_t;
 
-void MSG_Init (msg_t *buf, byte *data, int length);
+void MSG_Init( msg_t *buf, byte *data, int length );
 void MSG_InitOOB( msg_t *buf, byte *data, int length );
-void MSG_Clear (msg_t *buf);
-void MSG_WriteData (msg_t *buf, const void *data, int length);
+void MSG_Clear( msg_t *buf );
+void MSG_WriteData( msg_t *buf, const void *data, int length );
 void MSG_Bitstream( msg_t *buf );
 void MSG_Uncompressed( msg_t *buf );
 
@@ -118,15 +118,14 @@ float	MSG_ReadAngle16 (msg_t *sb);
 void	MSG_ReadData (msg_t *sb, void *buffer, int size);
 int		MSG_LookaheadByte (msg_t *msg);
 
-void MSG_WriteDeltaUsercmdKey( msg_t *msg, int key, usercmd_t *from, usercmd_t *to );
-void MSG_ReadDeltaUsercmdKey( msg_t *msg, int key, usercmd_t *from, usercmd_t *to );
+void MSG_WriteDeltaUsercmdKey( msg_t *msg, int key, const usercmd_t *from, const usercmd_t *to );
+void MSG_ReadDeltaUsercmdKey( msg_t *msg, int key, const usercmd_t *from, usercmd_t *to );
 
 void MSG_WriteDeltaEntity( msg_t *msg, const entityState_t *from, const entityState_t *to, qboolean force );
 void MSG_ReadDeltaEntity( msg_t *msg, const entityState_t *from, entityState_t *to, int number );
 
 void MSG_WriteDeltaPlayerstate( msg_t *msg, const playerState_t *from, const playerState_t *to );
 void MSG_ReadDeltaPlayerstate( msg_t *msg, const playerState_t *from, playerState_t *to );
-
 
 void MSG_ReportChangeVectors_f( void );
 
@@ -184,19 +183,19 @@ typedef enum {
 
 
 #define NET_ADDRSTRMAXLEN 48	// maximum length of an IPv6 address string including trailing '\0'
+
 typedef struct {
 	netadrtype_t	type;
-
-	byte	ip[4];
-	byte	ip6[16];
-
+	union {
+		byte	_4[4];
+		byte	_6[16];
+	} ipv;
 	unsigned short	port;
 	unsigned long	scope_id;	// Needed for IPv6 link-local addresses
 } netadr_t;
 
 void		NET_Init( void );
 void		NET_Shutdown( void );
-void		NET_Restart_f( void );
 void		NET_FlushPacketQueue(void);
 void		NET_SendPacket( netsrc_t sock, int length, const void *data, const netadr_t *to );
 void		QDECL NET_OutOfBandPrint( netsrc_t net_socket, const netadr_t *adr, const char *format, ...) __attribute__ ((format (printf, 3, 4)));
@@ -210,9 +209,9 @@ const char	*NET_AdrToString( const netadr_t *a );
 const char	*NET_AdrToStringwPort( const netadr_t *a );
 int         NET_StringToAdr( const char *s, netadr_t *a, netadrtype_t family );
 qboolean	NET_GetLoopPacket( netsrc_t sock, netadr_t *net_from, msg_t *net_message );
-void		NET_JoinMulticast6(void);
-void		NET_LeaveMulticast6(void);
-void		NET_Sleep( int msec );
+void		NET_JoinMulticast6( void );
+void		NET_LeaveMulticast6( void );
+void		NET_Sleep( int msec, int usec_bias );
 
 
 //----(SA)	increased for larger submodel entity counts
@@ -315,10 +314,6 @@ extern const int demo_protocols[];
 #endif
 #define MOTD_SERVER_NAME        "etmaster.idsoftware.com"    //"etmotd.idsoftware.com"			// ?.?.?.?
 
-#ifdef AUTHORIZE_SUPPORT
-	#define AUTHORIZE_SERVER_NAME   "wolfauthorize.idsoftware.com"
-#endif // AUTHORIZE_SUPPORT
-
 // TTimo: override autoupdate server for testing
 #ifndef AUTOUPDATE_SERVER_NAME
 //	#define AUTOUPDATE_SERVER_NAME "127.0.0.1"
@@ -345,9 +340,6 @@ extern const int demo_protocols[];
 
 #define PORT_MASTER         27950
 #define PORT_MOTD           27951
-#ifdef AUTHORIZE_SUPPORT
-#define PORT_AUTHORIZE      27952
-#endif // AUTHORIZE_SUPPORT
 #define PORT_SERVER         27960
 #define NUM_SERVER_PORTS    4       // broadcast scan this many ports after
 									// PORT_SERVER so a single machine can
@@ -605,6 +597,7 @@ void Cvar_SetLatched( const char *var_name, const char *value);
 // don't set the cvar immediately
 
 void	Cvar_SetValue( const char *var_name, float value );
+void	Cvar_SetIntegerValue( const char *var_name, int value );
 void	Cvar_SetValueSafe( const char *var_name, float value );
 // expands value to a string and calls Cvar_Set/Cvar_SetSafe
 
@@ -616,6 +609,7 @@ int		Cvar_VariableIntegerValue( const char *var_name );
 
 const char *Cvar_VariableString( const char *var_name );
 void	Cvar_VariableStringBuffer( const char *var_name, char *buffer, int bufsize );
+void	Cvar_VariableStringBufferSafe( const char *var_name, char *buffer, int bufsize, int flag );
 // returns an empty string if not defined
 void    Cvar_LatchedVariableStringBuffer( const char *var_name, char *buffer, int bufsize );
 // Gordon: returns the latched value if there is one, else the normal one, empty string if not defined as usual
@@ -850,7 +844,7 @@ void FS_PureServerSetLoadedPaks( const char *pakSums, const char *pakNames );
 // separated checksums will be checked for files, with the
 // sole exception of .cfg files.
 
-qboolean FS_CheckDirTraversal(const char *checkdir);
+qboolean FS_InvalidGameDir( const char *gamedir );
 qboolean FS_idPak( const char *pak, const char *base );
 qboolean FS_VerifyOfficialPaks( void );
 qboolean FS_ComparePaks( char *neededpaks, int len, qboolean dlstring );
@@ -993,13 +987,17 @@ void 		QDECL Com_DPrintf( const char *fmt, ... ) __attribute__ ((format (printf,
 void 		NORETURN QDECL Com_Error( errorParm_t code, const char *fmt, ... ) __attribute__ ((format (printf, 2, 3)));
 void 		Com_Quit_f( void );
 void		Com_GameRestart( int checksumFeed, qboolean clientRestart );
-void		(*Com_DelayFunc)( void );
 
 int			Com_EventLoop( void );
 int			Com_Milliseconds( void );	// will be journaled properly
+
+// MD4 functions
 unsigned	Com_BlockChecksum( const void *buffer, int length );
+
+// MD5 functions
 char		*Com_MD5File(const char *filename, int length, const char *prefix, int prefix_len);
 char		*Com_MD5Buf( const char *data, int length, const char *data2, int length2 );
+int			Com_MD5Addr( const netadr_t *addr, const byte *seed, int seed_len );
 #ifdef USE_PBMD5
 char		*Com_PBMD5File( char *key );
 #endif
@@ -1013,7 +1011,7 @@ int			Com_RealTime(qtime_t *qtime);
 qboolean	Com_SafeMode( void );
 void		Com_RunAndTimeServerPacket( const netadr_t *evFrom, msg_t *buf );
 
-void        Com_StartupVariable( const char *match );
+void		Com_StartupVariable( const char *match );
 void        Com_SetRecommended();
 // checks for and removes command line "+set var arg" constructs
 // if match is NULL, all set commands will be executed, otherwise
@@ -1162,7 +1160,7 @@ CLIENT / SERVER SYSTEMS
 
 void CL_Init( void );
 void CL_ClearStaticDownload( void );
-void CL_Disconnect( qboolean showMainMenu );
+qboolean CL_Disconnect( qboolean showMainMenu );
 void CL_ResetOldGame( void );
 void CL_Shutdown( const char *finalmsg, qboolean quit );
 void CL_Frame( int msec );
@@ -1294,8 +1292,6 @@ qboolean	Sys_IsNumLockDown( void );
 void	*QDECL Sys_LoadDll( const char *name, dllSyscall_t *entryPoint, dllSyscall_t systemcalls );
 void	Sys_UnloadDll( void *dllHandle );
 
-char	*Sys_GetCurrentUser( void );
-
 void	QDECL Sys_Error( const char *error, ...) __attribute__ ((noreturn, format (printf, 1, 2)));
 void	Sys_Quit (void) __attribute__ ((noreturn));
 char	*Sys_GetClipboardData( void );	// note that this isn't journaled...
@@ -1311,13 +1307,11 @@ void	Sys_SetAffinityMask( int mask );
 // Sys_Milliseconds should only be used for profiling purposes,
 // any game related timing information should come from event timestamps
 int		Sys_Milliseconds( void );
+int64_t	Sys_Microseconds( void );
 
 void	Sys_SnapVector( float *v );
 
 qboolean Sys_RandomBytes( byte *string, int len );
-
-// the system console is shown when a dedicated server is running
-void	Sys_DisplaySystemConsole( qboolean show );
 
 int		Sys_GetProcessorId( char *vendor );
 
@@ -1347,7 +1341,6 @@ void	Sys_BeginProfiling( void );
 void	Sys_EndProfiling( void );
 
 qboolean Sys_LowPhysicalMemory( void );
-unsigned int Sys_ProcessorCount( void );
 
 void *Sys_LoadLibrary( const char *name );
 void *Sys_LoadFunction( void *handle, const char *name );

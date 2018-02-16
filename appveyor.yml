@@ -5,7 +5,7 @@ version: ETe-{branch}-{build}
 build_script:
   - ps: |
       cd src
-      msbuild /m /p:PlatformToolset=v141_xp;Configuration=$env:CONFIGURATION /t:botlib;libjpeg;renderer;Splines;wolf;wolfded wolf.sln
+      msbuild wolf.sln /m /p:PlatformToolset=v141_xp;Configuration=$env:CONFIGURATION /t:botlib;libjpeg;renderer;Splines;wolf;wolfded
 
       if (! $?) {
         throw "Build failed."

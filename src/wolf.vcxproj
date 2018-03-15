@@ -208,18 +208,6 @@ nmake /f Makefile.vc6 CFG=release
     <ClCompile Include="qcommon\pbmd5.c" />
     <ClCompile Include="qcommon\q_math.c" />
     <ClCompile Include="qcommon\q_shared.c" />
-    <ClCompile Include="null\null_client.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="null\null_input.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="null\null_snddma.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="qcommon\cmd.c" />
     <ClCompile Include="qcommon\cm_load.c" />
     <ClCompile Include="qcommon\cm_patch.c" />

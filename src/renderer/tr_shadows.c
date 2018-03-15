@@ -25,7 +25,6 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-
 #include "tr_local.h"
 
 
@@ -42,11 +41,11 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 typedef struct {
-	int i2;
-	int facing;
+	int		i2;
+	int		facing;
 } edgeDef_t;
 
-#define MAX_EDGE_DEFS   32
+#define	MAX_EDGE_DEFS	32
 
 static	edgeDef_t	edgeDefs[SHADER_MAX_VERTEXES][MAX_EDGE_DEFS];
 static	int			numEdgeDefs[SHADER_MAX_VERTEXES];
@@ -54,11 +53,11 @@ static	int			facing[SHADER_MAX_INDEXES/3];
 static	vec3_t		shadowXyz[SHADER_MAX_VERTEXES];
 
 void R_AddEdgeDef( int i1, int i2, int facing ) {
-	int c;
+	int		c;
 
 	c = numEdgeDefs[ i1 ];
 	if ( c == MAX_EDGE_DEFS ) {
-		return;     // overflow
+		return;		// overflow
 	}
 	edgeDefs[ i1 ][ c ].i2 = i2;
 	edgeDefs[ i1 ][ c ].facing = facing;
@@ -67,24 +66,24 @@ void R_AddEdgeDef( int i1, int i2, int facing ) {
 }
 
 void R_RenderShadowEdges( void ) {
-	int i;
+	int		i;
 
 #if 0
-	int numTris;
+	int		numTris;
 
 	// dumb way -- render every triangle's edges
 	numTris = tess.numIndexes / 3;
 
 	for ( i = 0 ; i < numTris ; i++ ) {
-		int i1, i2, i3;
+		int		i1, i2, i3;
 
 		if ( !facing[i] ) {
 			continue;
 		}
 
-		i1 = tess.indexes[ i * 3 + 0 ];
-		i2 = tess.indexes[ i * 3 + 1 ];
-		i3 = tess.indexes[ i * 3 + 2 ];
+		i1 = tess.indexes[ i*3 + 0 ];
+		i2 = tess.indexes[ i*3 + 1 ];
+		i3 = tess.indexes[ i*3 + 2 ];
 
 		qglBegin( GL_TRIANGLE_STRIP );
 		qglVertex3fv( tess.xyz[ i1 ] );
@@ -98,11 +97,11 @@ void R_RenderShadowEdges( void ) {
 		qglEnd();
 	}
 #else
-	int c, c2;
-	int j, k;
-	int i2;
-	int c_edges, c_rejected;
-	int hit[2];
+	int		c, c2;
+	int		j, k;
+	int		i2;
+	int		c_edges, c_rejected;
+	int		hit[2];
 
 	// an edge is NOT a silhouette edge if its face doesn't face the light,
 	// or if it has a reverse paired edge that also faces the light.
@@ -186,14 +185,14 @@ void RB_ShadowTessEnd( void ) {
 
 	numTris = tess.numIndexes / 3;
 	for ( i = 0 ; i < numTris ; i++ ) {
-		int i1, i2, i3;
-		vec3_t d1, d2, normal;
-		float   *v1, *v2, *v3;
-		float d;
+		int		i1, i2, i3;
+		vec3_t	d1, d2, normal;
+		float	*v1, *v2, *v3;
+		float	d;
 
-		i1 = tess.indexes[ i * 3 + 0 ];
-		i2 = tess.indexes[ i * 3 + 1 ];
-		i3 = tess.indexes[ i * 3 + 2 ];
+		i1 = tess.indexes[ i*3 + 0 ];
+		i2 = tess.indexes[ i*3 + 1 ];
+		i3 = tess.indexes[ i*3 + 2 ];
 
 		v1 = tess.xyz[ i1 ];
 		v2 = tess.xyz[ i2 ];
@@ -219,39 +218,25 @@ void RB_ShadowTessEnd( void ) {
 	// draw the silhouette edges
 
 	GL_Bind( tr.whiteImage );
-	qglEnable( GL_CULL_FACE );
 	GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO );
 	qglColor3f( 0.2f, 0.2f, 0.2f );
 
 	// don't write to the color buffer
-	qglGetBooleanv(GL_COLOR_WRITEMASK, rgba);
+	qglGetBooleanv( GL_COLOR_WRITEMASK, rgba );
 	qglColorMask( GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE );
 
 	qglEnable( GL_STENCIL_TEST );
 	qglStencilFunc( GL_ALWAYS, 1, 255 );
 
-	// mirrors have the culling order reversed
-	if ( backEnd.viewParms.isMirror ) {
-		qglCullFace( GL_FRONT );
-		qglStencilOp( GL_KEEP, GL_KEEP, GL_INCR );
+	GL_Cull( CT_BACK_SIDED );
+	qglStencilOp( GL_KEEP, GL_KEEP, GL_INCR );
 
-		R_RenderShadowEdges();
+	R_RenderShadowEdges();
 
-		qglCullFace( GL_BACK );
-		qglStencilOp( GL_KEEP, GL_KEEP, GL_DECR );
+	GL_Cull( CT_FRONT_SIDED );
+	qglStencilOp( GL_KEEP, GL_KEEP, GL_DECR );
 
-		R_RenderShadowEdges();
-	} else {
-		qglCullFace( GL_BACK );
-		qglStencilOp( GL_KEEP, GL_KEEP, GL_INCR );
-
-		R_RenderShadowEdges();
-
-		qglCullFace( GL_FRONT );
-		qglStencilOp( GL_KEEP, GL_KEEP, GL_DECR );
-
-		R_RenderShadowEdges();
-	}
+	R_RenderShadowEdges();
 
 
 	// reenable writing to the color buffer
@@ -280,7 +265,7 @@ void RB_ShadowFinish( void ) {
 	qglStencilFunc( GL_NOTEQUAL, 0, 255 );
 
 	qglDisable( GL_CLIP_PLANE0 );
-	qglDisable( GL_CULL_FACE );
+	GL_Cull( CT_TWO_SIDED );
 
 	GL_Bind( tr.whiteImage );
 
@@ -299,7 +284,7 @@ void RB_ShadowFinish( void ) {
 	qglVertex3f( -100, -100, -10 );
 	qglEnd();
 
-	qglColor4f( 1,1,1,1 );
+	qglColor4f( 1, 1, 1, 1 );
 	qglDisable( GL_STENCIL_TEST );
 }
 
@@ -311,14 +296,14 @@ RB_ProjectionShadowDeform
 =================
 */
 void RB_ProjectionShadowDeform( void ) {
-	float   *xyz;
-	int i;
-	float h;
-	vec3_t ground;
-	vec3_t light;
-	float groundDist;
-	float d;
-	vec3_t lightDir;
+	float	*xyz;
+	int		i;
+	float	h;
+	vec3_t	ground;
+	vec3_t	light;
+	float	groundDist;
+	float	d;
+	vec3_t	lightDir;
 
 	xyz = ( float * ) tess.xyz;
 
@@ -338,7 +323,7 @@ void RB_ProjectionShadowDeform( void ) {
 	d = DotProduct( lightDir, ground );
 	// don't let the shadows get too long or go negative
 	if ( d < 0.5 ) {
-		VectorMA( lightDir, ( 0.5 - d ), ground, lightDir );
+		VectorMA( lightDir, (0.5 - d), ground, lightDir );
 		d = DotProduct( lightDir, ground );
 	}
 	d = 1.0 / d;

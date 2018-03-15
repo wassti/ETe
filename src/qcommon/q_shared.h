@@ -66,6 +66,10 @@ If you have questions concerning this license or the applicable additional terms
 
 #define NEW_ANIMS
 #define MAX_TEAMNAME    32
+#define MAX_MASTER_SERVERS      5	// number of supported master servers
+
+#define GAMENAME_FOR_MASTER		"ET"
+#define HEARTBEAT_FOR_MASTER	"EnemyTerritory-1"
 
 #define DEMOEXT	"dm_"			// standard demo extension
 
@@ -279,7 +283,7 @@ typedef int		clipHandle_t;
 #define MAX_TOKEN_CHARS     1024    // max length of an individual token
 
 #define	MAX_INFO_STRING		1024
-#define	MAX_INFO_KEY		  1024
+#define	MAX_INFO_KEY		1024
 #define	MAX_INFO_VALUE		1024
 
 #define MAX_USERINFO_LENGTH (MAX_INFO_STRING-12-19) // incl. length of 'connect ""' or 'userinfo ""' and '\ip\255.255.255.255' key on server side
@@ -921,6 +925,9 @@ typedef enum {
 
 //=============================================
 
+extern const byte locase[ 256 ];
+extern const byte upcase[ 256 ];
+
 int Q_isprint( int c );
 int Q_islower( int c );
 int Q_isupper( int c );
@@ -1010,12 +1017,11 @@ void Com_TruncateLongString( char *buffer, const char *s );
 // key / value info strings
 //
 char *Info_ValueForKey( const char *s, const char *key );
-void Info_RemoveKey( char *s, const char *key );
-void Info_RemoveKey_big( char *s, const char *key );
-void Info_SetValueForKey( char *s, const char *key, const char *value );
-void Info_SetValueForKey_Big( char *s, const char *key, const char *value );
+int Info_RemoveKey( char *s, const char *key );
+qboolean Info_SetValueForKey( char *s, const char *key, const char *value );
+qboolean Info_SetValueForKey_Big( char *s, const char *key, const char *value );
 qboolean Info_Validate( const char *s );
-void Info_NextPair( const char **s, char *key, char *value );
+qboolean Info_NextPair( const char **s, char *key, char *value );
 
 // this is only here so the functions in q_shared.c and bg_*.c can link
 void	NORETURN QDECL Com_Error( errorParm_t level, const char *fmt, ... ) __attribute__ ((format (printf, 2, 3)));
@@ -1096,6 +1102,7 @@ typedef enum {
 typedef enum {
 	CVG_NONE = 0,
 	CVG_RENDERER,
+	CVG_SERVER,
 	CVG_MAX,
 } cvarGroup_t;
 

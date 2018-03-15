@@ -376,8 +376,9 @@ typedef struct shader_s {
 
 	cullType_t cullType;                // CT_FRONT_SIDED, CT_BACK_SIDED, or CT_TWO_SIDED
 	qboolean polygonOffset;             // set for decals and other items that must be offset
-	qboolean noMipMaps;                 // for console fonts, 2D elements, etc.
-	qboolean noPicMip;                  // for images that must always be full resolution
+	qboolean	noMipMaps:1;			// for console fonts, 2D elements, etc.
+	qboolean	noPicMip:1;				// for images that must always be full resolution
+	qboolean	noLightScale:1;
 
 	fogPass_t fogPass;                  // draw a blended pass, possibly with depth test equals
 
@@ -403,6 +404,8 @@ typedef struct shader_s {
 	short		vboVPindex;
 	short		vboFPindex;
 	qboolean	hasScreenMap;
+
+	float		lightmapOffset[2];
 
 	void	(*optimalStageIteratorFunc)( void );
 
@@ -1149,11 +1152,7 @@ newest: (fixes shader index not having enough bytes)
 0 - 1	: dlightmap index
 
 */
-#ifdef USE_RENDERER2
-#define	DLIGHT_BITS 2
-#else
 #define	DLIGHT_BITS 1 // qboolean in opengl1 renderer
-#endif
 #define	DLIGHT_MASK ((1<<DLIGHT_BITS)-1)
 #define	FOGNUM_BITS 5
 #define	FOGNUM_MASK ((1<<FOGNUM_BITS)-1)
@@ -1164,6 +1163,7 @@ newest: (fixes shader index not having enough bytes)
 #if (QSORT_SHADERNUM_SHIFT+SHADERNUM_BITS) > 32
 	#error "Need to update sorting, too many bits."
 #endif
+#define QSORT_REFENTITYNUM_MASK (REFENTITYNUM_MASK << QSORT_REFENTITYNUM_SHIFT)
 
 extern	int			gl_filter_min, gl_filter_max;
 
@@ -1311,7 +1311,7 @@ typedef struct {
 	const byte				*externalVisData;	// from RE_SetWorldVisData, shared with CM_Load
 
 	image_t					*defaultImage;
-	image_t					*scratchImage[32];
+	image_t					*scratchImage[ MAX_VIDEO_HANDLES ];
 	image_t					*fogImage;
 	image_t					*dlightImage;	// inverse-quare highlight for projective adding
 	image_t					*flareImage;
@@ -1330,6 +1330,7 @@ typedef struct {
 
 	int						numLightmaps;
 	image_t                 *lightmaps[MAX_LIGHTMAPS];
+	float					lightmapScale[2];
 
 	trRefEntity_t			*currentEntity;
 	trRefEntity_t			worldEntity;		// point currentEntity at this when rendering world
@@ -1438,6 +1439,7 @@ extern cvar_t	*r_drawSun;				// controls drawing of sun quad
 										// "1" draw sun
 										// "2" also draw lens flare effect centered on sun
 extern cvar_t   *r_dynamiclight;        // dynamic lights enabled/disabled
+extern cvar_t	*r_mergeLightmaps;
 #ifdef USE_PMLIGHT
 extern cvar_t	*r_dlightMode;			// 0 - vq3, 1 - pmlight
 extern cvar_t	*r_dlightSpecPower;		// 1 - 32
@@ -1530,8 +1532,9 @@ extern	cvar_t	*r_mapGrayScale;
 extern cvar_t  *r_debugSurface;
 extern cvar_t  *r_simpleMipMaps;
 
-extern cvar_t  *r_showImages;
-extern cvar_t  *r_debugSort;
+extern	cvar_t	*r_showImages;
+extern	cvar_t	*r_defaultImage;
+extern	cvar_t	*r_debugSort;
 
 extern cvar_t  *r_printShaders;
 extern cvar_t  *r_saveFontData;

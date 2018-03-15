@@ -669,7 +669,7 @@ CL_FinishMove
 ==============
 */
 void CL_FinishMove( usercmd_t *cmd ) {
-	int i;
+	int		i;
 
 	// copy the state that the cgame is currently sending
 	cmd->weapon = cl.cgameUserCmdValue;
@@ -682,8 +682,8 @@ void CL_FinishMove( usercmd_t *cmd ) {
 	// can be determined without allowing cheating
 	cmd->serverTime = cl.serverTime;
 
-	for ( i = 0 ; i < 3 ; i++ ) {
-		cmd->angles[i] = ANGLE2SHORT( cl.viewangles[i] );
+	for (i=0 ; i<3 ; i++) {
+		cmd->angles[i] = ANGLE2SHORT(cl.viewangles[i]);
 	}
 }
 
@@ -723,7 +723,7 @@ usercmd_t CL_CreateCmd( void ) {
 		cl.viewangles[PITCH] = oldAngles[PITCH] - 90;
 	}
 
-	// RF, set the kickAngles so aiming is effected
+	// RF, set the kickAngles so aiming is affected
 	recoilAdd = cl_recoilPitch->value;
 	if ( Q_fabs( cl.viewangles[PITCH] + recoilAdd ) < 40 ) {
 		cl.viewangles[PITCH] += recoilAdd;
@@ -959,8 +959,9 @@ void CL_WritePacket( void ) {
 		Com_Printf( "%i ", buf.cursize );
 	}
 
-	CL_Netchan_Transmit (&clc.netchan, &buf);	
+	CL_Netchan_Transmit( &clc.netchan, &buf );
 }
+
 
 /*
 =================
@@ -993,6 +994,7 @@ void CL_SendCmd( void ) {
 
 	CL_WritePacket();
 }
+
 
 /*
 ============

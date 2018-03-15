@@ -46,6 +46,8 @@ typedef enum
 	IMGFLAG_CLAMPTOEDGE    = 0x0040,
 	IMGFLAG_GENNORMALMAP   = 0x0080,
 	IMGFLAG_LIGHTMAP       = 0x0100,
+	IMGFLAG_NOSCALE        = 0x0200,
+	IMGFLAG_CLAMPTOBORDER  = 0x0400,
 } imgFlags_t;
 
 typedef struct image_s {
@@ -56,11 +58,11 @@ typedef struct image_s {
 
 	int			frameUsed;			// for texture usage in frame statistics
 
-	int			internalFormat;
+	GLint		internalFormat;
 	int			TMU;				// only needed for voodoo2
 
-	imgType_t   type;
-	imgFlags_t  flags;
+	imgType_t	type;
+	imgFlags_t	flags;
 
 	int				hash;
 	struct image_s*	next;
@@ -125,7 +127,8 @@ void *R_GetImageBuffer( int size, bufferMemType_t bufferType );
 void R_FreeImageBuffer( void );
 
 image_t *R_FindImageFile( const char *name, imgType_t type, imgFlags_t flags );
-image_t *R_CreateImage( const char *name, byte *pic, int width, int height, imgType_t type, imgFlags_t flags, int internalFormat );
+image_t *R_CreateImage( const char *name, byte *pic, int width, int height, imgType_t type, imgFlags_t flags, GLint internalFormat );
+void R_UploadSubImage( unsigned *data, int x, int y, int width, int height, image_t *image );
 
 void R_IssuePendingRenderCommands( void );
 qhandle_t RE_RegisterShaderLightMap( const char *name, int lightmapIndex );

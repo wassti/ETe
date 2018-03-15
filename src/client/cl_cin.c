@@ -63,8 +63,6 @@ If you have questions concerning this license or the applicable additional terms
 #define ZA_SOUND_MONO       0x1020
 #define ZA_SOUND_STEREO     0x1021
 
-#define MAX_VIDEO_HANDLES   16
-
 extern int s_soundtime;
 
 static void RoQ_init( void );

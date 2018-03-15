@@ -78,7 +78,6 @@ cvar_t	*m_filter;
 
 cvar_t	*cl_activeAction;
 
-
 cvar_t	*cl_motdString;
 
 cvar_t	*cl_allowDownload;
@@ -1480,6 +1479,11 @@ void CL_ForwardCommandToServer( const char *string ) {
 		return;
 	}
 
+	// no userinfo updates from command line
+	if ( !strcmp( cmd, "userinfo" ) ) {
+		return;
+	}
+
 	if ( clc.demoplaying || cls.state < CA_CONNECTED || cmd[0] == '+' ) {
 		Com_Printf( "Unknown command \"%s" S_COLOR_WHITE "\"\n", cmd );
 		return;
@@ -1541,11 +1545,12 @@ static void CL_ForwardToServer_f( void ) {
 		Com_Printf ("Not connected to a server.\n");
 		return;
 	}
-	
+
+	if ( Cmd_Argc() <= 1 || strcmp( Cmd_Argv( 1 ), "userinfo" ) == 0 )
+		return;
+
 	// don't forward the first argument
-	if ( Cmd_Argc() > 1 ) {
-		CL_AddReliableCommand( Cmd_Args(), qfalse );
-	}
+	CL_AddReliableCommand( Cmd_ArgsFrom( 1 ), qfalse );
 }
 
 
@@ -1833,9 +1838,12 @@ void CL_Rcon_f( void ) {
 CL_SendPureChecksums
 =================
 */
-void CL_SendPureChecksums( void ) {
-	char cMsg[ MAX_STRING_CHARS ];
+static void CL_SendPureChecksums( void ) {
+	char cMsg[ MAX_STRING_CHARS-1 ];
 	int len;
+
+	if ( !cl_connectedToPureServer || clc.demoplaying )
+		return;
 
 	// if we are pure we need to send back a command with our referenced pk3 checksums
 	len = sprintf( cMsg, "cp %d ", cl.serverId );
@@ -1918,9 +1926,7 @@ static void CL_Vid_Restart( void ) {
 		cls.cgameStarted = qtrue;
 		CL_InitCGame();
 		// send pure checksums
-		if ( !clc.demoplaying ) {
-			CL_SendPureChecksums();
-		}
+		CL_SendPureChecksums();
 	}
 
 	cls.startCgame = qfalse;
@@ -2109,16 +2115,6 @@ static void CL_CompleteCallvote( char *args, int argNum )
 	}
 }
 
-/*
-==============
-CL_EatMe_f
-
-Eat misc console commands to prevent exploits
-==============
-*/
-//void CL_EatMe_f( void ) {
-	//do nothing kthxbye
-//}
 
 //====================================================================
 
@@ -2281,10 +2277,10 @@ void CL_NextDownload( void )
 			return;
 		}
 
-		*s++ = 0;
+		*s++ = '\0';
 		localName = s;
 		if ( (s = strchr(s, '@')) != NULL )
-			*s++ = 0;
+			*s++ = '\0';
 		else
 			s = localName + strlen(localName); // point at the null byte
 
@@ -2380,7 +2376,7 @@ void CL_InitDownloads( void ) {
 			// if autodownloading is not enabled on the server
 			cls.state = CA_CONNECTED;
 
-			*clc.downloadTempName = *clc.downloadName = 0;
+			*clc.downloadTempName = *clc.downloadName = '\0';
 			Cvar_Set( "cl_downloadName", "" );
 
 			CL_NextDownload();
@@ -3042,7 +3038,7 @@ static void CL_ConnectionlessPacket( const netadr_t *from, msg_t *msg ) {
 		return;
 	}
 
-	Com_DPrintf( "Unknown connectionless packet command.\n" );
+	Com_DPrintf ("Unknown connectionless packet command.\n");
 }
 
 
@@ -4122,7 +4118,7 @@ static void CL_ModeList_f( void )
 }
 
 
-void CL_InitGLimp_Cvars( void )
+static void CL_InitGLimp_Cvars( void )
 {
 	// shared with GLimp
 	r_allowSoftwareGL = Cvar_Get( "r_allowSoftwareGL", "0", CVAR_LATCH );
@@ -4272,7 +4268,7 @@ void CL_Init( void ) {
 
 	cl_bypassMouseInput = Cvar_Get( "cl_bypassMouseInput", "0", 0 ); //CVAR_ROM );			// NERVE - SMF
 
-	cl_doubletapdelay = Cvar_Get( "cl_doubletapdelay", "350", CVAR_ARCHIVE ); // Arnout: double tap
+	cl_doubletapdelay = Cvar_Get( "cl_doubletapdelay", "350", CVAR_ARCHIVE_ND ); // Arnout: double tap
 
 	m_pitch = Cvar_Get( "m_pitch", "0.022", CVAR_ARCHIVE_ND );
 	m_yaw = Cvar_Get( "m_yaw", "0.022", CVAR_ARCHIVE_ND );
@@ -4501,7 +4497,7 @@ void CL_Shutdown( const char *finalmsg, qboolean quit ) {
 
 	Cmd_RemoveCommand ("cmd");
 	Cmd_RemoveCommand ("configstrings");
-	Cmd_RemoveCommand ("userinfo");
+	//Cmd_RemoveCommand ("userinfo");
 	Cmd_RemoveCommand ("clientinfo");
 	Cmd_RemoveCommand( "snd_reload" );
 	Cmd_RemoveCommand ("snd_restart");
@@ -4970,12 +4966,11 @@ static void CL_GlobalServers_f( void ) {
 	int			count, i, masterNum;
 	char		command[1024];
 	const char	*masteraddress;
-	char		*cmdname;
 	
 	if ( (count = Cmd_Argc()) < 3 || (masterNum = atoi(Cmd_Argv(1))) < 0 || masterNum > MAX_MASTER_SERVERS )
 	{
 		Com_Printf( "usage: globalservers <master# 0-%d> <protocol> [keywords]\n", MAX_MASTER_SERVERS );
-		return;	
+		return;
 	}
 
 	// request from all master servers
@@ -4996,7 +4991,7 @@ static void CL_GlobalServers_f( void ) {
 		}
 
 		if ( !numAddress ) {
-			Com_Printf( "CL_GlobalServers_f: Error: No master server addresses.\n" );
+			Com_Printf( "CL_GlobalServers_f: Error: No master server addresses.\n");
 		}
 		return;
 	}
@@ -5015,9 +5010,9 @@ static void CL_GlobalServers_f( void ) {
 
 	i = NET_StringToAdr( masteraddress, &to, NA_UNSPEC );
 	
-	if ( !i )
+	if ( i == 0 )
 	{
-		Com_Printf( "CL_GlobalServers_f: Error: could not resolve address of master %s\n", masteraddress);
+		Com_Printf( "CL_GlobalServers_f: Error: could not resolve address of master %s\n", masteraddress );
 		return;	
 	}
 	else if ( i == 2 )
@@ -5029,30 +5024,32 @@ static void CL_GlobalServers_f( void ) {
 	cls.pingUpdateSource = AS_GLOBAL;
 
 	// Use the extended query for IPv6 masters
-	if (to.type == NA_IP6 || to.type == NA_MULTICAST6)
+	if ( to.type == NA_IP6 || to.type == NA_MULTICAST6 )
 	{
-		cmdname = "getserversExt " "ET"/*GAMENAME_FOR_MASTER*/;
-
-		// TODO: test if we only have an IPv6 connection. If it's the case,
-		//       request IPv6 servers only by appending " ipv6" to the command
+		int v4enabled = Cvar_VariableIntegerValue( "net_enabled" ) & NET_ENABLEV4;
+		
+		if ( v4enabled )
+		{
+			Com_sprintf( command, sizeof( command ), "getserversExt %s %s",
+				GAMENAME_FOR_MASTER, Cmd_Argv(2) );
+		}
+		else
+		{
+			Com_sprintf( command, sizeof( command ), "getserversExt %s %s ipv6",
+				GAMENAME_FOR_MASTER, Cmd_Argv(2) );
+		}
 	}
-	else
-		cmdname = "getservers";
-	Com_sprintf( command, sizeof(command), "%s %s", cmdname, Cmd_Argv(2) );
+	else 
+		Com_sprintf( command, sizeof( command ), "getservers %s", Cmd_Argv(2) );
 
-	for (i=3; i < count; i++)
+	for ( i = 3; i < count; i++ )
 	{
 		const char *arg = Cmd_Argv( i );
 		if ( !Q_stricmp( arg, "\\game\\etf" ) )
 			continue;
-		Q_strcat(command, sizeof(command), " ");
-		Q_strcat(command, sizeof(command), arg);
+		Q_strcat( command, sizeof( command ), " " );
+		Q_strcat( command, sizeof( command ), arg );
 	}
-	
-	// if we are a demo, automatically add a "demo" keyword
-//	if ( Cvar_VariableValue( "fs_restrict" ) ) {
-//		buffptr += sprintf( buffptr, " demo" );
-//	}
 
 	NET_OutOfBandPrint( NS_SERVER, &to, "%s", command );
 }
@@ -5119,6 +5116,7 @@ void CL_GetPingInfo( int n, char *buf, int buflen )
 
 	Q_strncpyz( buf, cl_pinglist[n].info, buflen );
 }
+
 
 /*
 ==================

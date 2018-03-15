@@ -82,7 +82,7 @@ int SV_BotAllocateClient( int clientNum ) {
 	cl->lastPacketTime = svs.time;
 	cl->snapshotMsec = 1000 / sv_fps->integer;
 	cl->netchan.remoteAddress.type = NA_BOT;
-	cl->rate = 100000;
+	cl->rate = 0;
 
 	return i;
 }
@@ -93,7 +93,7 @@ SV_BotFreeClient
 ==================
 */
 void SV_BotFreeClient( int clientNum ) {
-	client_t    *cl;
+	client_t	*cl;
 
 	if ( clientNum < 0 || clientNum >= sv_maxclients->integer ) {
 		Com_Error( ERR_DROP, "SV_BotFreeClient: bad clientNum: %i", clientNum );

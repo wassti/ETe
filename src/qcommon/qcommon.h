@@ -306,8 +306,6 @@ You or the server may be running older versions of the game. Press the auto-upda
 // NOTE: that stuff only works with two digits protocols
 extern const int demo_protocols[];
 
-#define MAX_MASTER_SERVERS  5
-
 // NERVE - SMF - wolf multiplayer master servers
 #ifndef MASTER_SERVER_NAME
 	#define MASTER_SERVER_NAME      "etmaster.idsoftware.com"
@@ -471,7 +469,7 @@ files can be execed.
 
 */
 
-void Cbuf_Init (void);
+void Cbuf_Init( void );
 // allocates an initial text buffer that will grow as needed
 
 void Cbuf_AddText( const char *text );
@@ -480,7 +478,7 @@ void Cbuf_AddText( const char *text );
 void Cbuf_ExecuteText( cbufExec_t exec_when, const char *text );
 // this can be used in place of either Cbuf_AddText or Cbuf_InsertText
 
-void Cbuf_Execute (void);
+void Cbuf_Execute( void );
 // Pulls off \n terminated lines of text from the command buffer and sends
 // them through Cmd_ExecuteString.  Stops when the buffer is empty.
 // Normally called once per frame, but may be explicitly invoked.
@@ -497,7 +495,7 @@ then searches for a command or variable that matches the first token.
 
 typedef void (*xcommand_t) (void);
 
-void	Cmd_Init (void);
+void	Cmd_Init( void );
 
 void	Cmd_AddCommand( const char *cmd_name, xcommand_t function );
 // called by the init functions of other parts of the program to
@@ -515,21 +513,19 @@ void	Cmd_RemoveCommandSafe( const char *cmd_name );
 
 void	Cmd_CommandCompletion( void(*callback)(const char *s) );
 // callback with each valid string
-void Cmd_SetCommandCompletionFunc( const char *command,
-	completionFunc_t complete );
-void Cmd_CompleteArgument( const char *command, char *args, int argNum );
-void Cmd_CompleteCfgName( char *args, int argNum );
-void Cmd_CompleteWriteCfgName( char *args, int argNum );
+void	Cmd_SetCommandCompletionFunc( const char *command, completionFunc_t complete );
+void	Cmd_CompleteArgument( const char *command, char *args, int argNum );
+void	Cmd_CompleteCfgName( char *args, int argNum );
+void	Cmd_CompleteWriteCfgName( char *args, int argNum );
 
 int		Cmd_Argc( void );
 void	Cmd_Clear( void );
 char	*Cmd_Argv( int arg );
 void	Cmd_ArgvBuffer( int arg, char *buffer, int bufferLength );
-char	*Cmd_Args (void);
 char	*Cmd_ArgsFrom( int arg );
 char	*Cmd_ArgsRange( int arg, int count );
 void	Cmd_ArgsBuffer( char *buffer, int bufferLength );
-char	*Cmd_Cmd (void);
+char	*Cmd_Cmd( void );
 void	Cmd_Args_Sanitize( void );
 // The functions that execute commands get their parameters with these
 // functions. Cmd_Argv () will return an empty string, not a NULL
@@ -593,7 +589,7 @@ cvar_t	*Cvar_Set2(const char *var_name, const char *value, qboolean force);
 void	Cvar_SetSafe( const char *var_name, const char *value );
 // sometimes we set variables from an untrusted source: fail if flags & CVAR_PROTECTED
 
-void Cvar_SetLatched( const char *var_name, const char *value);
+void	Cvar_SetLatched( const char *var_name, const char *value);
 // don't set the cvar immediately
 
 void	Cvar_SetValue( const char *var_name, float value );
@@ -614,7 +610,7 @@ void	Cvar_VariableStringBufferSafe( const char *var_name, char *buffer, int bufs
 void    Cvar_LatchedVariableStringBuffer( const char *var_name, char *buffer, int bufsize );
 // Gordon: returns the latched value if there is one, else the normal one, empty string if not defined as usual
 
-int	Cvar_Flags(const char *var_name);
+int		Cvar_Flags(const char *var_name);
 // returns CVAR_NONEXISTENT if cvar doesn't exist or the flags of that particular CVAR.
 
 void	Cvar_CommandCompletion( void(*callback)(const char *s) );
@@ -649,10 +645,9 @@ void	Cvar_SetGroup( cvar_t *var, cvarGroup_t group );
 int		Cvar_CheckGroup( cvarGroup_t group );
 void	Cvar_ResetGroup( cvarGroup_t group, qboolean resetModifiedFlags );
 
-void	Cvar_Restart(qboolean unsetVM);
-void	Cvar_Restart_f( void );
+void	Cvar_Restart( qboolean unsetVM );
 
-void Cvar_CompleteCvarName( char *args, int argNum );
+void	Cvar_CompleteCvarName( char *args, int argNum );
 
 extern	int			cvar_modifiedFlags;
 // whenever a cvar is modifed, its flags will be OR'd into this, so
@@ -685,6 +680,7 @@ issues.
 
 typedef enum {
 	H_SYSTEM,
+	H_RENDERER,
 	H_QAGAME,
 	H_CGAME,
 	H_Q3UI
@@ -696,8 +692,11 @@ typedef enum {
 #define FS_MATCH_STICK  (1<<3)
 #define FS_MATCH_PK3s   (FS_MATCH_PURE | FS_MATCH_UNPURE)
 #define FS_MATCH_ANY    (FS_MATCH_EXTERN | FS_MATCH_PURE | FS_MATCH_UNPURE)
-#define MAX_FILE_HANDLES    64
+
+#define	MAX_FILE_HANDLES	64
 #define	FS_INVALID_HANDLE	0
+
+#define	MAX_FOUND_FILES		0x1000
 
 #ifdef DEDICATED
 #define Q3CONFIG_CFG "etconfig_server.cfg"
@@ -740,7 +739,6 @@ int		FS_GetZipChecksum( const char *zipfile );
 int		FS_LoadStack( void );
 
 int		FS_GetFileList(  const char *path, const char *extension, char *listbuf, int bufsize );
-int		FS_GetModList(  char *listbuf, int bufsize );
 
 fileHandle_t	FS_FOpenFileWrite( const char *qpath );
 // will properly create any needed paths and deal with seperater character issues
@@ -802,9 +800,6 @@ void	FS_FreeFile( void *buffer );
 void	FS_WriteFile( const char *qpath, const void *buffer, int size );
 // writes a complete file, creating any subdirectories needed
 
-int		FS_filelength( fileHandle_t f );
-// doesn't work for files that are opened from a pack file
-
 int		FS_FTell( fileHandle_t f );
 // where are we?
 
@@ -822,8 +817,7 @@ int		FS_Seek( fileHandle_t f, long offset, fsOrigin_t origin );
 qboolean FS_FilenameCompare( const char *s1, const char *s2 );
 
 const char *FS_LoadedPakNames( void );
-const char *FS_LoadedPakChecksums( void );
-const char *FS_LoadedPakPureChecksums( void );
+const char *FS_LoadedPakChecksums( qboolean *overflowed );
 // Returns a space separated string containing the checksums of all loaded pk3 files.
 // Servers with sv_pure set will get this string and pass it to clients.
 
@@ -844,9 +838,10 @@ void FS_PureServerSetLoadedPaks( const char *pakSums, const char *pakNames );
 // separated checksums will be checked for files, with the
 // sole exception of .cfg files.
 
+qboolean FS_IsPureChecksum( int sum );
+
 qboolean FS_InvalidGameDir( const char *gamedir );
 qboolean FS_idPak( const char *pak, const char *base );
-qboolean FS_VerifyOfficialPaks( void );
 qboolean FS_ComparePaks( char *neededpaks, int len, qboolean dlstring );
 
 void FS_Rename( const char *from, const char *to );
@@ -870,7 +865,6 @@ const char *FS_GetBaseGameDir( void );
 const char *FS_GetBasePath( void );
 const char *FS_GetHomePath( void );
 const char *FS_GetGamePath( void );
-
 
 qboolean FS_StripExt( char *filename, const char *ext );
 qboolean FS_AllowedExtension( const char *fileName, qboolean allowPk3s, const char **ext );
@@ -921,12 +915,12 @@ Edit fields and command line history/completion
 ==============================================================
 */
 
-#define MAX_EDIT_LINE   256
+#define	MAX_EDIT_LINE	256
 typedef struct {
-	int cursor;
-	int scroll;
-	int widthInChars;
-	char buffer[MAX_EDIT_LINE];
+	int		cursor;
+	int		scroll;
+	int		widthInChars;
+	char	buffer[MAX_EDIT_LINE];
 } field_t;
 
 void Field_Clear( field_t *edit );
@@ -1144,7 +1138,6 @@ void Com_TouchMemory( void );
 // commandLine should not include the executable name (argv[0])
 void Com_Init( char *commandLine );
 void Com_Frame( qboolean noDelay );
-void Com_Shutdown( qboolean badProfile );
 
 /*
 ==============================================================
@@ -1157,7 +1150,6 @@ CLIENT / SERVER SYSTEMS
 //
 // client interface
 //
-
 void CL_Init( void );
 void CL_ClearStaticDownload( void );
 qboolean CL_Disconnect( qboolean showMainMenu );
@@ -1228,6 +1220,7 @@ void SCR_DebugGraph( float value, int color );   // FIXME: move logging to commo
 void SV_Init( void );
 void SV_Shutdown( const char *finalmsg );
 void SV_Frame( int msec );
+void SV_TrackCvarChanges( void );
 void SV_PacketEvent( const netadr_t *from, msg_t *msg );
 int SV_FrameMsec( void );
 qboolean SV_GameCommand( void );

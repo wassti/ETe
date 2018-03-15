@@ -56,7 +56,7 @@ next frame.  This allows commands like:
 bind g "cmd use rocket ; +attack ; wait ; -attack ; cmd use blaster"
 ============
 */
-void Cmd_Wait_f( void ) {
+static void Cmd_Wait_f( void ) {
 	if ( Cmd_Argc() == 2 ) {
 		cmd_wait = atoi( Cmd_Argv( 1 ) );
 		if ( cmd_wait < 0 )
@@ -277,7 +277,7 @@ void Cbuf_Execute( void )
 Cmd_Exec_f
 ===============
 */
-void Cmd_Exec_f( void ) {
+static void Cmd_Exec_f( void ) {
 	qboolean quiet;
 	union {
 		char *c;
@@ -316,7 +316,7 @@ Cmd_Vstr_f
 Inserts the current value of a variable as command text
 ===============
 */
-void Cmd_Vstr_f( void ) {
+static void Cmd_Vstr_f( void ) {
 	const char *v;
 
 	if ( Cmd_Argc () != 2 ) {
@@ -336,19 +336,20 @@ Cmd_Echo_f
 Just prints the rest of the line to the console
 ===============
 */
-void Cmd_Echo_f( void ) {
+static void Cmd_Echo_f( void )
+{
 #ifdef DEDICATED
-	Com_Printf ("%s\n", Cmd_Args());
+	Com_Printf ("%s\n", Cmd_ArgsFrom( 1 ) );
 #else
 	if ( com_dedicated && !com_dedicated->integer ) {
 
 		if ( com_cl_running && com_cl_running->integer && CL_CgameRunning() )
-			Cbuf_AddText( va("cpm \"%s\"\n", Cmd_Args() ) );
+			Cbuf_AddText( va( "cpm \"%s\"\n", Cmd_ArgsFrom( 1 ) ) );
 		else
-			Com_Printf ("%s\n", Cmd_Args());
+			Com_Printf( "%s\n", Cmd_ArgsFrom( 1 ) );
 	}
 	else {
-		Com_Printf ("%s\n", Cmd_Args());
+		Com_Printf( "%s\n", Cmd_ArgsFrom( 1 ) );
 	}
 #endif
 }
@@ -426,45 +427,23 @@ void Cmd_ArgvBuffer( int arg, char *buffer, int bufferLength ) {
 
 /*
 ============
-Cmd_Args
-
-Returns a single string containing argv(1) to argv(argc()-1)
-============
-*/
-char *Cmd_Args( void ) {
-	static char cmd_args[MAX_STRING_CHARS];
-	int i;
-
-	cmd_args[0] = '\0';
-	for ( i = 1 ; i < cmd_argc ; i++ ) {
-		strcat( cmd_args, cmd_argv[i] );
-		if ( i != cmd_argc-1 ) {
-			strcat( cmd_args, " " );
-		}
-	}
-
-	return cmd_args;
-}
-
-
-/*
-============
-Cmd_Args
+Cmd_ArgsFrom
 
 Returns a single string containing argv(arg) to argv(argc()-1)
 ============
 */
 char *Cmd_ArgsFrom( int arg ) {
-	static char cmd_args[BIG_INFO_STRING];
+	static char cmd_args[BIG_INFO_STRING], *s;
 	int i;
 
-	cmd_args[0] = '\0';
+	s = cmd_args;
+	*s = '\0';
 	if (arg < 0)
 		arg = 0;
 	for ( i = arg ; i < cmd_argc ; i++ ) {
-		strcat( cmd_args, cmd_argv[i] );
+		s = Q_stradd( s, cmd_argv[i] );
 		if ( i != cmd_argc-1 ) {
-			strcat( cmd_args, " " );
+			s = Q_stradd( s, " " );
 		}
 	}
 
@@ -473,24 +452,25 @@ char *Cmd_ArgsFrom( int arg ) {
 
 /*
 ============
-Cmd_Args
+Cmd_ArgsRange
 
 Returns a single string containing argv(arg) to argv(count-1)
 ============
 */
 char *Cmd_ArgsRange( int arg, int count ) {
-	static	char		cmd_args[BIG_INFO_STRING];
-	int		i;
+	static char cmd_args[BIG_INFO_STRING], *s;
+	int i;
 
-	cmd_args[0] = '\0';
+	s = cmd_args;
+	*s = '\0';
 	if (arg < 0)
 		arg = 0;
 	if (count > cmd_argc)
 		count = cmd_argc;
 	for ( i = arg ; i < count ; i++ ) {
-		strcat( cmd_args, cmd_argv[i] );
+		s = Q_stradd( s, cmd_argv[i] );
 		if ( i != count-1 ) {
-			strcat( cmd_args, " " );
+			s = Q_stradd( s, " " );
 		}
 	}
 
@@ -506,7 +486,7 @@ they can't have pointers returned to them
 ============
 */
 void Cmd_ArgsBuffer( char *buffer, int bufferLength ) {
-	Q_strncpyz( buffer, Cmd_Args(), bufferLength );
+	Q_strncpyz( buffer, Cmd_ArgsFrom( 1 ), bufferLength );
 }
 
 
@@ -531,12 +511,11 @@ char *Cmd_Cmd( void )
    https://bugzilla.icculus.org/show_bug.cgi?id=3593
    https://bugzilla.icculus.org/show_bug.cgi?id=4769
 */
-
 void Cmd_Args_Sanitize( void )
 {
 	int i;
 
-	for(i = 1; i < cmd_argc; i++)
+	for( i = 1; i < cmd_argc; i++ )
 	{
 		char *c = cmd_argv[i];
 		
@@ -574,18 +553,19 @@ static void Cmd_TokenizeString2( const char *text_in, qboolean ignoreQuotes ) {
 
 	// clear previous args
 	cmd_argc = 0;
+	cmd_cmd[0] = '\0';
 
 	if ( !text_in ) {
 		return;
 	}
 	
-	Q_strncpyz( cmd_cmd, text_in, sizeof(cmd_cmd) );
+	Q_strncpyz( cmd_cmd, text_in, sizeof( cmd_cmd ) );
 
-	text = text_in;
+	text = cmd_cmd; // read from safe-length buffer
 	textOut = cmd_tokenized;
 
 	while ( 1 ) {
-		if ( cmd_argc >= MAX_STRING_TOKENS ) {
+		if ( cmd_argc >= ARRAY_LEN( cmd_argv ) ) {
 			return;			// this is usually something malicious
 		}
 
@@ -600,9 +580,9 @@ static void Cmd_TokenizeString2( const char *text_in, qboolean ignoreQuotes ) {
 
 			// skip // comments
 			if ( text[0] == '/' && text[1] == '/' ) {
-				//bani - lets us put 'http://' in commandlines
-				if ( text == text_in || ( text > text_in && text[-1] != ':' ) ) {
-					return;         // all tokens parsed
+				// accept protocol headers (e.g. http://) in command lines that matching "*?[a-z]://" pattern
+				if ( text < cmd_cmd + 3 || text[-1] != ':' || text[-2] < 'a' || text[-2] > 'z' ) {
+					return; // all tokens parsed
 				}
 			}
 
@@ -629,7 +609,7 @@ static void Cmd_TokenizeString2( const char *text_in, qboolean ignoreQuotes ) {
 			while ( *text && *text != '"' ) {
 				*textOut++ = *text++;
 			}
-			*textOut++ = 0;
+			*textOut++ = '\0';
 			if ( !*text ) {
 				return;		// all tokens parsed
 			}
@@ -648,8 +628,8 @@ static void Cmd_TokenizeString2( const char *text_in, qboolean ignoreQuotes ) {
 			}
 
 			if ( text[0] == '/' && text[1] == '/' ) {
-				//bani - lets us put 'http://' in commandlines
-				if ( text == text_in || ( text > text_in && text[-1] != ':' ) ) {
+				// accept protocol headers (e.g. http://) in command lines that matching "*?[a-z]://" pattern
+				if ( text < cmd_cmd + 3 || text[-1] != ':' || text[-2] < 'a' || text[-2] > 'z' ) {
 					break;
 				}
 			}
@@ -668,7 +648,6 @@ static void Cmd_TokenizeString2( const char *text_in, qboolean ignoreQuotes ) {
 			return;		// all tokens parsed
 		}
 	}
-	
 }
 
 
@@ -697,7 +676,7 @@ void Cmd_TokenizeStringIgnoreQuotes( const char *text_in ) {
 Cmd_FindCommand
 ============
 */
-cmd_function_t *Cmd_FindCommand( const char *cmd_name )
+static cmd_function_t *Cmd_FindCommand( const char *cmd_name )
 {
 	cmd_function_t *cmd;
 	for( cmd = cmd_functions; cmd; cmd = cmd->next )
@@ -716,18 +695,16 @@ void Cmd_AddCommand( const char *cmd_name, xcommand_t function ) {
 	cmd_function_t *cmd;
 	
 	// fail if the command already exists
-	if( (cmd = Cmd_FindCommand( cmd_name )) != NULL )
+	if ( Cmd_FindCommand( cmd_name ) )
 	{
 		// allow completion-only commands to be silently doubled
 		if ( function != NULL )
 			Com_Printf( "Cmd_AddCommand: %s already defined\n", cmd_name );
-		// update function
-		cmd->function = function;
 		return;
 	}
 
 	// use a small malloc to avoid zone fragmentation
-	cmd = S_Malloc (sizeof(cmd_function_t));
+	cmd = S_Malloc( sizeof( *cmd ) );
 	cmd->name = CopyString( cmd_name );
 	cmd->function = function;
 	cmd->complete = NULL;
@@ -909,11 +886,11 @@ void Cmd_ExecuteString( const char *text ) {
 Cmd_List_f
 ============
 */
-void Cmd_List_f (void)
+static void Cmd_List_f( void )
 {
-	cmd_function_t *cmd;
+	const cmd_function_t *cmd;
+	const char *match;
 	int i;
-	char *match;
 
 	if ( Cmd_Argc() > 1 ) {
 		match = Cmd_Argv( 1 );
@@ -922,13 +899,13 @@ void Cmd_List_f (void)
 	}
 
 	i = 0;
-	for (cmd=cmd_functions ; cmd ; cmd=cmd->next) {
-		if (match && !Com_Filter(match, cmd->name, qfalse)) continue;
-
-		Com_Printf ("%s\n", cmd->name);
+	for ( cmd = cmd_functions ; cmd ; cmd=cmd->next ) {
+		if ( match && !Com_Filter( match, cmd->name, qfalse ) )
+			continue;
+		Com_Printf( "%s\n", cmd->name );
 		i++;
 	}
-	Com_Printf ("%i commands\n", i);
+	Com_Printf( "%i commands\n", i );
 }
 
 
@@ -937,13 +914,18 @@ void Cmd_List_f (void)
 Cmd_CompleteCfgName
 ==================
 */
-void Cmd_CompleteCfgName( char *args, int argNum ) {
+static void Cmd_CompleteCfgName( char *args, int argNum ) {
 	if( argNum == 2 ) {
 		Field_CompleteFilename( "", "cfg", qfalse, FS_MATCH_ANY );
 	}
 }
 
 
+/*
+==================
+Cmd_CompleteWriteCfgName
+==================
+*/
 void Cmd_CompleteWriteCfgName( char *args, int argNum ) {
 	if( argNum == 2 ) {
 		Field_CompleteFilename( "", "cfg", qfalse, FS_MATCH_EXTERN | FS_MATCH_STICK );

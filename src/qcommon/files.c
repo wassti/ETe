@@ -305,16 +305,18 @@ static fileHandleData_t	fsh[MAX_FILE_HANDLES];
 // wether we did a reorder on the current search path when joining the server
 static qboolean fs_reordered;
 
+#define MAX_REF_PAKS	MAX_STRING_TOKENS
+
 // never load anything from pk3 files that are not present at the server when pure
 static int		fs_numServerPaks = 0;
-static int		fs_serverPaks[MAX_SEARCH_PATHS];				// checksums
-static char		*fs_serverPakNames[MAX_SEARCH_PATHS];			// pk3 names
+static int		fs_serverPaks[MAX_REF_PAKS];			// checksums
+static char		*fs_serverPakNames[MAX_REF_PAKS];		// pk3 names
 
 // only used for autodownload, to make sure the client has at least
 // all the pk3 files that are referenced at the server side
 static int		fs_numServerReferencedPaks;
-static int		fs_serverReferencedPaks[MAX_SEARCH_PATHS];			// checksums
-static char		*fs_serverReferencedPakNames[MAX_SEARCH_PATHS];		// pk3 names
+static int		fs_serverReferencedPaks[MAX_REF_PAKS];		// checksums
+static char		*fs_serverReferencedPakNames[MAX_REF_PAKS];	// pk3 names
 
 // last valid game folder used
 static char	lastValidBase[MAX_OSPATH];
@@ -1072,7 +1074,7 @@ fileHandle_t FS_FOpenFileWrite( const char *filename ) {
 FS_FOpenFileAppend
 ===========
 */
-fileHandle_t FS_FOpenFileAppend( const char *filename ) {
+static fileHandle_t FS_FOpenFileAppend( const char *filename ) {
 	char			*ospath;
 	fileHandleData_t *fd;
 	fileHandle_t	f;
@@ -1244,7 +1246,7 @@ FS_IsDemoExt
 Return qtrue if filename has a demo extension
 ===========
 */
-qboolean FS_IsDemoExt( const char *filename, int namelen )
+static qboolean FS_IsDemoExt( const char *filename, int namelen )
 {
 	char *ext_test;
 	int index, protocol;
@@ -2336,13 +2338,13 @@ int FS_ReadFile( const char *qpath, void **buffer ) {
 		return len;
 	}
 
-	fs_loadCount++;
-	fs_loadStack++;
-
 	buf = Hunk_AllocateTempMemory( len + 1 );
 	*buffer = buf;
 
 	FS_Read( buf, len, h );
+
+	fs_loadCount++;
+	fs_loadStack++;
 
 	// guarantee that it will have a trailing 0 for string operations
 	buf[len] = '\0';
@@ -2624,13 +2626,11 @@ DIRECTORY SCANNING FUNCTIONS
 =================================================================================
 */
 
-#define	MAX_FOUND_FILES	0x1000
-
 static int FS_ReturnPath( const char *zname, char *zpath, int *depth ) {
 	int len, at, newdep;
 
 	newdep = 0;
-	zpath[0] = 0;
+	zpath[0] = '\0';
 	len = 0;
 	at = 0;
 
@@ -2643,7 +2643,7 @@ static int FS_ReturnPath( const char *zname, char *zpath, int *depth ) {
 		at++;
 	}
 	strcpy(zpath, zname);
-	zpath[len] = 0;
+	zpath[len] = '\0';
 	*depth = newdep;
 
 	return len;
@@ -2664,7 +2664,7 @@ char *FS_CopyString( const char *in ) {
 FS_AddFileToList
 ==================
 */
-static int FS_AddFileToList( const char *name, char *list[MAX_FOUND_FILES], int nfiles ) {
+static int FS_AddFileToList( const char *name, char **list, int nfiles ) {
 	int		i;
 
 	if ( nfiles == MAX_FOUND_FILES - 1 ) {
@@ -2944,7 +2944,7 @@ int	FS_GetFileList( const char *path, const char *extension, char *listbuf, int 
 	int		nFiles, i, nTotal, nLen;
 	char **pFiles = NULL;
 
-	*listbuf = 0;
+	*listbuf = '\0';
 	nFiles = 0;
 	nTotal = 0;
 
@@ -3042,7 +3042,7 @@ static char** Sys_ConcatenateFileLists( char **list0, char **list1 )
 FS_GetModDescription
 ================
 */
-void FS_GetModDescription( const char *modDir, char *description, int descriptionLen ) {
+static void FS_GetModDescription( const char *modDir, char *description, int descriptionLen ) {
 	fileHandle_t	descHandle;
 	char			descPath[MAX_QPATH];
 	int				nDescLen;
@@ -3067,6 +3067,7 @@ void FS_GetModDescription( const char *modDir, char *description, int descriptio
 	}
 }
 
+
 /*
 ================
 FS_GetModList
@@ -3075,7 +3076,7 @@ Returns a list of mod directory names
 A mod directory is a peer to baseq3 with a pk3 or pk3dir in it
 ================
 */
-int	FS_GetModList( char *listbuf, int bufsize ) {
+static int FS_GetModList( char *listbuf, int bufsize ) {
 	int i, j, k;
 	int	nMods, nTotal, nLen, nPaks, nPotential, nDescLen;
 	int nDirs, nPakDirs;
@@ -3092,7 +3093,7 @@ int	FS_GetModList( char *listbuf, int bufsize ) {
 	// paths to search for mods
 	cvar_t *const *paths[] = { &fs_basepath, &fs_homepath };
 
-	*listbuf = 0;
+	*listbuf = '\0';
 	nMods = nTotal = 0;
 
 	// iterate through paths and get list of potential mods
@@ -3184,7 +3185,7 @@ int	FS_GetModList( char *listbuf, int bufsize ) {
 FS_Dir_f
 ================
 */
-void FS_Dir_f( void ) {
+static void FS_Dir_f( void ) {
 	const char *path;
 	const char *extension;
 	char **dirnames;
@@ -3221,7 +3222,7 @@ void FS_Dir_f( void ) {
 FS_ConvertPath
 ===========
 */
-void FS_ConvertPath( char *s ) {
+static void FS_ConvertPath( char *s ) {
 	while (*s) {
 		if ( *s == '\\' || *s == ':' ) {
 			*s = '/';
@@ -3238,7 +3239,7 @@ FS_PathCmp
 Ignore case and seprator char distinctions
 ===========
 */
-int FS_PathCmp( const char *s1, const char *s2 ) {
+static int FS_PathCmp( const char *s1, const char *s2 ) {
 	int		c1, c2;
 	
 	do {
@@ -3305,7 +3306,7 @@ static void FS_SortFileList( char **filelist, int numfiles ) {
 FS_NewDir_f
 ================
 */
-void FS_NewDir_f( void ) {
+static void FS_NewDir_f( void ) {
 	const char *filter;
 	char	**dirnames;
 	char	dirname[ MAX_STRING_CHARS ];
@@ -3340,12 +3341,11 @@ void FS_NewDir_f( void ) {
 /*
 ============
 FS_Path_f
-
 ============
 */
-void FS_Path_f( void ) {
-	searchpath_t	*s;
-	int				i;
+static void FS_Path_f( void ) {
+	const searchpath_t *s;
+	int i;
 
 	Com_Printf( "Current search path:\n" );
 	for ( s = fs_searchpaths; s; s = s->next ) {
@@ -3372,6 +3372,7 @@ void FS_Path_f( void ) {
 	}
 }
 
+
 /*
 ============
 FS_TouchFile_f
@@ -3380,7 +3381,7 @@ The only purpose of this function is to allow game script files to copy
 arbitrary files furing an "fs_copyfiles 1" run.
 ============
 */
-void FS_TouchFile_f( void ) {
+static void FS_TouchFile_f( void ) {
 	fileHandle_t	f;
 
 	if ( Cmd_Argc() != 2 ) {
@@ -3394,23 +3395,25 @@ void FS_TouchFile_f( void ) {
 	}
 }
 
+
 /*
 ============
 FS_CompleteFileName
 ============
 */
-void FS_CompleteFileName( char *args, int argNum ) {
+static void FS_CompleteFileName( char *args, int argNum ) {
 	if( argNum == 2 ) {
 		Field_CompleteFilename( "", "", qfalse, FS_MATCH_ANY );
 	}
 }
+
 
 /*
 ============
 FS_Which_f
 ============
 */
-void FS_Which_f( void ) {
+static void FS_Which_f( void ) {
 	searchpath_t	*search;
 	char			*netpath;
 	pack_t			*pak;
@@ -3742,7 +3745,7 @@ qboolean FS_ComparePaks( char *neededpaks, int len, qboolean dlstring ) {
 	if (!fs_numServerReferencedPaks)
 		return qfalse; // Server didn't send any pack information along
 
-	*neededpaks = 0;
+	*neededpaks = '\0';
 
 	for ( i = 0 ; i < fs_numServerReferencedPaks ; i++ )
 	{
@@ -3967,8 +3970,53 @@ static void FS_ListOpenFiles_f( void ) {
 }
 
 
-void FS_Reload( void );
-static void FS_CheckIdPaks( void );
+/*
+=====================
+FS_LoadedPakPureChecksums
+=====================
+*/
+static int fs_numPureChecksums;
+static int fs_pureChecksum[ 8192 ];
+
+static void FS_LoadedPakPureChecksums( void )
+{
+	const searchpath_t *search;
+
+	fs_numPureChecksums = 0;
+	for ( search = fs_searchpaths ; search ; search = search->next ) {
+		if ( search->pack ) {
+			if ( fs_numPureChecksums >= ARRAY_LEN( fs_pureChecksum ) ) {
+				Com_DPrintf( "WARNING: pure checksums overflowed\n" );
+				fs_numPureChecksums = 0;
+				return;
+			}
+			fs_pureChecksum[ fs_numPureChecksums ] = search->pack->pure_checksum;
+			fs_numPureChecksums++;
+		}
+	}
+}
+
+
+/*
+================
+FS_IsPureChecksum
+================
+*/
+qboolean FS_IsPureChecksum( int sum )
+{
+	int i;
+
+	if ( fs_numPureChecksums == 0 )
+		return qtrue;
+	
+	for ( i = 0; i < fs_numPureChecksums; i++ )
+		if ( fs_pureChecksum[i] == sum )
+			return qtrue;
+
+	return qfalse;
+}
+
+
 /*
 ================
 FS_Startup
@@ -3995,7 +4043,7 @@ static void FS_Startup( void ) {
 	}
 
 	fs_homepath = Cvar_Get( "fs_homepath", homePath, CVAR_INIT | CVAR_PROTECTED | CVAR_PRIVATE );
-	fs_gamedirvar = Cvar_Get( "fs_game", "", CVAR_LATCH | CVAR_NORESTART | CVAR_SYSTEMINFO );
+	fs_gamedirvar = Cvar_Get( "fs_game", "", CVAR_INIT | CVAR_SYSTEMINFO );
 	Cvar_CheckRange( fs_gamedirvar, NULL, NULL, CV_FSPATH );
 
 	if ( !Q_stricmp( fs_basegame->string, fs_gamedirvar->string ) ) {
@@ -4035,6 +4083,9 @@ static void FS_Startup( void ) {
 	// https://zerowing.idsoftware.com/bugzilla/show_bug.cgi?id=506
 	// reorder the pure pk3 files according to server order
 	FS_ReorderPurePaks();
+
+	// get the pure checksums of the pk3 files loaded by the server
+	FS_LoadedPakPureChecksums();
 	
 	// print the current search paths
 	FS_Path_f();
@@ -4190,21 +4241,34 @@ Returns a space separated string containing the checksums of all loaded pk3 file
 Servers with sv_pure set will get this string and pass it to clients.
 =====================
 */
-const char *FS_LoadedPakChecksums( void ) {
+const char *FS_LoadedPakChecksums( qboolean *overflowed ) {
 	static char	info[BIG_INFO_STRING];
-	searchpath_t	*search;
+	searchpath_t *search;
+	char buf[ 32 ];
+	char *s, *max;
+	int len;
 
+	s = info;
 	info[0] = '\0';
+	max = &info[sizeof(info)-1];
+	*overflowed = qfalse;
 
 	for ( search = fs_searchpaths ; search ; search = search->next ) {
-		// is the element a pak file? 
-		if ( !search->pack ) {
+		// is the element a pak file?
+		if ( !search->pack )
 			continue;
+
+		if ( info[0] )
+			len = sprintf( buf, " %i", search->pack->checksum );
+		else
+			len = sprintf( buf, "%i", search->pack->checksum );
+
+		if ( s + len > max ) {
+			*overflowed = qtrue;
+			break;
 		}
-		if ( *info ) {
-			Q_strcat( info, sizeof( info ), " " );
-		}
-		Q_strcat( info, sizeof( info ), va( "%i", search->pack->checksum ) );
+
+		s = Q_stradd( s, buf );
 	}
 
 	return info;
@@ -4219,57 +4283,40 @@ Returns a space separated string containing the names of all loaded pk3 files.
 Servers with sv_pure set will get this string and pass it to clients.
 =====================
 */
+#ifndef DEDICATED
 const char *FS_LoadedPakNames( void ) {
 	static char	info[BIG_INFO_STRING];
-	searchpath_t	*search;
+	searchpath_t *search;
+	char buf[ sizeof(search->pack->pakGamename) + sizeof(search->pack->pakBasename) + 3 ];
+	char *s, *max;
+	int len;
 
+	s = info;
 	info[0] = '\0';
+	max = &info[sizeof(info)-1];
 
 	for ( search = fs_searchpaths ; search ; search = search->next ) {
 		// is the element a pak file?
-		if ( !search->pack ) {
+		if ( !search->pack )
 			continue;
-		}
-		if ( *info ) {
-			Q_strcat(info, sizeof( info ), " " );
-		}
+
 		// Arnout: changed to have the full path
-		//Q_strcat( info, sizeof( info ), search->pack->pakBasename );
-		Q_strcat( info, sizeof( info ), search->pack->pakGamename );
-		Q_strcat( info, sizeof( info ), "/" );
-		Q_strcat( info, sizeof( info ), search->pack->pakBasename );
+		if ( info[0] )
+			len = sprintf( buf, " %s/%s", search->pack->pakGamename, search->pack->pakBasename );
+			//len = sprintf( buf, " %s", search->pack->pakBasename );
+		else
+			len = sprintf( buf, "%s/%s", search->pack->pakGamename, search->pack->pakBasename );
+			//len = sprintf( buf, "%s", search->pack->pakBasename );
+
+		if ( s + len > max )
+			break;
+
+		s = Q_stradd( s, buf );
 	}
 
 	return info;
 }
-
-
-/*
-=====================
-FS_LoadedPakPureChecksums
-
-Returns a space separated string containing the pure checksums of all loaded pk3 files.
-Servers with sv_pure use these checksums to compare with the checksums the clients send
-back to the server.
-=====================
-*/
-const char *FS_LoadedPakPureChecksums( void ) {
-	static char	info[BIG_INFO_STRING];
-	searchpath_t	*search;
-
-	info[0] = 0;
-
-	for ( search = fs_searchpaths ; search ; search = search->next ) {
-		// is the element a pak file? 
-		if ( !search->pack ) {
-			continue;
-		}
-
-		Q_strcat( info, sizeof( info ), va("%i ", search->pack->pure_checksum ) );
-	}
-
-	return info;
-}
+#endif
 
 
 /*
@@ -4448,8 +4495,8 @@ void FS_PureServerSetLoadedPaks( const char *pakSums, const char *pakNames ) {
 	Cmd_TokenizeString( pakSums );
 
 	c = Cmd_Argc();
-	if ( c > MAX_SEARCH_PATHS ) {
-		c = MAX_SEARCH_PATHS;
+	if ( c > ARRAY_LEN( fs_serverPaks ) ) {
+		c = ARRAY_LEN( fs_serverPaks );
 	}
 
 	fs_numServerPaks = c;
@@ -4475,18 +4522,19 @@ void FS_PureServerSetLoadedPaks( const char *pakSums, const char *pakNames ) {
 		}
 	}
 
-	for ( i = 0 ; i < c ; i++ ) {
-		if (fs_serverPakNames[i]) {
-			Z_Free(fs_serverPakNames[i]);
+	for ( i = 0 ; i < ARRAY_LEN( fs_serverPakNames ) ; i++ ) {
+		if ( fs_serverPakNames[i] ) {
+			Z_Free( fs_serverPakNames[i] );
 		}
 		fs_serverPakNames[i] = NULL;
 	}
+
 	if ( pakNames && *pakNames ) {
 		Cmd_TokenizeString( pakNames );
 
 		d = Cmd_Argc();
-		if ( d > MAX_SEARCH_PATHS ) {
-			d = MAX_SEARCH_PATHS;
+		if ( d > ARRAY_LEN( fs_serverPakNames ) ) {
+			d = ARRAY_LEN( fs_serverPakNames );
 		}
 
 		for ( i = 0 ; i < d ; i++ ) {
@@ -4511,19 +4559,17 @@ void FS_PureServerSetReferencedPaks( const char *pakSums, const char *pakNames )
 	Cmd_TokenizeString( pakSums );
 
 	c = Cmd_Argc();
-	if ( c > MAX_SEARCH_PATHS ) {
-		c = MAX_SEARCH_PATHS;
+	if ( c > ARRAY_LEN( fs_serverReferencedPaks ) ) {
+		c = ARRAY_LEN( fs_serverReferencedPaks );
 	}
 
 	for ( i = 0 ; i < c ; i++ ) {
 		fs_serverReferencedPaks[i] = atoi( Cmd_Argv( i ) );
 	}
 
-	for (i = 0 ; i < ARRAY_LEN(fs_serverReferencedPakNames); i++)
-	{
-		if(fs_serverReferencedPakNames[i])
-			Z_Free(fs_serverReferencedPakNames[i]);
-
+	for ( i = 0 ; i < ARRAY_LEN( fs_serverReferencedPakNames ); i++ ) {
+		if ( fs_serverReferencedPakNames[i] )
+			Z_Free( fs_serverReferencedPakNames[i] );
 		fs_serverReferencedPakNames[i] = NULL;
 	}
 
@@ -4532,7 +4578,7 @@ void FS_PureServerSetReferencedPaks( const char *pakSums, const char *pakNames )
 
 		d = Cmd_Argc();
 
-		if(d > c)
+		if ( d > c )
 			d = c;
 
 		for ( i = 0 ; i < d ; i++ ) {
@@ -4546,7 +4592,7 @@ void FS_PureServerSetReferencedPaks( const char *pakSums, const char *pakNames )
 	}
 
 	// ensure that there are as many checksums as there are pak names.
-	if(d < c)
+	if ( d < c )
 		c = d;
 
 	fs_numServerReferencedPaks = c;	
@@ -4741,6 +4787,7 @@ int	FS_FOpenFileByMode( const char *qpath, fileHandle_t *f, fsMode_t mode ) {
 
 	return r;
 }
+
 
 int FS_FTell( fileHandle_t f ) {
 	int pos;

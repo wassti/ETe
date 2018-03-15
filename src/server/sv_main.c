@@ -90,14 +90,15 @@ cvar_t  *sv_packetdelay;
 // fretn
 cvar_t  *sv_fullmsg;
 
-cvar_t	*sv_banFile;
-
 cvar_t *sv_levelTimeReset;
 
 cvar_t  *sv_leanPakRefs = NULL;
 
+#ifdef USE_BANS
+cvar_t	*sv_banFile;
 serverBan_t serverBans[SERVER_MAXBANS];
 int serverBansCount = 0;
+#endif
 
 void SVC_GameCompleteStatus( const netadr_t *from );       // NERVE - SMF
 
@@ -118,12 +119,12 @@ SV_ExpandNewlines
 Converts newlines to "\n" so a line prints nicer
 ===============
 */
-char    *SV_ExpandNewlines( char *in ) {
-	static char string[1024];
-	int l;
+static const char *SV_ExpandNewlines( const char *in ) {
+	static char string[MAX_STRING_CHARS*2];
+	int		l;
 
 	l = 0;
-	while ( *in && l < sizeof( string ) - 3 ) {
+	while ( *in && l < sizeof(string) - 3 ) {
 		if ( *in == '\n' ) {
 			string[l++] = '\\';
 			string[l++] = 'n';
@@ -138,7 +139,7 @@ char    *SV_ExpandNewlines( char *in ) {
 		}
 		in++;
 	}
-	string[l] = 0;
+	string[l] = '\0';
 
 	return string;
 }
@@ -166,7 +167,7 @@ void SV_AddServerCommand( client_t *client, const char *cmd ) {
 	if ( client->reliableSequence - client->reliableAcknowledge == MAX_RELIABLE_COMMANDS + 1 ) {
 		Com_Printf( "===== pending server commands =====\n" );
 		for ( i = client->reliableAcknowledge + 1 ; i <= client->reliableSequence ; i++ ) {
-			Com_Printf( "cmd %5d: %s\n", i, client->reliableCommands[ i & ( MAX_RELIABLE_COMMANDS - 1 ) ] );
+			Com_Printf( "cmd %5d: %s\n", i, client->reliableCommands[ i & (MAX_RELIABLE_COMMANDS-1) ] );
 		}
 		Com_Printf( "cmd %5d: %s\n", i, cmd );
 		SV_DropClient( client, "Server command overflow" );
@@ -187,41 +188,39 @@ A NULL client will broadcast to all clients
 =================
 */
 void QDECL SV_SendServerCommand( client_t *cl, const char *fmt, ... ) {
-	va_list argptr;
-	byte message[MAX_MSGLEN];
-	client_t    *client;
-	int j;
-
-	va_start( argptr,fmt );
-	Q_vsnprintf( (char *)message, sizeof( message ), fmt, argptr );
+	va_list		argptr;
+	char		message[MAX_STRING_CHARS+128]; // slightly larger than allowed, to detect overflows
+	client_t	*client;
+	int			j, len;
+	
+	va_start( argptr, fmt );
+	len = Q_vsnprintf( message, sizeof( message ), fmt, argptr );
 	va_end( argptr );
 
-	// Fix to http://aluigi.altervista.org/adv/q3msgboom-adv.txt
-	// The actual cause of the bug is probably further downstream
-	// and should maybe be addressed later, but this certainly
-	// fixes the problem for now
-	if ( strlen ((char *)message) > 1022 ) {
-		return;
-	}
-
 	if ( cl != NULL ) {
-		SV_AddServerCommand( cl, (char *)message );
+		// outdated clients can't properly decode 1023-chars-long strings
+		// http://aluigi.altervista.org/adv/q3msgboom-adv.txt
+		if ( len <= 1022 || cl->longstr ) {
+			SV_AddServerCommand( cl, message );
+		}
 		return;
 	}
 
 	// hack to echo broadcast prints to console
-	if ( com_dedicated->integer && !strncmp( (char *)message, "print", 5 ) ) {
-		Com_Printf( "broadcast: %s\n", SV_ExpandNewlines( (char *)message ) );
+	if ( com_dedicated->integer && !strncmp( message, "print", 5 ) ) {
+		Com_Printf( "broadcast: %s\n", SV_ExpandNewlines( message ) );
 	}
 
-	// send the data to all relevent clients
+	// send the data to all relevant clients
 	for ( j = 0, client = svs.clients; j < sv_maxclients->integer ; j++, client++ ) {
 		// Ridah, don't need to send messages to AI
 		if ( client->gentity && client->gentity->r.svFlags & SVF_BOT ) {
 			continue;
 		}
 		// done.
-		SV_AddServerCommand( client, (char *)message );
+		if ( len <= 1022 || client->longstr ) {
+			SV_AddServerCommand( client, message );
+		}
 	}
 }
 
@@ -246,13 +245,9 @@ but not on every player enter or exit.
 ================
 */
 #define HEARTBEAT_MSEC  300 * 1000
-//#define	HEARTBEAT_GAME	"Wolfenstein-1"
-//#define	HEARTBEAT_DEAD	"WolfFlatline-1"			// NERVE - SMF
-#define HEARTBEAT_GAME  "EnemyTerritory-1"
-#define HEARTBEAT_DEAD  "ETFlatline-1"           // NERVE - SMF
-
 #define	MASTERDNS_MSEC	24*60*60*1000
-void SV_MasterHeartbeat( const char *hbname ) {
+static void SV_MasterHeartbeat( const char *message )
+{
 	static netadr_t	adr[MAX_MASTER_SERVERS][2]; // [2] for v4 and v6 address for the same address string.
 	int			i;
 	int			res;
@@ -334,9 +329,9 @@ void SV_MasterHeartbeat( const char *hbname ) {
 		// ever incompatably changes
 
 		if(adr[i][0].type != NA_BAD)
-			NET_OutOfBandPrint( NS_SERVER, &adr[i][0], "heartbeat %s\n", hbname);
+			NET_OutOfBandPrint( NS_SERVER, &adr[i][0], "heartbeat %s\n", message);
 		if(adr[i][1].type != NA_BAD)
-			NET_OutOfBandPrint( NS_SERVER, &adr[i][1], "heartbeat %s\n", hbname);
+			NET_OutOfBandPrint( NS_SERVER, &adr[i][1], "heartbeat %s\n", message);
 	}
 }
 
@@ -439,13 +434,13 @@ Informs all masters that this server is going down
 =================
 */
 void SV_MasterShutdown( void ) {
-	// send a hearbeat right now
+	// send a heartbeat right now
 	svs.nextHeartbeatTime = -9999;
-	SV_MasterHeartbeat( HEARTBEAT_DEAD );               // NERVE - SMF - changed to flatline
+	SV_MasterHeartbeat(HEARTBEAT_FOR_MASTER);
 
 	// send it again to minimize chance of drops
-//	svs.nextHeartbeatTime = -9999;
-//	SV_MasterHeartbeat( HEARTBEAT_DEAD );
+	svs.nextHeartbeatTime = -9999;
+	SV_MasterHeartbeat(HEARTBEAT_FOR_MASTER);
 
 	// when the master tries to poll the server, it won't respond, so
 	// it will be removed from the list
@@ -944,7 +939,7 @@ Shift down the remaining args
 Redirect all printfs
 ===============
 */
-static void SVC_RemoteCommand( const netadr_t *from, msg_t *msg ) {
+static void SVC_RemoteCommand( const netadr_t *from ) {
 	qboolean	valid;
 	char		remaining[1024];
 	// TTimo - scaled down to accumulate, but not overflow anything network wise, print wise etc.
@@ -1049,17 +1044,17 @@ static void SV_ConnectionlessPacket( const netadr_t *from, msg_t *msg ) {
 		Com_Printf( "SV packet %s : %s\n", NET_AdrToString( from ), c );
 	}
 
-	if ( !Q_stricmp( c,"getstatus" ) ) {
-		SVC_Status( from  );
-	} else if ( !Q_stricmp( c,"getinfo" ) ) {
+	if (!Q_stricmp(c, "getstatus")) {
+		SVC_Status( from );
+	} else if (!Q_stricmp(c, "getinfo")) {
 		SVC_Info( from );
-	} else if ( !Q_stricmp( c,"getchallenge" ) ) {
+	} else if (!Q_stricmp(c, "getchallenge")) {
 		SV_GetChallenge( from );
-	} else if ( !Q_stricmp( c,"connect" ) ) {
+	} else if (!Q_stricmp(c, "connect")) {
 		SV_DirectConnect( from );
-	} else if ( !Q_stricmp( c, "rcon" ) ) {
-		SVC_RemoteCommand( from, msg );
-	} else if ( !Q_stricmp( c,"disconnect" ) ) {
+	} else if (!Q_stricmp(c, "rcon")) {
+		SVC_RemoteCommand( from );
+	} else if (!Q_stricmp(c, "disconnect")) {
 		// if a client starts up a local server, we may see some spurious
 		// server disconnect messages when their new server sees our final
 		// sequenced messages to the old client
@@ -1084,7 +1079,7 @@ void SV_PacketEvent( const netadr_t *from, msg_t *msg ) {
 	int			qport;
 
 	// check for connectionless packet (0xffffffff) first
-	if ( msg->cursize >= 4 && *(int *)msg->data == -1 ) {
+	if ( msg->cursize >= 4 && *(int *)msg->data == -1) {
 		SV_ConnectionlessPacket( from, msg );
 		return;
 	}
@@ -1092,12 +1087,12 @@ void SV_PacketEvent( const netadr_t *from, msg_t *msg ) {
 	// read the qport out of the message so we can fix up
 	// stupid address translating routers
 	MSG_BeginReadingOOB( msg );
-	MSG_ReadLong( msg );                // sequence number
+	MSG_ReadLong( msg ); // sequence number
 	qport = MSG_ReadShort( msg ) & 0xffff;
 
 	// find which client the message is from
-	for ( i = 0, cl = svs.clients ; i < sv_maxclients->integer ; i++,cl++ ) {
-		if ( cl->state == CS_FREE ) {
+	for (i=0, cl=svs.clients ; i < sv_maxclients->integer ; i++,cl++) {
+		if (cl->state == CS_FREE) {
 			continue;
 		}
 		if ( !NET_CompareBaseAdr( from, &cl->netchan.remoteAddress ) ) {
@@ -1105,25 +1100,25 @@ void SV_PacketEvent( const netadr_t *from, msg_t *msg ) {
 		}
 		// it is possible to have multiple clients from a single IP
 		// address, so they are differentiated by the qport variable
-		if ( cl->netchan.qport != qport ) {
+		if (cl->netchan.qport != qport) {
 			continue;
 		}
 
 		// the IP port can't be used to differentiate them, because
 		// some address translating routers periodically change UDP
 		// port assignments
-		if ( cl->netchan.remoteAddress.port != from->port ) {
+		if (cl->netchan.remoteAddress.port != from->port) {
 			Com_Printf( "SV_PacketEvent: fixing up a translated port\n" );
 			cl->netchan.remoteAddress.port = from->port;
 		}
 
 		// make sure it is a valid, in sequence packet
-		if ( SV_Netchan_Process( cl, msg ) ) {
+		if (SV_Netchan_Process(cl, msg)) {
 			// zombie clients still need to do the Netchan_Process
 			// to make sure they don't need to retransmit the final
 			// reliable message, but they don't do any other processing
-			if ( cl->state != CS_ZOMBIE ) {
-				cl->lastPacketTime = svs.time;  // don't timeout
+			if (cl->state != CS_ZOMBIE) {
+				cl->lastPacketTime = svs.time;	// don't timeout
 				SV_ExecuteClientMessage( cl, msg );
 			}
 		}
@@ -1225,11 +1220,18 @@ static void SV_CheckTimeouts( void ) {
 			cl->state = CS_FREE;	// can now be reused
 			continue;
 		}
+		if ( cl->state == CS_CONNECTED && svs.time - cl->lastPacketTime > 4000 ) {
+			// for real client 4 seconds is more than enough to respond
+			SVC_RateLimitAddress( &cl->netchan.remoteAddress, 10, 1000 );
+			SV_DropClient( cl, NULL ); // drop silently
+			cl->state = CS_FREE;
+			continue;
+		}
 		if ( cl->state >= CS_CONNECTED && cl->lastPacketTime < droppoint ) {
 			// wait several frames so a debugger session doesn't
 			// cause a timeout
 			if ( ++cl->timeoutCount > 5 ) {
-				SV_DropClient (cl, "timed out"); 
+				SV_DropClient( cl, "timed out" );
 				cl->state = CS_FREE;	// don't bother with zombie state
 			}
 		} else {
@@ -1305,6 +1307,39 @@ int SV_FrameMsec( void )
 
 /*
 ==================
+SV_TrackCvarChanges
+==================
+*/
+void SV_TrackCvarChanges( void )
+{
+	client_t *cl;
+	int i;
+
+	if ( sv_maxRate->integer && sv_maxRate->integer < 1000 ) {
+		Cvar_Set( "sv_maxRate", "1000" );
+		Com_DPrintf( "sv_maxRate adjusted to 1000\n" );
+	}
+
+	if ( sv_minRate->integer && sv_minRate->integer < 1000 ) {
+		Cvar_Set( "sv_minRate", "1000" );
+		Com_DPrintf( "sv_minRate adjusted to 1000\n" );
+	}
+
+	Cvar_ResetGroup( CVG_SERVER, qfalse );
+
+	if ( sv.state == SS_DEAD || !svs.clients )
+		return;
+
+	for ( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ ) {
+		if ( cl->state >= CS_CONNECTED ) {
+			SV_UserinfoChanged( cl, qfalse );
+		}
+	}
+}
+
+
+/*
+==================
 SV_Frame
 
 Player movement occurs as a result of packet events, which
@@ -1317,9 +1352,12 @@ void SV_Frame( int msec ) {
 	int		i, n;
 	int		frameStartTime = 0, frameEndTime;
 
+	if ( Cvar_CheckGroup( CVG_SERVER ) )
+		SV_TrackCvarChanges(); // update rate settings, etc.
+
 	// the menu kills the server with this cvar
 	if ( sv_killserver->integer ) {
-		SV_Shutdown ("Server was killed");
+		SV_Shutdown( "Server was killed" );
 		Cvar_Set( "sv_killserver", "0" );
 		return;
 	}
@@ -1392,15 +1430,6 @@ void SV_Frame( int msec ) {
 			return;
 		}
 	}
-	
-	// this can happen considerably earlier when lots of clients play and the map doesn't change
-	/*if ( svs.nextSnapshotEntities >= 0x7FFFFFFE - svs.numSnapshotEntities ) {
-		Q_strncpyz( mapname, sv_mapname->string, MAX_QPATH );
-		SV_Shutdown( "Restarting server due to numSnapshotEntities wrapping" );
-		// TTimo see above
-		Cbuf_AddText( va( "map %s\n", mapname ) );
-		return;
-	}*/
 
 	if( sv.restartTime && sv.time >= sv.restartTime ) {
 		sv.restartTime = 0;
@@ -1462,7 +1491,7 @@ void SV_Frame( int msec ) {
 	SV_SendClientMessages();
 
 	// send a heartbeat to the master if needed
-	SV_MasterHeartbeat( HEARTBEAT_GAME );
+	SV_MasterHeartbeat( HEARTBEAT_FOR_MASTER );
 
 	if ( com_dedicated->integer ) {
 		frameEndTime = Sys_Milliseconds();
@@ -1521,39 +1550,25 @@ a client based on its rate settings
 #define UDPIP_HEADER_SIZE 28
 #define UDPIP6_HEADER_SIZE 48
 
-int SV_RateMsec(client_t *client)
+int SV_RateMsec( const client_t *client )
 {
 	int rate, rateMsec;
 	int messageSize;
 	
+	if ( !client->rate )
+		return 0;
+
 	messageSize = client->netchan.lastSentSize;
-	rate = client->rate;
 
-	if(sv_maxRate->integer)
-	{
-		if(sv_maxRate->integer < 1000)
-			Cvar_Set( "sv_MaxRate", "1000" );
-		if(sv_maxRate->integer < rate)
-			rate = sv_maxRate->integer;
-	}
-
-	if(sv_minRate->integer)
-	{
-		if(sv_minRate->integer < 1000)
-			Cvar_Set("sv_minRate", "1000");
-		if(sv_minRate->integer > rate)
-			rate = sv_minRate->integer;
-	}
-
-	if(client->netchan.remoteAddress.type == NA_IP6)
+	if ( client->netchan.remoteAddress.type == NA_IP6 )
 		messageSize += UDPIP6_HEADER_SIZE;
 	else
 		messageSize += UDPIP_HEADER_SIZE;
 		
-	rateMsec = messageSize * 1000 / ((int) (rate * com_timescale->value));
+	rateMsec = messageSize * 1000 / ((int) (client->rate * com_timescale->value));
 	rate = Sys_Milliseconds() - client->netchan.lastSentTime;
 	
-	if(rate > rateMsec)
+	if ( rate > rateMsec )
 		return 0;
 	else
 		return rateMsec - rate;

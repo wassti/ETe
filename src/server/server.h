@@ -214,7 +214,7 @@ typedef struct client_s {
 	int ping;
 	int rate;                           // bytes / second
 	int snapshotMsec;                   // requests a snapshot every snapshotMsec unless rate choked
-	int pureAuthentic;
+	qboolean		pureAuthentic;
 	qboolean gotCP;  // TTimo - additional flag to distinguish between a bad pure checksum, and no cp command at all
 	netchan_t netchan;
 	// TTimo
@@ -234,11 +234,12 @@ typedef struct client_s {
 	// flood protection
 	int				cmd_burst;
 	int				cmd_time;
+
+	// client can decode long strings
+	qboolean		longstr;
 } client_t;
 
 //=============================================================================
-
-#define	AUTHORIZE_TIMEOUT	5000
 
 typedef struct tempBan_s {
 	netadr_t adr;
@@ -246,7 +247,6 @@ typedef struct tempBan_s {
 } tempBan_t;
 
 
-#define MAX_MASTERS                         8               // max recipients for heartbeat packets
 #define MAX_TEMPBAN_ADDRESSES               MAX_CLIENTS
 
 #define SERVER_PERFORMANCECOUNTER_FRAMES    600
@@ -288,6 +288,7 @@ typedef struct {
 
 } serverStatic_t;
 
+#ifdef USE_BANS
 #define SERVER_MAXBANS	1024
 // Structure for managing bans
 typedef struct
@@ -298,6 +299,7 @@ typedef struct
 	
 	qboolean isexception;
 } serverBan_t;
+#endif
 
 //=============================================================================
 
@@ -369,8 +371,11 @@ extern cvar_t *sv_packetdelay;
 //fretn
 extern cvar_t *sv_fullmsg;
 
+#ifdef USE_BANS
+extern	cvar_t	*sv_banFile;
 extern	serverBan_t serverBans[SERVER_MAXBANS];
 extern	int serverBansCount;
+#endif
 
 //===========================================================
 
@@ -400,16 +405,14 @@ qboolean SVC_RateLimit( leakyBucket_t *bucket, int burst, int period );
 qboolean SVC_RateLimitAddress( const netadr_t *from, int burst, int period );
 
 void SV_FinalCommand( const char *message, qboolean disconnect ); // ydnar: added disconnect flag so map changes can use this function as well
-void QDECL SV_SendServerCommand( client_t *cl, const char *fmt, ... ); __attribute__ ((format (printf, 2, 3)));
-
+void QDECL SV_SendServerCommand( client_t *cl, const char *fmt, ... ) __attribute__ ((format (printf, 2, 3)));
 
 void SV_AddOperatorCommands( void );
 void SV_RemoveOperatorCommands( void );
 
 
-void SV_MasterHeartbeat( const char *hbname );
 void SV_MasterShutdown( void );
-int SV_RateMsec(client_t *client);
+int SV_RateMsec( const client_t *client );
 void SV_MasterGameCompleteStatus( void );     // NERVE - SMF
 //bani - bugtraq 12534
 
@@ -439,10 +442,8 @@ void SV_InitChallenger( void );
 
 void SV_DirectConnect( const netadr_t *from );
 
-void SV_AuthorizeIpPacket( const netadr_t *from );
-
 void SV_ExecuteClientMessage( client_t *cl, msg_t *msg );
-void SV_UserinfoChanged( client_t *cl );
+void SV_UserinfoChanged( client_t *cl, qboolean updateUserinfo );
 
 void SV_ClientEnterWorld( client_t *client, usercmd_t *cmd );
 void SV_FreeClient( client_t *client );
@@ -461,7 +462,7 @@ int SV_SendQueuedMessages( void );
 void SV_Heartbeat_f( void );
 
 qboolean SV_TempBanIsBanned( const netadr_t *address );
-void SV_TempBanNetAddress( netadr_t address, int length );
+void SV_TempBanNetAddress( const netadr_t *address, int length );
 
 //
 // sv_snapshot.c
@@ -477,6 +478,8 @@ void SV_SendClientIdle( client_t *client );
 
 void SV_InitSnapshotStorage( void );
 void SV_IssueNewSnapshot( void );
+
+int SV_RemainingGameState( void );
 
 //
 // sv_game.c

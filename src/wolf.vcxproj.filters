@@ -98,15 +98,6 @@
     <ClCompile Include="qcommon\net_chan.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="null\null_client.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="null\null_input.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="null\null_snddma.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="qcommon\q_math.c">
       <Filter>Source Files</Filter>
     </ClCompile>

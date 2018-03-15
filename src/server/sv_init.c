@@ -195,10 +195,10 @@ void SV_SetConfigstring (int index, const char *val) {
 	}
 }
 
+
 /*
 ===============
 SV_GetConfigstring
-
 ===============
 */
 void SV_GetConfigstring( int index, char *buffer, int bufferSize ) {
@@ -209,7 +209,7 @@ void SV_GetConfigstring( int index, char *buffer, int bufferSize ) {
 		Com_Error (ERR_DROP, "SV_GetConfigstring: bad index %i", index);
 	}
 	if ( !sv.configstrings[index] ) {
-		buffer[0] = 0;
+		buffer[0] = '\0';
 		return;
 	}
 
@@ -314,9 +314,9 @@ static void SV_BoundMaxClients( int minimum ) {
 	sv_maxclients->modified = qfalse;
 
 	if ( sv_maxclients->integer < minimum ) {
-		Cvar_Set( "sv_maxclients", va( "%i", minimum ) );
+		Cvar_Set( "sv_maxclients", va("%i", minimum) );
 	} else if ( sv_maxclients->integer > MAX_CLIENTS ) {
-		Cvar_Set( "sv_maxclients", va( "%i", MAX_CLIENTS ) );
+		Cvar_Set( "sv_maxclients", va("%i", MAX_CLIENTS) );
 	}
 }
 
@@ -506,6 +506,7 @@ static void SV_ClearServer( void ) {
 	}
 }
 
+
 /*
 ================
 SV_TouchCGameDLL
@@ -527,6 +528,7 @@ void SV_TouchCGameDLL( void ) {
 	}
 }
 
+
 /*
 ================
 SV_SpawnServer
@@ -541,7 +543,6 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 	int			checksum;
 	qboolean	isBot;
 	const char	*p;
-
 
 	// ydnar: broadcast a level change to all connected clients
 	if ( svs.clients && !com_errorEntered ) {
@@ -672,9 +673,10 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 //	sv_gametype->modified = qfalse;
 
 	// run a few frames to allow everything to settle
-	for ( i = 0 ; i < GAME_INIT_FRAMES ; i++ ) {
-		VM_Call( gvm, GAME_RUN_FRAME, sv.time );
-		SV_BotFrame( sv.time );
+	for ( i = 0 ; i < GAME_INIT_FRAMES ; i++ )
+	{
+		VM_Call (gvm, GAME_RUN_FRAME, sv.time);
+		SV_BotFrame (sv.time);
 		sv.time += FRAMETIME;
 		svs.time += FRAMETIME;
 	}
@@ -735,32 +737,43 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 	sv.time += FRAMETIME;
 	svs.time += FRAMETIME;
 
-	if ( sv_pure->integer ) {
-		// the server sends these to the clients so they will only
-		// load pk3s also loaded at the server
-		p = FS_LoadedPakChecksums();
-		Cvar_Set( "sv_paks", p );
-		if ( *p == '\0' ) {
-			Com_Printf( "WARNING: sv_pure set but no PK3 files loaded\n" );
-		}
-		p = FS_LoadedPakNames();
-		Cvar_Set( "sv_pakNames", p );
-	} else {
-		Cvar_Set( "sv_paks", "" );
-		Cvar_Set( "sv_pakNames", "" );
-	}
-
-	// the server sends these to the clients so they can figure
-	// out which pk3s should be auto-downloaded
-	// NOTE: we consider the referencedPaks as 'required for operation'
-
 	// we want the server to reference the mp_bin pk3 that the client is expected to load from
 	SV_TouchCGameDLL();
 
+	// the server sends these to the clients so they can figure
+	// out which pk3s should be auto-downloaded
 	p = FS_ReferencedPakChecksums();
 	Cvar_Set( "sv_referencedPaks", p );
 	p = FS_ReferencedPakNames();
 	Cvar_Set( "sv_referencedPakNames", p );
+
+	Cvar_Set( "sv_paks", "" );
+	Cvar_Set( "sv_pakNames", "" ); // not used on client-side
+
+	if ( sv_pure->integer ) {
+		int freespace, pakslen, infolen;
+		qboolean overflowed = qfalse;
+
+		p = FS_LoadedPakChecksums( &overflowed );
+
+		pakslen = strlen( p ) + 9; // + strlen( "\\sv_paks\\" )
+		freespace = SV_RemainingGameState();
+		infolen = strlen( Cvar_InfoString_Big( CVAR_SYSTEMINFO ) );
+
+		if ( pakslen > freespace || infolen + pakslen >= BIG_INFO_STRING || overflowed ) {
+			// switch to degraded pure mode
+			// this could *potentially* lead to a false "unpure client" detection
+			// which is better than guaranteed drop
+			Com_DPrintf( S_COLOR_YELLOW "WARNING: skipping sv_paks setup to avoid gamestate overflow\n" );
+		} else {
+			// the server sends these to the clients so they will only
+			// load pk3s also loaded at the server
+			Cvar_Set( "sv_paks", p );
+			if ( *p == '\0' ) {
+				Com_Printf( "WARNING: sv_pure set but no PK3 files loaded\n" );
+			}
+		}
+	}
 
 	// save systeminfo and serverinfo strings
 	SV_SetConfigstring( CS_SYSTEMINFO, Cvar_InfoString_Big( CVAR_SYSTEMINFO ) );
@@ -859,11 +872,11 @@ void SV_Init( void )
 	Cvar_Get ("nextmap", "", CVAR_TEMP );
 
 	sv_allowDownload = Cvar_Get( "sv_allowDownload", "1", CVAR_ARCHIVE );
-	sv_master[0] = Cvar_Get( "sv_master1", MASTER_SERVER_NAME, 0 );
-	sv_master[1] = Cvar_Get( "sv_master2", "master.etlegacy.com", CVAR_ARCHIVE );
-	sv_master[2] = Cvar_Get( "sv_master3", "", CVAR_ARCHIVE );
-	sv_master[3] = Cvar_Get( "sv_master4", "", CVAR_ARCHIVE );
-	sv_master[4] = Cvar_Get( "sv_master5", "", CVAR_ARCHIVE );
+	sv_master[0] = Cvar_Get( "sv_master1", MASTER_SERVER_NAME, CVAR_INIT );
+	sv_master[1] = Cvar_Get( "sv_master2", "master.etlegacy.com", CVAR_INIT );
+	sv_master[2] = Cvar_Get( "sv_master3", "", CVAR_ARCHIVE_ND );
+	sv_master[3] = Cvar_Get( "sv_master4", "", CVAR_ARCHIVE_ND );
+	sv_master[4] = Cvar_Get( "sv_master5", "", CVAR_ARCHIVE_ND );
 	sv_reconnectlimit = Cvar_Get( "sv_reconnectlimit", "3", 0 );
 	sv_tempbanmessage = Cvar_Get( "sv_tempbanmessage", "You have been kicked and are temporarily banned from joining this server.", 0 );
 	sv_padPackets = Cvar_Get( "sv_padPackets", "0", 0 );
@@ -924,17 +937,13 @@ void SV_Init( void )
 	// ET://someserver.com
 	sv_fullmsg = Cvar_Get( "sv_fullmsg", "Server is full.", CVAR_ARCHIVE );
 	
-	#ifdef USE_BANS
+#ifdef USE_BANS
 	sv_banFile = Cvar_Get("sv_banFile", "serverbans.dat", CVAR_ARCHIVE);
 #endif
 
 	sv_levelTimeReset = Cvar_Get( "sv_levelTimeReset", "0", CVAR_ARCHIVE_ND );
 
 	sv_leanPakRefs = Cvar_Get( "sv_leanPakRefs", "0", CVAR_LATCH );
-
-	//extented version marker
-	Cvar_Get( "sv_version_ex", "1", CVAR_ROM );
-
 	// initialize bot cvars so they are listed and can be set before loading the botlib
 	SV_BotInitCvars();
 
@@ -945,6 +954,15 @@ void SV_Init( void )
 	// Load saved bans
 	Cbuf_AddText("rehashbans\n");
 #endif
+
+	// track group cvar changes
+	Cvar_SetGroup( sv_lanForceRate, CVG_SERVER );
+	Cvar_SetGroup( sv_minRate, CVG_SERVER );
+	Cvar_SetGroup( sv_maxRate, CVG_SERVER );
+	Cvar_SetGroup( sv_fps, CVG_SERVER );
+
+	// force initial check
+	SV_TrackCvarChanges();
 
 	SV_InitChallenger();
 	svs.serverLoad = -1;

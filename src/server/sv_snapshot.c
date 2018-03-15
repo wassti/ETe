@@ -950,7 +950,6 @@ void SV_SendClientMessages( void )
 {
 	int		i;
 	client_t	*c;
-	qboolean	lanRate;
 	int numclients = 0;         // NERVE - SMF - net debugging
 
 	svs.msgTime = Sys_Milliseconds();
@@ -992,9 +991,7 @@ void SV_SendClientMessages( void )
 			continue;		// Drop this snapshot if the packet queue is still full or delta compression will break
 		}
 	
-		lanRate = c->netchan.remoteAddress.type == NA_LOOPBACK || (sv_lanForceRate->integer && c->netchan.isLANAddress);
-
-		if ( !lanRate && SV_RateMsec( c ) > 0 )
+		if ( SV_RateMsec( c ) > 0 )
 		{
 			// Not enough time since last packet passed through the line
 			c->rateDelayed = qtrue;

@@ -91,6 +91,7 @@ glwstate_t glw_state;
 static cvar_t *r_maskMinidriver;		// allow a different dll name to be treated as if it were opengl32.dll
 static cvar_t *r_stereoEnabled;
 static cvar_t *r_verbose;				// used for verbose debug spew
+static cvar_t *r_noborder;
 
 int gl_NormalFontBase = 0;
 static qboolean fontbase_init = qfalse;
@@ -636,6 +637,8 @@ static qboolean GLW_CreateWindow( const char *drivername, int width, int height,
 		//r.top = 0;
 		//r.right  = width;
 		//r.bottom = height;
+		
+		g_wv.borderless = 0;
 
 		if ( cdsFullscreen )
 		{
@@ -645,7 +648,12 @@ static qboolean GLW_CreateWindow( const char *drivername, int width, int height,
 		else
 		{
 			exstyle = WINDOW_ESTYLE_NORMAL;
-			stylebits = WINDOW_STYLE_NORMAL;
+			if ( r_noborder->integer ) {
+				stylebits = WINDOW_STYLE_NORMAL_NB;
+				g_wv.borderless = r_noborder->integer;
+			} else {
+				stylebits = WINDOW_STYLE_NORMAL;
+			}
 			AdjustWindowRect( &r, stylebits, FALSE );
 		}
 
@@ -1347,6 +1355,8 @@ void GLimp_Init( glconfig_t *config )
 	r_maskMinidriver = Cvar_Get( "r_maskMinidriver", "0", CVAR_LATCH );
 	r_stereoEnabled = Cvar_Get( "r_stereoEnabled", "0", CVAR_ARCHIVE_ND | CVAR_LATCH );
 	r_verbose = Cvar_Get( "r_verbose", "0", 0 );
+	r_noborder = Cvar_Get( "r_noborder", "0", CVAR_ARCHIVE_ND | CVAR_LATCH );
+	Cvar_CheckRange( r_noborder, "0", "1", CV_INTEGER );
 
 	// feedback to renderer configuration
 	glw_state.config = config;

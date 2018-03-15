@@ -88,6 +88,7 @@ If you have questions concerning this license or the applicable additional terms
 #endif
 
 #define	WINDOW_STYLE_NORMAL          (WS_VISIBLE|WS_CLIPCHILDREN|WS_SYSMENU|WS_CAPTION|WS_MINIMIZEBOX|WS_OVERLAPPED|WS_BORDER)
+#define	WINDOW_STYLE_NORMAL_NB       (WS_VISIBLE|WS_POPUP)
 #define	WINDOW_ESTYLE_NORMAL         (0)
 #define	WINDOW_STYLE_FULLSCREEN      (WS_VISIBLE|WS_CLIPCHILDREN|WS_POPUP)
 #define	WINDOW_ESTYLE_FULLSCREEN     (WS_EX_TOPMOST)
@@ -135,6 +136,7 @@ typedef struct
 {
 	HWND			hWnd;
 	HINSTANCE		hInstance;
+	int				borderless;
 
 	// when we get a windows message, we store the time off so keyboard processing
 	// can know the exact time of an event

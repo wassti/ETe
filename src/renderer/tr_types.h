@@ -29,6 +29,7 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __TR_TYPES_H
 #define __TR_TYPES_H
 
+#define MAX_VIDEO_HANDLES	16
 
 #define MAX_CORONAS     32          //----(SA)	not really a reason to limit this other than trying to keep a reasonable count
 #define MAX_DLIGHTS     32          // can't be increased, because bit flags are used on surfaces
@@ -329,25 +330,19 @@ typedef struct {
 	// synonymous with "does rendering consume the entire screen?", therefore
 	// a Voodoo or Voodoo2 will have this set to TRUE, as will a Win32 ICD that
 	// used CDS.
-	qboolean isFullscreen;
-	qboolean stereoEnabled;
-	qboolean smpActive;                     // dual processor
+	qboolean				isFullscreen;
+	qboolean				stereoEnabled;
+	qboolean				smpActive;		// UNUSED, present for compatibility
 } glconfig_t;
 
 
-#if !defined _WIN32
-
-#define _3DFX_DRIVER_NAME   "libMesaVoodooGL.so.3.1"
-#define OPENGL_DRIVER_NAME  "libGL.so.1"
-
+#if defined(_WIN32)
+#define OPENGL_DRIVER_NAME	"opengl32"
+#elif defined(MACOS_X)
+#define OPENGL_DRIVER_NAME	"/System/Library/Frameworks/OpenGL.framework/Libraries/libGL.dylib"
 #else
-
-#define _3DFX_DRIVER_NAME   "3dfxvgl"
-#define OPENGL_DRIVER_NAME  "opengl32"
-#define WICKED3D_V5_DRIVER_NAME "gl/openglv5.dll"
-#define WICKED3D_V3_DRIVER_NAME "gl/openglv3.dll"
-
-#endif  // !defined _WIN32
+#define OPENGL_DRIVER_NAME	"libGL.so.1"
+#endif
 
 
 // =========================================

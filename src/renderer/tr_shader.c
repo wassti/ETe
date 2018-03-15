@@ -703,6 +703,9 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 				if (!shader.noPicMip)
 					flags |= IMGFLAG_PICMIP;
 
+				if (shader.noLightScale)
+					flags |= IMGFLAG_NOLIGHTSCALE;
+
 				stage->bundle[0].image[0] = R_FindImageFile( token, type, flags );
 
 				if ( !stage->bundle[0].image[0] )
@@ -744,6 +747,9 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 
 			if (!shader.noPicMip)
 				flags |= IMGFLAG_PICMIP;
+
+			if (shader.noLightScale)
+				flags |= IMGFLAG_NOLIGHTSCALE;
 
 			stage->bundle[0].image[0] = R_FindImageFile( token, type, flags );
 			if ( !stage->bundle[0].image[0] )
@@ -822,6 +828,9 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 
 					if (!shader.noPicMip)
 						flags |= IMGFLAG_PICMIP;
+
+					if (shader.noLightScale)
+						flags |= IMGFLAG_NOLIGHTSCALE;
 
 					stage->bundle[0].image[num] = R_FindImageFile( token, IMGTYPE_COLORALPHA, flags );
 					if ( !stage->bundle[0].image[num] )
@@ -1022,7 +1031,7 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 			}
 		}
 		//
-		// alphaGen 
+		// alphaGen
 		//
 		else if ( !Q_stricmp( token, "alphaGen" ) )
 		{
@@ -1120,7 +1129,7 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 		//
 		// tcGen <function>
 		//
-		else if ( !Q_stricmp(token, "texgen") || !Q_stricmp( token, "tcGen" ) ) 
+		else if ( !Q_stricmp(token, "texgen") || !Q_stricmp( token, "tcGen" ) )
 		{
 			token = COM_ParseExt( text, qfalse );
 			if ( token[0] == 0 )
@@ -1229,7 +1238,8 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 	// implicitly assume that a GL_ONE GL_ZERO blend mask disables blending
 	//
 	if ( ( blendSrcBits == GLS_SRCBLEND_ONE ) &&
-		 ( blendDstBits == GLS_DSTBLEND_ZERO ) ) {
+		 ( blendDstBits == GLS_DSTBLEND_ZERO ) )
+	{
 		blendDstBits = blendSrcBits = 0;
 		depthMaskBits = GLS_DEPTHMASK_TRUE;
 	}
@@ -1237,7 +1247,7 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 	// decide which agens we can skip
 	if ( stage->alphaGen == AGEN_IDENTITY ) {
 		if ( stage->rgbGen == CGEN_IDENTITY
-			 || stage->rgbGen == CGEN_LIGHTING_DIFFUSE ) {
+			|| stage->rgbGen == CGEN_LIGHTING_DIFFUSE ) {
 			stage->alphaGen = AGEN_SKIP;
 		}
 	}
@@ -1251,9 +1261,9 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 	// compute state bits
 	//
 	stage->stateBits = depthMaskBits |
-					   blendSrcBits | blendDstBits |
-					   atestBits |
-					   depthFuncBits;
+		blendSrcBits | blendDstBits |
+		atestBits |
+		depthFuncBits;
 
 	return qtrue;
 }
@@ -1442,8 +1452,7 @@ static void ParseSkyParms( const char **text ) {
 	}
 	if ( strcmp( token, "-" ) ) {
 		for (i=0 ; i<6 ; i++) {
-			Com_sprintf( pathname, sizeof(pathname), "%s_%s.tga"
-				, token, suf[i] );
+			Com_sprintf( pathname, sizeof(pathname), "%s_%s.tga", token, suf[i] );
 			shader.sky.outerbox[i] = R_FindImageFile( ( char * ) pathname, IMGTYPE_COLORALPHA, imgFlags | IMGFLAG_CLAMPTOEDGE );
 
 			if ( !shader.sky.outerbox[i] ) {
@@ -2470,7 +2479,7 @@ static qboolean CollapseMultitexture( void ) {
 			return qfalse;
 		}
 	}
-	if ( stages[0].alphaGen == CGEN_WAVEFORM ) {
+	if ( stages[0].alphaGen == AGEN_WAVEFORM ) {
 		if ( memcmp( &stages[0].alphaWave,
 					 &stages[1].alphaWave,
 					 sizeof( stages[0].alphaWave ) ) ) {

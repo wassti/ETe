@@ -204,16 +204,16 @@ float R_ProcessLightmap( byte **pic, int in_padding, int width, int height, byte
 
 
 #define LIGHTMAP_SIZE 128
-static const int lightmapFlags = IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE;
-static int lightmapWidth;
-static int lightmapHeight;
+static const imgFlags_t lightmapFlags = IMGFLAG_LIGHTMAP | IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE;
+//static int lightmapWidth;
+//static int lightmapHeight;
 
+#if 0
 /*
 ===============
 R_LoadMergedLightmaps
 ===============
 */
-#if 0
 static void R_LoadMergedLightmaps( const lump_t *l )
 {
  	byte		*buf, *buf_p;
@@ -222,7 +222,7 @@ static void R_LoadMergedLightmaps( const lump_t *l )
 	byte		*image, *image_p;
 	int			i, j, k, x, y;
  	float maxIntensity = 0;
- 	double sumIntensity = 0;
+// 	double sumIntensity = 0;
 
 	len = l->filelen;
 	if ( !len )
@@ -303,7 +303,7 @@ static void R_LoadMergedLightmaps( const lump_t *l )
 							image_p[k*4+2] = out[2] * 255;
 							image_p[k*4+3] = 255;
 
-							sumIntensity += intensity;
+							//sumIntensity += intensity;
 						}
 						// go to next line
 						image_p += lightmapWidth * LIGHTMAP_SIZE * 4;
@@ -332,12 +332,11 @@ static void R_LoadMergedLightmaps( const lump_t *l )
 
 	ri.Hunk_FreeTempMemory( image );
 
-	if ( r_lightmap->integer == 2 )	{
+	if ( r_lightmap->integer > 1 )	{
 		ri.Printf( PRINT_ALL, "Brightest lightmap value: %d\n", ( int ) ( maxIntensity * 255 ) );
 	}
 }
 #endif
-
 
 /*
 ===============
@@ -357,7 +356,7 @@ static void R_LoadLightmaps( const lump_t *l ) {
 	tr.numLightmaps = 0;
 	memset( tr.lightmaps, 0, sizeof( *tr.lightmaps ) * MAX_LIGHTMAPS );
 
-	lightmapWidth = lightmapHeight = 1;
+	//lightmapWidth = lightmapHeight = 1;
 
 	/*if ( r_mergeLightmaps->integer ) {
 		R_LoadMergedLightmaps( l );
@@ -397,7 +396,7 @@ static void R_LoadLightmaps( const lump_t *l ) {
 		}
 
 		tr.lightmaps[i] = R_CreateImage( va( "*lightmap%d",i ), image,
-										 LIGHTMAP_SIZE, LIGHTMAP_SIZE, qfalse, qfalse, GL_CLAMP );
+										 LIGHTMAP_SIZE, LIGHTMAP_SIZE, IMGTYPE_COLORALPHA, lightmapFlags, 0 );
 	}
 
 	if ( r_lightmap->integer > 1 ) {

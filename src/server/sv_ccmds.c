@@ -760,7 +760,7 @@ static void SV_Kick_f( void ) {
 ==================
 ==================
 */
-void SV_TempBanNetAddress( netadr_t address, int length ) {
+void SV_TempBanNetAddress( const netadr_t *address, int length ) {
 	int i;
 	int oldesttime = 0;
 	int oldest = -1;
@@ -768,7 +768,7 @@ void SV_TempBanNetAddress( netadr_t address, int length ) {
 	for ( i = 0; i < MAX_TEMPBAN_ADDRESSES; i++ ) {
 		if ( !svs.tempBanAddresses[ i ].endtime || svs.tempBanAddresses[ i ].endtime < svs.time ) {
 			// found a free slot
-			svs.tempBanAddresses[ i ].adr       = address;
+			svs.tempBanAddresses[ i ].adr       = *address;
 			svs.tempBanAddresses[ i ].endtime   = svs.time + ( length * 1000 );
 
 			return;
@@ -780,7 +780,7 @@ void SV_TempBanNetAddress( netadr_t address, int length ) {
 		}
 	}
 
-	svs.tempBanAddresses[ oldest ].adr      = address;
+	svs.tempBanAddresses[ oldest ].adr      = *address;
 	svs.tempBanAddresses[ oldest ].endtime  = svs.time + length;
 }
 
@@ -960,7 +960,7 @@ static void SV_ConSay_f( void ) {
 	}
 
 	strcpy( text, "console: " );
-	p = Cmd_Args();
+	p = Cmd_ArgsFrom( 1 );
 
 	if ( strlen( p ) > 1000 ) {
 		return;

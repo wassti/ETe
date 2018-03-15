@@ -36,27 +36,25 @@ glstate_t	glState;
 static void GfxInfo_f( void );
 static void GL_SetDefaultState( void );
 
-cvar_t  *r_flareSize;
-cvar_t  *r_flareFade;
+cvar_t	*r_flareSize;
+cvar_t	*r_flareFade;
 
-cvar_t  *r_railWidth;
-cvar_t  *r_railCoreWidth;
-cvar_t  *r_railSegmentLength;
+cvar_t	*r_railWidth;
+cvar_t	*r_railCoreWidth;
+cvar_t	*r_railSegmentLength;
 
-cvar_t  *r_ignoreFastPath;
+cvar_t	*r_ignoreFastPath;
 
-cvar_t  *r_ignore;
+cvar_t	*r_ignore;
 
-cvar_t  *r_displayRefresh;
+cvar_t	*r_detailTextures;
 
-cvar_t  *r_detailTextures;
-
-cvar_t  *r_znear;
-cvar_t  *r_zfar;
+cvar_t	*r_znear;
+cvar_t	*r_zfar;
 cvar_t	*r_zproj;
 cvar_t	*r_stereoSeparation;
 
-cvar_t  *r_skipBackEnd;
+cvar_t	*r_skipBackEnd;
 
 cvar_t	*r_anaglyphMode;
 
@@ -64,11 +62,12 @@ cvar_t	*r_greyscale;
 
 cvar_t	*r_ignorehwgamma;
 
-cvar_t  *r_inGameVideo;
-cvar_t  *r_fastsky;
+cvar_t	*r_inGameVideo;
+cvar_t	*r_fastsky;
 cvar_t	*r_neatsky;
-cvar_t  *r_drawSun;
-cvar_t  *r_dynamiclight;
+cvar_t	*r_drawSun;
+cvar_t	*r_dynamiclight;
+cvar_t  *r_mergeLightmaps;
 #ifdef USE_PMLIGHT
 cvar_t	*r_dlightMode;
 cvar_t	*r_dlightSpecPower;
@@ -95,99 +94,96 @@ cvar_t	*r_renderScale;
 
 cvar_t	*r_dlightBacks;
 
-cvar_t  *r_lodbias;
-cvar_t  *r_lodscale;
+cvar_t	*r_lodbias;
+cvar_t	*r_lodscale;
 
-cvar_t  *r_norefresh;
-cvar_t  *r_drawentities;
-cvar_t  *r_drawworld;
-cvar_t  *r_drawfoliage;     // ydnar
-cvar_t  *r_speeds;
+cvar_t	*r_norefresh;
+cvar_t	*r_drawentities;
+cvar_t	*r_drawworld;
+cvar_t	*r_drawfoliage;     // ydnar
+cvar_t	*r_speeds;
 //cvar_t	*r_fullbright; // JPW NERVE removed per atvi request
-cvar_t  *r_novis;
-cvar_t  *r_nocull;
-cvar_t  *r_facePlaneCull;
-cvar_t  *r_showcluster;
-cvar_t  *r_nocurves;
+cvar_t	*r_novis;
+cvar_t	*r_nocull;
+cvar_t	*r_facePlaneCull;
+cvar_t	*r_showcluster;
+cvar_t	*r_nocurves;
 
-cvar_t  *r_allowExtensions;
+cvar_t	*r_allowExtensions;
 
-cvar_t  *r_ext_compressed_textures;
-cvar_t  *r_ext_multitexture;
-cvar_t  *r_ext_compiled_vertex_array;
-cvar_t  *r_ext_texture_env_add;
+cvar_t	*r_ext_compressed_textures;
+cvar_t	*r_ext_multitexture;
+cvar_t	*r_ext_compiled_vertex_array;
+cvar_t	*r_ext_texture_env_add;
 
-cvar_t  *r_clampToEdge; // ydnar: opengl 1.2 GL_CLAMP_TO_EDGE SUPPORT
+cvar_t	*r_clampToEdge; // ydnar: opengl 1.2 GL_CLAMP_TO_EDGE SUPPORT
 
 //----(SA)	added
-cvar_t  *r_ext_texture_filter_anisotropic;
+cvar_t	*r_ext_texture_filter_anisotropic;
 
-cvar_t  *r_ext_NV_fog_dist;
-cvar_t  *r_nv_fogdist_mode;
+cvar_t	*r_ext_NV_fog_dist;
+cvar_t	*r_nv_fogdist_mode;
 
 cvar_t	*r_ext_max_anisotropy;
 //----(SA)	end
 
-cvar_t  *r_ignoreGLErrors;
-cvar_t  *r_logFile;
+cvar_t	*r_ignoreGLErrors;
+cvar_t	*r_logFile;
 
 cvar_t	*r_stencilbits;
-cvar_t	*r_depthbits;
-cvar_t	*r_colorbits;
 cvar_t	*r_primitives;
 cvar_t	*r_texturebits;
 cvar_t  *r_ext_multisample;
 
-cvar_t  *r_drawBuffer;
-cvar_t  *r_glDriver;
-cvar_t  *r_glIgnoreWicked3D;
-cvar_t  *r_lightmap;
-cvar_t  *r_uiFullScreen;
-cvar_t  *r_shadows;
-cvar_t  *r_portalsky;   //----(SA)	added
-cvar_t  *r_flares;
-cvar_t  *r_nobind;
-cvar_t  *r_singleShader;
-cvar_t  *r_roundImagesDown;
+cvar_t	*r_drawBuffer;
+cvar_t	*r_lightmap;
+cvar_t	*r_uiFullScreen;
+cvar_t	*r_shadows;
+cvar_t	*r_portalsky;   //----(SA)	added
+cvar_t	*r_flares;
+cvar_t	*r_nobind;
+cvar_t	*r_singleShader;
+cvar_t	*r_roundImagesDown;
 cvar_t	*r_allowNonPo2;
-cvar_t  *r_colorMipLevels;
-cvar_t  *r_picmip;
+cvar_t	*r_colorMipLevels;
+cvar_t	*r_picmip;
 cvar_t	*r_nomip;
-cvar_t  *r_showtris;
-cvar_t  *r_trisColor;
-cvar_t  *r_showsky;
-cvar_t  *r_shownormals;
-cvar_t  *r_normallength;
-cvar_t  *r_showmodelbounds;
-cvar_t  *r_finish;
-cvar_t  *r_clear;
-cvar_t  *r_textureMode;
-cvar_t  *r_offsetFactor;
-cvar_t  *r_offsetUnits;
-cvar_t  *r_gamma;
-cvar_t  *r_intensity;
-cvar_t  *r_lockpvs;
-cvar_t  *r_noportals;
-cvar_t  *r_portalOnly;
+cvar_t	*r_showtris;
+cvar_t	*r_trisColor;
+cvar_t	*r_showsky;
+cvar_t	*r_shownormals;
+cvar_t	*r_normallength;
+cvar_t	*r_showmodelbounds;
+cvar_t	*r_finish;
+cvar_t	*r_clear;
+cvar_t	*r_textureMode;
+cvar_t	*r_offsetFactor;
+cvar_t	*r_offsetUnits;
+cvar_t	*r_gamma;
+cvar_t	*r_intensity;
+cvar_t	*r_lockpvs;
+cvar_t	*r_noportals;
+cvar_t	*r_portalOnly;
 
-cvar_t  *r_subdivisions;
-cvar_t  *r_lodCurveError;
+cvar_t	*r_subdivisions;
+cvar_t	*r_lodCurveError;
 
-cvar_t  *r_overBrightBits;
-cvar_t  *r_mapOverBrightBits;
+cvar_t	*r_overBrightBits;
+cvar_t	*r_mapOverBrightBits;
 cvar_t	*r_mapGrayScale;
 
-cvar_t  *r_debugSurface;
-cvar_t  *r_simpleMipMaps;
+cvar_t	*r_debugSurface;
+cvar_t	*r_simpleMipMaps;
 
-cvar_t  *r_showImages;
+cvar_t	*r_showImages;
+cvar_t	*r_defaultImage;
 
-cvar_t  *r_ambientScale;
-cvar_t  *r_directedScale;
-cvar_t  *r_debugLight;
-cvar_t  *r_debugSort;
-cvar_t  *r_printShaders;
-cvar_t  *r_saveFontData;
+cvar_t	*r_ambientScale;
+cvar_t	*r_directedScale;
+cvar_t	*r_debugLight;
+cvar_t	*r_debugSort;
+cvar_t	*r_printShaders;
+cvar_t	*r_saveFontData;
 
 // Ridah
 cvar_t  *r_cache;
@@ -1366,7 +1362,7 @@ static void R_Register( void )
 	r_ext_compressed_textures = ri.Cvar_Get( "r_ext_compressed_textures", "1", CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE ); // (SA) ew, a spelling change I missed from the missionpack
 	r_ext_multitexture = ri.Cvar_Get( "r_ext_multitexture", "1", CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE );
 	r_ext_compiled_vertex_array = ri.Cvar_Get( "r_ext_compiled_vertex_array", "1", CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE );
-
+	r_ext_texture_env_add = ri.Cvar_Get( "r_ext_texture_env_add", "1", CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE );
 //----(SA)	added
 
 	r_ext_texture_filter_anisotropic    = ri.Cvar_Get( "r_ext_texture_filter_anisotropic", "0", CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE );
@@ -1376,7 +1372,7 @@ static void R_Register( void )
 	r_nv_fogdist_mode                   = ri.Cvar_Get( "r_nv_fogdist_mode", "GL_EYE_RADIAL_NV", CVAR_ARCHIVE | CVAR_UNSAFE );  // default to 'looking good'
 //----(SA)	end
 
-	r_ext_texture_env_add = ri.Cvar_Get( "r_ext_texture_env_add", "1", CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE );
+
 
 	r_clampToEdge = ri.Cvar_Get( "r_clampToEdge", "1", CVAR_ARCHIVE | CVAR_LATCH | CVAR_UNSAFE ); // ydnar: opengl 1.2 GL_CLAMP_TO_EDGE support
 
@@ -1388,16 +1384,14 @@ static void R_Register( void )
 	ri.Cvar_CheckRange( r_nomip, "0", "1", CV_INTEGER );
 	ri.Cvar_SetDescription( r_nomip, "Apply picmip only on worldspawn textures" );
 
-	r_neatsky = ri.Cvar_Get( "r_neatsky", "1", CVAR_ARCHIVE | CVAR_LATCH | CVAR_NODEFAULT );
+	r_neatsky = ri.Cvar_Get( "r_neatsky", "0", CVAR_ARCHIVE | CVAR_LATCH );
 	r_roundImagesDown = ri.Cvar_Get( "r_roundImagesDown", "1", CVAR_ARCHIVE_ND | CVAR_LATCH );
 	r_allowNonPo2 = ri.Cvar_Get( "r_allowNonPo2", "0", CVAR_ARCHIVE_ND | CVAR_LATCH );
 	ri.Cvar_SetDescription( r_allowNonPo2, "Toggle to allow non power of two textures. Default is off like ETmain" );
 	r_colorMipLevels = ri.Cvar_Get( "r_colorMipLevels", "0", CVAR_LATCH );
 	r_detailTextures = ri.Cvar_Get( "r_detailtextures", "1", CVAR_ARCHIVE_ND | CVAR_LATCH );
 	r_texturebits = ri.Cvar_Get( "r_texturebits", "0", CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE );
-	r_colorbits = ri.Cvar_Get( "r_colorbits", "0", CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE );
 	r_stencilbits = ri.Cvar_Get( "r_stencilbits", "0", CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE );
-	r_depthbits = ri.Cvar_Get( "r_depthbits", "0", CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE );
 	r_ext_multisample = ri.Cvar_Get( "r_ext_multisample", "0", CVAR_ARCHIVE_ND );
 	ri.Cvar_CheckRange( r_ext_multisample, "0", "8", CV_INTEGER );
 	ri.Cvar_SetGroup( r_ext_multisample, CVG_RENDERER );
@@ -1422,6 +1416,7 @@ static void R_Register( void )
 	r_intensity = ri.Cvar_Get( "r_intensity", "1", CVAR_LATCH );
 	ri.Cvar_CheckRange( r_intensity, "1", "1.5", CV_FLOAT ); // ri.Cvar_CheckRange( r_intensity, "1", "255", CV_FLOAT );
 	r_singleShader = ri.Cvar_Get( "r_singleShader", "0", CVAR_CHEAT | CVAR_LATCH );
+	r_defaultImage = ri.Cvar_Get( "r_defaultImage", "", CVAR_ARCHIVE_ND | CVAR_LATCH );
 
 	//
 	// archived variables that can change at any time
@@ -1441,6 +1436,7 @@ static void R_Register( void )
 	r_inGameVideo = ri.Cvar_Get( "r_inGameVideo", "1", CVAR_ARCHIVE_ND );
 	r_drawSun = ri.Cvar_Get( "r_drawSun", "1", CVAR_ARCHIVE_ND );
 	r_dynamiclight = ri.Cvar_Get( "r_dynamiclight", "1", CVAR_ARCHIVE );
+	r_mergeLightmaps = ri.Cvar_Get( "r_mergeLightmaps", "1", CVAR_ARCHIVE_ND | CVAR_LATCH );
 #ifdef USE_PMLIGHT
 	r_dlightMode = ri.Cvar_Get( "r_dlightMode", "1", CVAR_ARCHIVE );
 #ifdef USE_LEGACY_DLIGHTS
@@ -1506,7 +1502,7 @@ static void R_Register( void )
 	r_gamma = ri.Cvar_Get( "r_gamma", "1.3", CVAR_ARCHIVE_ND );
 #endif
 	ri.Cvar_CheckRange( r_gamma, "0.5", "3", CV_FLOAT );
-	r_facePlaneCull = ri.Cvar_Get( "r_facePlaneCull", "1", CVAR_ARCHIVE_ND );
+	r_facePlaneCull = ri.Cvar_Get ("r_facePlaneCull", "1", CVAR_ARCHIVE_ND );
 
 	r_railWidth = ri.Cvar_Get( "r_railWidth", "16", CVAR_ARCHIVE_ND );
 	r_railCoreWidth = ri.Cvar_Get( "r_railCoreWidth", "1", CVAR_ARCHIVE_ND );
@@ -1590,6 +1586,7 @@ static void R_Register( void )
 
 	r_aviMotionJpegQuality = ri.Cvar_Get( "r_aviMotionJpegQuality", "90", CVAR_ARCHIVE_ND );
 	r_screenshotJpegQuality = ri.Cvar_Get( "r_screenshotJpegQuality", "90", CVAR_ARCHIVE_ND );
+
 	r_maxpolys = ri.Cvar_Get( "r_maxpolys", XSTRING( MAX_POLYS ), 0 );
 	r_maxpolyverts = ri.Cvar_Get( "r_maxpolyverts", XSTRING( MAX_POLYVERTS ), 0 );
 

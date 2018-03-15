@@ -1088,8 +1088,7 @@ Key_Bind_f
 */
 void Key_Bind_f( void )
 {
-	int			i, c, b;
-	char		cmd[MAX_STRING_TOKENS];
+	int c, b;
 	
 	c = Cmd_Argc();
 
@@ -1116,15 +1115,7 @@ void Key_Bind_f( void )
 	}
 	
 	// copy the rest of the command line
-	cmd[0] = '\0'; // start out with a null string
-	for ( i = 2 ; i < c ; i++ )
-	{
-		strcat( cmd, Cmd_Argv( i ) );
-		if ( i != ( c-1 ) )
-			strcat( cmd, " " );
-	}
-
-	Key_SetBinding( b, cmd );
+	Key_SetBinding( b, Cmd_ArgsFrom( 2 ) );
 }
 
 
@@ -1261,7 +1252,6 @@ void Key_ParseBinding( int key, qboolean down, unsigned time, qboolean forceAll 
 	allCommands = forceAll || qtrue;
 
 	allowUpCmds = qfalse;
-
 #endif
 
 	while( 1 )

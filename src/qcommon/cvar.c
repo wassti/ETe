@@ -60,7 +60,7 @@ static long generateHashValue( const char *fname ) {
 	hash = 0;
 	i = 0;
 	while (fname[i] != '\0') {
-		letter = tolower(fname[i]);
+		letter = locase[(byte)fname[i]];
 		hash+=(long)(letter)*(i+119);
 		i++;
 	}
@@ -1011,7 +1011,7 @@ qboolean Cvar_Command( void ) {
 	}
 
 	// set the value if forcing isn't required
-	Cvar_Set2 (v->name, Cmd_Args(), qfalse);
+	Cvar_Set2( v->name, Cmd_ArgsFrom( 1 ), qfalse );
 	return qtrue;
 }
 
@@ -1792,9 +1792,9 @@ Cvar_Restart_f
 Resets all cvars to their hardcoded values
 ============
 */
-void Cvar_Restart_f(void)
+static void Cvar_Restart_f( void )
 {
-	Cvar_Restart(qfalse);
+	Cvar_Restart( qfalse );
 }
 
 
@@ -1832,7 +1832,7 @@ char *Cvar_InfoString_Big(int bit)
 	static char	info[BIG_INFO_STRING];
 	cvar_t	*var;
 
-	info[0] = 0;
+	info[0] = '\0';
 
 	for (var = cvar_vars; var; var = var->next)
 	{

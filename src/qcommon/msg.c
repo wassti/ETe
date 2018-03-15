@@ -296,55 +296,47 @@ void MSG_WriteFloat( msg_t *sb, float f ) {
 }
 
 void MSG_WriteString( msg_t *sb, const char *s ) {
-	if ( !s ) {
-		MSG_WriteData( sb, "", 1 );
-	} else {
-		int l,i;
-		char string[MAX_STRING_CHARS];
+	int l, i;
+	char v;
 
-		l = strlen( s );
-		if ( l >= MAX_STRING_CHARS ) {
-			Com_Printf( "MSG_WriteString: MAX_STRING_CHARS" );
-			MSG_WriteData( sb, "", 1 );
-			return;
-		}
-		Q_strncpyz( string, s, sizeof( string ) );
-
-		// get rid of 0x80+ and '%' chars, because old clients don't like them
-		for ( i = 0 ; i < l ; i++ ) {
-			if ( ((byte *)string)[i] > 127 || string[i] == '%' ) {
-				string[i] = '.';
-			}
-		}
-
-		MSG_WriteData( sb, string, l + 1 );
+	l = s ? strlen( s ) : 0;
+	if ( l >= MAX_STRING_CHARS ) {
+		Com_Printf( "MSG_WriteString: MAX_STRING_CHARS\n" );
+		l = 0; 
 	}
+
+	for ( i = 0 ; i < l; i++ ) {
+		// get rid of 0x80+ and '%' chars, because old clients don't like them
+		if ( s[i] & 0x80 || s[i] == '%' )
+			v = '.';
+		else
+			v = s[i];
+		MSG_WriteChar( sb, v );
+	}
+
+	MSG_WriteChar( sb, '\0' );
 }
 
 void MSG_WriteBigString( msg_t *sb, const char *s ) {
-	if ( !s ) {
-		MSG_WriteData( sb, "", 1 );
-	} else {
-		int l, i;
-		char string[BIG_INFO_STRING];
+	int l, i;
+	char v;
 
-		l = strlen( s );
-		if ( l >= BIG_INFO_STRING ) {
-			Com_Printf( "MSG_WriteString: BIG_INFO_STRING" );
-			MSG_WriteData( sb, "", 1 );
-			return;
-		}
-		Q_strncpyz( string, s, sizeof( string ) );
-
-		// get rid of 0x80+ and '%' chars, because old clients don't like them
-		for ( i = 0 ; i < l ; i++ ) {
-			if ( ((byte *)string)[i] > 127 || string[i] == '%' ) {
-				string[i] = '.';
-			}
-		}
-
-		MSG_WriteData( sb, string, l + 1 );
+	l = s ? strlen( s ) : 0;
+	if ( l >= BIG_INFO_STRING ) {
+		Com_Printf( "MSG_WriteBigString: BIG_INFO_STRING\n" );
+		l = 0; 
 	}
+
+	for ( i = 0 ; i < l ; i++ ) {
+		// get rid of 0x80+ and '%' chars, because old clients don't like them
+		if ( s[i] & 0x80 || s[i] == '%' )
+			v = '.';
+		else
+			v = s[i];
+		MSG_WriteChar( sb, v );
+	}
+
+	MSG_WriteChar( sb, '\0' );
 }
 
 void MSG_WriteAngle( msg_t *sb, float f ) {
@@ -420,93 +412,101 @@ float MSG_ReadFloat( msg_t *msg ) {
 
 const char *MSG_ReadString( msg_t *msg ) {
 	static char	string[MAX_STRING_CHARS];
-	int		l,c;
+	int	l, c;
 	
 	l = 0;
 	do {
-		c = MSG_ReadByte(msg);		// use ReadByte so -1 is out of bounds
-		if ( c <=0 /*c == -1 || c == 0 */ ) {
+		c = MSG_ReadByte( msg ); // use ReadByte so -1 is out of bounds
+		if ( c <= 0 /*c == -1 || c == 0 */ ) {
 			break;
 		}
 		// translate all fmt spec to avoid crash bugs
 		if ( c == '%' ) {
 			c = '.';
-		}
+		} else
 		// don't allow higher ascii values
 		if ( c > 127 ) {
 			c = '.';
 		}
-
-		string[l] = c;
-		l++;
-	} while ( l < sizeof( string ) - 1 );
-
-	string[l] = 0;
-
+		// break only after reading all expected data from bitstream
+		if ( l >= sizeof(string)-1 ) {
+			break;
+		}
+		string[ l++ ] = c;
+	} while ( qtrue );
+	
+	string[ l ] = '\0';
+	
 	return string;
 }
 
 
 const char *MSG_ReadBigString( msg_t *msg ) {
-	static char	string[BIG_INFO_STRING];
-	int		l,c;
+	static char	string[ BIG_INFO_STRING ];
+	int	l, c;
 	
 	l = 0;
 	do {
-		c = MSG_ReadByte(msg);		// use ReadByte so -1 is out of bounds
+		c = MSG_ReadByte( msg ); // use ReadByte so -1 is out of bounds
 		if ( c <= 0 /*c == -1 || c == 0*/ ) {
 			break;
 		}
 		// translate all fmt spec to avoid crash bugs
 		if ( c == '%' ) {
 			c = '.';
-		}
+		} else
 		// don't allow higher ascii values
 		if ( c > 127 ) {
 			c = '.';
 		}
-
-		string[l] = c;
-		l++;
-	} while ( l < sizeof( string ) - 1 );
-
-	string[l] = 0;
-
+		// break only after reading all expected data from bitstream
+		if ( l >= sizeof(string)-1 ) {
+			break;
+		}
+		string[ l++ ] = c;
+	} while ( qtrue );
+	
+	string[ l ] = '\0';
+	
 	return string;
 }
 
 
 const char *MSG_ReadStringLine( msg_t *msg ) {
 	static char	string[MAX_STRING_CHARS];
-	int		l,c;
+	int	l, c;
 
 	l = 0;
 	do {
-		c = MSG_ReadByte(msg);		// use ReadByte so -1 is out of bounds
+		c = MSG_ReadByte( msg ); // use ReadByte so -1 is out of bounds
 		if ( c <= 0 /*c == -1 || c == 0*/ || c == '\n') {
 			break;
 		}
 		// translate all fmt spec to avoid crash bugs
 		if ( c == '%' ) {
 			c = '.';
-		}
+		} else
 		// don't allow higher ascii values
 		if ( c > 127 ) {
 			c = '.';
 		}
-
-		string[l] = c;
-		l++;
-	} while ( l < sizeof( string ) - 1 );
-
-	string[l] = 0;
-
+		// break only after reading all expected data from bitstream
+		if ( l >= sizeof(string)-1 ) {
+			break;
+		}
+		string[ l++ ] = c;
+	} while ( qtrue );
+	
+	string[ l ] = '\0';
+	
 	return string;
 }
+
 
 float MSG_ReadAngle16( msg_t *msg ) {
 	return SHORT2ANGLE( MSG_ReadShort( msg ) );
 }
+
 
 void MSG_ReadData( msg_t *msg, void *data, int len ) {
 	int i;
@@ -515,6 +515,7 @@ void MSG_ReadData( msg_t *msg, void *data, int len ) {
 		( (byte *)data )[i] = MSG_ReadByte( msg );
 	}
 }
+
 
 // a string hasher which gives the same hash value even if the
 // string is later modified via the legacy MSG read/write code

@@ -2364,7 +2364,7 @@ void *R_Hunk_Alloc( int size ) {
 	//Com_Printf("R_Hunk_Alloc(%d)\n", size);
 
 	// round to cacheline
-	size = ( size + 31 ) & ~31;
+	size = PAD( size, 32 );
 
 #ifdef _WIN32
 

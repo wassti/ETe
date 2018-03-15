@@ -53,7 +53,7 @@ static int             *triangles, *boneRefs, *pIndexes;
 static int indexes;
 static int baseIndex, baseVertex, oldIndexes;
 static int numVerts;
-static mdsVertex_t     *v;
+static mdsVertex_t     *modVerts;
 static mdsBoneFrame_t bones[MDS_MAX_BONES], rawBones[MDS_MAX_BONES], oldBones[MDS_MAX_BONES];
 static char validBones[MDS_MAX_BONES];
 static char newBones[ MDS_MAX_BONES ];
@@ -1333,7 +1333,7 @@ void RB_SurfaceAnim( mdsSurface_t *surface ) {
 	// deform the vertexes by the lerped bones
 	//
 	numVerts = surface->numVerts;
-	v = ( mdsVertex_t * )( (byte *)surface + surface->ofsVerts );
+	modVerts = ( mdsVertex_t * )( (byte *)surface + surface->ofsVerts );
 	tempVert = ( float * )( tess.xyz + baseVertex );
 	tempNormal = ( float * )( tess.normal + baseVertex );
 	for ( j = 0; j < render_count; j++, tempVert += 4, tempNormal += 4 ) {
@@ -1341,18 +1341,18 @@ void RB_SurfaceAnim( mdsSurface_t *surface ) {
 
 		VectorClear( tempVert );
 
-		w = v->weights;
-		for ( k = 0 ; k < v->numWeights ; k++, w++ ) {
+		w = modVerts->weights;
+		for ( k = 0 ; k < modVerts->numWeights ; k++, w++ ) {
 			bone = &bones[w->boneIndex];
 			LocalAddScaledMatrixTransformVectorTranslate( w->offset, w->boneWeight, bone->matrix, bone->translation, tempVert );
 		}
 
-		LocalMatrixTransformVector( v->normal, bones[v->weights[0].boneIndex].matrix, tempNormal );
+		LocalMatrixTransformVector( modVerts->normal, bones[modVerts->weights[0].boneIndex].matrix, tempNormal );
 
-		tess.texCoords[baseVertex + j][0][0] = v->texCoords[0];
-		tess.texCoords[baseVertex + j][0][1] = v->texCoords[1];
+		tess.texCoords[baseVertex + j][0][0] = modVerts->texCoords[0];
+		tess.texCoords[baseVertex + j][0][1] = modVerts->texCoords[1];
 
-		v = (mdsVertex_t *)&v->weights[v->numWeights];
+		modVerts = (mdsVertex_t *)&modVerts->weights[modVerts->numWeights];
 	}
 
 	DBG_SHOWTIME

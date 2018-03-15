@@ -55,7 +55,7 @@ static int             *triangles, *boneRefs, *pIndexes;
 static int indexes;
 static int baseIndex, baseVertex, oldIndexes;
 static int numVerts;
-static mdmVertex_t     *v;
+static mdmVertex_t     *modVerts;
 static mdxBoneFrame_t bones[MDX_MAX_BONES], rawBones[MDX_MAX_BONES], oldBones[MDX_MAX_BONES];
 static char validBones[MDX_MAX_BONES];
 static char newBones[MDX_MAX_BONES];
@@ -1522,7 +1522,7 @@ void RB_MDM_SurfaceAnim( mdmSurface_t *surface ) {
 	// deform the vertexes by the lerped bones
 	//
 	numVerts = surface->numVerts;
-	v = ( mdmVertex_t * )( (byte *)surface + surface->ofsVerts );
+	modVerts = ( mdmVertex_t * )( (byte *)surface + surface->ofsVerts );
 	tempVert = ( float * )( tess.xyz + baseVertex );
 	tempNormal = ( float * )( tess.normal + baseVertex );
 	for ( j = 0; j < render_count; j++, tempVert += 4, tempNormal += 4 ) {
@@ -1530,18 +1530,18 @@ void RB_MDM_SurfaceAnim( mdmSurface_t *surface ) {
 
 		VectorClear( tempVert );
 
-		w = v->weights;
-		for ( k = 0 ; k < v->numWeights ; k++, w++ ) {
+		w = modVerts->weights;
+		for ( k = 0 ; k < modVerts->numWeights ; k++, w++ ) {
 			bone = &bones[w->boneIndex];
 			LocalAddScaledMatrixTransformVectorTranslate( w->offset, w->boneWeight, bone->matrix, bone->translation, tempVert );
 		}
 
-		LocalMatrixTransformVector( v->normal, bones[v->weights[0].boneIndex].matrix, tempNormal );
+		LocalMatrixTransformVector( modVerts->normal, bones[modVerts->weights[0].boneIndex].matrix, tempNormal );
 
-		tess.texCoords[baseVertex + j][0][0] = v->texCoords[0];
-		tess.texCoords[baseVertex + j][0][1] = v->texCoords[1];
+		tess.texCoords[baseVertex + j][0][0] = modVerts->texCoords[0];
+		tess.texCoords[baseVertex + j][0][1] = modVerts->texCoords[1];
 
-		v = (mdmVertex_t *)&v->weights[v->numWeights];
+		modVerts = (mdmVertex_t *)&modVerts->weights[modVerts->numWeights];
 	}
 
 	DBG_SHOWTIME
@@ -1714,23 +1714,23 @@ void RB_MDM_SurfaceAnim( mdmSurface_t *surface ) {
 		}
 
 		if ( r_bonesDebug->integer == 6 || r_bonesDebug->integer == 7 ) {
-			v = ( mdmVertex_t * )( (byte *)surface + surface->ofsVerts );
+			modVerts = ( mdmVertex_t * )( (byte *)surface + surface->ofsVerts );
 			tempVert = ( float * )( tess.xyz + baseVertex );
 			GL_Bind( tr.whiteImage );
 			qglPointSize( 5 );
 			qglBegin( GL_POINTS );
 			for ( j = 0; j < render_count; j++, tempVert += 4 ) {
-				if ( v->numWeights > 1 ) {
-					if ( v->numWeights == 2 ) {
+				if ( modVerts->numWeights > 1 ) {
+					if ( modVerts->numWeights == 2 ) {
 						qglColor3f( .4f, .4f, 0.f );
-					} else if ( v->numWeights == 3 ) {
+					} else if ( modVerts->numWeights == 3 ) {
 						qglColor3f( .8f, .4f, 0.f );
 					} else {
 						qglColor3f( 1.f, .4f, 0.f );
 					}
 					qglVertex3fv( tempVert );
 				}
-				v = (mdmVertex_t *)&v->weights[v->numWeights];
+				modVerts = (mdmVertex_t *)&modVerts->weights[modVerts->numWeights];
 			}
 			qglEnd();
 		}

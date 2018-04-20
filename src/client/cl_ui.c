@@ -369,7 +369,6 @@ static void LAN_GetServerInfo( int source, int n, char *buf, int buflen ) {
 		Info_SetValueForKey( info, "gametype", va( "%i",server->gameType ) );
 		Info_SetValueForKey( info, "nettype", va( "%i",server->netType ) );
 		Info_SetValueForKey( info, "addr", NET_AdrToStringwPort( &server->adr ) );
-		Info_SetValueForKey( info, "sv_allowAnonymous", va( "%i", server->allowAnonymous ) );
 		Info_SetValueForKey( info, "friendlyFire", va( "%i", server->friendlyFire ) );               // NERVE - SMF
 		Info_SetValueForKey( info, "maxlives", va( "%i", server->maxlives ) );                       // NERVE - SMF
 		Info_SetValueForKey( info, "needpass", va( "%i", server->needpass ) );                       // NERVE - SMF
@@ -847,7 +846,7 @@ CL_UISystemCalls
 The ui module is making a system call
 ====================
 */
-intptr_t CL_UISystemCalls( intptr_t *args ) {
+static intptr_t CL_UISystemCalls( intptr_t *args ) {
 	switch( args[0] ) {
 	case UI_ERROR:
 		Com_Error( ERR_DROP, "%s", (const char*)VMA(1) );
@@ -1381,7 +1380,7 @@ void CL_InitUI( void ) {
 
 	uivm = VM_Create( VM_UI, CL_UISystemCalls, UI_DllSyscall, ui_vmMainArgs, VMI_NATIVE );
 	if ( !uivm ) {
-		Com_Error( ERR_FATAL, "VM_Create on UI failed" );
+		Com_Error( ERR_DROP, "VM_Create on UI failed" );
 	}
 
 	// sanity check

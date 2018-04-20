@@ -1011,8 +1011,8 @@ ParseFlare
 ===============
 */
 static void ParseFlare( const dsurface_t *ds, const drawVert_t *verts, msurface_t *surf, int *indexes ) {
-	srfFlare_t      *flare;
-	int i;
+	srfFlare_t		*flare;
+	int				i;
 
 	// get fog volume
 	surf->fogIndex = LittleLong( ds->fogNum ) + 1;
@@ -1040,10 +1040,10 @@ static void ParseFlare( const dsurface_t *ds, const drawVert_t *verts, msurface_
 =================
 R_MergedWidthPoints
 
-returns true if there are grid points merged on a width edge
+returns qtrue if there are grid points merged on a width edge
 =================
 */
-int R_MergedWidthPoints(srfGridMesh_t *grid, int offset) {
+static qboolean R_MergedWidthPoints( const srfGridMesh_t *grid, int offset ) {
 	int i, j;
 
 	for (i = 1; i < grid->width-1; i++) {
@@ -1062,10 +1062,10 @@ int R_MergedWidthPoints(srfGridMesh_t *grid, int offset) {
 =================
 R_MergedHeightPoints
 
-returns true if there are grid points merged on a height edge
+returns qtrue if there are grid points merged on a height edge
 =================
 */
-int R_MergedHeightPoints(srfGridMesh_t *grid, int offset) {
+static qboolean R_MergedHeightPoints( const srfGridMesh_t *grid, int offset ) {
 	int i, j;
 
 	for (i = 1; i < grid->height-1; i++) {
@@ -1089,7 +1089,7 @@ NOTE: never sync LoD through grid edges with merged points!
 FIXME: write generalized version that also avoids cracks between a patch and one that meets half way?
 =================
 */
-void R_FixSharedVertexLodError_r( int start, srfGridMesh_t *grid1 ) {
+static void R_FixSharedVertexLodError_r( int start, srfGridMesh_t *grid1 ) {
 	int j, k, l, m, n, offset1, offset2, touch;
 	srfGridMesh_t *grid2;
 
@@ -1193,6 +1193,7 @@ void R_FixSharedVertexLodError_r( int start, srfGridMesh_t *grid1 ) {
 	}
 }
 
+
 /*
 =================
 R_FixSharedVertexLodError
@@ -1201,7 +1202,7 @@ This function assumes that all patches in one group are nicely stitched together
 If this is not the case this function will still do its job but won't fix the highest LoD cracks.
 =================
 */
-void R_FixSharedVertexLodError( void ) {
+static void R_FixSharedVertexLodError( void ) {
 	int i;
 	srfGridMesh_t *grid1;
 
@@ -1227,7 +1228,7 @@ void R_FixSharedVertexLodError( void ) {
 R_StitchPatches
 ===============
 */
-int R_StitchPatches( int grid1num, int grid2num ) {
+static int R_StitchPatches( int grid1num, int grid2num ) {
 	float *v1, *v2;
 	srfGridMesh_t *grid1, *grid2;
 	int k, l, m, n, offset1, offset2, row, column;
@@ -1643,7 +1644,7 @@ of the patch (on the same row or column) the vertices will not be joined and cra
 might still appear at that side.
 ===============
 */
-int R_TryStitchingPatch( int grid1num ) {
+static int R_TryStitchingPatch( int grid1num ) {
 	int j, numstitches;
 	srfGridMesh_t *grid1, *grid2;
 
@@ -1675,7 +1676,7 @@ int R_TryStitchingPatch( int grid1num ) {
 R_StitchAllPatches
 ===============
 */
-void R_StitchAllPatches( void ) {
+static void R_StitchAllPatches( void ) {
 	int i, stitched, numstitches;
 	srfGridMesh_t *grid1;
 
@@ -1709,7 +1710,7 @@ void R_StitchAllPatches( void ) {
 R_MovePatchSurfacesToHunk
 ===============
 */
-void R_MovePatchSurfacesToHunk( void ) {
+static void R_MovePatchSurfacesToHunk( void ) {
 	int i, size;
 	srfGridMesh_t *grid, *hunkgrid;
 
@@ -1854,7 +1855,9 @@ static void R_LoadSubmodels( const lump_t *l ) {
 
 		model = R_AllocModel();
 
-		assert( model != NULL );            // this should never happen
+		if ( model == NULL ) {
+			ri.Error(ERR_DROP, "R_LoadSubmodels: R_AllocModel() failed");
+		}
 
 		model->type = MOD_BRUSH;
 		model->model.bmodel = out;
@@ -1888,9 +1891,8 @@ static void R_LoadSubmodels( const lump_t *l ) {
 R_SetParent
 =================
 */
-
-static void R_SetParent( mnode_t *node, mnode_t *parent ) {
-	//  set parent
+static void R_SetParent( mnode_t *node, mnode_t *parent )
+{
 	node->parent = parent;
 
 	// handle leaf nodes
@@ -1912,6 +1914,7 @@ static void R_SetParent( mnode_t *node, mnode_t *parent ) {
 					 gen->surfaceType != SF_GRID &&
 					 gen->surfaceType != SF_TRIANGLES &&
 					 gen->surfaceType != SF_FOLIAGE ) {
+					mark++;
 					continue;
 				}
 				AddPointToBounds( gen->bounds[ 0 ], node->surfMins, node->surfMaxs );
@@ -1931,9 +1934,10 @@ static void R_SetParent( mnode_t *node, mnode_t *parent ) {
 	// ydnar: surface bounds
 	AddPointToBounds( node->children[ 0 ]->surfMins, node->surfMins, node->surfMaxs );
 	AddPointToBounds( node->children[ 0 ]->surfMins, node->surfMins, node->surfMaxs );
-	AddPointToBounds( node->children[ 1 ]->surfMins, node->surfMins, node->surfMaxs );
+	AddPointToBounds( node->children[ 1 ]->surfMaxs, node->surfMins, node->surfMaxs );
 	AddPointToBounds( node->children[ 1 ]->surfMaxs, node->surfMins, node->surfMaxs );
 }
+
 
 /*
 =================
@@ -2118,10 +2122,10 @@ static void R_LoadPlanes( lump_t *l ) {
 	}
 }
 
+
 /*
 =================
 R_LoadFogs
-
 =================
 */
 static void R_LoadFogs( const lump_t *l, const lump_t *brushesLump, const lump_t *sidesLump ) {
@@ -2262,8 +2266,9 @@ static void R_LoadFogs( const lump_t *l, const lump_t *brushesLump, const lump_t
 R_FindLightGridBounds
 ==============
 */
-void R_FindLightGridBounds( vec3_t mins, vec3_t maxs ) {
+static void R_FindLightGridBounds( vec3_t mins, vec3_t maxs ) {
 	world_t *w;
+#if 0
 	msurface_t  *surf;
 	srfSurfaceFace_t *surfFace;
 //	cplane_t	*plane;
@@ -2271,6 +2276,7 @@ void R_FindLightGridBounds( vec3_t mins, vec3_t maxs ) {
 
 	qboolean foundGridBrushes = qfalse;
 	int i,j;
+#endif
 
 	w = &s_worldData;
 
@@ -2280,7 +2286,7 @@ void R_FindLightGridBounds( vec3_t mins, vec3_t maxs ) {
 	return;
 //----(SA)	temp
 
-
+#if 0
 
 
 
@@ -2359,15 +2365,15 @@ void R_FindLightGridBounds( vec3_t mins, vec3_t maxs ) {
 		VectorCopy( w->bmodels[0].bounds[0], mins );
 		VectorCopy( w->bmodels[0].bounds[1], maxs );
 	}
+#endif
 }
 
 /*
 ================
 R_LoadLightGrid
-
 ================
 */
-void R_LoadLightGrid( const lump_t *l ) {
+static void R_LoadLightGrid( const lump_t *l ) {
 	int i;
 	vec3_t maxs;
 	int numGridPoints;
@@ -2417,7 +2423,7 @@ void R_LoadLightGrid( const lump_t *l ) {
 R_LoadEntities
 ================
 */
-void R_LoadEntities( const lump_t *l ) {
+static void R_LoadEntities( const lump_t *l ) {
 	const char *p, *token;
 	char *s;
 	char keyname[MAX_TOKEN_CHARS];
@@ -2437,7 +2443,7 @@ void R_LoadEntities( const lump_t *l ) {
 	w->entityParsePoint = w->entityString;
 
 	token = COM_ParseExt( &p, qtrue );
-	if (!*token || *token != '{') {
+	if (*token != '{') {
 		return;
 	}
 

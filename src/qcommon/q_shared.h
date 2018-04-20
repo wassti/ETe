@@ -741,7 +741,7 @@ void CrossProduct( const vec3_t v1, const vec3_t v2, vec3_t cross );
 vec_t VectorNormalize (vec3_t v);		// returns vector length
 vec_t VectorNormalize2( const vec3_t v, vec3_t out );
 void Vector4Scale( const vec4_t in, vec_t scale, vec4_t out );
-void VectorRotate( vec3_t in, vec3_t matrix[3], vec3_t out );
+void VectorRotate( const vec3_t in, const vec3_t matrix[3], vec3_t out );
 int Q_log2(int val);
 
 float Q_acos(float c);
@@ -926,7 +926,6 @@ typedef enum {
 //=============================================
 
 extern const byte locase[ 256 ];
-extern const byte upcase[ 256 ];
 
 int Q_isprint( int c );
 int Q_islower( int c );
@@ -1096,6 +1095,7 @@ typedef enum {
 	CV_INTEGER,
 	CV_BOOLEAN,
 	CV_FSPATH,
+	CV_USERINFO, // clean userinfo of > 127 chars
 	CV_MAX,
 } cvarValidator_t;
 

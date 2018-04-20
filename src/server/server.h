@@ -212,7 +212,7 @@ typedef struct client_s {
 	int timeoutCount;                   // must timeout a few frames in a row so debugging doesn't break
 	clientSnapshot_t frames[PACKET_BACKUP];     // updates can be delta'd from here
 	int ping;
-	int rate;                           // bytes / second
+	int rate;                           // bytes / second, 0 - unlimited
 	int snapshotMsec;                   // requests a snapshot every snapshotMsec unless rate choked
 	qboolean		pureAuthentic;
 	qboolean gotCP;  // TTimo - additional flag to distinguish between a bad pure checksum, and no cp command at all
@@ -237,6 +237,9 @@ typedef struct client_s {
 
 	// client can decode long strings
 	qboolean		longstr;
+
+	qboolean		justConnected;
+
 } client_t;
 
 //=============================================================================
@@ -266,7 +269,6 @@ typedef struct {
 	//int nextSnapshotEntities;               // next snapshotEntities to use
 	entityState_t   *snapshotEntities;      // [numSnapshotEntities]
 	int nextHeartbeatTime;
-	netadr_t redirectAddress;               // for rcon return messages
 	tempBan_t tempBanAddresses[MAX_TEMPBAN_ADDRESSES];
 
 	int			masterResolveTime[MAX_MASTER_SERVERS]; // next svs.time that server should do dns lookup for master server
@@ -317,6 +319,7 @@ extern cvar_t  *sv_friendlyFire;        // NERVE - SMF
 extern cvar_t  *sv_maxlives;            // NERVE - SMF
 extern cvar_t  *sv_maxclients;
 extern cvar_t  *sv_needpass;
+extern	cvar_t	*sv_maxconcurrent;
 
 extern cvar_t  *sv_privateClients;
 extern cvar_t  *sv_hostname;
@@ -333,7 +336,6 @@ extern cvar_t  *sv_maxRate;
 //extern	cvar_t	*sv_gametype;
 extern cvar_t  *sv_pure;
 extern cvar_t  *sv_floodProtect;
-extern cvar_t  *sv_allowAnonymous;
 extern cvar_t  *sv_lanForceRate;
 extern cvar_t  *sv_onlyVisibleClients;
 
@@ -392,9 +394,10 @@ struct leakyBucket_s {
 	} ipv;
 
 	int			lastTime;
-	signed char	burst;
+	int			burst;
 
-	long		hash;
+	int			hash;
+	int			toxic;
 
 	leakyBucket_t *prev, *next;
 };
@@ -403,13 +406,15 @@ extern leakyBucket_t outboundLeakyBucket;
 
 qboolean SVC_RateLimit( leakyBucket_t *bucket, int burst, int period );
 qboolean SVC_RateLimitAddress( const netadr_t *from, int burst, int period );
+void SVC_RateRestoreBurstAddress( const netadr_t *from, int burst, int period );
+void SVC_RateRestoreToxicAddress( const netadr_t *from, int burst, int period );
+void SVC_RateDropAddress( const netadr_t *from, int burst, int period );
 
 void SV_FinalCommand( const char *message, qboolean disconnect ); // ydnar: added disconnect flag so map changes can use this function as well
 void QDECL SV_SendServerCommand( client_t *cl, const char *fmt, ... ) __attribute__ ((format (printf, 2, 3)));
 
 void SV_AddOperatorCommands( void );
 void SV_RemoveOperatorCommands( void );
-
 
 void SV_MasterShutdown( void );
 int SV_RateMsec( const client_t *client );

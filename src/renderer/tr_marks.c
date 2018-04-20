@@ -67,6 +67,8 @@ static void R_ChopPolyBehindPlane( int numInPoints, vec3_t inPoints[MAX_VERTS_ON
 	}
 
 	counts[0] = counts[1] = counts[2] = 0;
+	dists[0] = 0.0;
+	sides[0] = 0;
 
 	// determine sides for each point
 	for ( i = 0 ; i < numInPoints ; i++ ) {

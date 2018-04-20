@@ -480,8 +480,7 @@ void RB_SurfaceFoliage( srfFoliage_t *srf ) {
 	distanceVector[ 3 ] = DotProduct( local, backEnd.viewParms.orientation.axis[ 0 ] );
 
 	// attempt distance cull
-	VectorCopy( tess.shader->distanceCull, distanceCull );
-	distanceCull[ 3 ] = tess.shader->distanceCull[ 3 ];
+	Vector4Copy( tess.shader->distanceCull, distanceCull );
 	if ( distanceCull[ 1 ] > 0 && !tr.mapLoading ) {
 		//VectorSubtract( srf->localOrigin, viewOrigin, delta );
 		//alpha = (distanceCull[ 1 ] - VectorLength( delta ) + srf->radius) * distanceCull[ 3 ];
@@ -1684,7 +1683,7 @@ Draws x/y/z lines from the origin for orientation debugging
 */
 static void RB_SurfaceAxis( void ) {
 	GL_Bind( tr.whiteImage );
-	GL_State( GLS_DEFAULT ); // ENSI NOTE wasn't in ET
+	GL_State( GLS_DEFAULT );
 	qglLineWidth( 3 );
 	qglBegin( GL_LINES );
 	qglColor3f( 1,0,0 );

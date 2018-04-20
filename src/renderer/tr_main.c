@@ -123,13 +123,6 @@ void R_Fog( glfog_t *curfog ) {
 //		}
 	}
 
-// TTimo - from SP NV fog code
-	// NV fog mode
-	if ( glConfig.NVFogAvailable ) {
-		qglFogi( GL_FOG_DISTANCE_MODE_NV, glConfig.NVFogMode );
-	}
-// end
-
 	setfog.registered = qtrue;
 
 	qglClearColor( curfog->color[0], curfog->color[1], curfog->color[2], curfog->color[3] );
@@ -213,7 +206,7 @@ void R_SetFog( int fogvar, int var1, int var2, float r, float g, float b, float 
 		glfogsettings[fogvar].color[3]      = 1;
 		glfogsettings[fogvar].start         = var1;
 		glfogsettings[fogvar].end           = var2;
-		if ( density > 1 ) {
+		if ( density >= 1 ) {
 			glfogsettings[fogvar].mode          = GL_LINEAR;
 			glfogsettings[fogvar].drawsky       = qfalse;
 			glfogsettings[fogvar].clearscreen   = qtrue;
@@ -1318,7 +1311,7 @@ static qboolean IsMirror( const drawSurf_t *drawSurf, int entityNum )
 **
 ** Determines if a surface is completely offscreen.
 */
-static qboolean SurfIsOffscreen( const drawSurf_t *drawSurf, vec4_t clipDest[128], qboolean *isMirror ) {
+static qboolean SurfIsOffscreen( const drawSurf_t *drawSurf, qboolean *isMirror ) {
 	float shortest = 100000000;
 	int entityNum;
 	int numTriangles;
@@ -1338,8 +1331,6 @@ static qboolean SurfIsOffscreen( const drawSurf_t *drawSurf, vec4_t clipDest[128
 	RB_BeginSurface( shader, fogNum );
 	tess.allowVBO = qfalse;
 	rb_surfaceTable[ *drawSurf->surface ]( drawSurf->surface );
-
-	assert( tess.numVertexes < 128 );
 
 	for ( i = 0; i < tess.numVertexes; i++ )
 	{
@@ -1478,7 +1469,6 @@ Returns qtrue if another view has been rendered
 */
 extern int r_numdlights;
 static qboolean R_MirrorViewBySurface( const drawSurf_t *drawSurf, int entityNum ) {
-	vec4_t			clipDest[128];
 	viewParms_t		newParms;
 	viewParms_t		oldParms;
 	orientation_t	surface, camera;
@@ -1496,7 +1486,7 @@ static qboolean R_MirrorViewBySurface( const drawSurf_t *drawSurf, int entityNum
 	}
 
 	// trivially reject portal/mirror
-	if ( SurfIsOffscreen( drawSurf, clipDest, &isMirror ) ) {
+	if ( SurfIsOffscreen( drawSurf, &isMirror ) ) {
 		return qfalse;
 	}
 
@@ -1547,7 +1537,7 @@ static qboolean R_MirrorViewBySurface( const drawSurf_t *drawSurf, int entityNum
 	// OPTIMIZE: restrict the viewport on the mirrored view
 
 	// render the mirror view
-	R_RenderView (&newParms);
+	R_RenderView( &newParms );
 
 	tr.viewParms = oldParms;
 
@@ -1610,8 +1600,8 @@ static ID_INLINE void R_Radix( int byte, int size, const drawSurf_t *source, dra
   int           count[ 256 ] = { 0 };
   int           index[ 256 ];
   int           i;
-  unsigned char *sortKey = NULL;
-  unsigned char *end = NULL;
+  unsigned char *sortKey;
+  unsigned char *end;
 
   sortKey = ( (unsigned char *)&source[ 0 ].sort ) + byte;
   end = sortKey + ( size * sizeof( drawSurf_t ) );
@@ -1791,7 +1781,7 @@ R_DecomposeLitSort
 */
 void R_DecomposeLitSort( unsigned sort, int *entityNum, shader_t **shader, int *fogNum ) {
 	*fogNum = ( sort >> QSORT_FOGNUM_SHIFT ) & FOGNUM_MASK;
-	*shader = tr.sortedShaders[ ( sort >> QSORT_SHADERNUM_SHIFT ) & (MAX_SHADERS-1) ];
+	*shader = tr.sortedShaders[ ( sort >> QSORT_SHADERNUM_SHIFT ) & SHADERNUM_MASK ];
 	*entityNum = ( sort >> QSORT_REFENTITYNUM_SHIFT ) & REFENTITYNUM_MASK;
 }
 
@@ -1836,7 +1826,7 @@ R_DecomposeSort
 void R_DecomposeSort( unsigned sort, int *entityNum, shader_t **shader, 
 					 int *fogNum, int *dlightMap ) {
 	*fogNum = ( sort >> QSORT_FOGNUM_SHIFT ) & FOGNUM_MASK;
-	*shader = tr.sortedShaders[ ( sort >> QSORT_SHADERNUM_SHIFT ) & (MAX_SHADERS-1) ];
+	*shader = tr.sortedShaders[ ( sort >> QSORT_SHADERNUM_SHIFT ) & SHADERNUM_MASK ];
 	*entityNum = ( sort >> QSORT_REFENTITYNUM_SHIFT ) & REFENTITYNUM_MASK;
 	*dlightMap = sort & DLIGHT_MASK;
 }

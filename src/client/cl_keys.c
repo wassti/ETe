@@ -148,7 +148,7 @@ void Field_VariableSizeDraw( field_t *edit, int x, int y, int width, int size, q
 			cursorChar = 10;
 		}
 
-		i = drawLen - strlen( str ); // i = drawLen - ( Q_PrintStrlen( str ) + 1 );
+		i = drawLen - strlen( str );
 
 		if ( size == SMALLCHAR_WIDTH ) {
 			SCR_DrawSmallChar( x + ( edit->cursor - prestep - i ) * size, y, cursorChar );
@@ -166,10 +166,12 @@ void Field_Draw( field_t *edit, int x, int y, int width, qboolean showCursor, qb
 	Field_VariableSizeDraw( edit, x, y, width, SMALLCHAR_WIDTH, showCursor, noColorEscape );
 }
 
+
 void Field_BigDraw( field_t *edit, int x, int y, int width, qboolean showCursor, qboolean noColorEscape ) 
 {
 	Field_VariableSizeDraw( edit, x, y, width, BIGCHAR_WIDTH, showCursor, noColorEscape );
 }
+
 
 /*
 ================
@@ -261,12 +263,13 @@ void Field_KeyDownEvent( field_t *edit, int key ) {
 	}
 }
 
+
 /*
 ==================
 Field_CharEvent
 ==================
 */
-void Field_CharEvent( field_t *edit, int ch ) {
+static void Field_CharEvent( field_t *edit, int ch ) {
 	int		len;
 
 	if ( ch == 'v' - 'a' + 1 ) {	// ctrl-v is paste
@@ -506,7 +509,6 @@ void Message_Key( int key ) {
 
 	char	buffer[MAX_STRING_CHARS];
 
-
 	if (key == K_ESCAPE) {
 		Key_SetCatcher( Key_GetCatcher( ) & ~KEYCATCH_MESSAGE );
 		Field_Clear( &chatField );
@@ -576,10 +578,12 @@ qboolean CL_NumPadEvent(int key)
 /*
 ===================
 CL_KeyDownEvent
+
 Called by CL_KeyEvent to handle a keypress
 ===================
 */
-void CL_KeyDownEvent( int key, unsigned time ) {
+void CL_KeyDownEvent( int key, unsigned time )
+{
 	qboolean bypassMenu = qfalse;       // NERVE - SMF
 	qboolean onlybinds = qfalse;
 	keys[key].down = qtrue;
@@ -660,7 +664,6 @@ void CL_KeyDownEvent( int key, unsigned time ) {
 			Com_DL_Cleanup( &download );
 		}
 #endif
-
 		if ( Key_GetCatcher( ) & KEYCATCH_CONSOLE ) {
 			// escape also closes console
 			Con_ToggleConsole_f();
@@ -803,12 +806,14 @@ CL_KeyEvent
 Called by the system for both key up and key down events
 ===================
 */
-void CL_KeyEvent (int key, qboolean down, unsigned time) {
-	if( down )
+void CL_KeyEvent( int key, qboolean down, unsigned time )
+{
+	if ( down )
 		CL_KeyDownEvent( key, time );
 	else
 		CL_KeyUpEvent( key, time );
 }
+
 
 /*
 ===================
@@ -817,12 +822,12 @@ CL_CharEvent
 Normal keyboard characters, already shifted / capslocked / etc
 ===================
 */
-void CL_CharEvent( int key ) {
+void CL_CharEvent( int key )
+{
 	// delete is not a printable character and is
 	// otherwise handled by Field_KeyDownEvent
-	if ( key == 127 ) {
+	if ( key == 127 )
 		return;
-	}
 
 	// distribute the key down event to the apropriate handler
 	if ( Key_GetCatcher( ) & KEYCATCH_CONSOLE )
@@ -853,21 +858,22 @@ void CL_CharEvent( int key ) {
 Key_ClearStates
 ===================
 */
-void Key_ClearStates (void)
+void Key_ClearStates( void )
 {
 	int		i;
 
 	anykeydown = 0;
 
-	for ( i=0 ; i < MAX_KEYS ; i++ ) {
-		if ( keys[i].down ) {
+	for ( i = 0 ; i < MAX_KEYS ; i++ )
+	{
+		if ( keys[i].down )
 			CL_KeyEvent( i, qfalse, 0 );
 
-		}
 		keys[i].down = qfalse;
 		keys[i].repeats = 0;
 	}
 }
+
 
 static int keyCatchers = 0;
 
@@ -876,16 +882,19 @@ static int keyCatchers = 0;
 Key_GetCatcher
 ====================
 */
-int Key_GetCatcher( void ) {
+int Key_GetCatcher( void )
+{
 	return keyCatchers;
 }
+
 
 /*
 ====================
 Key_SetCatcher
 ====================
 */
-void Key_SetCatcher( int catcher ) {
+void Key_SetCatcher( int catcher )
+{
 	// If the catcher state is changing, clear all key states
 	//if( catcher != keyCatchers )
 	//	Key_ClearStates();

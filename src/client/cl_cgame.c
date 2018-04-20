@@ -371,7 +371,6 @@ rescan:
 		return qfalse;
 	}
 
-
 	// the clientLevelShot command is used during development
 	// to generate 128*128 screenshots from the intermission
 	// point of levels for the menu system to use
@@ -452,7 +451,7 @@ CL_SendBinaryMessage
 */
 static void CL_SendBinaryMessage( const char *buf, int buflen ) {
 	if ( buflen < 0 || buflen > MAX_BINARY_MESSAGE ) {
-		Com_Error( ERR_DROP, "CL_SendBinaryMessage: bad length %i", buflen );
+		Com_Printf( "CL_SendBinaryMessage: bad length %i\n", buflen );
 		clc.binaryMessageLength = 0;
 		return;
 	}
@@ -484,6 +483,9 @@ CL_CGameBinaryMessageReceived
 ====================
 */
 void CL_CGameBinaryMessageReceived( const char *buf, int buflen, int serverTime ) {
+	// TODO error instead or is this sufficient?
+	if ( !cgvm )
+		return;
 	VM_Call( cgvm, CG_MESSAGERECEIVED, buf, buflen, serverTime );
 }
 
@@ -587,7 +589,7 @@ CL_CgameSystemCalls
 The cgame module is making a system call
 ====================
 */
-intptr_t CL_CgameSystemCalls( intptr_t *args ) {
+static intptr_t CL_CgameSystemCalls( intptr_t *args ) {
 	switch( args[0] ) {
 	case CG_PRINT:
 		Com_Printf( "%s", (const char*)VMA(1) );
@@ -817,10 +819,8 @@ intptr_t CL_CgameSystemCalls( intptr_t *args ) {
 		re.RenderScene( VMA( 1 ) );
 		return 0;
 	case CG_R_SAVEVIEWPARMS:
-		re.SaveViewParms();
 		return 0;
 	case CG_R_RESTOREVIEWPARMS:
-		re.RestoreViewParms();
 		return 0;
 	case CG_R_SETCOLOR:
 		re.SetColor( VMA( 1 ) );
@@ -1212,7 +1212,7 @@ void CL_UpdateLevelHunkUsage( void ) {
 ====================
 CL_InitCGame
 
-Should only by called by CL_StartHunkUsers
+Should only be called by CL_StartHunkUsers
 ====================
 */
 void CL_InitCGame( void ) {
@@ -1411,6 +1411,67 @@ static void CL_FirstSnapshot( void ) {
 
 /*
 ==================
+CL_AvgPing
+
+Calculates Average Ping from snapshots in buffer. Used by AutoNudge.
+==================
+*/
+static float CL_AvgPing( void ) {
+	int ping[PACKET_BACKUP];
+	int count = 0;
+	int i, j, iTemp;
+	float result;
+
+	for ( i = 0; i < PACKET_BACKUP; i++ ) {
+		if ( cl.snapshots[i].ping > 0 && cl.snapshots[i].ping < 999 ) {
+			ping[count] = cl.snapshots[i].ping;
+			count++;
+		}
+	}
+
+	if ( count == 0 )
+		return 0;
+
+	// sort ping array
+	for ( i = count - 1; i > 0; --i ) {
+		for ( j = 0; j < i; ++j ) {
+			if (ping[j] > ping[j + 1]) {
+				iTemp = ping[j];
+				ping[j] = ping[j + 1];
+				ping[j + 1] = iTemp;
+			}
+		}
+	}
+
+	// use median average ping
+	if ( (count % 2) == 0 )
+		result = (ping[count / 2] + ping[(count / 2) - 1]) / 2.0;
+	else
+		result = ping[count / 2];
+
+	return result;
+}
+
+
+/*
+==================
+CL_TimeNudge
+
+Returns either auto-nudge or cl_timeNudge value.
+==================
+*/
+static int CL_TimeNudge( void ) {
+	float autoNudge = cl_autoNudge->value;
+
+	if ( autoNudge != 0.0 )
+		return (int)((CL_AvgPing() * autoNudge) + 0.5) * -1;
+	else
+		return cl_timeNudge->integer;
+}
+
+
+/*
+==================
 CL_SetCGameTime
 ==================
 */
@@ -1471,7 +1532,7 @@ void CL_SetCGameTime( void ) {
 		// cl_timeNudge is a user adjustable cvar that allows more
 		// or less latency to be added in the interest of better 
 		// smoothness or better responsiveness.
-		cl.serverTime = cls.realtime + cl.serverTimeDelta - cl_timeNudge->integer;
+		cl.serverTime = cls.realtime + cl.serverTimeDelta - CL_TimeNudge();
 
 		// guarantee that time will never flow backwards, even if
 		// serverTimeDelta made an adjustment or cl_timeNudge was changed
@@ -1519,7 +1580,6 @@ void CL_SetCGameTime( void ) {
 		// the contents of cl.snap
 		CL_ReadDemoMessage();
 		if ( cls.state != CA_ACTIVE ) {
-			Cvar_Set( "timescale", "1" );
 			return; // end of demo
 		}
 	}

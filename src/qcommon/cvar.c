@@ -297,6 +297,10 @@ static qboolean Cvar_IsIntegral( const char *s ) {
 Cvar_Validate
 ============
 */
+#define FOREIGN_MSG "Foreign characters are not allowed in userinfo variables.\n"
+#ifndef DEDICATED
+const char* CL_TranslateStringBuf( const char *string );
+#endif
 static const char *Cvar_Validate( cvar_t *var, const char *value, qboolean warn )
 {
 	static char intbuf[ 32 ];
@@ -369,6 +373,17 @@ static const char *Cvar_Validate( cvar_t *var, const char *value, qboolean warn 
 			limit = var->resetString;
 		}
 	}
+	else if ( var->validator == CV_USERINFO ) {
+	/*	qboolean cleaned = qfalse;
+#ifdef DEDICATED
+		Com_Printf( "%s", FOREIGN_MSG );
+#else
+		Com_Printf( "%s", CL_TranslateStringBuf( FOREIGN_MSG ) );
+#endif
+		if ( warn ) {
+			Com_Printf( "WARNING: cvar '%s' contains invalid patterns", var->name );
+		}*/
+	}
 
 	if ( limit || value == intbuf ) {
 		if ( !limit )
@@ -415,6 +430,9 @@ cvar_t *Cvar_Get( const char *var_name, const char *var_value, int flags ) {
 	
 	if(var)
 	{
+		//if ( ( var->flags & CVAR_USERINFO ) || ( flags & CVAR_USERINFO ) )
+		//	var->validator = CV_USERINFO;
+
 		var_value = Cvar_Validate(var, var_value, qfalse);
 
 		// Make sure the game code cannot mark engine-added variables as gamecode vars
@@ -568,7 +586,7 @@ static void Cvar_QSortByName( cvar_t **a, int n )
 {
 	cvar_t *temp;
 	cvar_t *m;
-	int	i, j; 
+	int i, j;
 
 	i = 0;
 	j = n;
@@ -662,10 +680,6 @@ void Cvar_Print( const cvar_t *v ) {
 Cvar_Set2
 ============
 */
-#define FOREIGN_MSG "Foreign characters are not allowed in userinfo variables.\n"
-#ifndef DEDICATED
-const char* CL_TranslateStringBuf( const char *string );
-#endif
 cvar_t *Cvar_Set2( const char *var_name, const char *value, qboolean force ) {
 	cvar_t	*var;
 
@@ -692,6 +706,9 @@ cvar_t *Cvar_Set2( const char *var_name, const char *value, qboolean force ) {
 	if (!value ) {
 		value = var->resetString;
 	}
+
+	//if ( ( var->flags & CVAR_USERINFO ) )
+	//	var->validator = CV_USERINFO;
 
 	value = Cvar_Validate(var, value, qtrue);
 
@@ -747,6 +764,12 @@ cvar_t *Cvar_Set2( const char *var_name, const char *value, qboolean force ) {
 			return var;
 		}
 
+		if ( (var->flags & CVAR_CHEAT) && !cvar_cheats->integer )
+		{
+			Com_Printf ("%s is cheat protected.\n", var_name);
+			return var;
+		}
+
 		if (var->flags & CVAR_LATCH)
 		{
 			if (var->latchedString)
@@ -768,13 +791,6 @@ cvar_t *Cvar_Set2( const char *var_name, const char *value, qboolean force ) {
 			cvar_group[ var->group ] = 1;
 			return var;
 		}
-
-		if ( (var->flags & CVAR_CHEAT) && !cvar_cheats->integer )
-		{
-			Com_Printf ("%s is cheat protected.\n", var_name);
-			return var;
-		}
-
 	}
 	else
 	{
@@ -1231,14 +1247,14 @@ const char *GetValue( int index, int *ival, float *fval )
 	{
 		*ival = atoi( cmd );
 		*fval = atof( cmd );
-		strcpy( buf, cmd );
+		Q_strncpyz( buf, cmd, sizeof( buf ) );
 		return buf;
 	}
 	else // found cvar, extract values
 	{
 		*ival = var->integer;
 		*fval = var->value;
-		strcpy( buf, var->string );
+		Q_strncpyz( buf, var->string, sizeof( buf ) );
 		return buf;
 	}
 }

@@ -202,7 +202,7 @@ void		QDECL NET_OutOfBandPrint( netsrc_t net_socket, const netadr_t *adr, const 
 void		NET_OutOfBandCompress( netsrc_t sock, const netadr_t *adr, const byte *data, int len );
 
 qboolean	NET_CompareAdr( const netadr_t *a, const netadr_t *b );
-qboolean	NET_CompareBaseAdrMask( const netadr_t *a, const netadr_t *b, int netmask );
+qboolean	NET_CompareBaseAdrMask( const netadr_t *a, const netadr_t *b, unsigned int netmask );
 qboolean	NET_CompareBaseAdr( const netadr_t *a, const netadr_t *b );
 qboolean	NET_IsLocalAddress( const netadr_t *adr );
 const char	*NET_AdrToString( const netadr_t *a );
@@ -211,8 +211,9 @@ int         NET_StringToAdr( const char *s, netadr_t *a, netadrtype_t family );
 qboolean	NET_GetLoopPacket( netsrc_t sock, netadr_t *net_from, msg_t *net_message );
 void		NET_JoinMulticast6( void );
 void		NET_LeaveMulticast6( void );
-void		NET_Sleep( int msec, int usec_bias );
+qboolean	NET_Sleep( int msec, int usec_bias );
 
+#define	MAX_PACKETLEN	1400	// max size of a network packet
 
 //----(SA)	increased for larger submodel entity counts
 #define MAX_MSGLEN		32768       // max length of a message, which may
@@ -300,7 +301,9 @@ You or the server may be running older versions of the game. Press the auto-upda
 // 1.4 - protocol 60
 #define PROTOCOL_VERSION    84
 
+// new protocol with UDP spoofing protection:
 #define	NEW_PROTOCOL_VERSION	85
+
 
 // maintain a list of compatible protocols for demo playing
 // NOTE: that stuff only works with two digits protocols
@@ -683,7 +686,8 @@ typedef enum {
 	H_RENDERER,
 	H_QAGAME,
 	H_CGAME,
-	H_Q3UI
+	H_Q3UI,
+	H_MAX
 } handleOwner_t;
 
 #define FS_MATCH_EXTERN (1<<0)
@@ -696,7 +700,7 @@ typedef enum {
 #define	MAX_FILE_HANDLES	64
 #define	FS_INVALID_HANDLE	0
 
-#define	MAX_FOUND_FILES		0x1000
+#define	MAX_FOUND_FILES		0x2000
 
 #ifdef DEDICATED
 #define Q3CONFIG_CFG "etconfig_server.cfg"
@@ -726,6 +730,8 @@ char	**FS_ListFiles( const char *directory, const char *extension, int *numfiles
 // directory should not have either a leading or trailing /
 // if extension is "/", only subdirectories will be returned
 // the returned files will not include any directories or /
+
+char	**FS_ListFilesEx( const char *path, const char **extensions, int numExts, int *numfiles );
 
 void	FS_FreeFileList( char **list );
 
@@ -880,14 +886,9 @@ extern int cl_connectedToPureServer;
 qboolean FS_CL_ExtractFromPakFile( const char *path, const char *gamedir, const char *filename, const char *cvar_lastVersion );
 #endif
 
-char *FS_ShiftedStrStr( const char *string, const char *substring, int shift );
-char *FS_ShiftStr( const char *string, int shift );
-
 void FS_CopyFile( const char *fromOSPath, const char *toOSPath );
 
 qboolean FS_CreatePath( const char *OSPath );
-
-qboolean FS_VerifyPak( const char *pak );
 
 char *FS_CopyString( const char *in );
 
@@ -989,9 +990,13 @@ int			Com_Milliseconds( void );	// will be journaled properly
 unsigned	Com_BlockChecksum( const void *buffer, int length );
 
 // MD5 functions
+
 char		*Com_MD5File(const char *filename, int length, const char *prefix, int prefix_len);
 char		*Com_MD5Buf( const char *data, int length, const char *data2, int length2 );
-int			Com_MD5Addr( const netadr_t *addr, const byte *seed, int seed_len );
+
+// stateless challenge functions
+void		Com_MD5Init( void );
+int			Com_MD5Addr( const netadr_t *addr, int timestamp );
 #ifdef USE_PBMD5
 char		*Com_PBMD5File( char *key );
 #endif
@@ -1072,6 +1077,8 @@ extern	qboolean	gw_active;
 extern	qboolean	com_errorEntered;
 
 extern	fileHandle_t	com_journalDataFile;
+
+extern	char	rconPassword2[ MAX_CVAR_VALUE_STRING ];
 
 typedef enum {
 	TAG_FREE,
@@ -1386,57 +1393,45 @@ void Com_GetHunkInfo( int* hunkused, int* hunkexpected );
 #if defined( _WIN32 )
 
 // qagame_mp_x86.dll
-#define SYS_DLLNAME_QAGAME_SHIFT 6
-#define SYS_DLLNAME_QAGAME "wgmgskesve~><4jrr"
+#define SYS_DLLNAME_QAGAME "qagame_mp_" ARCH_STRING DLL_EXT
 
 // cgame_mp_x86.dll
-#define SYS_DLLNAME_CGAME_SHIFT 2
-#define SYS_DLLNAME_CGAME "eicogaoraz:80fnn"
+#define SYS_DLLNAME_CGAME "cgame_mp_" ARCH_STRING DLL_EXT
 
 // ui_mp_x86.dll
-#define SYS_DLLNAME_UI_SHIFT 5
-#define SYS_DLLNAME_UI "zndrud}=;3iqq"
+#define SYS_DLLNAME_UI "ui_mp_" ARCH_STRING DLL_EXT
 
 #elif defined( __linux__ )
 
 // qagame.mp.i386.so
-#define SYS_DLLNAME_QAGAME_SHIFT 6
-#define SYS_DLLNAME_QAGAME "wgmgsk4sv4o9><4yu"
+#define SYS_DLLNAME_QAGAME "qagame.mp." ARCH_STRING DLL_EXT
 
 // cgame.mp.i386.so
-#define SYS_DLLNAME_CGAME_SHIFT 2
-#define SYS_DLLNAME_CGAME "eicog0or0k5:80uq"
+#define SYS_DLLNAME_CGAME "cgame.mp." ARCH_STRING DLL_EXT
 
 // ui.mp.i386.so
-#define SYS_DLLNAME_UI_SHIFT 5
-#define SYS_DLLNAME_UI "zn3ru3n8=;3xt"
+#define SYS_DLLNAME_UI "ui.mp." ARCH_STRING DLL_EXT
 
 #elif __MACOS__
 
 #ifdef _DEBUG
 // qagame_d_mac
-	#define SYS_DLLNAME_QAGAME_SHIFT 6
-	#define SYS_DLLNAME_QAGAME "wgmgskejesgi"
+	#define SYS_DLLNAME_QAGAME "qagame_d_mac"
 
 // cgame_d_mac
-	#define SYS_DLLNAME_CGAME_SHIFT 2
-	#define SYS_DLLNAME_CGAME "eicogafaoce"
+	#define SYS_DLLNAME_CGAME "cgame_d_mac"
 
 // ui_d_mac
-	#define SYS_DLLNAME_UI_SHIFT 5
-	#define SYS_DLLNAME_UI "zndidrfh"
+	#define SYS_DLLNAME_UI "ui_d_mac"
 #else
 // qagame_mac
-	#define SYS_DLLNAME_QAGAME_SHIFT 6
-	#define SYS_DLLNAME_QAGAME "wgmgskesgi"
+	#define SYS_DLLNAME_QAGAME "qagame_mac"
 
 // cgame_mac
-	#define SYS_DLLNAME_CGAME_SHIFT 2
-	#define SYS_DLLNAME_CGAME "eicogaoce"
+	#define SYS_DLLNAME_CGAME "cgame_mac"
 
 // ui_mac
-	#define SYS_DLLNAME_UI_SHIFT 5
-	#define SYS_DLLNAME_UI "zndrfh"
+	#define SYS_DLLNAME_UI "ui_mac"
 #endif
 
 #else

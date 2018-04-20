@@ -498,7 +498,7 @@ static void VBO_AddStageColors( vbo_t *vbo, vbo_item_t *vi, const shaderCommands
 static void VBO_AddStageTxCoords( vbo_t *vbo, vbo_item_t *vi, const shaderCommands_t *input, int unit )
 {
 	vbo_stage_t *st = vi->stages + 0;
-	int offs = offs = vbo->tex_base[ unit ] + vbo->tex_used[ unit ];
+	int offs = vbo->tex_base[ unit ] + vbo->tex_used[ unit ];
 	int size;
 	if ( st->tex_offset[ unit ] == -1 ) // set only once
 		st->tex_offset[ unit ] = offs;
@@ -934,7 +934,7 @@ qsort_int
 */
 static void qsort_int( int *a, const int n ) {
 	int temp, m;
-	int	i, j; 
+	int i, j;
 
 	if ( n < 32 ) { // CUTOFF
 		for ( i = 1 ; i < n + 1 ; i++ ) {

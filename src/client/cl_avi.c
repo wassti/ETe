@@ -333,11 +333,11 @@ static qboolean CL_ValidatePipeFormat( const char *s )
 {
 	while ( *s != '\0' ) 
 	{
-		if ( *s == '.' && *(s+1) == '.' )
+		if ( *s == '.' && *(s+1) == '.' && ( *(s+2) == '/' || *(s+2) == '\\' ) )
 			return qfalse;
 		if ( *s == ':' && *(s+1) == ':' )
 			return qfalse;
-		if ( *s == '>' )
+		if ( *s == '>' || *s == '|' || *s == '&' )
 			return qfalse;
 		s++;
 	}
@@ -639,12 +639,12 @@ CL_TakeVideoFrame
 */
 void CL_TakeVideoFrame( void )
 {
-  // AVI file isn't open
-  if( !afd.fileOpen )
-    return;
+	// AVI file isn't open
+	if( !afd.fileOpen )
+		return;
 
-  re.TakeVideoFrame( afd.width, afd.height,
-      afd.cBuffer, afd.eBuffer, afd.motionJpeg );
+	re.TakeVideoFrame( afd.width, afd.height,
+		afd.cBuffer, afd.eBuffer, afd.motionJpeg );
 }
 
 

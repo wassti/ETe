@@ -40,6 +40,7 @@ cvar_t  *sv_rconPassword;       // password for remote server commands
 cvar_t  *sv_privatePassword;    // password for the privateClient slots
 cvar_t  *sv_allowDownload;
 cvar_t  *sv_maxclients;
+cvar_t	*sv_maxconcurrent;
 
 cvar_t  *sv_privateClients;     // number of clients reserved for password
 cvar_t  *sv_hostname;
@@ -56,7 +57,6 @@ cvar_t  *sv_maxRate;
 //cvar_t	*sv_gametype;
 cvar_t  *sv_pure;
 cvar_t  *sv_floodProtect;
-cvar_t  *sv_allowAnonymous;
 cvar_t  *sv_lanForceRate; // TTimo - dedicated 1 (LAN) server forces local client rates to 99999 (bug #491)
 cvar_t  *sv_onlyVisibleClients; // DHM - Nerve
 cvar_t  *sv_friendlyFire;       // NERVE - SMF
@@ -143,6 +143,7 @@ static const char *SV_ExpandNewlines( const char *in ) {
 
 	return string;
 }
+
 
 /*
 ======================
@@ -244,7 +245,7 @@ changes from empty to non-empty, and full to non-full,
 but not on every player enter or exit.
 ================
 */
-#define HEARTBEAT_MSEC  300 * 1000
+#define	HEARTBEAT_MSEC	300*1000
 #define	MASTERDNS_MSEC	24*60*60*1000
 static void SV_MasterHeartbeat( const char *message )
 {
@@ -468,11 +469,11 @@ leakyBucket_t outboundLeakyBucket;
 SVC_HashForAddress
 ================
 */
-static long SVC_HashForAddress( const netadr_t *address ) {
+static int SVC_HashForAddress( const netadr_t *address ) {
 	const byte	*ip = NULL;
-	size_t	size = 0;
+	int			size = 0;
+	int			hash = 0;
 	int			i;
-	long		hash = 0;
 
 	switch ( address->type ) {
 		case NA_IP:  ip = address->ipv._4; size = 4;  break;
@@ -481,7 +482,7 @@ static long SVC_HashForAddress( const netadr_t *address ) {
 	}
 
 	for ( i = 0; i < size; i++ ) {
-		hash += (long)( ip[ i ] ) * ( i + 119 );
+		hash += (int)( ip[ i ] ) * ( i + 119 );
 	}
 
 	hash = ( hash ^ ( hash >> 10 ) ^ ( hash >> 20 ) );
@@ -493,47 +494,81 @@ static long SVC_HashForAddress( const netadr_t *address ) {
 
 /*
 ================
+SVC_RelinkToHead
+================
+*/
+static void SVC_RelinkToHead( leakyBucket_t *bucket, int hash ) {
+
+	if ( bucket->prev != NULL ) {
+		bucket->prev->next = bucket->next;
+	} else {
+		return;
+	}
+
+	if ( bucket->next != NULL ) {
+		bucket->next->prev = bucket->prev;
+	}
+
+	bucket->next = bucketHashes[ hash ];
+	if ( bucketHashes[ hash ] != NULL ) {
+		bucketHashes[ hash ]->prev = bucket;
+	}
+
+	bucket->prev = NULL;
+	bucketHashes[ hash ] = bucket;
+}
+
+
+/*
+================
 SVC_BucketForAddress
 
 Find or allocate a bucket for an address
 ================
 */
 static leakyBucket_t *SVC_BucketForAddress( const netadr_t *address, int burst, int period ) {
-	leakyBucket_t	*bucket = NULL;
-	int				i;
-	long			hash = SVC_HashForAddress( address );
-	int				now = Sys_Milliseconds();
+	static leakyBucket_t dummy = { 0 };
+	static int		start = 0;
+	const int		hash = SVC_HashForAddress( address );
+	const int		now = Sys_Milliseconds();
+	leakyBucket_t	*bucket;
+	int				i, n;
 
-	for ( bucket = bucketHashes[ hash ]; bucket; bucket = bucket->next ) {
+	for ( bucket = bucketHashes[ hash ], n = 0; bucket; bucket = bucket->next, n++ ) {
 		switch ( bucket->type ) {
 			case NA_IP:
 				if ( memcmp( bucket->ipv._4, address->ipv._4, 4 ) == 0 ) {
+					if ( n > 8 ) {
+						SVC_RelinkToHead( bucket, hash );
+					}
 					return bucket;
 				}
 				break;
 
 			case NA_IP6:
 				if ( memcmp( bucket->ipv._6, address->ipv._6, 16 ) == 0 ) {
+					if ( n > 8 ) {
+						SVC_RelinkToHead( bucket, hash );
+					}
 					return bucket;
 				}
 				break;
 
 			default:
-				break;
+				return &dummy;
 		}
 	}
-
-	// make sure we will never use time 0
-	now = now ? now : 1;
 
 	for ( i = 0; i < MAX_BUCKETS; i++ ) {
 		int interval;
 
-		bucket = &buckets[ i ];
+		if ( start >= MAX_BUCKETS )
+			start = 0;
+		bucket = &buckets[ start++ ];
 		interval = now - bucket->lastTime;
 
 		// Reclaim expired buckets
-		if ( bucket->lastTime && (unsigned)interval > ( burst * period ) ) {
+		if ( bucket->type != NA_BAD && (unsigned)interval > ( bucket->burst * period ) ) {
 			if ( bucket->prev != NULL ) {
 				bucket->prev->next = bucket->next;
 			} else {
@@ -544,7 +579,7 @@ static leakyBucket_t *SVC_BucketForAddress( const netadr_t *address, int burst, 
 				bucket->next->prev = bucket->prev;
 			}
 
-			Com_Memset( bucket, 0, sizeof( leakyBucket_t ) );
+			bucket->type = NA_BAD;
 		}
 
 		if ( bucket->type == NA_BAD ) {
@@ -556,8 +591,9 @@ static leakyBucket_t *SVC_BucketForAddress( const netadr_t *address, int burst, 
 			}
 
 			bucket->lastTime = now;
-			bucket->burst = 0;
 			bucket->hash = hash;
+			bucket->burst = 0;
+			bucket->toxic = 0;
 
 			// Add to the head of the relevant hash chain
 			bucket->next = bucketHashes[ hash ];
@@ -599,12 +635,54 @@ qboolean SVC_RateLimit( leakyBucket_t *bucket, int burst, int period ) {
 
 		if ( bucket->burst < burst ) {
 			bucket->burst++;
-
 			return qfalse;
 		}
 	}
 
 	return qtrue;
+}
+
+
+/*
+================
+SVC_RateDrop
+================
+*/
+static void SVC_RateDrop( leakyBucket_t *bucket, int burst ) {
+	if ( bucket != NULL ) {
+		if ( bucket->toxic < 10000 )
+			++bucket->toxic;
+		bucket->burst = burst * bucket->toxic;
+		bucket->lastTime = Sys_Milliseconds();
+	}
+}
+
+
+/*
+================
+SVC_RateRestoreBurst
+================
+*/
+static void SVC_RateRestoreBurst( leakyBucket_t *bucket ) {
+	if ( bucket != NULL ) {
+		if ( bucket->burst > 0 ) {
+			bucket->burst--;
+		}
+	}
+}
+
+
+/*
+================
+SVC_RateRestoreToxic
+================
+*/
+static void SVC_RateRestoreToxic( leakyBucket_t *bucket ) {
+	if ( bucket != NULL ) {
+		if ( bucket->toxic > 0 ) {
+			bucket->toxic--;
+		}
+	}
 }
 
 
@@ -619,6 +697,46 @@ qboolean SVC_RateLimitAddress( const netadr_t *from, int burst, int period ) {
 	leakyBucket_t *bucket = SVC_BucketForAddress( from, burst, period );
 
 	return SVC_RateLimit( bucket, burst, period );
+}
+
+
+/*
+================
+SVC_RateRestoreAddress
+
+Decrease burst rate
+================
+*/
+void SVC_RateRestoreBurstAddress( const netadr_t *from, int burst, int period ) {
+	leakyBucket_t *bucket = SVC_BucketForAddress( from, burst, period );
+
+	SVC_RateRestoreBurst( bucket );
+}
+
+
+/*
+================
+SVC_RateRestoreToxicAddress
+
+Decrease toxicity
+================
+*/
+void SVC_RateRestoreToxicAddress( const netadr_t *from, int burst, int period ) {
+	leakyBucket_t *bucket = SVC_BucketForAddress( from, burst, period );
+
+	SVC_RateRestoreToxic( bucket );
+}
+
+
+/*
+================
+SVC_RateDropAddress
+================
+*/
+void SVC_RateDropAddress( const netadr_t *from, int burst, int period ) {
+	leakyBucket_t *bucket = SVC_BucketForAddress( from, burst, period );
+
+	SVC_RateDrop( bucket, burst );
 }
 
 //bani - bugtraq 12534
@@ -661,7 +779,7 @@ the simple info query.
 */
 static void SVC_Status( const netadr_t *from ) {
 	char	player[MAX_NAME_LENGTH + 32]; // score + ping + name
-	char	status[1400]; // MAX_PACKETLEN
+	char	status[MAX_PACKETLEN];
 	char	*s;
 	int		i;
 	client_t	*cl;
@@ -718,7 +836,7 @@ static void SVC_Status( const netadr_t *from ) {
 			playerLength = Com_sprintf( player, sizeof( player ), "%i %i \"%s\"\n", 
 				ps->persistant[ PERS_SCORE ], cl->ping, cl->name );
 			
-			if ( statusLength + playerLength >= 1400-4 ) // MAX_PACKETLEN-4
+			if ( statusLength + playerLength >= MAX_PACKETLEN-4 )
 				break; // can't hold any more
 			
 			s = Q_stradd( s, player );
@@ -738,14 +856,14 @@ game complete. Useful for tracking global player stats.
 =================
 */
 void SVC_GameCompleteStatus( const netadr_t *from ) {
-	char player[1024];
-	char status[MAX_MSGLEN];
+	char player[MAX_NAME_LENGTH + 32]; // score + ping + name
+	char status[MAX_PACKETLEN];
 	int i;
 	client_t    *cl;
 	playerState_t   *ps;
 	int statusLength;
 	int playerLength;
-	char infostring[MAX_INFO_STRING];
+	char infostring[MAX_INFO_STRING+160]; // add some space for challenge string
 
 	// ignore if we are in single player
 	if ( SV_GameIsSinglePlayer() ) {
@@ -847,7 +965,7 @@ static void SVC_Info( const netadr_t *from ) {
 	 */
 
 	// A maximum challenge length of 128 should be more than plenty.
-	if ( strlen( Cmd_Argv ( 1 ) ) > 128 )
+	if ( strlen( Cmd_Argv( 1 ) ) > 128 )
 		return;
 
 	//bani - bugtraq 12534
@@ -866,17 +984,17 @@ static void SVC_Info( const netadr_t *from ) {
 		}
 	}
 
-	infostring[0] = 0;
+	infostring[0] = '\0';
 
 	// echo back the parameter to status. so servers can use it as a challenge
 	// to prevent timed spoofed reply packets that add ghost servers
-	Info_SetValueForKey( infostring, "challenge", Cmd_Argv( 1 ) );
+	Info_SetValueForKey( infostring, "challenge", Cmd_Argv(1) );
 
-	Info_SetValueForKey( infostring, "protocol", va( "%i", PROTOCOL_VERSION ) );
+	Info_SetValueForKey( infostring, "protocol", va("%i", PROTOCOL_VERSION) );
 	Info_SetValueForKey( infostring, "hostname", sv_hostname->string );
 	Info_SetValueForKey( infostring, "serverload", va( "%i", svs.serverLoad ) );
 	Info_SetValueForKey( infostring, "mapname", sv_mapname->string );
-	Info_SetValueForKey( infostring, "clients", va( "%i", count ) );
+	Info_SetValueForKey( infostring, "clients", va("%i", count) );
 	Info_SetValueForKey(infostring, "g_humanplayers", va("%i", humans));
 	Info_SetValueForKey( infostring, "sv_maxclients", va( "%i", sv_maxclients->integer - sv_privateClients->integer ) );
 	//Info_SetValueForKey( infostring, "gametype", va("%i", sv_gametype->integer ) );
@@ -887,7 +1005,6 @@ static void SVC_Info( const netadr_t *from ) {
 	if ( *gamedir ) {
 		Info_SetValueForKey( infostring, "game", gamedir );
 	}
-	Info_SetValueForKey( infostring, "sv_allowAnonymous", va( "%i", sv_allowAnonymous->integer ) );
 
 	// Rafael gameskill
 //	Info_SetValueForKey (infostring, "gameskill", va ("%i", sv_gameskill->integer));
@@ -920,13 +1037,17 @@ static void SVC_Info( const netadr_t *from ) {
 
 /*
 ================
-SVC_FlushRedirect
-
+SV_FlushRedirect
 ================
 */
-static void SV_FlushRedirect( const char *outputbuf ) 
+static netadr_t redirectAddress; // for rcon return messages
+
+static void SV_FlushRedirect( const char *outputbuf )
 {
-	NET_OutOfBandPrint( NS_SERVER, &svs.redirectAddress, "print\n%s", outputbuf );
+	if ( *outputbuf )
+	{
+		NET_OutOfBandPrint( NS_SERVER, &redirectAddress, "print\n%s", outputbuf );
+	}
 }
 
 
@@ -940,13 +1061,12 @@ Redirect all printfs
 ===============
 */
 static void SVC_RemoteCommand( const netadr_t *from ) {
+	static leakyBucket_t bucket;
 	qboolean	valid;
-	char		remaining[1024];
 	// TTimo - scaled down to accumulate, but not overflow anything network wise, print wise etc.
 	// (OOB messages are the bottleneck here)
-#define SV_OUTPUTBUF_LENGTH (1024 - 16)
-	char		sv_outputbuf[SV_OUTPUTBUF_LENGTH];
-	char *cmd_aux;
+	char		sv_outputbuf[1024 - 16];
+	const char	*cmd_aux, *pw;
 
 	// Prevent using rcon as an amplifier and make dictionary attacks impractical
 	if ( SVC_RateLimitAddress( from, 10, 1000 ) ) {
@@ -957,10 +1077,12 @@ static void SVC_RemoteCommand( const netadr_t *from ) {
 		return;
 	}
 
-	if ( !sv_rconPassword->string[0] ||
-		strcmp (Cmd_Argv(1), sv_rconPassword->string) ) {
-		static leakyBucket_t bucket;
-
+	pw = Cmd_Argv( 1 );
+	if ( ( sv_rconPassword->string[0] && strcmp( pw, sv_rconPassword->string ) == 0 ) ||
+		( rconPassword2[0] && strcmp( pw, rconPassword2 ) == 0 ) ) {
+		valid = qtrue;
+		Com_Printf( "Rcon from %s: %s\n", NET_AdrToString( from ), Cmd_ArgsFrom( 2 ) );
+	} else {
 		// Make DoS via rcon impractical
 		if ( SVC_RateLimit( &bucket, 10, 1000 ) ) {
 			Com_DPrintf( "SVC_RemoteCommand: rate limit exceeded, dropping request\n" );
@@ -968,43 +1090,45 @@ static void SVC_RemoteCommand( const netadr_t *from ) {
 		}
 
 		valid = qfalse;
-		Com_Printf ("Bad rcon from %s:\n%s\n", NET_AdrToString( from ), Cmd_ArgsFrom(2) );
-	} else {
-		valid = qtrue;
-		Com_Printf ("Rcon from %s:\n%s\n", NET_AdrToString( from ), Cmd_ArgsFrom(2) );
+		Com_Printf( "Bad rcon from %s: %s\n", NET_AdrToString( from ), Cmd_ArgsFrom( 2 ) );
 	}
 
 	// start redirecting all print outputs to the packet
-	svs.redirectAddress = *from;
-	Com_BeginRedirect (sv_outputbuf, SV_OUTPUTBUF_LENGTH, SV_FlushRedirect);
+	redirectAddress = *from;
+	Com_BeginRedirect( sv_outputbuf, sizeof( sv_outputbuf ), SV_FlushRedirect );
 
-	if ( !sv_rconPassword->string[0] ) {
-		Com_Printf ("No rconpassword set on the server.\n");
+	if ( !sv_rconPassword->string[0] && !rconPassword2[0] ) {
+		Com_Printf( "No rconpassword set on the server.\n" );
 	} else if ( !valid ) {
-		Com_Printf ("Bad rconpassword.\n");
+		Com_Printf( "Bad rconpassword.\n" );
 	} else {
-		remaining[0] = '\0';
-
 		// ATVI Wolfenstein Misc #284
 		// get the command directly, "rcon <pass> <command>" to avoid quoting issues
 		// extract the command by walking
 		// since the cmd formatting can fuckup (amount of spaces), using a dumb step by step parsing
 		cmd_aux = Cmd_Cmd();
-		cmd_aux+=4;
-		while(cmd_aux[0]==' ')
+		while ( *cmd_aux && *cmd_aux <= ' ' ) // skip whitespace
 			cmd_aux++;
-		while(cmd_aux[0] && cmd_aux[0]!=' ') // password
+		cmd_aux += 4; // "rcon"
+		while ( *cmd_aux == ' ' )
 			cmd_aux++;
-		while(cmd_aux[0]==' ')
+		if ( *cmd_aux == '"' ) {
 			cmd_aux++;
-		
-		Q_strcat( remaining, sizeof(remaining), cmd_aux);
-		
-		Cmd_ExecuteString (remaining);
+			while ( *cmd_aux && *cmd_aux != '"' ) // quoted password
+				cmd_aux++;
+			if ( *cmd_aux == '"' )
+				cmd_aux++;
+		} else {
+			while ( *cmd_aux && *cmd_aux != ' ' ) // password
+				cmd_aux++;
+		}
+		while ( *cmd_aux == ' ' )
+			cmd_aux++;
 
+		Cmd_ExecuteString( cmd_aux );
 	}
 
-	Com_EndRedirect ();
+	Com_EndRedirect();
 }
 
 
@@ -1020,12 +1144,12 @@ connectionless packets.
 */
 static void SV_ConnectionlessPacket( const netadr_t *from, msg_t *msg ) {
 	const char *s;
-	char	*c;
+	const char *c;
 
 	MSG_BeginReadingOOB( msg );
 	MSG_ReadLong( msg );		// skip the -1 marker
 
-	if ( !Q_strncmp( "connect", (char *) &msg->data[4], 7 ) ) {
+	if ( !memcmp( "connect ", msg->data + 4, 8 ) ) {
 		if ( msg->cursize > MAX_INFO_STRING*2 ) { // if we assume 200% compression ratio on userinfo
 			if ( com_developer->integer ) {
 				Com_Printf( "%s : connect packet is too long - %i\n", NET_AdrToString( from ), msg->cursize );
@@ -1044,6 +1168,15 @@ static void SV_ConnectionlessPacket( const netadr_t *from, msg_t *msg ) {
 		Com_Printf( "SV packet %s : %s\n", NET_AdrToString( from ), c );
 	}
 
+	if ( !Q_stricmp(c, "rcon") ) {
+		SVC_RemoteCommand( from );
+		return;
+	}
+
+	if ( !com_sv_running->integer ) {
+		return;
+	}
+
 	if (!Q_stricmp(c, "getstatus")) {
 		SVC_Status( from );
 	} else if (!Q_stricmp(c, "getinfo")) {
@@ -1052,8 +1185,6 @@ static void SV_ConnectionlessPacket( const netadr_t *from, msg_t *msg ) {
 		SV_GetChallenge( from );
 	} else if (!Q_stricmp(c, "connect")) {
 		SV_DirectConnect( from );
-	} else if (!Q_stricmp(c, "rcon")) {
-		SVC_RemoteCommand( from );
 	} else if (!Q_stricmp(c, "disconnect")) {
 		// if a client starts up a local server, we may see some spurious
 		// server disconnect messages when their new server sees our final
@@ -1078,8 +1209,11 @@ void SV_PacketEvent( const netadr_t *from, msg_t *msg ) {
 	client_t	*cl;
 	int			qport;
 
+	if ( msg->cursize < 6 ) // too short for anything
+		return;
+
 	// check for connectionless packet (0xffffffff) first
-	if ( msg->cursize >= 4 && *(int *)msg->data == -1) {
+	if ( *(int *)msg->data == -1 ) {
 		SV_ConnectionlessPacket( from, msg );
 		return;
 	}
@@ -1104,16 +1238,15 @@ void SV_PacketEvent( const netadr_t *from, msg_t *msg ) {
 			continue;
 		}
 
-		// the IP port can't be used to differentiate them, because
-		// some address translating routers periodically change UDP
-		// port assignments
-		if (cl->netchan.remoteAddress.port != from->port) {
-			Com_Printf( "SV_PacketEvent: fixing up a translated port\n" );
-			cl->netchan.remoteAddress.port = from->port;
-		}
-
 		// make sure it is a valid, in sequence packet
 		if (SV_Netchan_Process(cl, msg)) {
+			// the IP port can't be used to differentiate clients, because
+			// some address translating routers periodically change UDP
+			// port assignments
+			if (cl->netchan.remoteAddress.port != from->port) {
+				Com_Printf( "SV_PacketEvent: fixing up a translated port\n" );
+				cl->netchan.remoteAddress.port = from->port;
+			}
 			// zombie clients still need to do the Netchan_Process
 			// to make sure they don't need to retransmit the final
 			// reliable message, but they don't do any other processing
@@ -1121,10 +1254,9 @@ void SV_PacketEvent( const netadr_t *from, msg_t *msg ) {
 				cl->lastPacketTime = svs.time;	// don't timeout
 				SV_ExecuteClientMessage( cl, msg );
 			}
+			return;
 		}
-		return;
 	}
-
 	// if we received a sequenced packet from an address we don't recognize,
 	// send an out of band disconnect packet to it
 	// ENSI NOTE disabled because it was removed in ioq3 after protocol upgrades
@@ -1220,9 +1352,9 @@ static void SV_CheckTimeouts( void ) {
 			cl->state = CS_FREE;	// can now be reused
 			continue;
 		}
-		if ( cl->state == CS_CONNECTED && svs.time - cl->lastPacketTime > 4000 ) {
+		if ( cl->justConnected && svs.time - cl->lastPacketTime > 4000 ) {
 			// for real client 4 seconds is more than enough to respond
-			SVC_RateLimitAddress( &cl->netchan.remoteAddress, 10, 1000 );
+			SVC_RateDropAddress( &cl->netchan.remoteAddress, 10, 1000 ); // enforce burst with progressive multiplier
 			SV_DropClient( cl, NULL ); // drop silently
 			cl->state = CS_FREE;
 			continue;

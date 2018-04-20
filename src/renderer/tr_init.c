@@ -121,9 +121,6 @@ cvar_t	*r_clampToEdge; // ydnar: opengl 1.2 GL_CLAMP_TO_EDGE SUPPORT
 //----(SA)	added
 cvar_t	*r_ext_texture_filter_anisotropic;
 
-cvar_t	*r_ext_NV_fog_dist;
-cvar_t	*r_nv_fogdist_mode;
-
 cvar_t	*r_ext_max_anisotropy;
 //----(SA)	end
 
@@ -475,20 +472,6 @@ static void R_InitExtensions( void )
 		QGL_FBO_OPT_PROCS;
 #undef GLE
 	}
-
-	// GL_NV_fog_distance
-	if ( R_HaveExtension( "GL_NV_fog_distance" ) ) {
-		if ( r_ext_NV_fog_dist->integer ) {
-			glConfig.NVFogAvailable = qtrue;
-			ri.Printf( PRINT_ALL, "...using GL_NV_fog_distance\n" );
-		} else {
-			ri.Printf( PRINT_ALL, "...ignoring GL_NV_fog_distance\n" );
-			ri.Cvar_Set( "r_ext_NV_fog_dist", "0" );
-		}
-	} else {
-		ri.Printf( PRINT_ALL, "...GL_NV_fog_distance not found\n" );
-		ri.Cvar_Set( "r_ext_NV_fog_dist", "0" );
-	}
 }
 
 
@@ -757,8 +740,9 @@ void RB_TakeScreenshotJPEG( int x, int y, int width, int height, const char *fil
 }
 
 
-static void FillBMPHeader( byte *buffer, int width, int height, int memcount, int filesize, int header_size ) 
+static void FillBMPHeader( byte *buffer, int width, int height, int memcount, int header_size )
 {
+	int filesize;
 	Com_Memset( buffer, 0, header_size );
 
 	// bitmap file header
@@ -811,7 +795,6 @@ void RB_TakeScreenshotBMP( int x, int y, int width, int height, const char *file
 	byte temp[4];
 	size_t memcount, offset;
 	const int header_size = 54; // bitmapfileheader(14) + bitmapinfoheader(40)
-	int filesize;
 	int scanlen, padlen;
 	int scanpad, len;
 
@@ -824,7 +807,6 @@ void RB_TakeScreenshotBMP( int x, int y, int width, int height, const char *file
 	scanlen = PAD( width*3, 4 );
 	scanpad = scanlen - width*3;
 	memcount = scanlen * height;
-	filesize = memcount + header_size;
 	
 	// swap rgb to bgr and add line padding
 	if ( scanpad == 0 && padlen == 0 ) {
@@ -865,7 +847,7 @@ void RB_TakeScreenshotBMP( int x, int y, int width, int height, const char *file
 	}
 
 	// fill this last to avoid data overwrite in case when we're moving destination buffer forward
-	FillBMPHeader( buffer - header_size, width, height, memcount, filesize, header_size );
+	FillBMPHeader( buffer - header_size, width, height, memcount, header_size );
 	
 	// gamma correct
 	if ( glConfig.deviceSupportsGamma )
@@ -1326,11 +1308,6 @@ void GfxInfo_f( void )
 	else
 		ri.Printf( PRINT_ALL, "\n" );
 
-	ri.Printf( PRINT_ALL, "NV distance fog: %s\n", enablestrings[glConfig.NVFogAvailable != 0] );
-	if ( glConfig.NVFogAvailable ) {
-		ri.Printf( PRINT_ALL, "Fog Mode: %s\n", r_nv_fogdist_mode->string );
-	}
-
 	if ( glConfig.hardwareType == GLHW_PERMEDIA2 ) {
 		ri.Printf( PRINT_ALL, "HACK: using vertex lightmap approximation\n" );
 	}
@@ -1367,9 +1344,6 @@ static void R_Register( void )
 
 	r_ext_texture_filter_anisotropic    = ri.Cvar_Get( "r_ext_texture_filter_anisotropic", "0", CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE );
 	r_ext_max_anisotropy = ri.Cvar_Get( "r_ext_max_anisotropy", "2", CVAR_ARCHIVE_ND | CVAR_LATCH );
-
-	r_ext_NV_fog_dist                   = ri.Cvar_Get( "r_ext_NV_fog_dist", "0", CVAR_ARCHIVE | CVAR_LATCH | CVAR_UNSAFE );
-	r_nv_fogdist_mode                   = ri.Cvar_Get( "r_nv_fogdist_mode", "GL_EYE_RADIAL_NV", CVAR_ARCHIVE | CVAR_UNSAFE );  // default to 'looking good'
 //----(SA)	end
 
 
@@ -1569,10 +1543,10 @@ static void R_Register( void )
 	r_debugSurface = ri.Cvar_Get( "r_debugSurface", "0", CVAR_CHEAT );
 	r_nobind = ri.Cvar_Get( "r_nobind", "0", CVAR_CHEAT );
 	r_showtris = ri.Cvar_Get( "r_showtris", "0", CVAR_CHEAT );
-	r_trisColor = ri.Cvar_Get( "r_trisColor", "1.0 1.0 1.0 1.0", CVAR_ARCHIVE );
+	r_trisColor = ri.Cvar_Get( "r_trisColor", "1.0 1.0 1.0 1.0", CVAR_ARCHIVE_ND );
 	r_showsky = ri.Cvar_Get( "r_showsky", "0", CVAR_CHEAT );
 	r_shownormals = ri.Cvar_Get( "r_shownormals", "0", CVAR_CHEAT );
-	r_normallength = ri.Cvar_Get( "r_normallength", "0.5", CVAR_ARCHIVE );
+	r_normallength = ri.Cvar_Get( "r_normallength", "0.5", CVAR_ARCHIVE_ND );
 	r_showmodelbounds = ri.Cvar_Get( "r_showmodelbounds", "0", CVAR_CHEAT );
 	r_clear = ri.Cvar_Get( "r_clear", "0", CVAR_CHEAT );
 	r_offsetFactor = ri.Cvar_Get( "r_offsetfactor", "-1", CVAR_CHEAT );
@@ -1877,8 +1851,6 @@ refexport_t *GetRefAPI ( int apiVersion, refimport_t *rimp ) {
 	re.SetFog           = R_SetFog;
 //----(SA)
 	re.RenderScene      = RE_RenderScene;
-	re.SaveViewParms    = RE_SaveViewParms;
-	re.RestoreViewParms = RE_RestoreViewParms;
 
 	re.SetColor         = RE_SetColor;
 	re.DrawStretchPic   = RE_StretchPic;

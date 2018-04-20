@@ -3423,6 +3423,44 @@ shader_t *R_FindShaderByName( const char *name ) {
 	return tr.defaultShader;
 }
 
+
+static const char *imageFormats[] = {
+	"png",
+	"tga",
+	"jpg",
+	"jpeg",
+	"pcx",
+	"bmp"
+};
+static const size_t numImageFormats = ARRAY_LEN( imageFormats );
+
+
+int R_NumLightmapFiles( void ) {
+	char **imageFiles;
+	int numImageFiles, i, count = 0;
+
+	if ( !*tr.worldRawName ) {
+		return 0;
+	}
+
+	imageFiles = ri.FS_ListFilesEx( tr.worldRawName, imageFormats, numImageFormats, &numImageFiles );
+
+	if ( !imageFiles || !numImageFiles )
+		return 0;
+
+	for ( i = 0; i < numImageFiles; i++ ) {
+		if ( !Q_stricmpn( imageFiles[i], "lm_", 3 ) )
+			++count;
+	}
+
+	if ( imageFiles )
+		ri.FS_FreeFileList( imageFiles );
+
+
+	return count;
+}
+
+
 /*
 ===============
 R_FindLightmap - ydnar
@@ -3843,56 +3881,56 @@ A second parameter will cause it to print in sorted order
 void	R_ShaderList_f (void) {
 	int			i;
 	int			count;
-	shader_t	*_shader;
+	const shader_t *sh;
 
 	ri.Printf (PRINT_ALL, "-----------------------\n");
 
 	count = 0;
 	for ( i = 0 ; i < tr.numShaders ; i++ ) {
 		if ( ri.Cmd_Argc() > 1 ) {
-			_shader = tr.sortedShaders[i];
+			sh = tr.sortedShaders[i];
 		} else {
-			_shader = tr.shaders[i];
+			sh = tr.shaders[i];
 		}
 
-		ri.Printf( PRINT_ALL, "%i ", _shader->numUnfoggedPasses );
+		ri.Printf( PRINT_ALL, "%i ", sh->numUnfoggedPasses );
 
-		if (_shader->lightmapIndex >= 0 ) {
+		if ( sh->lightmapIndex >= 0 ) {
 			ri.Printf (PRINT_ALL, "L ");
 		} else {
 			ri.Printf (PRINT_ALL, "  ");
 		}
-		if ( _shader->multitextureEnv == GL_ADD ) {
+		if ( sh->multitextureEnv == GL_ADD ) {
 			ri.Printf( PRINT_ALL, "MT(a) " );
-		} else if ( _shader->multitextureEnv == GL_MODULATE ) {
+		} else if ( sh->multitextureEnv == GL_MODULATE ) {
 			ri.Printf( PRINT_ALL, "MT(m) " );
-		} else if ( _shader->multitextureEnv == GL_DECAL ) {
+		} else if ( sh->multitextureEnv == GL_DECAL ) {
 			ri.Printf( PRINT_ALL, "MT(d) " );
 		} else {
 			ri.Printf( PRINT_ALL, "      " );
 		}
-		if ( _shader->explicitlyDefined ) {
+		if ( sh->explicitlyDefined ) {
 			ri.Printf( PRINT_ALL, "E " );
 		} else {
 			ri.Printf( PRINT_ALL, "  " );
 		}
 
-		if ( _shader->optimalStageIteratorFunc == RB_StageIteratorGeneric ) {
+		if ( sh->optimalStageIteratorFunc == RB_StageIteratorGeneric ) {
 			ri.Printf( PRINT_ALL, "gen " );
-		} else if ( _shader->optimalStageIteratorFunc == RB_StageIteratorSky ) {
+		} else if ( sh->optimalStageIteratorFunc == RB_StageIteratorSky ) {
 			ri.Printf( PRINT_ALL, "sky " );
-		} else if ( _shader->optimalStageIteratorFunc == RB_StageIteratorLightmappedMultitexture ) {
+		} else if ( sh->optimalStageIteratorFunc == RB_StageIteratorLightmappedMultitexture ) {
 			ri.Printf( PRINT_ALL, "lmmt" );
-		} else if ( _shader->optimalStageIteratorFunc == RB_StageIteratorVertexLitTexture ) {
+		} else if ( sh->optimalStageIteratorFunc == RB_StageIteratorVertexLitTexture ) {
 			ri.Printf( PRINT_ALL, "vlt " );
 		} else {
 			ri.Printf( PRINT_ALL, "    " );
 		}
 
-		if ( _shader->defaultShader ) {
-			ri.Printf (PRINT_ALL,  ": %s (DEFAULTED)\n", _shader->name);
+		if ( sh->defaultShader ) {
+			ri.Printf( PRINT_ALL, ": %s (DEFAULTED)\n", sh->name );
 		} else {
-			ri.Printf (PRINT_ALL,  ": %s\n", _shader->name);
+			ri.Printf( PRINT_ALL, ": %s\n", sh->name );
 		}
 		count++;
 	}
@@ -4162,6 +4200,12 @@ static void CreateInternalShaders( void ) {
 	tr.shadowShader = FinishShader();
 }
 
+
+/*
+====================
+CreateExternalShaders
+====================
+*/
 static void CreateExternalShaders( void ) {
 	tr.projectionShadowShader = R_FindShader( "projectionShadow", LIGHTMAP_NONE, qtrue );
 	tr.flareShader = R_FindShader( "flareShader", LIGHTMAP_NONE, qtrue );

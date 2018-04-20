@@ -148,7 +148,7 @@ void CIN_CloseAllVideos( void ) {
 	int i;
 
 	for ( i = 0; i < MAX_VIDEO_HANDLES; i++ ) {
-		if ( cinTable[i].fileName[0] != 0 ) {
+		if ( cinTable[i].fileName[0] != '\0' ) {
 			CIN_StopCinematic( i );
 		}
 	}
@@ -159,7 +159,7 @@ static int CIN_HandleForVideo( void ) {
 	int i;
 
 	for ( i = 0; i < MAX_VIDEO_HANDLES; i++ ) {
-		if ( cinTable[i].fileName[0] == 0 ) {
+		if ( cinTable[i].fileName[0] == '\0' ) {
 			return i;
 		}
 	}
@@ -990,6 +990,7 @@ static void setupQuad( long xOff, long yOff ) {
 ******************************************************************************/
 
 static void readQuadInfo( byte *qData ) {
+	const glconfig_t *config;
 	if ( currentHandle < 0 ) {
 		return;
 	}
@@ -1018,7 +1019,8 @@ static void readQuadInfo( byte *qData ) {
 	cinTable[currentHandle].drawY = cinTable[currentHandle].CIN_HEIGHT;
 
 	// rage pro is very slow at 512 wide textures, voodoo can't do it at all
-	if ( cls.glconfig.hardwareType == GLHW_RAGEPRO || cls.glconfig.maxTextureSize <= 256 ) {
+	config = re.GetConfig();
+	if ( config->hardwareType == GLHW_RAGEPRO || config->maxTextureSize <= 256 ) {
 		if ( cinTable[currentHandle].drawX > 256 ) {
 			cinTable[currentHandle].drawX = 256;
 		}
@@ -1107,7 +1109,7 @@ static void RoQReset( void ) {
 
 	// DHM - Properly close file so we don't run out of handles
 	FS_FCloseFile( cinTable[currentHandle].iFile );
-	cinTable[currentHandle].iFile = 0;
+	cinTable[currentHandle].iFile = FS_INVALID_HANDLE;
 	// dhm - end
 
 	FS_FOpenFileRead( cinTable[currentHandle].fileName, &cinTable[currentHandle].iFile, qtrue );
@@ -1465,14 +1467,17 @@ int CIN_PlayCinematic( const char *arg, int x, int y, int w, int h, int systemBi
 
 	cin.currentHandle = currentHandle;
 
-	strcpy( cinTable[currentHandle].fileName, name );
+	Q_strncpyz( cinTable[currentHandle].fileName, name, sizeof( cinTable[currentHandle].fileName ) );
 
-	cinTable[currentHandle].ROQSize = 0;
 	cinTable[currentHandle].ROQSize = FS_FOpenFileRead( cinTable[currentHandle].fileName, &cinTable[currentHandle].iFile, qtrue );
 
-	if ( cinTable[currentHandle].ROQSize <= 0 ) {
-		Com_DPrintf( "play(%s), ROQSize<=0\n", arg );
-		cinTable[currentHandle].fileName[0] = 0;
+	if (cinTable[currentHandle].ROQSize<=0) {
+		Com_DPrintf("play(%s), ROQSize<=0\n", arg);
+		cinTable[currentHandle].fileName[0] = '\0';
+		if ( cinTable[currentHandle].iFile != FS_INVALID_HANDLE ) {
+			FS_FCloseFile( cinTable[currentHandle].iFile );
+			cinTable[currentHandle].iFile = FS_INVALID_HANDLE;
+		}
 		return -1;
 	}
 

@@ -611,13 +611,15 @@ void Con_DrawInput( void ) {
 
 	// hightlight the current autocompleted part
 	if ( con.acLength ) {
+		int cmdLen;
 		Cmd_TokenizeString( g_consoleField.buffer );
+		cmdLen = (int)strlen( Cmd_Argv( 0 ) );
 
-		if ( strlen( Cmd_Argv( 0 ) ) - con.acLength > 0 ) {
+		if ( cmdLen - con.acLength > 0 ) {
 			re.SetColor( console_highlightcolor );
 			re.DrawStretchPic( con.xadjust + ( 2 + con.acLength ) * SMALLCHAR_WIDTH,
 							   y + 2,
-							   ( strlen( Cmd_Argv( 0 ) ) - con.acLength ) * SMALLCHAR_WIDTH,
+							   ( cmdLen - con.acLength ) * SMALLCHAR_WIDTH,
 							   SMALLCHAR_HEIGHT - 2, 0, 0, 0, 0, cls.whiteShader );
 		}
 	}
@@ -767,8 +769,8 @@ void Con_DrawSolidConsole( float frac ) {
 			// track changes
 			if ( strcmp( cl_conColor->string, conColorString ) ) 
 			{
-				strcpy( conColorString, cl_conColor->string );
-				strcpy( buf, cl_conColor->string );
+				Q_strncpyz( conColorString, cl_conColor->string, sizeof( conColorString ) );
+				Q_strncpyz( buf, cl_conColor->string, sizeof( buf ) );
 				Com_Split( buf, v, 4, ' ' );
 				for ( i = 0; i < 4 ; i++ ) {
 					conColorValue[ i ] = atof( v[ i ] ) / 255.0;

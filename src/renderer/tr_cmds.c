@@ -478,26 +478,6 @@ void RE_BeginFrame( stereoFrame_t stereoFrame ) {
 	}
 
 	//
-	// NVidia stuff
-	//
-
-	// fog control
-	if ( glConfig.NVFogAvailable && r_nv_fogdist_mode->modified ) {
-		r_nv_fogdist_mode->modified = qfalse;
-		if ( !Q_stricmp( r_nv_fogdist_mode->string, "GL_EYE_PLANE_ABSOLUTE_NV" ) ) {
-			glConfig.NVFogMode = (int)GL_EYE_PLANE_ABSOLUTE_NV;
-		} else if ( !Q_stricmp( r_nv_fogdist_mode->string, "GL_EYE_PLANE" ) ) {
-			glConfig.NVFogMode = (int)GL_EYE_PLANE;
-		} else if ( !Q_stricmp( r_nv_fogdist_mode->string, "GL_EYE_RADIAL_NV" ) ) {
-			glConfig.NVFogMode = (int)GL_EYE_RADIAL_NV;
-		} else {
-			// in case this was really 'else', store a valid value for next time
-			glConfig.NVFogMode = (int)GL_EYE_RADIAL_NV;
-			ri.Cvar_Set( "r_nv_fogdist_mode", "GL_EYE_RADIAL_NV" );
-		}
-	}
-
-	//
 	// gamma stuff
 	//
 	if ( r_gamma->modified ) {

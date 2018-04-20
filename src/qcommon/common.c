@@ -169,6 +169,7 @@ qboolean Com_DedicatedServer( void ) {
 
 static char	*rd_buffer;
 static int	rd_buffersize;
+static qboolean rd_flushing = qfalse;
 static void	(*rd_flush)( const char *buffer );
 
 void Com_BeginRedirect( char *buffer, int buffersize, void (*flush)(const char *) )
@@ -186,7 +187,9 @@ void Com_BeginRedirect( char *buffer, int buffersize, void (*flush)(const char *
 void Com_EndRedirect( void )
 {
 	if ( rd_flush ) {
-		rd_flush(rd_buffer);
+		rd_flushing = qtrue;
+		rd_flush( rd_buffer );
+		rd_flushing = qfalse;
 	}
 
 	rd_buffer = NULL;
@@ -206,26 +209,26 @@ A raw string should NEVER be passed as fmt, because of "%f" type crashers.
 =============
 */
 int QDECL Com_VPrintf( const char *fmt, va_list argptr ) {
-	char msg[MAXPRINTMSG];
 	static qboolean opening_qconsole = qfalse;
+	char		msg[MAXPRINTMSG];
+	int			len;
 
-	// FIXME TTimo
-	// switched vsprintf -> vsnprintf
-	// rcon could cause buffer overflow
-	//
-	Q_vsnprintf( msg, sizeof( msg ), fmt, argptr );
+	len = Q_vsnprintf( msg, sizeof( msg ), fmt, argptr );
 
-	if ( rd_buffer ) {
-		if ( ( strlen( msg ) + strlen( rd_buffer ) ) > ( rd_buffersize - 1 ) ) {
+	if ( rd_buffer && !rd_flushing ) {
+		if ( len + strlen( rd_buffer ) > ( rd_buffersize - 1 ) ) {
+			rd_flushing = qtrue;
 			rd_flush( rd_buffer );
-			*rd_buffer = 0;
+			rd_flushing = qfalse;
+			*rd_buffer = '\0';
 		}
 		Q_strcat( rd_buffer, rd_buffersize, msg );
 		// show_bug.cgi?id=51
 		// only flush the rcon buffer when it's necessary, avoid fragmenting
+		// TTimo nooo .. that would defeat the purpose
 		//rd_flush(rd_buffer);
 		//*rd_buffer = '\0';
-		return strlen( msg );
+		return len;
 	}
 
 #ifndef DEDICATED
@@ -273,10 +276,10 @@ int QDECL Com_VPrintf( const char *fmt, va_list argptr ) {
 			opening_qconsole = qfalse;
 		}
 		if ( logfile != FS_INVALID_HANDLE && FS_Initialized() ) {
-			FS_Write(msg, strlen(msg), logfile);
+			FS_Write( msg, len, logfile );
 		}
 	}
-	return strlen( msg );
+	return len;
 }
 int QDECL Com_VPrintf( const char *fmt, va_list argptr ) __attribute__( ( format( printf,1,0 ) ) );
 
@@ -343,7 +346,7 @@ void NORETURN QDECL Com_Error( errorParm_t code, const char *fmt, ... ) {
 
 	com_errorEntered = qtrue;
 
-	Cvar_Set("com_errorCode", va("%i", code));
+	Cvar_Set( "com_errorCode", va( "%i", code ) );
 
 	// when we are running automated scripts, make sure we
 	// know if anything failed
@@ -362,9 +365,9 @@ void NORETURN QDECL Com_Error( errorParm_t code, const char *fmt, ... ) {
 	}
 	lastErrorTime = currentTime;
 
-	va_start (argptr,fmt);
-	Q_vsnprintf (com_errorMessage, sizeof(com_errorMessage), fmt, argptr);
-	va_end (argptr);
+	va_start( argptr, fmt );
+	Q_vsnprintf( com_errorMessage, sizeof( com_errorMessage ), fmt, argptr );
+	va_end( argptr );
 
 	if ( code != ERR_DISCONNECT && code != ERR_NEED_CD ) {
 		// we can't recover from ERR_FATAL so there is no recipients for com_errorMessage
@@ -375,9 +378,12 @@ void NORETURN QDECL Com_Error( errorParm_t code, const char *fmt, ... ) {
 		}
 	}
 
-	if (code == ERR_DISCONNECT || code == ERR_SERVERDISCONNECT) {
+	Cbuf_Init();
+
+	if ( code == ERR_DISCONNECT || code == ERR_SERVERDISCONNECT ) {
 		VM_Forced_Unload_Start();
 		SV_Shutdown( "Server disconnected" );
+		Com_EndRedirect();
 #ifndef DEDICATED
 		CL_Disconnect( qfalse );
 		CL_FlushMemory();
@@ -394,6 +400,7 @@ void NORETURN QDECL Com_Error( errorParm_t code, const char *fmt, ... ) {
 			com_errorMessage );
 		VM_Forced_Unload_Start();
 		SV_Shutdown( va( "Server crashed: %s",  com_errorMessage ) );
+		Com_EndRedirect();
 #ifndef DEDICATED
 		CL_Disconnect( qfalse );
 		CL_FlushMemory();
@@ -406,6 +413,7 @@ void NORETURN QDECL Com_Error( errorParm_t code, const char *fmt, ... ) {
 		longjmp( abortframe, -1 );
 	} else if ( code == ERR_NEED_CD ) {
 		SV_Shutdown( "Server didn't have CD" );
+		Com_EndRedirect();
 #ifndef DEDICATED
 		if ( com_cl_running && com_cl_running->integer ) {
 			CL_Disconnect( qfalse );
@@ -418,8 +426,8 @@ void NORETURN QDECL Com_Error( errorParm_t code, const char *fmt, ... ) {
 		}
 #endif
 		FS_PureServerSetLoadedPaks( "", "" );
-
 		com_errorEntered = qfalse;
+
 		longjmp( abortframe, -1 );
 	} else {
 		VM_Forced_Unload_Start();
@@ -427,6 +435,7 @@ void NORETURN QDECL Com_Error( errorParm_t code, const char *fmt, ... ) {
 		CL_Shutdown( va( "Server fatal crashed: %s", com_errorMessage ), qtrue );
 #endif
 		SV_Shutdown( va( "Server fatal crashed: %s", com_errorMessage ) );
+		Com_EndRedirect();
 		VM_Forced_Unload_Done();
 	}
 
@@ -486,6 +495,8 @@ quake3 set test blah + map test
 #define	MAX_CONSOLE_LINES	32
 int		com_numConsoleLines;
 char	*com_consoleLines[MAX_CONSOLE_LINES];
+// master rcon password
+char	rconPassword2[MAX_CVAR_VALUE_STRING];
 
 /*
 ==================
@@ -503,6 +514,7 @@ void Com_ParseCommandLine( char *commandLine ) {
 
 	inq = 0;
 	com_consoleLines[0] = commandLine;
+	rconPassword2[0] = '\0';
 
 	while ( *commandLine ) {
 		if (*commandLine == '"') {
@@ -569,6 +581,11 @@ qboolean Com_EarlyParseCmdLine( char *commandLine, char *con_title, int title_si
 		if ( !Q_stricmp( Cmd_Argv(0), "vid_ypos" ) ) {
 			*vid_ypos = atoi( Cmd_Argv( 1 ) );
 			flags |= 2;
+			continue;
+		}
+		if ( !Q_stricmpn( Cmd_Argv(0), "set", 3 ) && !Q_stricmp( Cmd_Argv(1), "rconPassword2" ) ) {
+			com_consoleLines[i][0] = '\0';
+			Q_strncpyz( rconPassword2, Cmd_Argv( 2 ), sizeof( rconPassword2 ) );
 			continue;
 		}
 	}
@@ -731,7 +748,7 @@ static const char *Com_StringContains( const char *str1, const char *str2, int c
 				}
 			}
 			else {
-				if (upcase[(byte)str1[j]] != upcase[(byte)str2[j]]) {
+				if (locase[(byte)str1[j]] != locase[(byte)str2[j]]) {
 					break;
 				}
 			}
@@ -787,8 +804,8 @@ int Com_Filter( const char *filter, const char *name, int casesensitive )
 						if (*name >= *filter && *name <= *(filter+2)) found = qtrue;
 					}
 					else {
-						if (upcase[(byte)*name] >= upcase[(byte)*filter] &&
-							upcase[(byte)*name] <= upcase[(byte)*(filter+2)]) found = qtrue;
+						if (locase[(byte)*name] >= locase[(byte)*filter] &&
+							locase[(byte)*name] <= locase[(byte)*(filter+2)]) found = qtrue;
 					}
 					filter += 3;
 				}
@@ -797,7 +814,7 @@ int Com_Filter( const char *filter, const char *name, int casesensitive )
 						if (*filter == *name) found = qtrue;
 					}
 					else {
-						if (upcase[(byte)*filter] == upcase[(byte)*name]) found = qtrue;
+						if (locase[(byte)*filter] == locase[(byte)*name]) found = qtrue;
 					}
 					filter++;
 				}
@@ -815,7 +832,7 @@ int Com_Filter( const char *filter, const char *name, int casesensitive )
 				if (*filter != *name) return qfalse;
 			}
 			else {
-				if (upcase[(byte)*filter] != upcase[(byte)*name]) return qfalse;
+				if (locase[(byte)*filter] != locase[(byte)*name]) return qfalse;
 			}
 			filter++;
 			name++;
@@ -941,12 +958,14 @@ all big things are allocated on the hunk.
 #define	ZONEID	0x1d4a11
 #define MINFRAGMENT	64
 
+#ifdef ZONE_DEBUG
 typedef struct zonedebug_s {
 	const char *label;
 	const char *file;
 	int line;
 	int allocSize;
 } zonedebug_t;
+#endif
 
 struct memzone_s;
 
@@ -1118,7 +1137,7 @@ Z_FreeTags
 ================
 */
 void Z_FreeTags( memtag_t tag ) {
-	int			count;
+	//int			count;
 	memzone_t	*zone;
 
 	if ( tag == TAG_SMALL ) {
@@ -1127,13 +1146,13 @@ void Z_FreeTags( memtag_t tag ) {
 	else {
 		zone = mainzone;
 	}
-	count = 0;
+	//count = 0;
 	// use the rover as our pointer, because
 	// Z_Free automatically adjusts it
 	zone->rover = zone->blocklist.next;
 	do {
 		if ( zone->rover->tag == tag ) {
-			count++;
+		//	count++;
 			Z_Free( (void *)(zone->rover + 1) );
 			continue;
 		}
@@ -3414,6 +3433,7 @@ void Com_Init( char *commandLine ) {
 		Cmd_AddCommand ("crash", Com_Crash_f );
 		Cmd_AddCommand ("freeze", Com_Freeze_f);
 	}
+
 	Cmd_AddCommand( "quit", Com_Quit_f );
 	Cmd_AddCommand( "changeVectors", MSG_ReportChangeVectors_f );
 	Cmd_AddCommand( "writeconfig", Com_WriteConfig_f );
@@ -3544,7 +3564,6 @@ static void Com_WriteConfiguration( void ) {
 #ifndef DEDICATED
 	const char *cl_profileStr = Cvar_VariableString( "cl_profile" );
 #endif
-
 	// if we are quiting without fully initializing, make sure
 	// we don't write out anything
 	if ( !com_fullyInitialized ) {

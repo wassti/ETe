@@ -349,6 +349,27 @@ This is not implemented very well...
 */
 void RotatePointAroundVector( vec3_t dst, const vec3_t dir, const vec3_t point,
 							 float degrees ) {
+	float   m[3][3];
+	float   c, s, t;
+
+	degrees = -DEG2RAD( degrees );
+	s = sinf( degrees );
+	c = cosf( degrees );
+	t = 1 - c;
+
+	m[0][0] = t*dir[0]*dir[0] + c;
+	m[0][1] = t*dir[0]*dir[1] + s*dir[2];
+	m[0][2] = t*dir[0]*dir[2] - s*dir[1];
+
+	m[1][0] = t*dir[0]*dir[1] - s*dir[2];
+	m[1][1] = t*dir[1]*dir[1] + c;
+	m[1][2] = t*dir[1]*dir[2] + s*dir[0];
+
+	m[2][0] = t*dir[0]*dir[2] + s*dir[1];
+	m[2][1] = t*dir[1]*dir[2] - s*dir[0];
+	m[2][2] = t*dir[2]*dir[2] + c;
+	VectorRotate( point, m, dst );
+#if 0
 	float	m[3][3];
 	float	im[3][3];
 	float	zrot[3][3];
@@ -401,6 +422,7 @@ void RotatePointAroundVector( vec3_t dst, const vec3_t dir, const vec3_t point,
 	for ( i = 0; i < 3; i++ ) {
 		dst[i] = rot[i][0] * point[0] + rot[i][1] * point[1] + rot[i][2] * point[2];
 	}
+#endif
 }
 
 /*
@@ -585,7 +607,7 @@ void MakeNormalVectors( const vec3_t forward, vec3_t right, vec3_t up) {
 }
 
 
-void VectorRotate( vec3_t in, vec3_t matrix[3], vec3_t out )
+void VectorRotate( const vec3_t in, const vec3_t matrix[3], vec3_t out )
 {
 	out[0] = DotProduct( in, matrix[0] );
 	out[1] = DotProduct( in, matrix[1] );
@@ -821,9 +843,9 @@ float RadiusFromBounds( const vec3_t mins, const vec3_t maxs ) {
 	vec3_t	corner;
 	float	a, b;
 
-	for ( i = 0 ; i < 3 ; i++ ) {
-		a = Q_fabs( mins[i] );
-		b = Q_fabs( maxs[i] );
+	for (i=0 ; i<3 ; i++) {
+		a = fabs( mins[i] );
+		b = fabs( maxs[i] );
 		corner[i] = a > b ? a : b;
 	}
 
@@ -1066,9 +1088,10 @@ void PerpendicularVector( vec3_t dst, const vec3_t src )
 	*/
 	for ( pos = 0, i = 0; i < 3; i++ )
 	{
-		if ( Q_fabs( src[i] ) < minelem ) {
+		if ( fabs( src[i] ) < minelem )
+		{
 			pos = i;
-			minelem = Q_fabs( src[i] );
+			minelem = fabs( src[i] );
 		}
 	}
 	tempvec[0] = tempvec[1] = tempvec[2] = 0.0F;

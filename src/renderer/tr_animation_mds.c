@@ -49,8 +49,9 @@ frame.
 
 static float frontlerp, backlerp;
 static float torsoFrontlerp, torsoBacklerp;
-static int             *triangles, *boneRefs, *pIndexes;
+static int             *triangles, *boneRefs;
 static int indexes;
+static glIndex_t       *pIndexes;
 static int baseIndex, baseVertex, oldIndexes;
 static int numVerts;
 static mdsVertex_t     *modVerts;
@@ -85,15 +86,15 @@ static int totalrv, totalrt, totalv, totalt;    //----(SA)
 
 //-----------------------------------------------------------------------------
 
-static float ProjectRadius( float r, vec3_t location ) {
+static float RB_ProjectRadius( float r, vec3_t location ) {
 	float pr;
 	float dist;
 	float c;
 	vec3_t p;
 	float projected[4];
 
-	c = DotProduct( tr.viewParms.orientation.axis[0], tr.viewParms.orientation.origin );
-	dist = DotProduct( tr.viewParms.orientation.axis[0], location ) - c;
+	c = DotProduct( backEnd.viewParms.orientation.axis[0], backEnd.viewParms.orientation.origin );
+	dist = DotProduct( backEnd.viewParms.orientation.axis[0], location ) - c;
 
 	if ( dist <= 0 ) {
 		return 0;
@@ -103,25 +104,25 @@ static float ProjectRadius( float r, vec3_t location ) {
 	p[1] = fabs( r );
 	p[2] = -dist;
 
-	projected[0] = p[0] * tr.viewParms.projectionMatrix[0] +
-				   p[1] * tr.viewParms.projectionMatrix[4] +
-				   p[2] * tr.viewParms.projectionMatrix[8] +
-				   tr.viewParms.projectionMatrix[12];
+	projected[0] = p[0] * backEnd.viewParms.projectionMatrix[0] +
+				   p[1] * backEnd.viewParms.projectionMatrix[4] +
+				   p[2] * backEnd.viewParms.projectionMatrix[8] +
+				   backEnd.viewParms.projectionMatrix[12];
 
-	projected[1] = p[0] * tr.viewParms.projectionMatrix[1] +
-				   p[1] * tr.viewParms.projectionMatrix[5] +
-				   p[2] * tr.viewParms.projectionMatrix[9] +
-				   tr.viewParms.projectionMatrix[13];
+	projected[1] = p[0] * backEnd.viewParms.projectionMatrix[1] +
+				   p[1] * backEnd.viewParms.projectionMatrix[5] +
+				   p[2] * backEnd.viewParms.projectionMatrix[9] +
+				   backEnd.viewParms.projectionMatrix[13];
 
-	projected[2] = p[0] * tr.viewParms.projectionMatrix[2] +
-				   p[1] * tr.viewParms.projectionMatrix[6] +
-				   p[2] * tr.viewParms.projectionMatrix[10] +
-				   tr.viewParms.projectionMatrix[14];
+	projected[2] = p[0] * backEnd.viewParms.projectionMatrix[2] +
+				   p[1] * backEnd.viewParms.projectionMatrix[6] +
+				   p[2] * backEnd.viewParms.projectionMatrix[10] +
+				   backEnd.viewParms.projectionMatrix[14];
 
-	projected[3] = p[0] * tr.viewParms.projectionMatrix[3] +
-				   p[1] * tr.viewParms.projectionMatrix[7] +
-				   p[2] * tr.viewParms.projectionMatrix[11] +
-				   tr.viewParms.projectionMatrix[15];
+	projected[3] = p[0] * backEnd.viewParms.projectionMatrix[3] +
+				   p[1] * backEnd.viewParms.projectionMatrix[7] +
+				   p[2] * backEnd.viewParms.projectionMatrix[11] +
+				   backEnd.viewParms.projectionMatrix[15];
 
 
 	pr = projected[1] / projected[3];
@@ -219,18 +220,18 @@ R_CalcMDSLod
 
 =================
 */
-float R_CalcMDSLod( refEntity_t *refent, vec3_t origin, float radius, float modelBias, float modelScale ) {
-	float flod, lodScale;
+float RB_CalcMDSLod( refEntity_t *refent, vec3_t origin, float radius, float modelBias, float modelScale ) {
+	float flod;
 	float projectedRadius;
 
 	// compute projected bounding sphere and use that as a criteria for selecting LOD
 
-	projectedRadius = ProjectRadius( radius, origin );
+	projectedRadius = RB_ProjectRadius( radius, origin );
 	if ( projectedRadius != 0 ) {
 
 //		ri.Printf (PRINT_ALL, "projected radius: %f\n", projectedRadius);
 
-		lodScale = r_lodscale->value;   // fudge factor since MDS uses a much smoother method of LOD
+		float lodScale = r_lodscale->value;   // fudge factor since MDS uses a much smoother method of LOD
 		flod = projectedRadius * lodScale * modelScale;
 	} else
 	{
@@ -239,17 +240,17 @@ float R_CalcMDSLod( refEntity_t *refent, vec3_t origin, float radius, float mode
 	}
 
 	if ( refent->reFlags & REFLAG_FORCE_LOD ) {
-		flod *= 0.5;
+		flod *= 0.5f;
 	}
 //----(SA)	like reflag_force_lod, but separate for the moment
 	if ( refent->reFlags & REFLAG_DEAD_LOD ) {
-		flod *= 0.8;
+		flod *= 0.8f;
 	}
 
-	flod -= 0.25 * ( r_lodbias->value ) + modelBias;
+	flod -= 0.25f * ( r_lodbias->value ) + modelBias;
 
-	if ( flod < 0.0 ) {
-		flod = 0.0;
+	if ( flod < 0.0f ) {
+		flod = 0.0f;
 	} else if ( flod > 1.0f ) {
 		flod = 1.0f;
 	}
@@ -422,49 +423,49 @@ void R_AddAnimSurfaces( trRefEntity_t *ent ) {
 	}
 }
 
-static __inline void LocalMatrixTransformVector( vec3_t in, vec3_t mat[ 3 ], vec3_t out ) {
+static ID_INLINE void LocalMatrixTransformVector( vec3_t in, vec3_t mat[ 3 ], vec3_t out ) {
 	out[ 0 ] = in[ 0 ] * mat[ 0 ][ 0 ] + in[ 1 ] * mat[ 0 ][ 1 ] + in[ 2 ] * mat[ 0 ][ 2 ];
 	out[ 1 ] = in[ 0 ] * mat[ 1 ][ 0 ] + in[ 1 ] * mat[ 1 ][ 1 ] + in[ 2 ] * mat[ 1 ][ 2 ];
 	out[ 2 ] = in[ 0 ] * mat[ 2 ][ 0 ] + in[ 1 ] * mat[ 2 ][ 1 ] + in[ 2 ] * mat[ 2 ][ 2 ];
 }
 
-static __inline void LocalMatrixTransformVectorTranslate( vec3_t in, vec3_t mat[ 3 ], vec3_t tr, vec3_t out ) {
+static ID_INLINE void LocalMatrixTransformVectorTranslate( vec3_t in, vec3_t mat[ 3 ], vec3_t tr, vec3_t out ) {
 	out[ 0 ] = in[ 0 ] * mat[ 0 ][ 0 ] + in[ 1 ] * mat[ 0 ][ 1 ] + in[ 2 ] * mat[ 0 ][ 2 ] + tr[ 0 ];
 	out[ 1 ] = in[ 0 ] * mat[ 1 ][ 0 ] + in[ 1 ] * mat[ 1 ][ 1 ] + in[ 2 ] * mat[ 1 ][ 2 ] + tr[ 1 ];
 	out[ 2 ] = in[ 0 ] * mat[ 2 ][ 0 ] + in[ 1 ] * mat[ 2 ][ 1 ] + in[ 2 ] * mat[ 2 ][ 2 ] + tr[ 2 ];
 }
 
-static __inline void LocalScaledMatrixTransformVector( vec3_t in, float s, vec3_t mat[ 3 ], vec3_t out ) {
+static ID_INLINE void LocalScaledMatrixTransformVector( vec3_t in, float s, vec3_t mat[ 3 ], vec3_t out ) {
 	out[ 0 ] = ( 1.0f - s ) * in[ 0 ] + s * ( in[ 0 ] * mat[ 0 ][ 0 ] + in[ 1 ] * mat[ 0 ][ 1 ] + in[ 2 ] * mat[ 0 ][ 2 ] );
 	out[ 1 ] = ( 1.0f - s ) * in[ 1 ] + s * ( in[ 0 ] * mat[ 1 ][ 0 ] + in[ 1 ] * mat[ 1 ][ 1 ] + in[ 2 ] * mat[ 1 ][ 2 ] );
 	out[ 2 ] = ( 1.0f - s ) * in[ 2 ] + s * ( in[ 0 ] * mat[ 2 ][ 0 ] + in[ 1 ] * mat[ 2 ][ 1 ] + in[ 2 ] * mat[ 2 ][ 2 ] );
 }
 
-static __inline void LocalScaledMatrixTransformVectorTranslate( vec3_t in, float s, vec3_t mat[ 3 ], vec3_t tr, vec3_t out ) {
+static ID_INLINE void LocalScaledMatrixTransformVectorTranslate( vec3_t in, float s, vec3_t mat[ 3 ], vec3_t tr, vec3_t out ) {
 	out[ 0 ] = ( 1.0f - s ) * in[ 0 ] + s * ( in[ 0 ] * mat[ 0 ][ 0 ] + in[ 1 ] * mat[ 0 ][ 1 ] + in[ 2 ] * mat[ 0 ][ 2 ] + tr[ 0 ] );
 	out[ 1 ] = ( 1.0f - s ) * in[ 1 ] + s * ( in[ 0 ] * mat[ 1 ][ 0 ] + in[ 1 ] * mat[ 1 ][ 1 ] + in[ 2 ] * mat[ 1 ][ 2 ] + tr[ 1 ] );
 	out[ 2 ] = ( 1.0f - s ) * in[ 2 ] + s * ( in[ 0 ] * mat[ 2 ][ 0 ] + in[ 1 ] * mat[ 2 ][ 1 ] + in[ 2 ] * mat[ 2 ][ 2 ] + tr[ 2 ] );
 }
 
-static __inline void LocalScaledMatrixTransformVectorFullTranslate( vec3_t in, float s, vec3_t mat[ 3 ], vec3_t tr, vec3_t out ) {
+static ID_INLINE void LocalScaledMatrixTransformVectorFullTranslate( vec3_t in, float s, vec3_t mat[ 3 ], vec3_t tr, vec3_t out ) {
 	out[ 0 ] = ( 1.0f - s ) * in[ 0 ] + s * ( in[ 0 ] * mat[ 0 ][ 0 ] + in[ 1 ] * mat[ 0 ][ 1 ] + in[ 2 ] * mat[ 0 ][ 2 ] ) + tr[ 0 ];
 	out[ 1 ] = ( 1.0f - s ) * in[ 1 ] + s * ( in[ 0 ] * mat[ 1 ][ 0 ] + in[ 1 ] * mat[ 1 ][ 1 ] + in[ 2 ] * mat[ 1 ][ 2 ] ) + tr[ 1 ];
 	out[ 2 ] = ( 1.0f - s ) * in[ 2 ] + s * ( in[ 0 ] * mat[ 2 ][ 0 ] + in[ 1 ] * mat[ 2 ][ 1 ] + in[ 2 ] * mat[ 2 ][ 2 ] ) + tr[ 2 ];
 }
 
-static __inline void LocalAddScaledMatrixTransformVectorFullTranslate( vec3_t in, float s, vec3_t mat[ 3 ], vec3_t tr, vec3_t out ) {
+static ID_INLINE void LocalAddScaledMatrixTransformVectorFullTranslate( vec3_t in, float s, vec3_t mat[ 3 ], vec3_t tr, vec3_t out ) {
 	out[ 0 ] += s * ( in[ 0 ] * mat[ 0 ][ 0 ] + in[ 1 ] * mat[ 0 ][ 1 ] + in[ 2 ] * mat[ 0 ][ 2 ] ) + tr[ 0 ];
 	out[ 1 ] += s * ( in[ 0 ] * mat[ 1 ][ 0 ] + in[ 1 ] * mat[ 1 ][ 1 ] + in[ 2 ] * mat[ 1 ][ 2 ] ) + tr[ 1 ];
 	out[ 2 ] += s * ( in[ 0 ] * mat[ 2 ][ 0 ] + in[ 1 ] * mat[ 2 ][ 1 ] + in[ 2 ] * mat[ 2 ][ 2 ] ) + tr[ 2 ];
 }
 
-static __inline void LocalAddScaledMatrixTransformVectorTranslate( vec3_t in, float s, vec3_t mat[ 3 ], vec3_t tr, vec3_t out ) {
+static ID_INLINE void LocalAddScaledMatrixTransformVectorTranslate( vec3_t in, float s, vec3_t mat[ 3 ], vec3_t tr, vec3_t out ) {
 	out[ 0 ] += s * ( in[ 0 ] * mat[ 0 ][ 0 ] + in[ 1 ] * mat[ 0 ][ 1 ] + in[ 2 ] * mat[ 0 ][ 2 ] + tr[ 0 ] );
 	out[ 1 ] += s * ( in[ 0 ] * mat[ 1 ][ 0 ] + in[ 1 ] * mat[ 1 ][ 1 ] + in[ 2 ] * mat[ 1 ][ 2 ] + tr[ 1 ] );
 	out[ 2 ] += s * ( in[ 0 ] * mat[ 2 ][ 0 ] + in[ 1 ] * mat[ 2 ][ 1 ] + in[ 2 ] * mat[ 2 ][ 2 ] + tr[ 2 ] );
 }
 
-static __inline void LocalAddScaledMatrixTransformVector( vec3_t in, float s, vec3_t mat[ 3 ], vec3_t out ) {
+static ID_INLINE void LocalAddScaledMatrixTransformVector( vec3_t in, float s, vec3_t mat[ 3 ], vec3_t out ) {
 	out[ 0 ] += s * ( in[ 0 ] * mat[ 0 ][ 0 ] + in[ 1 ] * mat[ 0 ][ 1 ] + in[ 2 ] * mat[ 0 ][ 2 ] );
 	out[ 1 ] += s * ( in[ 0 ] * mat[ 1 ][ 0 ] + in[ 1 ] * mat[ 1 ][ 1 ] + in[ 2 ] * mat[ 1 ][ 2 ] );
 	out[ 2 ] += s * ( in[ 0 ] * mat[ 2 ][ 0 ] + in[ 1 ] * mat[ 2 ][ 1 ] + in[ 2 ] * mat[ 2 ][ 2 ] );
@@ -474,7 +475,7 @@ static float LAVangle;
 static float sp, sy, cp, cy;
 //static float    sr, cr;// TTimo: unused
 
-static __inline void LocalAngleVector( vec3_t angles, vec3_t forward ) {
+static ID_INLINE void LocalAngleVector( vec3_t angles, vec3_t forward ) {
 	LAVangle = angles[YAW] * ( M_PI * 2 / 360 );
 	sy = sin( LAVangle );
 	cy = cos( LAVangle );
@@ -487,7 +488,7 @@ static __inline void LocalAngleVector( vec3_t angles, vec3_t forward ) {
 	forward[2] = -sp;
 }
 
-static __inline void LocalVectorMA( vec3_t org, float dist, vec3_t vec, vec3_t out ) {
+static ID_INLINE void LocalVectorMA( vec3_t org, float dist, vec3_t vec, vec3_t out ) {
 	out[0] = org[0] + dist * vec[0];
 	out[1] = org[1] + dist * vec[1];
 	out[2] = org[2] + dist * vec[2];
@@ -495,7 +496,7 @@ static __inline void LocalVectorMA( vec3_t org, float dist, vec3_t vec, vec3_t o
 
 #define ANGLES_SHORT_TO_FLOAT( pf, sh )     { *( pf++ ) = SHORT2ANGLE( *( sh++ ) ); *( pf++ ) = SHORT2ANGLE( *( sh++ ) ); *( pf++ ) = SHORT2ANGLE( *( sh++ ) ); }
 
-static __inline void SLerp_Normal( vec3_t from, vec3_t to, float tt, vec3_t out ) {
+static ID_INLINE void SLerp_Normal( vec3_t from, vec3_t to, float tt, vec3_t out ) {
 	float ft = 1.0 - tt;
 
 	out[0] = from[0] * ft + to[0] * tt;
@@ -513,7 +514,7 @@ static __inline void SLerp_Normal( vec3_t from, vec3_t to, float tt, vec3_t out 
 ===============================================================================
 */
 
-static __inline void Matrix4Multiply( const vec4_t a[4], const vec4_t b[4], vec4_t dst[4] ) {
+static ID_INLINE void Matrix4Multiply( const vec4_t a[4], const vec4_t b[4], vec4_t dst[4] ) {
 	dst[0][0] = a[0][0] * b[0][0] + a[0][1] * b[1][0] + a[0][2] * b[2][0] + a[0][3] * b[3][0];
 	dst[0][1] = a[0][0] * b[0][1] + a[0][1] * b[1][1] + a[0][2] * b[2][1] + a[0][3] * b[3][1];
 	dst[0][2] = a[0][0] * b[0][2] + a[0][1] * b[1][2] + a[0][2] * b[2][2] + a[0][3] * b[3][2];
@@ -537,7 +538,7 @@ static __inline void Matrix4Multiply( const vec4_t a[4], const vec4_t b[4], vec4
 
 // TTimo: const usage would require an explicit cast, non ANSI C
 // see unix/const-arg.c
-static __inline void Matrix4MultiplyInto3x3AndTranslation( /*const*/ vec4_t a[4], /*const*/ vec4_t b[4], vec3_t dst[3], vec3_t t ) {
+static ID_INLINE void Matrix4MultiplyInto3x3AndTranslation( /*const*/ vec4_t a[4], /*const*/ vec4_t b[4], vec3_t dst[3], vec3_t t ) {
 	dst[0][0] = a[0][0] * b[0][0] + a[0][1] * b[1][0] + a[0][2] * b[2][0] + a[0][3] * b[3][0];
 	dst[0][1] = a[0][0] * b[0][1] + a[0][1] * b[1][1] + a[0][2] * b[2][1] + a[0][3] * b[3][1];
 	dst[0][2] = a[0][0] * b[0][2] + a[0][1] * b[1][2] + a[0][2] * b[2][2] + a[0][3] * b[3][2];
@@ -554,7 +555,7 @@ static __inline void Matrix4MultiplyInto3x3AndTranslation( /*const*/ vec4_t a[4]
 	t[2]      = a[2][0] * b[0][3] + a[2][1] * b[1][3] + a[2][2] * b[2][3] + a[2][3] * b[3][3];
 }
 
-static __inline void Matrix4Transpose( const vec4_t matrix[4], vec4_t transpose[4] ) {
+static ID_INLINE void Matrix4Transpose( const vec4_t matrix[4], vec4_t transpose[4] ) {
 	int i, j;
 	for ( i = 0; i < 4; i++ ) {
 		for ( j = 0; j < 4; j++ ) {
@@ -563,7 +564,7 @@ static __inline void Matrix4Transpose( const vec4_t matrix[4], vec4_t transpose[
 	}
 }
 
-static __inline void Matrix4FromAxis( const vec3_t axis[3], vec4_t dst[4] ) {
+static ID_INLINE void Matrix4FromAxis( const vec3_t axis[3], vec4_t dst[4] ) {
 	int i, j;
 	for ( i = 0; i < 3; i++ ) {
 		for ( j = 0; j < 3; j++ ) {
@@ -575,7 +576,7 @@ static __inline void Matrix4FromAxis( const vec3_t axis[3], vec4_t dst[4] ) {
 	dst[3][3] = 1;
 }
 
-static __inline void Matrix4FromScaledAxis( const vec3_t axis[3], const float scale, vec4_t dst[4] ) {
+static ID_INLINE void Matrix4FromScaledAxis( const vec3_t axis[3], const float scale, vec4_t dst[4] ) {
 	int i, j;
 
 	for ( i = 0; i < 3; i++ ) {
@@ -591,7 +592,7 @@ static __inline void Matrix4FromScaledAxis( const vec3_t axis[3], const float sc
 	dst[3][3] = 1;
 }
 
-static __inline void Matrix4FromTranslation( const vec3_t t, vec4_t dst[4] ) {
+static ID_INLINE void Matrix4FromTranslation( const vec3_t t, vec4_t dst[4] ) {
 	int i, j;
 
 	for ( i = 0; i < 3; i++ ) {
@@ -611,7 +612,7 @@ static __inline void Matrix4FromTranslation( const vec3_t t, vec4_t dst[4] ) {
 // can put an axis rotation followed by a translation directly into one matrix
 // TTimo: const usage would require an explicit cast, non ANSI C
 // see unix/const-arg.c
-static __inline void Matrix4FromAxisPlusTranslation( /*const*/ vec3_t axis[3], const vec3_t t, vec4_t dst[4] ) {
+static ID_INLINE void Matrix4FromAxisPlusTranslation( /*const*/ vec3_t axis[3], const vec3_t t, vec4_t dst[4] ) {
 	int i, j;
 	for ( i = 0; i < 3; i++ ) {
 		for ( j = 0; j < 3; j++ ) {
@@ -626,7 +627,7 @@ static __inline void Matrix4FromAxisPlusTranslation( /*const*/ vec3_t axis[3], c
 // can put a scaled axis rotation followed by a translation directly into one matrix
 // TTimo: const usage would require an explicit cast, non ANSI C
 // see unix/const-arg.c
-static __inline void Matrix4FromScaledAxisPlusTranslation( /*const*/ vec3_t axis[3], const float scale, const vec3_t t, vec4_t dst[4] ) {
+static ID_INLINE void Matrix4FromScaledAxisPlusTranslation( /*const*/ vec3_t axis[3], const float scale, const vec3_t t, vec4_t dst[4] ) {
 	int i, j;
 
 	for ( i = 0; i < 3; i++ ) {
@@ -642,7 +643,7 @@ static __inline void Matrix4FromScaledAxisPlusTranslation( /*const*/ vec3_t axis
 	dst[3][3] = 1;
 }
 
-static __inline void Matrix4FromScale( const float scale, vec4_t dst[4] ) {
+static ID_INLINE void Matrix4FromScale( const float scale, vec4_t dst[4] ) {
 	int i, j;
 
 	for ( i = 0; i < 4; i++ ) {
@@ -657,7 +658,7 @@ static __inline void Matrix4FromScale( const float scale, vec4_t dst[4] ) {
 	dst[3][3] = 1;
 }
 
-static __inline void Matrix4TransformVector( const vec4_t m[4], const vec3_t src, vec3_t dst ) {
+static ID_INLINE void Matrix4TransformVector( const vec4_t m[4], const vec3_t src, vec3_t dst ) {
 	dst[0] = m[0][0] * src[0] + m[0][1] * src[1] + m[0][2] * src[2] + m[0][3];
 	dst[1] = m[1][0] * src[0] + m[1][1] * src[1] + m[1][2] * src[2] + m[1][3];
 	dst[2] = m[2][0] * src[0] + m[2][1] * src[1] + m[2][2] * src[2] + m[2][3];
@@ -671,7 +672,7 @@ static __inline void Matrix4TransformVector( const vec4_t m[4], const vec3_t src
 ===============================================================================
 */
 
-static __inline void Matrix3Transpose( const vec3_t matrix[3], vec3_t transpose[3] ) {
+static ID_INLINE void Matrix3Transpose( const vec3_t matrix[3], vec3_t transpose[3] ) {
 	int i, j;
 	for ( i = 0; i < 3; i++ ) {
 		for ( j = 0; j < 3; j++ ) {
@@ -1089,7 +1090,7 @@ void R_CalcBones( mdsHeader_t *header, const refEntity_t *refent, int *boneList,
 #ifdef HIGH_PRECISION_BONES
 	if ( qtrue ) {
 #else
-	if ( !backlerp && !torsoBacklerp ) {
+	if ( backlerp == 0.0f && torsoBacklerp == 0.0f ) {
 #endif
 
 		for ( i = 0; i < numBones; i++, boneRefs++ ) {
@@ -1226,15 +1227,15 @@ void RB_SurfaceAnim( mdsSurface_t *surface ) {
 	// TODO: lerp the radius and origin
 	VectorAdd( refent->origin, frame->localOrigin, vec );
 	lodRadius = frame->radius;
-	lodScale = R_CalcMDSLod( refent, vec, lodRadius, header->lodBias, header->lodScale );
+	lodScale = RB_CalcMDSLod( refent, vec, lodRadius, header->lodBias, header->lodScale );
 
 
 //DBG_SHOWTIME
 
 //----(SA)	modification to allow dead skeletal bodies to go below minlod (experiment)
 	if ( refent->reFlags & REFLAG_DEAD_LOD ) {
-		if ( lodScale < 0.35 ) {   // allow dead to lod down to 35% (even if below surf->minLod) (%35 is arbitrary and probably not good generally.  worked for the blackguard/infantry as a test though)
-			lodScale = 0.35;
+		if ( lodScale < 0.35f ) {   // allow dead to lod down to 35% (even if below surf->minLod) (%35 is arbitrary and probably not good generally.  worked for the blackguard/infantry as a test though)
+			lodScale = 0.35f;
 		}
 		render_count = (int)( (float) surface->numVerts * lodScale );
 
@@ -1253,16 +1254,16 @@ void RB_SurfaceAnim( mdsSurface_t *surface ) {
 		render_count = surface->numVerts;
 	}
 
-	RB_CheckOverflow( render_count, surface->numTriangles );
+	tess.surfType = SF_MDS;
+
+	RB_CheckOverflow( render_count, surface->numTriangles * 3 );
 
 //DBG_SHOWTIME
 
 	//
 	// setup triangle list
 	//
-	RB_CheckOverflow( surface->numVerts, surface->numTriangles * 3 );
-
-	tess.surfType = SF_MDS;
+	//RB_CheckOverflow( surface->numVerts, surface->numTriangles * 3 );
 
 //DBG_SHOWTIME
 
@@ -1279,16 +1280,15 @@ void RB_SurfaceAnim( mdsSurface_t *surface ) {
 
 //DBG_SHOWTIME
 
-	if ( render_count == surface->numVerts ) {
-		memcpy( pIndexes, triangles, sizeof( triangles[0] ) * indexes );
-		if ( baseVertex ) {
-			int *indexesEnd;
-			for ( indexesEnd = pIndexes + indexes ; pIndexes < indexesEnd ; pIndexes++ ) {
-				*pIndexes += baseVertex;
-			}
+	if (render_count == surface->numVerts)
+	{
+		for (j = 0; j < indexes; j++)
+		{
+			pIndexes[j] = triangles[j] + baseVertex;
 		}
 		tess.numIndexes += indexes;
-	} else
+	}
+	else
 	{
 		int *collapseEnd;
 
@@ -1381,7 +1381,7 @@ void RB_SurfaceAnim( mdsSurface_t *surface ) {
 				if ( validBones[boneInfo[*boneRefs].parent] ) {
 					qglLineWidth( 2 );
 					qglBegin( GL_LINES );
-					qglColor3f( .6,.6,.6 );
+					qglColor3f( .6f,.6f,.6f );
 					qglVertex3fv( bonePtr->translation );
 					qglVertex3fv( bones[boneInfo[*boneRefs].parent].translation );
 					qglEnd();
@@ -1401,7 +1401,7 @@ void RB_SurfaceAnim( mdsSurface_t *surface ) {
 			GL_Bind( tr.whiteImage );
 			qglLineWidth( 1 );
 			qglBegin( GL_LINES );
-			qglColor3f( .0,.0,.8 );
+			qglColor3f( 0.0f, 0.0f, 0.8f );
 
 			pIndexes = &tess.indexes[oldIndexes];
 			for ( j = 0; j < render_indexes / 3; j++, pIndexes += 3 ) {

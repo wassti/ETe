@@ -415,7 +415,7 @@ NET_CompareBaseAdrMask
 Compare without port, and up to the bit number given in netmask.
 ===================
 */
-qboolean NET_CompareBaseAdrMask( const netadr_t *a, const netadr_t *b, int netmask )
+qboolean NET_CompareBaseAdrMask( const netadr_t *a, const netadr_t *b, unsigned int netmask )
 {
 	byte cmpmask, *addra, *addrb;
 	int curbyte;
@@ -431,15 +431,15 @@ qboolean NET_CompareBaseAdrMask( const netadr_t *a, const netadr_t *b, int netma
 		addra = (byte *) &a->ipv._4;
 		addrb = (byte *) &b->ipv._4;
 		
-		if(netmask < 0 || netmask > 32)
+		if (netmask > 32)
 			netmask = 32;
 	}
-	else if(a->type == NA_IP6)
+	else if (a->type == NA_IP6)
 	{
 		addra = (byte *) &a->ipv._6;
 		addrb = (byte *) &b->ipv._6;
 		
-		if(netmask < 0 || netmask > 128)
+		if (netmask > 128)
 			netmask = 128;
 	}
 	else
@@ -451,7 +451,7 @@ qboolean NET_CompareBaseAdrMask( const netadr_t *a, const netadr_t *b, int netma
 	curbyte = netmask >> 3;
 
 	if(curbyte && memcmp(addra, addrb, curbyte))
-			return qfalse;
+		return qfalse;
 
 	netmask &= 0x07;
 	if(netmask)
@@ -478,7 +478,7 @@ Compares without the port
 */
 qboolean NET_CompareBaseAdr( const netadr_t *a, const netadr_t *b )
 {
-	return NET_CompareBaseAdrMask( a, b, -1 );
+	return NET_CompareBaseAdrMask( a, b, ~0U );
 }
 
 
@@ -570,7 +570,6 @@ static qboolean NET_GetPacket( netadr_t *net_from, msg_t *net_message, const fd_
 		}
 		else
 		{
-
 			memset( ((struct sockaddr_in *)&from)->sin_zero, 0, 8 );
 		
 			if ( usingSocks && memcmp( &from, &socksRelayAddr, fromlen ) == 0 ) {
@@ -658,7 +657,6 @@ static qboolean NET_GetPacket( netadr_t *net_from, msg_t *net_message, const fd_
 			return qtrue;
 		}
 	}
-	
 	
 	return qfalse;
 }
@@ -1273,13 +1271,13 @@ static void NET_OpenSocks( int port ) {
 NET_AddLocalAddress
 =====================
 */
-static void NET_AddLocalAddress(char *ifname, struct sockaddr *addr, struct sockaddr *netmask)
+static void NET_AddLocalAddress( const char *ifname, const struct sockaddr *addr, const struct sockaddr *netmask )
 {
 	int addrlen;
 	sa_family_t family;
 	
 	// only add addresses that have all required info.
-	if(!addr || !netmask || !ifname)
+	if (!addr || !netmask || !ifname)
 		return;
 	
 	family = addr->sa_family;
@@ -1310,10 +1308,17 @@ static void NET_AddLocalAddress(char *ifname, struct sockaddr *addr, struct sock
 	}
 }
 
+
 #if defined(__linux__) || defined(MACOSX) || defined(__BSD__)
-static void NET_GetLocalAddress(void)
+static void NET_GetLocalAddress( void )
 {
+	char	hostname[256];
 	struct ifaddrs *ifap, *search;
+
+	if ( gethostname( hostname, sizeof( hostname ) ) )
+		return;
+
+	Com_Printf( "Hostname: %s\n", hostname );
 
 	numIP = 0;
 
@@ -1678,9 +1683,11 @@ static void NET_Event( const fd_set *fdr )
 					continue; // drop this packet
 			}
 
-			if ( com_sv_running->integer )
+#ifdef DEDICATED
+			Com_RunAndTimeServerPacket( &from, &netmsg );
+#else
+			if ( com_sv_running->integer || com_dedicated->integer )
 				Com_RunAndTimeServerPacket( &from, &netmsg );
-#ifndef DEDICATED
 			else
 				CL_PacketEvent( &from, &netmsg );
 #endif
@@ -1698,7 +1705,7 @@ NET_Sleep
 Sleeps msec or until something happens on the network
 ====================
 */
-void NET_Sleep( int msec, int usec_bias )
+qboolean NET_Sleep( int msec, int usec_bias )
 {
 	struct timeval tv;
 	int timeout;
@@ -1727,14 +1734,17 @@ void NET_Sleep( int msec, int usec_bias )
 			highestfd = ip6_socket;
 	}
 
-#ifdef _WIN32
 	if ( highestfd == INVALID_SOCKET )
 	{
+#ifdef _WIN32
 		// windows ain't happy when select is called without valid FDs
 		Sleep( timeout / 1000 );
-		return;
-	}
+		return qtrue;
+#else
+		usleep( msec * 1000 );
+		return qtrue;
 #endif
+	}
 
 	tv.tv_sec = timeout / 1000000;
 	tv.tv_usec = timeout - tv.tv_sec * 1000000;
@@ -1743,7 +1753,7 @@ void NET_Sleep( int msec, int usec_bias )
 
 	if ( retval > 0 ) {
 		NET_Event( &fdr );
-		return;
+		return qfalse;
 	}
 
 	if ( retval == SOCKET_ERROR ) {
@@ -1753,6 +1763,8 @@ void NET_Sleep( int msec, int usec_bias )
 		Com_Printf( S_COLOR_YELLOW "Warning: select() syscall failed: %s\n", 
 			NET_ErrorString() );
 	}
+
+	return qtrue;
 }
 
 

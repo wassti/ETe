@@ -49,6 +49,7 @@ typedef unsigned int glIndex_t;
 // can't be increased without changing bit packing for drawsurfs
 // see QSORT_SHADERNUM_SHIFT
 #define SHADERNUM_BITS	14
+#define SHADERNUM_MASK	((1<<SHADERNUM_BITS)-1)
 #define MAX_SHADERS		(1<<SHADERNUM_BITS)
 
 
@@ -1968,8 +1969,6 @@ void RE_AddLinearLightToScene( const vec3_t start, const vec3_t end, float inten
 void RE_AddCoronaToScene( const vec3_t org, float r, float g, float b, float scale, int id, qboolean visible );
 //----(SA)
 void RE_RenderScene( const refdef_t *fd );
-void RE_SaveViewParms();
-void RE_RestoreViewParms();
 
 /*
 =============================================================

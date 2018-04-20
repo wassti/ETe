@@ -316,7 +316,7 @@ unsigned int crc32_buffer( const byte *buf, unsigned int len ) {
 		{
 			c = i;
 			for ( j = 0; j < 8; j++ )
-				c = c & 1 ? (c >> 1) ^ 0xEDB88320UL : c >> 1;
+				c = (c & 1) ? (c >> 1) ^ 0xEDB88320UL : c >> 1;
 			crc32_table[i] = c;
 		}
 		crc32_inited = qtrue;
@@ -551,10 +551,9 @@ PARSING
 ============================================================================
 */
 
-static char com_token[MAX_TOKEN_CHARS];
-static char com_parsename[MAX_TOKEN_CHARS];
-static int com_lines;
-
+static	char	com_token[MAX_TOKEN_CHARS];
+static	char	com_parsename[MAX_TOKEN_CHARS];
+static	int		com_lines;
 static  int		com_tokenline;
 
 // for complex parser
@@ -1277,11 +1276,11 @@ Com_HexStrToInt
 */
 int Com_HexStrToInt( const char *str )
 {
-	if ( !str || !str[ 0 ] )
+	if ( !str )
 		return -1;
 
 	// check for hex code
-	if( str[ 0 ] == '0' && str[ 1 ] == 'x' )
+	if( str[ 0 ] == '0' && str[ 1 ] == 'x' && str[ 2 ] != '\0' )
 	{
 		int i, n = 0, len = strlen( str );
 
@@ -1671,7 +1670,8 @@ char *Q_strupr( char *s1 ) {
 
 	s = s1;
 	while ( *s ) {
-		*s = upcase[(byte)*s];
+		if ( *s >= 'a' && *s <= 'z' )
+			*s = *s - 'a' + 'A';
 		s++;
 	}
 	return s1;
@@ -2027,53 +2027,74 @@ float   *tv( float x, float y, float z ) {
 =====================================================================
 */
 
+static qboolean Q_strkey( const char *str, const char *key, int key_len )
+{
+	int i;
+
+	for ( i = 0; i < key_len; i++ )
+	{
+		if ( locase[ (byte)str[i] ] != locase[ (byte)key[i] ] )
+		{
+			return qfalse;
+		}
+	}
+
+	return qtrue;
+}
+
+
 /*
 ===============
 Info_ValueForKey
 
 Searches the string for the given
 key and returns the associated value, or an empty string.
-FIXME: overflow check?
 ===============
 */
-char *Info_ValueForKey( const char *s, const char *key ) {
-	char	pkey[BIG_INFO_KEY];
+char *Info_ValueForKey( const char *s, const char *key )
+{
 	static	char value[2][BIG_INFO_VALUE];	// use two buffers so compares
 											// work without stomping on each other
 	static	int	valueindex = 0;
+	const char *v, *pkey;
 	char	*o, *o2;
-	const char *v;
+	int		klen, len;
 	
-	if ( !s || !key )
+	if ( !s || !key || !*key )
 		return "";
 
-	if ( strlen( s ) >= BIG_INFO_STRING )
-		Com_Error( ERR_DROP, "Info_ValueForKey: oversize infostring [%s] [%s]", s, key );
+	klen = (int)strlen( key );
 
 	if ( *s == '\\' )
 		s++;
 
 	while (1)
 	{
-		o = pkey;
+		pkey = s;
 		while ( *s != '\\' )
 		{
 			if ( *s == '\0' )
 				return "";
-			*o++ = *s++;
+			++s;
 		}
-		*o = '\0';
-		s++;
+		len = (int)(s - pkey);
+		s++; // skip '\\'
 
 		v = s;
 		while ( *s != '\\' && *s !='\0' )
 			s++;
 
-		if ( !Q_stricmp( key, pkey ) )
+		if ( len == klen && Q_strkey( pkey, key, klen ) )
 		{
 			o = o2 = value[ valueindex ^= 1 ];
-			while ( v < s ) {
-				*o++ = *v++;
+			if ( (int)(s - v) >= BIG_INFO_STRING )
+			{
+				Com_Error( ERR_DROP, "Info_ValueForKey: oversize infostring [%s] [%s]", s, key );
+			}
+			else 
+			{
+				while ( v < s )
+					*o++ = *v++;
 			}
 			*o = '\0';
 			return o2;
@@ -2081,6 +2102,7 @@ char *Info_ValueForKey( const char *s, const char *key ) {
 
 		if ( *s == '\0' )
 			break;
+
 		s++;
 	}
 
@@ -2146,7 +2168,9 @@ Info_RemoveKey
 int Info_RemoveKey( char *s, const char *key ) {
 	char	*start;
 	char 	*pkey;
-	char	*sep;
+	int		key_len, len;
+
+	key_len = (int) strlen( key );
 
 	while (1)
 	{
@@ -2160,20 +2184,17 @@ int Info_RemoveKey( char *s, const char *key ) {
 				return 0;
 			++s;
 		}
-
-		sep  = s; // save separator position
-		 *s++ = '\0'; // terminate key name
+		len = (int)(s - pkey);
+		++s; // skip '\\'
 
 		while ( *s != '\\' && *s != '\0' )
 			++s;
 
-		if ( Q_stricmp( key, pkey ) == 0 )
+		if ( len == key_len && Q_strkey( pkey, key, key_len ) )
 		{
 			memmove( start, s, strlen( s ) + 1 ); // remove this part
 			return (int)(s - start);
 		}
-
-		*sep = '\\'; // connect key-value pair again
 
 		if ( *s == '\0' )
 			break;
@@ -2226,13 +2247,13 @@ qboolean Info_SetValueForKey( char *s, const char *key, const char *value ) {
 		Com_Error( ERR_DROP, "Info_SetValueForKey: oversize infostring [%s] [%s] [%s]", s, key, value );
 	}
 
-	if ( !Info_Validate( key ) ) {
-		Com_Printf( S_COLOR_YELLOW "Invalid key name: %s\n", key );
+	if ( !Info_Validate( key ) || *key == '\0' ) {
+		Com_Printf( S_COLOR_YELLOW "Invalid key name: '%s'\n", key );
 		return qfalse;
 	}
 
 	if ( !Info_Validate( value ) ) {
-		Com_Printf( S_COLOR_YELLOW "Invalid value name: %s\n", value );
+		Com_Printf( S_COLOR_YELLOW "Invalid value name: '%s'\n", value );
 		return qfalse;
 	}
 
@@ -2245,7 +2266,7 @@ qboolean Info_SetValueForKey( char *s, const char *key, const char *value ) {
 	
 	if ( len1 + len2 >= MAX_INFO_STRING )
 	{
-		Com_Printf( "Info string length exceeded for key '%s'\n", key );
+		Com_Printf( S_COLOR_YELLOW "Info string length exceeded for key '%s'\n", key );
 		return qfalse;
 	}
 
@@ -2270,13 +2291,13 @@ qboolean Info_SetValueForKey_Big( char *s, const char *key, const char *value ) 
 		Com_Error( ERR_DROP, "Info_SetValueForKey: oversize infostring [%s] [%s] [%s]", s, key, value );
 	}
 
-	if ( !Info_Validate( key ) ) {
-		Com_Printf( S_COLOR_YELLOW "Invalid key name: %s\n", key );
+	if ( !Info_Validate( key ) || *key == '\0' ) {
+		Com_Printf( S_COLOR_YELLOW "Invalid key name: '%s'\n", key );
 		return qfalse;
 	}
 
 	if ( !Info_Validate( value ) ) {
-		Com_Printf( S_COLOR_YELLOW "Invalid value name: %s\n", value );
+		Com_Printf( S_COLOR_YELLOW "Invalid value name: '%s'\n", value );
 		return qfalse;
 	}
 
@@ -2289,7 +2310,7 @@ qboolean Info_SetValueForKey_Big( char *s, const char *key, const char *value ) 
 
 	if ( len1 + len2 >= BIG_INFO_STRING )
 	{
-		Com_Printf( "BIG Info string length exceeded for key '%s'\n", key );
+		Com_Printf( S_COLOR_YELLOW "BIG Info string length exceeded for key '%s'\n", key );
 		return qfalse;
 	}
 

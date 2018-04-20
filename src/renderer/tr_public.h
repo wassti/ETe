@@ -88,9 +88,6 @@ typedef struct {
 //----(SA)
 	void ( *RenderScene )( const refdef_t *fd );
 
-	void ( *SaveViewParms )();
-	void ( *RestoreViewParms )();
-
 	void ( *SetColor )( const float *rgba );    // NULL = 1,1,1,1
 	void ( *DrawStretchPic )( float x, float y, float w, float h, float s1, float t1, float s2, float t2, qhandle_t hShader );      // 0 = white
 	void ( *DrawRotatedPic )( float x, float y, float w, float h, float s1, float t1, float s2, float t2, qhandle_t hShader, float angle );     // NERVE - SMF
@@ -216,6 +213,7 @@ typedef struct {
 	int ( *FS_ReadFile )( const char *name, void **buf );
 	void ( *FS_FreeFile )( void *buf );
 	char ** ( *FS_ListFiles )( const char *name, const char *extension, int *numfilesfound );
+	char ** ( *FS_ListFilesEx )( const char *path, const char **extensions, int numExts, int *numfiles );
 	void ( *FS_FreeFileList )( char **filelist );
 	void ( *FS_WriteFile )( const char *qpath, const void *buffer, int size );
 	qboolean ( *FS_FileExists )( const char *file );

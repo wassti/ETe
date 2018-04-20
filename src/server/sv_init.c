@@ -840,10 +840,13 @@ void SV_Init( void )
 	sv_hostname = Cvar_Get( "sv_hostname", "ETHost", CVAR_SERVERINFO | CVAR_ARCHIVE );
 	sv_maxclients = Cvar_Get( "sv_maxclients", "20", CVAR_SERVERINFO | CVAR_LATCH );               // NERVE - SMF - changed to 20 from 8
 
+	sv_maxconcurrent = Cvar_Get( "sv_maxconcurrent", "4", CVAR_ARCHIVE );
+	Cvar_CheckRange( sv_maxconcurrent, "1", NULL, CV_INTEGER );
+	Cvar_SetDescription( sv_maxconcurrent, "Limits number of simultaneous connections from the same IP address." );
+
 	sv_minRate = Cvar_Get ("sv_minRate", "0", CVAR_ARCHIVE_ND | CVAR_SERVERINFO );
 	sv_maxRate = Cvar_Get( "sv_maxRate", "0", CVAR_ARCHIVE_ND | CVAR_SERVERINFO );
 	sv_floodProtect = Cvar_Get( "sv_floodProtect", "1", CVAR_ARCHIVE | CVAR_SERVERINFO );
-	sv_allowAnonymous = Cvar_Get( "sv_allowAnonymous", "0", CVAR_SERVERINFO );
 	sv_friendlyFire = Cvar_Get( "g_friendlyFire", "1", CVAR_SERVERINFO | CVAR_ARCHIVE );           // NERVE - SMF
 	sv_maxlives = Cvar_Get( "g_maxlives", "0", CVAR_ARCHIVE | CVAR_LATCH | CVAR_SERVERINFO );      // NERVE - SMF
 	sv_needpass = Cvar_Get( "g_needpass", "0", CVAR_SERVERINFO | CVAR_ROM );
@@ -871,13 +874,15 @@ void SV_Init( void )
 	Cvar_SetDescription( sv_zombietime, "Seconds to sink messages after disconnect" );
 	Cvar_Get ("nextmap", "", CVAR_TEMP );
 
-	sv_allowDownload = Cvar_Get( "sv_allowDownload", "1", CVAR_ARCHIVE );
+	sv_allowDownload = Cvar_Get( "sv_allowDownload", "1", CVAR_ARCHIVE|CVAR_SERVERINFO );
 	sv_master[0] = Cvar_Get( "sv_master1", MASTER_SERVER_NAME, CVAR_INIT );
 	sv_master[1] = Cvar_Get( "sv_master2", "master.etlegacy.com", CVAR_INIT );
 	sv_master[2] = Cvar_Get( "sv_master3", "", CVAR_ARCHIVE_ND );
 	sv_master[3] = Cvar_Get( "sv_master4", "", CVAR_ARCHIVE_ND );
 	sv_master[4] = Cvar_Get( "sv_master5", "", CVAR_ARCHIVE_ND );
 	sv_reconnectlimit = Cvar_Get( "sv_reconnectlimit", "3", 0 );
+	Cvar_CheckRange( sv_reconnectlimit, "0", "12", CV_INTEGER );
+
 	sv_tempbanmessage = Cvar_Get( "sv_tempbanmessage", "You have been kicked and are temporarily banned from joining this server.", 0 );
 	sv_padPackets = Cvar_Get( "sv_padPackets", "0", 0 );
 	sv_killserver = Cvar_Get( "sv_killserver", "0", 0 );

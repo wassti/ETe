@@ -335,7 +335,6 @@ typedef struct {
 	int maxPing;
 	int ping;
 	qboolean visible;
-	int allowAnonymous;
 	int friendlyFire;               // NERVE - SMF
 	int maxlives;                   // NERVE - SMF
 	int needpass;
@@ -450,8 +449,9 @@ extern cvar_t  *cl_shownuments;             // DHM - Nerve
 extern cvar_t  *cl_visibleClients;          // DHM - Nerve
 extern cvar_t  *cl_showSend;
 extern cvar_t  *cl_showServerCommands;      // NERVE - SMF
-extern cvar_t  *cl_timeNudge;
-extern cvar_t  *cl_showTimeDelta;
+extern	cvar_t	*cl_autoNudge;
+extern	cvar_t	*cl_timeNudge;
+extern	cvar_t	*cl_showTimeDelta;
 
 extern	cvar_t	*cl_yawspeed;
 extern	cvar_t	*cl_pitchspeed;
@@ -536,9 +536,6 @@ void CL_StartHunkUsers( void );
 
 void CL_Disconnect_f( void );
 void CL_Vid_Restart_f( void );
-void CL_Snd_Restart_f (void);
-void CL_StartDemoLoop( void );
-void CL_NextDemo( void );
 void CL_ReadDemoMessage( void );
 void CL_StopRecord_f(void);
 

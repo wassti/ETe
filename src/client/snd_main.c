@@ -140,6 +140,9 @@ S_StartBackgroundTrack
 */
 void S_StartBackgroundTrack( const char *intro, const char *loop, int fadeupTime )
 {
+	if ( !*intro )
+		return;
+
 	if( si.StartBackgroundTrack ) {
 		si.StartBackgroundTrack( intro, loop, fadeupTime );
 	}

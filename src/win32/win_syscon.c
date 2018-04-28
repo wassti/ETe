@@ -46,7 +46,7 @@ If you have questions concerning this license or the applicable additional terms
 #define INPUT_ID		101
 #define STATUS_ID       102
 
-#define DEFAULT_WIDTH   540
+#define DEFAULT_WIDTH   600
 #define DEFAULT_HEIGHT  450
 
 #define BORDERW			1

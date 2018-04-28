@@ -685,7 +685,7 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 			else if ( !Q_stricmp( token, "$lightmap" ) )
 			{
 				stage->bundle[0].isLightmap = qtrue;
-				if ( shader.lightmapIndex < 0 || !tr.lightmaps ) {
+				if ( shader.lightmapIndex < 0 || !*tr.lightmaps || tr.numLightmaps < 1 ) {
 					stage->bundle[0].image[0] = tr.whiteImage;
 				} else {
 					stage->bundle[0].image[0] = tr.lightmaps[shader.lightmapIndex];
@@ -3434,7 +3434,6 @@ static const char *imageFormats[] = {
 };
 static const size_t numImageFormats = ARRAY_LEN( imageFormats );
 
-
 int R_NumLightmapFiles( void ) {
 	char **imageFiles;
 	int numImageFiles, i, count = 0;
@@ -3445,8 +3444,11 @@ int R_NumLightmapFiles( void ) {
 
 	imageFiles = ri.FS_ListFilesEx( tr.worldRawName, imageFormats, numImageFormats, &numImageFiles );
 
-	if ( !imageFiles || !numImageFiles )
+	if ( !imageFiles || !numImageFiles ) {
+		if( imageFiles )
+			ri.FS_FreeFileList( imageFiles );
 		return 0;
+	}
 
 	for ( i = 0; i < numImageFiles; i++ ) {
 		if ( !Q_stricmpn( imageFiles[i], "lm_", 3 ) )
@@ -3455,7 +3457,6 @@ int R_NumLightmapFiles( void ) {
 
 	if ( imageFiles )
 		ri.FS_FreeFileList( imageFiles );
-
 
 	return count;
 }

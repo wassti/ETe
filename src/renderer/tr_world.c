@@ -99,7 +99,7 @@ static qboolean R_CullGrid( srfGridMesh_t *cv ) {
 		return qtrue;
 	}
 
-	if ( tr.currentEntityNum != ENTITYNUM_WORLD ) {
+	if ( tr.currentEntityNum != REFENTITYNUM_WORLD ) {
 		sphereCull = R_CullLocalPointAndRadius( cv->localOrigin, cv->meshRadius );
 	} else {
 		sphereCull = R_CullPointAndRadius( cv->localOrigin, cv->meshRadius );
@@ -206,7 +206,7 @@ static qboolean R_CullSurface( surfaceType_t *surface, shader_t *shader ) {
 
 	{
 		// try sphere cull
-		if ( tr.currentEntityNum != ENTITYNUM_WORLD ) {
+		if ( tr.currentEntityNum != REFENTITYNUM_WORLD ) {
 			cull = R_CullLocalPointAndRadius( gen->origin, gen->radius );
 		} else {
 			cull = R_CullPointAndRadius( gen->origin, gen->radius );
@@ -226,6 +226,9 @@ static qboolean R_CullSurface( surfaceType_t *surface, shader_t *shader ) {
 #ifdef USE_PMLIGHT
 qboolean R_LightCullBounds( const dlight_t* dl, const vec3_t mins, const vec3_t maxs )
 {
+	if ( dl->flags & REF_DIRECTED_DLIGHT )
+		return qfalse;
+
 	if ( dl->linear ) {
 		if (dl->transformed[0] - dl->radius > maxs[0] && dl->transformed2[0] - dl->radius > maxs[0] )
 			return qtrue;
@@ -267,6 +270,10 @@ qboolean R_LightCullBounds( const dlight_t* dl, const vec3_t mins, const vec3_t 
 static qboolean R_LightCullFace( const srfSurfaceFace_t* face, const dlight_t* dl )
 {
 	float d = DotProduct( dl->origin, face->plane.normal ) - face->plane.dist;
+
+	if ( dl->flags & REF_DIRECTED_DLIGHT )
+		return qfalse;
+
 	if ( dl->linear )
 	{
 		float d2 = DotProduct( dl->origin2, face->plane.normal ) - face->plane.dist;
@@ -532,14 +539,14 @@ static int R_DlightSurface( msurface_t *surface, int dlightBits ) {
 R_AddWorldSurface
 ======================
 */
-static void R_AddWorldSurface( msurface_t *surf, shader_t *shader, int dlightMap, int decalBits ) {
+static void R_AddWorldSurface( msurface_t *surf, shader_t *shader, int dlightBits, int decalBits ) {
 	int i;
-
 
 	if ( surf->viewCount == tr.viewCount ) {
 		return;     // already in this view
 
 	}
+
 	surf->viewCount = tr.viewCount;
 	// FIXME: bmodel fog?
 
@@ -554,7 +561,7 @@ static void R_AddWorldSurface( msurface_t *surf, shader_t *shader, int dlightMap
 #endif
 	{
 		surf->vcVisible = tr.viewCount;
-		
+
 		// add decals
 		if ( decalBits ) {
 			// ydnar: project any decals
@@ -573,10 +580,11 @@ static void R_AddWorldSurface( msurface_t *surf, shader_t *shader, int dlightMap
 
 #ifdef USE_LEGACY_DLIGHTS
 	// check for dlighting
-	if ( dlightMap ) {
-		dlightMap = R_DlightSurface( surf, dlightMap );
-		dlightMap = ( dlightMap != 0 );
+	if ( dlightBits ) {
+		dlightBits = R_DlightSurface( surf, dlightBits );
+		dlightBits = ( dlightBits != 0 );
 	}
+#endif
 
 	// add decals
 	if ( decalBits ) {
@@ -589,9 +597,11 @@ static void R_AddWorldSurface( msurface_t *surf, shader_t *shader, int dlightMap
 		}
 	}
 
-	R_AddDrawSurf( surf->data, shader, surf->fogIndex, dlightMap );
+#ifdef USE_LEGACY_DLIGHTS
+	R_AddDrawSurf( surf->data, shader, surf->fogIndex, dlightBits );
 #endif // USE_LEGACY_DLIGHTS
 }
+
 
 /*
 =============================================================
@@ -821,8 +831,6 @@ void R_AddBrushModelSurfaces( trRefEntity_t *ent ) {
 	bmodel->visible = qtrue;
 	bmodel->entityNum = tr.currentEntityNum;
 
-	R_DlightBmodel( bmodel );
-
 	// determine if in fog
 	fognum = R_BmodelFogNum( ent, bmodel );
 
@@ -866,12 +874,13 @@ void R_AddBrushModelSurfaces( trRefEntity_t *ent ) {
 		int s;
 
 		for ( s = 0; s < bmodel->numSurfaces; s++ ) {
-			( bmodel->firstSurface + s )->fogIndex = fognum;
+			msurface_t *surf = (bmodel->firstSurface + s);
+			surf->fogIndex = fognum;
 			// Arnout: custom shader support for brushmodels
 			if ( ent->e.customShader ) {
-				R_AddWorldSurface( bmodel->firstSurface + s, R_GetShaderByHandle( ent->e.customShader ), qfalse, decalBits );
+				R_AddWorldSurface( surf, R_GetShaderByHandle( ent->e.customShader ), qfalse, decalBits );
 			} else {
-				R_AddWorldSurface( bmodel->firstSurface + s, ( ( msurface_t * )( bmodel->firstSurface + s ) )->shader, qfalse, decalBits );
+				R_AddWorldSurface( surf, surf->shader, qfalse, decalBits );
 			}
 		}
 
@@ -882,9 +891,7 @@ void R_AddBrushModelSurfaces( trRefEntity_t *ent ) {
 		for ( i = 0; i < tr.viewParms.num_dlights; i++ ) {
 			dl = &tr.viewParms.dlights[i];
 			if ( !R_LightCullBounds( dl, bmodel->bounds[0], bmodel->bounds[1] ) ) {
-#ifdef USE_LIGHT_COUNT
 				tr.lightCount++;
-#endif
 				tr.light = dl;
 				for ( s = 0; s < bmodel->numSurfaces; s++ ) {
 					R_AddLitSurface( bmodel->firstSurface + s, dl );
@@ -906,15 +913,19 @@ void R_AddBrushModelSurfaces( trRefEntity_t *ent ) {
 #endif // USE_PMLIGHT
 
 #ifdef USE_LEGACY_DLIGHTS
+	R_SetupEntityLighting( &tr.refdef, ent );
+	R_DlightBmodel( bmodel );
+
 	// add model surfaces
 	for ( i = 0; i < bmodel->numSurfaces; i++ )
 	{
-		( bmodel->firstSurface + i )->fogIndex = fognum;
+		msurface_t *surf = (bmodel->firstSurface + i);
+		surf->fogIndex = fognum;
 		// Arnout: custom shader support for brushmodels
 		if ( ent->e.customShader ) {
-			R_AddWorldSurface( bmodel->firstSurface + i, R_GetShaderByHandle( ent->e.customShader ), tr.currentEntity->needDlights, decalBits );
+			R_AddWorldSurface( surf, R_GetShaderByHandle( ent->e.customShader ), tr.currentEntity->needDlights, decalBits );
 		} else {
-			R_AddWorldSurface( bmodel->firstSurface + i, ( ( msurface_t * )( bmodel->firstSurface + i ) )->shader, tr.currentEntity->needDlights, decalBits );
+			R_AddWorldSurface( surf, surf->shader, tr.currentEntity->needDlights, decalBits );
 		}
 	}
 
@@ -945,7 +956,7 @@ R_AddLeafSurfaces() - ydnar
 adds a leaf's drawsurfaces
 */
 
-static void R_AddLeafSurfaces( mnode_t *node, int dlightBits, int decalBits ) {
+static void R_AddLeafSurfaces( mnode_t *node, unsigned int dlightBits, int decalBits ) {
 	int c;
 	msurface_t  *surf, **mark;
 
@@ -992,10 +1003,9 @@ static void R_AddLeafSurfaces( mnode_t *node, int dlightBits, int decalBits ) {
 R_RecursiveWorldNode
 ================
 */
-static void R_RecursiveWorldNode( mnode_t *node, int planeBits, int dlightBits, int decalBits ) {
+static void R_RecursiveWorldNode( mnode_t *node, unsigned int planeBits, unsigned int dlightBits, unsigned int decalBits ) {
 
 	do {
-
 		// if the node wasn't marked as potentially visible, exit
 		if (node->visframe != tr.visCount) {
 			return;
@@ -1061,6 +1071,7 @@ static void R_RecursiveWorldNode( mnode_t *node, int planeBits, int dlightBits, 
 		}
 
 		// ydnar: cull dlights
+		// determine which dlights are needed
 #ifdef USE_LEGACY_DLIGHTS
 #ifdef USE_PMLIGHT
 		if ( !r_dlightMode->integer )
@@ -1113,7 +1124,7 @@ static void R_RecursiveWorldNode( mnode_t *node, int planeBits, int dlightBits, 
 		R_RecursiveWorldNode( node->children[ 0 ], planeBits, dlightBits, decalBits );
 
 		// tail recurse
-		node = node->children[ 1 ];
+		node = node->children[1];
 	} while ( 1 );
 
 	// short circuit
@@ -1177,18 +1188,17 @@ R_inPVS
 */
 qboolean R_inPVS( const vec3_t p1, const vec3_t p2 ) {
 	mnode_t *leaf;
-	byte    *vis;
+	byte	*vis;
 
 	leaf = R_PointInLeaf( p1 );
 	vis = ri.CM_ClusterPVS( leaf->cluster );
 	leaf = R_PointInLeaf( p2 );
 
-	if ( !( vis[leaf->cluster >> 3] & ( 1 << ( leaf->cluster & 7 ) ) ) ) {
+	if ( !(vis[leaf->cluster>>3] & (1<<(leaf->cluster&7))) ) {
 		return qfalse;
 	}
 	return qtrue;
 }
-
 
 /*
 ===============
@@ -1198,11 +1208,11 @@ Mark the leaves and nodes that are in the PVS for the current
 cluster
 ===============
 */
-static void R_MarkLeaves( void ) {
-	const byte  *vis;
-	mnode_t *leaf, *parent;
-	int i;
-	int cluster;
+static void R_MarkLeaves (void) {
+	const byte	*vis;
+	mnode_t	*leaf, *parent;
+	int		i;
+	int		cluster;
 
 	// lockpvs lets designers walk around to determine the
 	// extent of the current pvs
@@ -1323,7 +1333,11 @@ void R_AddWorldSurfaces( void ) {
 		R_MarkLeaves();
 
 		// perform frustum culling and add all the potentially visible surfaces
-		R_RecursiveWorldNode( tr.world->nodes, 255, tr.refdef.dlightBits, tr.refdef.decalBits );
+		if ( tr.refdef.num_dlights > MAX_DLIGHTS ) {
+			tr.refdef.num_dlights = MAX_DLIGHTS;
+		}
+
+		R_RecursiveWorldNode( tr.world->nodes, 255, ( 1ULL << tr.refdef.num_dlights ) - 1 /*tr.refdef.dlightBits*/, tr.refdef.decalBits );
 
 #ifdef USE_PMLIGHT
 #ifdef USE_LEGACY_DLIGHTS
@@ -1366,4 +1380,3 @@ void R_AddWorldSurfaces( void ) {
 	tr.currentBModel = NULL;
 #endif // USE_PMLIGHT
 }
-

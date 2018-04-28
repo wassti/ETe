@@ -3095,6 +3095,7 @@ static void FS_GetModDescription( const char *modDir, char *description, int des
 	int				nDescLen;
 
 	Com_sprintf( descPath, sizeof ( descPath ), "%s/description.txt", modDir );
+	FS_ReplaceSeparators( descPath );
 	nDescLen = FS_SV_FOpenFileRead( descPath, &descHandle );
 
 	if ( descHandle != FS_INVALID_HANDLE ) {
@@ -3469,9 +3470,11 @@ static void FS_Which_f( void ) {
 	long			hash;
 	FILE			*temp;
 	char			*filename;
-	char			buf[ MAX_OSPATH ];
+	char			buf[ MAX_OSPATH*2 + 1 ];
+	int				numfound;
 
 	hash = 0;
+	numfound = 0;
 	filename = Cmd_Argv(1);
 
 	if ( !filename[0] ) {
@@ -3499,7 +3502,9 @@ static void FS_Which_f( void ) {
 				if ( !FS_FilenameCompare( pakFile->name, filename ) ) {
 					// found it!
 					Com_Printf( "File \"%s\" found in \"%s\"\n", filename, pak->pakFilename );
-					return;
+					if ( ++numfound >= 32 ) {
+						return;
+					}
 				}
 				pakFile = pakFile->next;
 			} while(pakFile != NULL);
@@ -3515,11 +3520,15 @@ static void FS_Which_f( void ) {
 			Com_sprintf( buf, sizeof( buf ), "%s/%s", dir->path, dir->gamedir );
 			FS_ReplaceSeparators( buf );
 			Com_Printf( "File \"%s\" found at \"%s\"\n", filename, buf );
-			return;
+			if ( ++numfound >= 32 ) {
+				return;
+			}
 		}
 	}
-	Com_Printf( "File not found: \"%s\"\n", filename );
-	return;
+
+	if ( !numfound ) {
+		Com_Printf( "File not found: \"%s\"\n", filename );
+	}
 }
 
 

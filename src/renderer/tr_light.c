@@ -357,13 +357,13 @@ by the Calc_* functions
 =================
 */
 void R_SetupEntityLighting( const trRefdef_t *refdef, trRefEntity_t *ent ) {
-	int i;
-	dlight_t        *dl;
-	vec3_t dir;
-	float d, modulate;
-	vec3_t lightDir;
-	vec3_t lightOrigin;
-	vec3_t lightValue;
+	int				i;
+	dlight_t		*dl;
+	vec3_t			dir;
+	float			d, power;
+	vec3_t			lightDir;
+	vec3_t			lightOrigin;
+	vec3_t			lightValue;
 	byte            *entityLight;
 #ifdef USE_PMLIGHT
 	vec3_t			shadowLightDir;
@@ -447,12 +447,11 @@ void R_SetupEntityLighting( const trRefdef_t *refdef, trRefEntity_t *ent ) {
 
 				VectorSubtract( dl->origin, lightOrigin, dir );
 				d = VectorNormalize( dir );
-
-				modulate = DLIGHT_AT_RADIUS * ( dl->radius * dl->radius );
+				power = DLIGHT_AT_RADIUS * ( dl->radius * dl->radius );
 				if ( d < DLIGHT_MINIMUM_RADIUS ) {
 					d = DLIGHT_MINIMUM_RADIUS;
 				}
-				d = modulate / ( d * d );
+				d = power / ( d * d );
 				VectorMA( shadowLightDir, d, dir, shadowLightDir );
 			}
 		} // if ( r_shadows->integer == 2 )
@@ -466,21 +465,19 @@ void R_SetupEntityLighting( const trRefdef_t *refdef, trRefEntity_t *ent ) {
 			continue;
 		}
 
-
-
 		#if 0
 		VectorSubtract( dl->origin, lightOrigin, dir );
 		d = VectorNormalize( dir );
-		modulate = DLIGHT_AT_RADIUS * ( dl->radius * dl->radius );
+
+		power = DLIGHT_AT_RADIUS * ( dl->radius * dl->radius );
 		if ( d < DLIGHT_MINIMUM_RADIUS ) {
 			d = DLIGHT_MINIMUM_RADIUS;
 		}
-
-		modulate = modulate / ( d * d );
+		d = power / ( d * d );
 		#else
 		// directional dlight, origin is a directional normal
 		if ( dl->flags & REF_DIRECTED_DLIGHT ) {
-			modulate = dl->intensity * 255.0;
+			power = dl->intensity * 255.0f;
 			VectorCopy( dl->origin, dir );
 		}
 		// ball dlight
@@ -488,16 +485,16 @@ void R_SetupEntityLighting( const trRefdef_t *refdef, trRefEntity_t *ent ) {
 		{
 			VectorSubtract( dl->origin, lightOrigin, dir );
 			d = dl->radius - VectorNormalize( dir );
-			if ( d <= 0.0 ) {
-				modulate = 0;
+			if ( d <= 0.0f ) {
+				power = 0;
 			} else {
-				modulate = dl->intensity * d;
+				power = dl->intensity * d;
 			}
 		}
 		#endif
 
-		VectorMA( ent->directedLight, modulate, dl->color, ent->directedLight );
-		VectorMA( lightDir, modulate, dir, lightDir );
+		VectorMA( ent->directedLight, power, dl->color, ent->directedLight );
+		VectorMA( lightDir, power, dir, lightDir );
 	}
 
 	// clamp ambient
@@ -523,7 +520,7 @@ void R_SetupEntityLighting( const trRefdef_t *refdef, trRefEntity_t *ent ) {
 	// ydnar: save out the light table
 	d = 0.0f;
 	entityLight = (byte*) ent->entityLightInt;
-	modulate = 1.0f / ( ENTITY_LIGHT_STEPS - 1 );
+	power = 1.0f / ( ENTITY_LIGHT_STEPS - 1 );
 	for ( i = 0; i < ENTITY_LIGHT_STEPS; i++ )
 	{
 		VectorMA( ent->ambientLight, d, ent->directedLight, lightValue );
@@ -532,7 +529,7 @@ void R_SetupEntityLighting( const trRefdef_t *refdef, trRefEntity_t *ent ) {
 		entityLight[ 2 ] = lightValue[ 2 ] > 255.0f ? 255 : myftol( lightValue[ 2 ] );
 		entityLight[ 3 ] = 0xFF;
 
-		d += modulate;
+		d += power;
 		entityLight += 4;
 	}
 
@@ -565,6 +562,7 @@ void R_SetupEntityLighting( const trRefdef_t *refdef, trRefEntity_t *ent ) {
 	//%			lightDir[ 0 ], lightDir[ 1 ], lightDir[ 2 ],
 	//%			ent->lightDir[ 0 ], ent->lightDir[ 1 ], ent->lightDir[ 2 ] );
 }
+
 
 /*
 =================

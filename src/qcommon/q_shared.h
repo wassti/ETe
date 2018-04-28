@@ -214,7 +214,7 @@ float FloatSwap( const float *f );
 
 typedef unsigned char byte;
 
-typedef enum { qfalse = 0, qtrue } qboolean;
+typedef enum { qfalse = 0, qtrue = 1 } qboolean;
 
 typedef union floatint_u
 {
@@ -1017,8 +1017,8 @@ void Com_TruncateLongString( char *buffer, const char *s );
 //
 char *Info_ValueForKey( const char *s, const char *key );
 int Info_RemoveKey( char *s, const char *key );
-qboolean Info_SetValueForKey( char *s, const char *key, const char *value );
-qboolean Info_SetValueForKey_Big( char *s, const char *key, const char *value );
+#define Info_SetValueForKey( buf, key, value ) Info_SetValueForKey_s( (buf), MAX_INFO_STRING, (key), (value) )
+qboolean Info_SetValueForKey_s( char *s, int slen, const char *key, const char *value );
 qboolean Info_Validate( const char *s );
 qboolean Info_NextPair( const char **s, char *key, char *value );
 

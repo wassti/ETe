@@ -208,12 +208,20 @@ to the apropriate place.
 A raw string should NEVER be passed as fmt, because of "%f" type crashers.
 =============
 */
+static qboolean devPrint = qfalse;
 int QDECL Com_VPrintf( const char *fmt, va_list argptr ) {
 	static qboolean opening_qconsole = qfalse;
 	char		msg[MAXPRINTMSG];
 	int			len;
 
-	len = Q_vsnprintf( msg, sizeof( msg ), fmt, argptr );
+	if ( devPrint ) {
+		msg[0] = '^';
+		msg[1] = COLOR_CYAN;
+		len = Q_vsnprintf( msg + 2, sizeof( msg ) - 2, fmt, argptr ) + 2;
+	}
+	else {
+		len = Q_vsnprintf( msg, sizeof( msg ), fmt, argptr );
+	}
 
 	if ( rd_buffer && !rd_flushing ) {
 		if ( len + strlen( rd_buffer ) > ( rd_buffersize - 1 ) ) {
@@ -307,7 +315,9 @@ void QDECL Com_DPrintf( const char *fmt, ...) {
 	}
 
 	va_start( argptr, fmt );
+	devPrint = qtrue;
 	Com_VPrintf( fmt, argptr );
+	devPrint = qfalse;
 	va_end( argptr );
 }
 void QDECL Com_DPrintf( const char *fmt, ... ) __attribute__( ( format( printf,1,2 ) ) );
@@ -3442,11 +3452,6 @@ void Com_Init( char *commandLine ) {
 
 	s = va( "%s %s %s", Q3_VERSION, PLATFORM_STRING, __DATE__ );
 	com_version = Cvar_Get( "version", s, CVAR_PROTECTED | CVAR_ROM | CVAR_SERVERINFO );
-
-#ifndef DEDICATED
-	// for now - this will be used to inform server about q3msgboom fix
-	Cvar_Get( "client", Q3_VERSION, CVAR_PROTECTED | CVAR_ROM | CVAR_USERINFO );
-#endif
 
 	// this cvar is the single entry point of the entire extension system
 	Cvar_Get( "//trap_GetValue", va( "%i", COM_TRAP_GETVALUE ), CVAR_PROTECTED | CVAR_ROM );

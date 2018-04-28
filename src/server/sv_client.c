@@ -214,8 +214,9 @@ void SV_DirectConnect( const netadr_t *from ) {
 	int			startIndex;
 	intptr_t	denied;
 	int			count;
-	const char	*ip, *info;
+	const char	*ip, *info, *v;
 	qboolean	compat = qfalse;
+	qboolean	longstr;
 
 	Com_DPrintf( "SVC_DirectConnect()\n" );
 
@@ -260,7 +261,16 @@ void SV_DirectConnect( const netadr_t *from ) {
 
 	// verify challenge in first place
 	info = Cmd_Argv( 1 );
-	challenge = atoi( Info_ValueForKey( info, "challenge" ) );
+	v = Info_ValueForKey( info, "challenge" );
+	if ( *v == '\0' )
+	{
+		if ( !SVC_RateLimit( &bucket, 10, 200 ) )
+		{
+			NET_OutOfBandPrint( NS_SERVER, from, "print\nMissing challenge in userinfo.\n" );
+		}
+		return;
+	}
+	challenge = atoi( v );
 
 	// see if the challenge is valid (localhost clients don't need to challenge)
 	if ( !NET_IsLocalAddress( from ) )
@@ -281,7 +291,16 @@ void SV_DirectConnect( const netadr_t *from ) {
 
 	// DHM - Nerve :: Update Server allows any protocol to connect
 	// NOTE TTimo: but we might need to store the protocol around for potential non http/ftp clients
-	version = atoi( Info_ValueForKey( userinfo, "protocol" ) );
+	v = Info_ValueForKey( userinfo, "protocol" );
+	if ( *v == '\0' )
+	{
+		if ( !SVC_RateLimit( &bucket, 10, 200 ) )
+		{
+			NET_OutOfBandPrint( NS_SERVER, from, "print\nMissing protocol in userinfo.\n" );
+		}
+		return;
+	}
+	version = atoi( v );
 	
 	if ( version == PROTOCOL_VERSION )
 		compat = qtrue;
@@ -301,6 +320,30 @@ void SV_DirectConnect( const netadr_t *from ) {
 		}
 	}
 
+	v = Info_ValueForKey( userinfo, "qport" );
+	if ( *v == '\0' )
+	{
+		if ( !SVC_RateLimit( &bucket, 10, 200 ) )
+		{
+			NET_OutOfBandPrint( NS_SERVER, from, "print\nMissing qport in userinfo.\n" );
+		}
+		return;
+	}
+	qport = atoi( Info_ValueForKey( userinfo, "qport" ) );
+
+	// if "client" is present in userinfo and it is a modern client
+	// then assume it can properly decode long strings
+	if ( !compat && *Info_ValueForKey( userinfo, "client" ) != '\0' )
+		longstr = qtrue;
+	else
+		longstr = qfalse;
+
+	// we don't need these keys after connection, release some space in userinfo
+	Info_SetValueForKey( userinfo, "challenge", NULL );
+	Info_SetValueForKey( userinfo, "qport", NULL );
+	Info_SetValueForKey( userinfo, "protocol", NULL );
+	Info_SetValueForKey( userinfo, "client", NULL );
+
 	// don't let "ip" overflow userinfo string
 	if ( NET_IsLocalAddress( from ) )
 		ip = "localhost";
@@ -318,8 +361,6 @@ void SV_DirectConnect( const netadr_t *from ) {
 
 	// restore burst capacity
 	SVC_RateRestoreBurstAddress( from, 10, 1000 );
-
-	qport = atoi( Info_ValueForKey( userinfo, "qport" ) );
 
 	// quick reject
 	newcl = NULL;
@@ -386,7 +427,7 @@ void SV_DirectConnect( const netadr_t *from ) {
 		startIndex = sv_privateClients->integer;
 	}
 
-	if ( newcl >= svs.clients + startIndex && newcl->state == CS_FREE ) {
+	if ( newcl && newcl >= svs.clients + startIndex && newcl->state == CS_FREE ) {
 		Com_Printf( "%s: reuse slot %i\n", NET_AdrToString( from ), (int)(newcl - svs.clients) );
 		goto gotnewcl;
 	}
@@ -450,6 +491,8 @@ gotnewcl:
 
 	// save the userinfo
 	Q_strncpyz( newcl->userinfo, userinfo, sizeof(newcl->userinfo) );
+
+	cl->longstr = longstr;
 
 	// get the game a chance to reject this connection or modify the userinfo
 	denied = VM_Call( gvm, GAME_CLIENT_CONNECT, clientNum, qtrue, qfalse ); // firstTime = qtrue
@@ -1601,13 +1644,6 @@ void SV_UserinfoChanged( client_t *cl, qboolean updateUserinfo ) {
 			Info_SetValueForKey( cl->userinfo, "handicap", "0" );
 		}
 	}
-
-	// if "client" is present in userinfo and it is a modern client
-	// then assume it can properly decode long strings
-	if ( !cl->compat && *Info_ValueForKey( cl->userinfo, "client" ) )
-		cl->longstr = qtrue;
-	else
-		cl->longstr = qfalse;
 
 	// TTimo
 	// download prefs of the client

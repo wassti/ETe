@@ -313,6 +313,7 @@ int R_CullLocalBox (vec3_t bounds[2]) {
 	return CULL_CLIP;		// partially clipped
 }
 
+
 /*
 ** R_CullLocalPointAndRadius
 */
@@ -377,6 +378,9 @@ int R_CullDlight( const dlight_t* dl )
 
 	if ( r_nocull->integer )
 		return CULL_CLIP;
+
+	if ( dl->flags & REF_DIRECTED_DLIGHT )
+		return CULL_IN;
 
 	if ( dl->linear ) {
 		for ( i = 0 ; i < 5 ; i++ ) {
@@ -1516,7 +1520,7 @@ static qboolean R_MirrorViewBySurface( const drawSurf_t *drawSurf, int entityNum
 	}
 #endif
 
-	if ( tess.numVertexes > 2 ) {
+	if ( tess.numVertexes > 2 && r_fastsky->integer ) {
 		int mins[2], maxs[2];
 		R_GetModelViewBounds( mins, maxs );
 		newParms.scissorX = newParms.viewportX + mins[0];
@@ -1874,7 +1878,9 @@ static void R_SortDrawSurfs( drawSurf_t *drawSurfs, int numDrawSurfs ) {
 			if ( r_portalOnly->integer ) {
 				return;
 			}
-			//break;	// only one mirror view at a time
+			if ( r_fastsky->integer == 0 ) {
+				break;	// only one mirror view at a time
+			}
 		}
 	}
 

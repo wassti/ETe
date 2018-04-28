@@ -523,6 +523,7 @@ void RE_AddLinearLightToScene( const vec3_t start, const vec3_t end, float inten
 	dl->color[1] = g;
 	dl->color[2] = b;
 	dl->shader = NULL;
+	dl->flags = 0;
 	dl->linear = qtrue;
 }
 

@@ -1245,7 +1245,7 @@ static void CL_GenerateETKey(void)
 	FS_FCloseFile(f);
 	if (len > 0)
 	{
-		Com_DPrintf("ETKEY found.\n");
+		Com_DPrintf(S_COLOR_CYAN "ETKEY found.\n");
 		return;
 	}
 	else
@@ -1269,7 +1269,7 @@ static void CL_GenerateETKey(void)
 		}
 		(void) FS_Write(buff, sizeof(buff), f);
 		FS_FCloseFile(f);
-		(void) Com_Printf(S_COLOR_CYAN "ETKEY file generated.\n");
+		Com_Printf(S_COLOR_CYAN "ETKEY file generated.\n");
 	}
 }
 
@@ -2410,8 +2410,9 @@ Resend a connect message if the last one has timed out
 */
 static void CL_CheckForResend( void ) {
 	int		port, len;
-	char	info[MAX_INFO_STRING+128]; // larger buffer to detect overflows
+	char	info[MAX_INFO_STRING*2]; // larger buffer to detect overflows
 	char	data[MAX_INFO_STRING];
+	qboolean	notOverflowed;
 
 	// don't send anything if playing back a demo
 	if ( clc.demoplaying ) {
@@ -2442,18 +2443,28 @@ static void CL_CheckForResend( void ) {
 		port = Cvar_VariableIntegerValue( "net_qport" );
 
 		Q_strncpyz( info, Cvar_InfoString( CVAR_USERINFO ), sizeof( info ) );
-		
-		if ( clc.compat )
-			Info_SetValueForKey( info, "protocol", va( "%i", PROTOCOL_VERSION ) );
-		else
-			Info_SetValueForKey( info, "protocol", va( "%i", NEW_PROTOCOL_VERSION ) );
-
-		Info_SetValueForKey( info, "qport", va( "%i", port ) );
-		Info_SetValueForKey( info, "challenge", va( "%i", clc.challenge ) );
 
 		len = strlen( info );
 		if ( len > MAX_USERINFO_LENGTH ) {
-			Com_Printf( S_COLOR_YELLOW "WARNING: oversize userinfo (%i), you might be not able to join remote server!\n", len );
+			notOverflowed = qfalse;
+		} else {
+			notOverflowed = qtrue;
+		}
+
+		notOverflowed &= Info_SetValueForKey_s( info, MAX_USERINFO_LENGTH, "protocol",
+			va( "%i", clc.compat ? PROTOCOL_VERSION : NEW_PROTOCOL_VERSION ) );
+		
+		notOverflowed &= Info_SetValueForKey_s( info, MAX_USERINFO_LENGTH, "qport",
+			va( "%i", port ) );
+
+		notOverflowed &= Info_SetValueForKey_s( info, MAX_USERINFO_LENGTH, "challenge",
+			va( "%i", clc.challenge ) );
+
+		// for now - this will be used to inform server about q3msgboom fix
+		Info_SetValueForKey_s( info, MAX_USERINFO_LENGTH, "client", Q3_VERSION );
+
+		if ( !notOverflowed ) {
+			Com_Printf( S_COLOR_YELLOW "WARNING: oversize userinfo, you might be not able to join remote server!\n" );
 		}
 
 		len = Com_sprintf( data, sizeof( data ), "connect \"%s\"", info );
@@ -3173,7 +3184,7 @@ static void CL_CheckUserinfo( void ) {
 	// send a reliable userinfo update if needed
 	if ( cvar_modifiedFlags & CVAR_USERINFO )
 	{
-		char *info;
+		const char *info;
 		int len;
 
 		cvar_modifiedFlags &= ~CVAR_USERINFO;
@@ -3587,27 +3598,23 @@ void CL_SetRecommended_f( void ) {
 /*
 ================
 CL_RefPrintf
-
-DLL glue
 ================
 */
-static __attribute__ ((format (printf, 2, 3))) void QDECL CL_RefPrintf( int print_level, const char *fmt, ...) {
+static __attribute__ ((format (printf, 2, 3))) void QDECL CL_RefPrintf( printParm_t level, const char *fmt, ... ) {
 	va_list		argptr;
 	char		msg[MAXPRINTMSG];
 	
-	va_start (argptr,fmt);
-	Q_vsnprintf (msg, sizeof(msg), fmt, argptr);
-	va_end (argptr);
+	va_start( argptr, fmt );
+	Q_vsnprintf( msg, sizeof( msg ), fmt, argptr );
+	va_end( argptr );
 
-	if ( print_level == PRINT_ALL ) {
-		Com_Printf ("%s", msg);
-	} else if ( print_level == PRINT_WARNING ) {
-		Com_Printf (S_COLOR_YELLOW "%s", msg);		// yellow
-	} else if ( print_level == PRINT_DEVELOPER ) {
-		Com_DPrintf (S_COLOR_RED "%s", msg);		// red
+	switch ( level ) {
+		default: Com_Printf( "%s", msg ); break;
+		case PRINT_DEVELOPER: Com_DPrintf( "%s", msg ); break;
+		case PRINT_WARNING: Com_Printf( S_COLOR_YELLOW "%s", msg ); break;
+		case PRINT_ERROR: Com_Printf( S_COLOR_RED "%s", msg ); break;
 	}
 }
-
 
 
 /*

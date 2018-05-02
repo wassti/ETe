@@ -185,6 +185,10 @@ static void Con_LoadHistory( void )
 Con_SaveHistory
 ================
 */
+
+// strlen( "999 999 999  " )
+#define BUFFER_STR_LENGTH 13
+
 static void Con_SaveHistory( void )
 {
 	int             i;
@@ -202,7 +206,7 @@ static void Con_SaveHistory( void )
 			saveBufferLength = strlen( consoleSaveBuffer );
 
 			//ICK
-			additionalLength = lineLength + strlen( "999 999 999  " );
+			additionalLength = lineLength + BUFFER_STR_LENGTH;
 
 			if( saveBufferLength + additionalLength < MAX_CONSOLE_SAVE_BUFFER )
 			{

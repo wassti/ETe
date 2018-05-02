@@ -3455,8 +3455,7 @@ int R_NumLightmapFiles( void ) {
 			++count;
 	}
 
-	if ( imageFiles )
-		ri.FS_FreeFileList( imageFiles );
+	ri.FS_FreeFileList( imageFiles );
 
 	return count;
 }

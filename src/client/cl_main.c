@@ -3569,7 +3569,7 @@ static void CL_Cache_EndGather_f( void ) {
 
 		for ( j = 0; j < MAX_CACHE_ITEMS; j++ ) {
 			// if it's a valid filename, and it's been hit enough times, cache it
-			if ( cacheItems[i][j].hits >= cachePass && strstr( cacheItems[i][j].name, "/" ) ) {
+			if ( cacheItems[i][j].hits >= cachePass && strchr( cacheItems[i][j].name, '/' ) ) {
 				FS_Write( cacheItems[i][j].name, strlen( cacheItems[i][j].name ), handle );
 				FS_Write( "\n", 1, handle );
 			}
@@ -5526,15 +5526,18 @@ static trans_t* AllocTrans( char *original, char *translated[MAX_LANGUAGES] ) {
 	int i;
 
 	t = malloc( sizeof( trans_t ) );
+	if ( !t )
+		return NULL;
+
 	memset( t, 0, sizeof( trans_t ) );
 
 	if ( original ) {
-		strncpy( t->original, original, MAX_TRANS_STRING );
+		Q_strncpyz( t->original, original, sizeof(t->original) );
 	}
 
 	if ( translated ) {
 		for ( i = 0; i < MAX_LANGUAGES; i++ )
-			strncpy( t->translated[i], translated[i], MAX_TRANS_STRING );
+			Q_strncpyz( t->translated[i], translated[i], sizeof(t->translated[0]) );
 	}
 
 	return t;

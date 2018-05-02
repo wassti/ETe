@@ -416,8 +416,9 @@ int IsWhiteSpace( char c ) {
 		 || ( c >= 'A' && c <= 'Z' )
 		 || ( c >= '0' && c <= '9' )
 		 || c == '(' || c == ')'
-		 || c == '?' || c == '\''
-		 || c == ':' || c == ','
+		 || c == '?' || c == ':'
+		 || c == '\'' || c == '/'
+		 || c == ',' || c == '.'
 		 || c == '['  || c == ']'
 		 || c == '-' || c == '_'
 		 || c == '+' || c == '=' ) {
@@ -494,7 +495,7 @@ int StringContains( char *str1, char *str2, int casesensitive ) {
 			} //end if
 			else
 			{
-				if ( toupper( str1[j] ) != toupper( str2[j] ) ) {
+				if ( locase[(byte)str1[j]] != locase[(byte)str2[j]] ) {
 					break;
 				}
 			} //end else
@@ -520,7 +521,7 @@ char *StringContainsWord( char *str1, char *str2, int casesensitive ) {
 		//if not at the start of the string
 		if ( i ) {
 			//skip to the start of the next word
-			while ( *str1 && *str1 != ' ' ) str1++;
+			while ( *str1 && *str1 != ' ' && *str1 != '.' && *str1 != ',' && *str1 != '!' ) str1++;
 			if ( !*str1 ) {
 				break;
 			}
@@ -536,7 +537,7 @@ char *StringContainsWord( char *str1, char *str2, int casesensitive ) {
 			} //end if
 			else
 			{
-				if ( toupper( str1[j] ) != toupper( str2[j] ) ) {
+				if ( locase[(byte)str1[j]] != locase[(byte)str2[j]] ) {
 					break;
 				}
 			} //end else
@@ -544,7 +545,7 @@ char *StringContainsWord( char *str1, char *str2, int casesensitive ) {
 		  //if there was a word match
 		if ( !str2[j] ) {
 			//if the first string has an end of word
-			if ( !str1[j] || str1[j] == ' ' ) {
+			if ( !str1[j] || str1[j] == ' ' || str1[j] == '.' || str1[j] == ',' || str1[j] == '!' ) {
 				return str1;
 			}
 		} //end if

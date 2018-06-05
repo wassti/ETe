@@ -2165,7 +2165,8 @@ qboolean Info_NextPair( const char **head, char *key, char *value ) {
 Info_RemoveKey
 ===================
 */
-int Info_RemoveKey( char *s, const char *key ) {
+int Info_RemoveKey( char *s, const char *key )
+{
 	char	*start;
 	char 	*pkey;
 	int		key_len, len;

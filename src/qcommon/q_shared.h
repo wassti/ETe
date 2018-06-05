@@ -221,7 +221,7 @@ typedef union floatint_u
 	int i;
 	unsigned int u;
 	float f;
-	byte b[4];
+	byte b[sizeof(int)];
 }
 floatint_t;
 
@@ -502,7 +502,7 @@ extern vec4_t clrBrownLineFull;
 #define FRAMETIME           100                 // msec
 
 #define Q_COLOR_ESCAPE  '^'
-#define Q_IsColorString( p )  ( p && *( p ) == Q_COLOR_ESCAPE && *( ( p ) + 1 ) && *( ( p ) + 1 ) != Q_COLOR_ESCAPE )
+#define Q_IsColorString( p )  ( (p) && *( p ) == Q_COLOR_ESCAPE && *( ( p ) + 1 ) && *( ( p ) + 1 ) != Q_COLOR_ESCAPE )
 
 #define COLOR_BLACK     '0'
 #define COLOR_RED       '1'
@@ -1016,11 +1016,11 @@ void Com_TruncateLongString( char *buffer, const char *s );
 // key / value info strings
 //
 char *Info_ValueForKey( const char *s, const char *key );
-int Info_RemoveKey( char *s, const char *key );
 #define Info_SetValueForKey( buf, key, value ) Info_SetValueForKey_s( (buf), MAX_INFO_STRING, (key), (value) )
 qboolean Info_SetValueForKey_s( char *s, int slen, const char *key, const char *value );
 qboolean Info_Validate( const char *s );
 qboolean Info_NextPair( const char **s, char *key, char *value );
+int Info_RemoveKey( char *s, const char *key );
 
 // this is only here so the functions in q_shared.c and bg_*.c can link
 void	NORETURN QDECL Com_Error( errorParm_t level, const char *fmt, ... ) __attribute__ ((format (printf, 2, 3)));
@@ -1792,7 +1792,7 @@ typedef enum {
 #define GLYPH_END 255
 #define GLYPH_CHARSTART 32
 #define GLYPH_CHAREND 127
-#define GLYPHS_PER_FONT GLYPH_END - GLYPH_START + 1
+#define GLYPHS_PER_FONT (GLYPH_END - GLYPH_START + 1)
 typedef struct {
 	int height;       // number of scan lines
 	int top;          // top of glyph in buffer

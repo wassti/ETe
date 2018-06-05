@@ -2894,7 +2894,7 @@ sets a shader's stages to one of several defaults
 
 static void SetImplicitShaderStages( image_t *image ) {
 	// set implicit cull type
-	if ( implicitCullType && !shader.cullType ) {
+	if ( implicitCullType != CT_FRONT_SIDED && shader.cullType == CT_FRONT_SIDED ) {
 		shader.cullType = implicitCullType;
 	}
 

@@ -31,11 +31,11 @@ TGA files are used for 24/32 bit images
 */
 
 typedef struct _TargaHeader {
-	unsigned char 	id_length, colormap_type, image_type;
-	unsigned short	colormap_index, colormap_length;
-	unsigned char	colormap_size;
-	unsigned short	x_origin, y_origin, width, height;
-	unsigned char	pixel_size, attributes;
+	uint8_t 	id_length, colormap_type, image_type;
+	uint16_t	colormap_index, colormap_length;
+	uint8_t		colormap_size;
+	uint16_t	x_origin, y_origin, width, height;
+	uint8_t		pixel_size, attributes;
 } TargaHeader;
 
 void R_LoadTGA ( const char *name, byte **pic, int *width, int *height)
@@ -80,13 +80,13 @@ void R_LoadTGA ( const char *name, byte **pic, int *width, int *height)
 	targa_header.colormap_type = buf_p[1];
 	targa_header.image_type = buf_p[2];
 	
-	memcpy(&targa_header.colormap_index, &buf_p[3], 2);
-	memcpy(&targa_header.colormap_length, &buf_p[5], 2);
+	memcpy(&targa_header.colormap_index, &buf_p[3], sizeof(uint16_t));
+	memcpy(&targa_header.colormap_length, &buf_p[5], sizeof(uint16_t));
 	targa_header.colormap_size = buf_p[7];
-	memcpy(&targa_header.x_origin, &buf_p[8], 2);
-	memcpy(&targa_header.y_origin, &buf_p[10], 2);
-	memcpy(&targa_header.width, &buf_p[12], 2);
-	memcpy(&targa_header.height, &buf_p[14], 2);
+	memcpy(&targa_header.x_origin, &buf_p[8], sizeof(uint16_t));
+	memcpy(&targa_header.y_origin, &buf_p[10], sizeof(uint16_t));
+	memcpy(&targa_header.width, &buf_p[12], sizeof(uint16_t));
+	memcpy(&targa_header.height, &buf_p[14], sizeof(uint16_t));
 	targa_header.pixel_size = buf_p[16];
 	targa_header.attributes = buf_p[17];
 

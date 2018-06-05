@@ -626,11 +626,14 @@ Loads in the map and all submodels
 ==================
 */
 void CM_LoadMap( const char *name, qboolean clientload, int *checksum ) {
-	int             *buf;
-	int i;
-	dheader_t header;
-	int length;
-	static unsigned last_checksum;
+	union {
+		int				*i;
+		void			*v;
+	} buf;
+	int				i;
+	dheader_t		header;
+	int				length;
+	static unsigned	last_checksum;
 
 	if ( !name || !name[0] ) {
 		Com_Error( ERR_DROP, "CM_LoadMap: NULL name" );
@@ -666,29 +669,29 @@ void CM_LoadMap( const char *name, qboolean clientload, int *checksum ) {
 	// load the file
 	//
 #ifndef BSPC
-	length = FS_ReadFile( name, (void **)&buf );
+	length = FS_ReadFile( name, &buf.v );
 #else
-	length = LoadQuakeFile( (quakefile_t *) name, (void **)&buf );
+	length = LoadQuakeFile((quakefile_t *) name, &buf.v);
 #endif
 
-	if ( !buf ) {
-		Com_Error( ERR_DROP, "Couldn't load %s", name );
+	if ( !buf.i ) {
+		Com_Error (ERR_DROP, "Couldn't load %s", name);
 	}
 
-	last_checksum = LittleLong( Com_BlockChecksum( buf, length ) );
+	last_checksum = LittleLong (Com_BlockChecksum (buf.i, length));
 	*checksum = last_checksum;
 
-	header = *(dheader_t *)buf;
-	for ( i = 0 ; i < sizeof( dheader_t ) / 4 ; i++ ) {
-		( (int *)&header )[i] = LittleLong( ( (int *)&header )[i] );
+	header = *(dheader_t *)buf.i;
+	for (i=0 ; i<sizeof(dheader_t)/4 ; i++) {
+		((int *)&header)[i] = LittleLong ( ((int *)&header)[i]);
 	}
 
 	if ( header.version != BSP_VERSION ) {
-		Com_Error( ERR_DROP, "CM_LoadMap: %s has wrong version number (%i should be %i)"
-				   , name, header.version, BSP_VERSION );
+		Com_Error (ERR_DROP, "CM_LoadMap: %s has wrong version number (%i should be %i)"
+		, name, header.version, BSP_VERSION );
 	}
 
-	cmod_base = (byte *)buf;
+	cmod_base = (byte *)buf.i;
 
 	// load into heap
 	CMod_LoadShaders( &header.lumps[LUMP_SHADERS] );
@@ -705,7 +708,7 @@ void CM_LoadMap( const char *name, qboolean clientload, int *checksum ) {
 	CMod_LoadPatches( &header.lumps[LUMP_SURFACES], &header.lumps[LUMP_DRAWVERTS] );
 
 	// we are NOT freeing the file, because it is cached for the ref
-	FS_FreeFile( buf );
+	FS_FreeFile (buf.v);
 
 	CM_InitBoxHull();
 

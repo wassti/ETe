@@ -1550,8 +1550,6 @@ CL_Disconnect_f
 */
 void CL_Disconnect_f( void ) {
 	SCR_StopCinematic();
-	Cvar_Set( "savegame_loading", "0" );
-	Cvar_Set( "g_reloading", "0" );
 	if ( cls.state != CA_DISCONNECTED && cls.state != CA_CINEMATIC ) {
 		if ( (uivm && uivm->callLevel) || (cgvm && cgvm->callLevel) ) {
 			Com_Error( ERR_DISCONNECT, "Disconnected from server" );
@@ -2056,7 +2054,7 @@ static void CL_Clientinfo_f( void ) {
 	Com_Printf( "state: %i\n", cls.state );
 	Com_Printf( "Server: %s\n", cls.servername );
 	Com_Printf ("User info settings:\n");
-	Info_Print( Cvar_InfoString( CVAR_USERINFO ) );
+	Info_Print( Cvar_InfoString( CVAR_USERINFO, NULL ) );
 	Com_Printf( "--------------------------------------\n" );
 }
 
@@ -2091,6 +2089,23 @@ static void CL_Systeminfo_f( void ) {
 		return;
 
 	Com_Printf( "System info settings:\n" );
+	Info_Print( cl.gameState.stringData + ofs );
+}
+
+
+/*
+===========
+CL_Wolfinfo_f
+===========
+*/
+static void CL_Wolfinfo_f( void ) {
+	int ofs;
+
+	ofs = cl.gameState.stringOffsets[ CS_WOLFINFO ];
+	if ( !ofs )
+		return;
+
+	Com_Printf( "Wolf info settings:\n" );
 	Info_Print( cl.gameState.stringData + ofs );
 }
 
@@ -2413,6 +2428,7 @@ static void CL_CheckForResend( void ) {
 	char	info[MAX_INFO_STRING*2]; // larger buffer to detect overflows
 	char	data[MAX_INFO_STRING];
 	qboolean	notOverflowed;
+	qboolean	infoTruncated;
 
 	// don't send anything if playing back a demo
 	if ( clc.demoplaying ) {
@@ -2442,7 +2458,8 @@ static void CL_CheckForResend( void ) {
 		// sending back the challenge
 		port = Cvar_VariableIntegerValue( "net_qport" );
 
-		Q_strncpyz( info, Cvar_InfoString( CVAR_USERINFO ), sizeof( info ) );
+		infoTruncated = qfalse;
+		Q_strncpyz( info, Cvar_InfoString( CVAR_USERINFO, &infoTruncated ), sizeof( info ) );
 
 		len = strlen( info );
 		if ( len > MAX_USERINFO_LENGTH ) {
@@ -2461,6 +2478,7 @@ static void CL_CheckForResend( void ) {
 			va( "%i", clc.challenge ) );
 
 		// for now - this will be used to inform server about q3msgboom fix
+		// this is optional key so will not trigger oversize warning
 		Info_SetValueForKey_s( info, MAX_USERINFO_LENGTH, "client", Q3_VERSION );
 
 		if ( !notOverflowed ) {
@@ -2473,6 +2491,11 @@ static void CL_CheckForResend( void ) {
 		// the most current userinfo has been sent, so watch for any
 		// newer changes to userinfo variables
 		cvar_modifiedFlags &= ~CVAR_USERINFO;
+
+		// ... but force re-send if userinfo was truncated in any way
+		if ( infoTruncated || !notOverflowed ) {
+			cvar_modifiedFlags |= CVAR_USERINFO;
+		}
 		break;
 
 	default:
@@ -3184,14 +3207,14 @@ static void CL_CheckUserinfo( void ) {
 	// send a reliable userinfo update if needed
 	if ( cvar_modifiedFlags & CVAR_USERINFO )
 	{
+		qboolean infoTruncated = qfalse;
 		const char *info;
-		int len;
 
 		cvar_modifiedFlags &= ~CVAR_USERINFO;
 
-		info = Cvar_InfoString( CVAR_USERINFO );
-		if ( (len = strlen( info )) > MAX_USERINFO_LENGTH ) {
-			Com_Printf( S_COLOR_YELLOW "WARNING: oversize userinfo (%i), you might be not able to play on remote server!\n", len );
+		info = Cvar_InfoString( CVAR_USERINFO, &infoTruncated );
+		if ( strlen( info ) > MAX_USERINFO_LENGTH || infoTruncated ) {
+			Com_Printf( S_COLOR_YELLOW "WARNING: oversize userinfo, you might be not able to play on remote server!\n" );
 		}
 
 		CL_AddReliableCommand( va( "userinfo \"%s\"", info ), qfalse );
@@ -4395,6 +4418,7 @@ void CL_Init( void ) {
 	Cmd_AddCommand ("stopvideo", CL_StopVideo_f );
 	Cmd_AddCommand ("serverinfo", CL_Serverinfo_f );
 	Cmd_AddCommand ("systeminfo", CL_Systeminfo_f );
+	Cmd_AddCommand ("wolfinfo", CL_Wolfinfo_f );
 
 #ifdef USE_CURL
 	Cmd_AddCommand( "download", CL_Download_f );
@@ -4520,6 +4544,7 @@ void CL_Shutdown( const char *finalmsg, qboolean quit ) {
 	Cmd_RemoveCommand ("stopvideo");
 	Cmd_RemoveCommand ("serverinfo");
 	Cmd_RemoveCommand ("systeminfo");
+	Cmd_RemoveCommand ("wolfinfo");
 
 	// Ridah, startup-caching system
 	Cmd_RemoveCommand( "cache_startgather" );

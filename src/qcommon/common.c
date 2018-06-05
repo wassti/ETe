@@ -62,7 +62,7 @@ const int demo_protocols[] = { PROTOCOL_VERSION, NEW_PROTOCOL_VERSION, 0 };
 #define DEF_COMHUNKMEGS		128
 #endif
 #ifdef USE_MULTI_SEGMENT
-#define DEF_COMZONEMEGS		9
+#define DEF_COMZONEMEGS		12
 #else
 #define DEF_COMZONEMEGS		25
 #endif
@@ -143,7 +143,6 @@ int com_hunkusedvalue;
 
 qboolean	com_errorEntered = qfalse;
 qboolean	com_fullyInitialized = qfalse;
-qboolean	com_gameRestarting = qfalse;
 
 // renderer window states
 qboolean	gw_minimized = qfalse; // this will be always true for dedicated servers
@@ -644,7 +643,7 @@ void Com_StartupVariable( const char *match ) {
 
 	for (i=0 ; i < com_numConsoleLines ; i++) {
 		Cmd_TokenizeString( com_consoleLines[i] );
-		if ( strcmp( Cmd_Argv(0), "set" ) ) {
+		if ( strcmp( Cmd_Argv(0), "set" ) != 0 ) {
 			continue;
 		}
 
@@ -1003,6 +1002,9 @@ typedef struct memzone_s {
 	int		totalSize;
 	int		totalUsed;
 	int		segnum;
+	int		failed;	// size of last failed allocation
+					// so any following allocations with sizes
+					// greater or equal than this will also fail
 #endif
 } memzone_t;
 
@@ -1040,6 +1042,7 @@ static void Z_ClearZone( memzone_t *zone, int size ) {
 	block->id = ZONEID;
 #ifdef USE_MULTI_SEGMENT
 	block->parent = zone;
+	zone->failed = size - sizeof(memzone_t) + 1;
 #endif
 	block->size = size - sizeof(memzone_t);
 }
@@ -1138,6 +1141,12 @@ void Z_Free( void *ptr ) {
 		block->next = other->next;
 		block->next->prev = block;
 	}
+
+#ifdef USE_MULTI_SEGMENT
+	if ( block->size > zone->failed ) {
+		zone->failed = block->size + 1;
+	}
+#endif
 }
 
 
@@ -1211,9 +1220,9 @@ void *Z_TagMalloc( int size, memtag_t tag ) {
 
 	base = rover = zone->rover;
 	start = base->prev;
-	
+
 	do {
-		if ( rover == start ) {
+		if ( rover == start || size >= zone->failed ) {
 #ifdef USE_MULTI_SEGMENT
 			// try to swich to next zone segment
 			/*if ( tag != TAG_SMALL )*/ {
@@ -1232,6 +1241,7 @@ void *Z_TagMalloc( int size, memtag_t tag ) {
 						newz->segnum = zone->segnum + 1;
 					}
 				}
+				zone->failed = size;
 				zone = zone->next;
 				if ( zone ) {
 					// these operations will take more time than regular allocations from primary zone
@@ -2848,6 +2858,8 @@ Change to a new mod properly with cleaning up cvars before switching.
 */
 void Com_GameRestart(int checksumFeed, qboolean clientRestart)
 {
+	static qboolean com_gameRestarting = qfalse;
+
 	// make sure no recursion can be triggered
 	if(!com_gameRestarting && com_fullyInitialized)
 	{
@@ -2862,10 +2874,14 @@ void Com_GameRestart(int checksumFeed, qboolean clientRestart)
 #endif
 
 		// Kill server if we have one
-		if( com_sv_running->integer )
-			SV_Shutdown("Game directory changed");
+		if ( com_sv_running->integer )
+			SV_Shutdown( "Game directory changed" );
 
-		FS_Restart(checksumFeed);
+#if defined(_WIN32) || !defined(DEDICATED)
+		Con_ResetHistory();
+#endif
+
+		FS_Restart( checksumFeed );
 	
 		// Clean out any user and VM created cvars
 		Cvar_Restart(qtrue);
@@ -3020,7 +3036,7 @@ void Com_TrackProfile( const char *profile_path ) {
 
 //	Com_Printf( "Com_TrackProfile: Tracking profile [%s] [%s]\n", fs_gamedir, profile_path );
 	//have we changed fs_game(dir)?
-	if ( strcmp( last_fs_gamedir, fs_gamedir ) ) {
+	if ( strcmp( last_fs_gamedir, fs_gamedir ) != 0 ) {
 		if ( strlen( last_fs_gamedir ) && strlen( last_profile_path ) ) {
 			//save current fs_gamedir
 			Q_strncpyz( temp_fs_gamedir, fs_gamedir, sizeof( temp_fs_gamedir ) );
@@ -3422,8 +3438,6 @@ void Com_Init( char *commandLine ) {
 	com_introPlayed = Cvar_Get( "com_introplayed", "0", CVAR_ARCHIVE );
 	com_skipIdLogo  = Cvar_Get( "com_skipIdLogo", "0", CVAR_ARCHIVE );
 	com_recommendedSet = Cvar_Get( "com_recommendedSet", "0", CVAR_ARCHIVE );
-
-	Cvar_Get( "savegame_loading", "0", CVAR_ROM );
 #endif
 
 	com_hunkused = Cvar_Get( "com_hunkused", "0", 0 );
@@ -3565,7 +3579,7 @@ Com_WriteConfiguration
 Writes key bindings and archived cvars to config file if modified
 ===============
 */
-static void Com_WriteConfiguration( void ) {
+void Com_WriteConfiguration( void ) {
 #ifndef DEDICATED
 	const char *cl_profileStr = Cvar_VariableString( "cl_profile" );
 #endif
@@ -3738,7 +3752,9 @@ void Com_Frame( qboolean noDelay ) {
 	timeAfter = 0;
 
 	// write config file if anything changed
+#ifndef DELAY_WRITECONFIG
 	Com_WriteConfiguration();
+#endif
 
 	// if "viewlog" has been modified, show or hide the log console
 	if ( com_viewlog->modified ) {

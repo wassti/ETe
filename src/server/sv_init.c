@@ -515,16 +515,16 @@ SV_TouchCGameDLL
 */
 const char* Sys_GetDLLName( const char *name );
 
-void SV_TouchCGameDLL( void ) {
+static void SV_TouchDLLFile( const char *module ) {
 	fileHandle_t f;
 	const char *filename;
 
-	filename = Sys_GetDLLName( "cgame" );
+	filename = Sys_GetDLLName( module );
 	FS_FOpenFileRead_Filtered( filename, &f, qfalse, FS_EXCLUDE_DIR );
 	if ( f != FS_INVALID_HANDLE ) {
 		FS_FCloseFile( f );
 	} else if ( sv_pure->integer ) { // ydnar: so we can work the damn game
-		Com_Error( ERR_DROP, "Failed to locate cgame DLL for pure server mode" );
+		Com_Error( ERR_DROP, "Failed to locate %s DLL for pure server mode", module );
 	}
 }
 
@@ -738,7 +738,8 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 	svs.time += FRAMETIME;
 
 	// we want the server to reference the mp_bin pk3 that the client is expected to load from
-	SV_TouchCGameDLL();
+	SV_TouchDLLFile( "cgame" );
+	SV_TouchDLLFile( "ui" );
 
 	// the server sends these to the clients so they can figure
 	// out which pk3s should be auto-downloaded
@@ -753,12 +754,17 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 	if ( sv_pure->integer ) {
 		int freespace, pakslen, infolen;
 		qboolean overflowed = qfalse;
+		qboolean infoTruncated = qfalse;
 
 		p = FS_LoadedPakChecksums( &overflowed );
 
 		pakslen = strlen( p ) + 9; // + strlen( "\\sv_paks\\" )
 		freespace = SV_RemainingGameState();
-		infolen = strlen( Cvar_InfoString_Big( CVAR_SYSTEMINFO ) );
+		infolen = strlen( Cvar_InfoString_Big( CVAR_SYSTEMINFO, &infoTruncated ) );
+
+		if ( infoTruncated ) {
+			Com_Printf( S_COLOR_YELLOW "WARNING: truncated systeminfo!\n" );
+		}
 
 		if ( pakslen > freespace || infolen + pakslen >= BIG_INFO_STRING || overflowed ) {
 			// switch to degraded pure mode
@@ -776,14 +782,14 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 	}
 
 	// save systeminfo and serverinfo strings
-	SV_SetConfigstring( CS_SYSTEMINFO, Cvar_InfoString_Big( CVAR_SYSTEMINFO ) );
+	SV_SetConfigstring( CS_SYSTEMINFO, Cvar_InfoString_Big( CVAR_SYSTEMINFO, NULL ) );
 	cvar_modifiedFlags &= ~CVAR_SYSTEMINFO;
 
-	SV_SetConfigstring( CS_SERVERINFO, Cvar_InfoString( CVAR_SERVERINFO | CVAR_SERVERINFO_NOUPDATE ) );
+	SV_SetConfigstring( CS_SERVERINFO, Cvar_InfoString( CVAR_SERVERINFO | CVAR_SERVERINFO_NOUPDATE, NULL ) );
 	cvar_modifiedFlags &= ~CVAR_SERVERINFO;
 
 	// NERVE - SMF
-	SV_SetConfigstring( CS_WOLFINFO, Cvar_InfoString( CVAR_WOLFINFO ) );
+	SV_SetConfigstring( CS_WOLFINFO, Cvar_InfoString( CVAR_WOLFINFO, NULL ) );
 	cvar_modifiedFlags &= ~CVAR_WOLFINFO;
 
 	// any media configstring setting now should issue a warning
@@ -887,8 +893,6 @@ void SV_Init( void )
 	sv_padPackets = Cvar_Get( "sv_padPackets", "0", 0 );
 	sv_killserver = Cvar_Get( "sv_killserver", "0", 0 );
 	sv_mapChecksum = Cvar_Get( "sv_mapChecksum", "", CVAR_ROM );
-
-	sv_reloading = Cvar_Get( "g_reloading", "0", CVAR_ROM );
 
 	sv_lanForceRate = Cvar_Get( "sv_lanForceRate", "1", CVAR_ARCHIVE_ND );
 

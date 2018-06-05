@@ -1935,7 +1935,6 @@ void R_ModelInit( void ) {
 R_Modellist_f
 ================
 */
-
 void R_Modellist_f( void ) {
 	int i, j;
 	model_t *mod;

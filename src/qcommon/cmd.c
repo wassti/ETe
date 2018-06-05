@@ -32,7 +32,6 @@ If you have questions concerning this license or the applicable additional terms
 #include "qcommon.h"
 
 #define MAX_CMD_BUFFER  131072
-#define MAX_CMD_LINE    1024
 
 typedef struct {
 	byte *data;
@@ -304,6 +303,12 @@ static void Cmd_Exec_f( void ) {
 		Com_Printf ("execing %s\n", filename);
 	
 	Cbuf_InsertText( f.c );
+
+#ifdef DELAY_WRITECONFIG
+	if ( !Q_stricmp( filename, Q3CONFIG_CFG ) ) {
+		Com_WriteConfiguration(); // to avoid loading outdated values
+	}
+#endif
 
 	FS_FreeFile( f.v );
 }

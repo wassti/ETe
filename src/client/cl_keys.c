@@ -312,7 +312,7 @@ static void Field_CharEvent( field_t *edit, int ch ) {
 	//
 	// ignore any other non printable chars
 	//
-	if ( ch < 32 ) {
+	if ( ch < ' ' ) {
 		return;
 	}
 
@@ -339,7 +339,7 @@ static void Field_CharEvent( field_t *edit, int ch ) {
 	}
 
 	if ( edit->cursor == len + 1) {
-		edit->buffer[edit->cursor] = 0;
+		edit->buffer[edit->cursor] = '\0';
 	}
 }
 

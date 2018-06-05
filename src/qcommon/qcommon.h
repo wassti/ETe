@@ -52,6 +52,7 @@ If you have questions concerning this license or the applicable additional terms
 #define XSTRING(x)	STRING(x)
 #define STRING(x)	#x
 
+#define DELAY_WRITECONFIG
 
 //============================================================================
 
@@ -472,6 +473,8 @@ files can be execed.
 
 */
 
+#define MAX_CMD_LINE 1024
+
 void Cbuf_Init( void );
 // allocates an initial text buffer that will grow as needed
 
@@ -636,8 +639,8 @@ void 	Cvar_WriteVariables( fileHandle_t f );
 
 void	Cvar_Init( void );
 
-const char *Cvar_InfoString( int bit );
-const char *Cvar_InfoString_Big( int bit );
+const char *Cvar_InfoString( int bit, qboolean *truncated );
+const char *Cvar_InfoString_Big( int bit, qboolean *truncated );
 // returns an info string containing all the cvars that have the given bit set
 // in their flags ( CVAR_USERINFO, CVAR_SERVERINFO, CVAR_SYSTEMINFO, etc )
 void	Cvar_InfoStringBuffer( int bit, char *buff, int buffsize );
@@ -704,8 +707,10 @@ typedef enum {
 
 #ifdef DEDICATED
 #define Q3CONFIG_CFG "etconfig_server.cfg"
+#define CONSOLE_HISTORY_FILE "ethistory_server"
 #else
 #define Q3CONFIG_CFG "etconfig.cfg"
+#define CONSOLE_HISTORY_FILE "ethistory"
 #endif
 
 #ifdef WIN32
@@ -917,6 +922,9 @@ Edit fields and command line history/completion
 */
 
 #define	MAX_EDIT_LINE	256
+#if MAX_EDIT_LINE > MAX_CMD_LINE
+#error "MAX_EDIT_LINE > MAX_CMD_LINE"
+#endif
 typedef struct {
 	int		cursor;
 	int		scroll;
@@ -1015,6 +1023,8 @@ void        Com_SetRecommended();
 // checks for and removes command line "+set var arg" constructs
 // if match is NULL, all set commands will be executed, otherwise
 // only a set with the exact name.  Only used during startup.
+
+void		Com_WriteConfiguration( void );
 
 //bani - profile functions
 void Com_TrackProfile( const char *profile_path );

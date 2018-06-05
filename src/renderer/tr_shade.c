@@ -273,7 +273,11 @@ Draws triangle outlines for debugging
 static void DrawTris( shaderCommands_t *input ) {
 	char            *s = r_trisColor->string;
 	vec4_t trisColor = { 1, 1, 1, 1 };
-	unsigned int stateBits = 0;
+	GLbitfield stateBits = 0;
+	GLboolean didDepth = GL_FALSE, polygonState = GL_FALSE;
+
+	GL_ProgramDisable();
+	tess.dlightUpdateParams = qtrue;
 
 	GL_Bind( tr.whiteImage );
 
@@ -317,12 +321,14 @@ static void DrawTris( shaderCommands_t *input ) {
 		stateBits |= ( GLS_POLYMODE_LINE | GLS_DEPTHMASK_TRUE );
 		GL_State( stateBits );
 		qglDepthRange( 0, 0 );
+		didDepth = GL_TRUE;
 	}
 	#ifdef CELSHADING_HACK
 	else if ( r_showtris->integer == 3 ) {
 		stateBits |= ( GLS_POLYMODE_LINE | GLS_DEPTHMASK_TRUE );
 		GL_State( stateBits );
 		qglEnable( GL_POLYGON_OFFSET_LINE );
+		polygonState = GL_TRUE;
 		qglPolygonOffset( 4.0, 0.5 );
 		qglLineWidth( 5.0 );
 	}
@@ -332,6 +338,7 @@ static void DrawTris( shaderCommands_t *input ) {
 		stateBits |= ( GLS_POLYMODE_LINE );
 		GL_State( stateBits );
 		qglEnable( GL_POLYGON_OFFSET_LINE );
+		polygonState = GL_TRUE;
 		qglPolygonOffset( r_offsetFactor->value, r_offsetUnits->value );
 	}
 
@@ -342,17 +349,18 @@ static void DrawTris( shaderCommands_t *input ) {
 
 	if ( qglLockArraysEXT ) {
 		qglLockArraysEXT( 0, input->numVertexes );
-		//GLimp_LogComment( "glLockArraysEXT\n" );
 	}
 
 	R_DrawElements( input->numIndexes, input->indexes );
 
-	if ( qglUnlockArraysEXT ) {
+	if ( qglUnlockArraysEXT ) { 
 		qglUnlockArraysEXT();
-		//GLimp_LogComment( "glUnlockArraysEXT\n" );
 	}
-	qglDepthRange( 0, 1 );
-	qglDisable( GL_POLYGON_OFFSET_LINE );
+
+	if( didDepth )
+		qglDepthRange( 0, 1 );
+	if ( polygonState )
+		qglDisable( GL_POLYGON_OFFSET_LINE );
 }
 
 

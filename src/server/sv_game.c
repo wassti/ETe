@@ -256,7 +256,7 @@ static void SV_GetServerinfo( char *buffer, int bufferSize ) {
 		Com_Error( ERR_DROP, "SV_GetServerinfo: bufferSize == %i", bufferSize );
 	}
 	if ( sv.state != SS_GAME || !sv.configstrings[ CS_SERVERINFO ] ) {
-		Q_strncpyz( buffer, Cvar_InfoString( CVAR_SERVERINFO | CVAR_SERVERINFO_NOUPDATE ), bufferSize );
+		Q_strncpyz( buffer, Cvar_InfoString( CVAR_SERVERINFO | CVAR_SERVERINFO_NOUPDATE, NULL ), bufferSize );
 	} else {
 		Q_strncpyz( buffer, sv.configstrings[ CS_SERVERINFO ], bufferSize );
 	}

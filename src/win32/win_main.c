@@ -40,7 +40,7 @@ If you have questions concerning this license or the applicable additional terms
 #include <io.h>
 #include <conio.h>
 
-#define MEM_THRESHOLD 96*1024*1024
+#define MEM_THRESHOLD (96*1024*1024)
 
 WinVars_t	g_wv;
 
@@ -995,7 +995,7 @@ static qboolean TryLegacyProcessHighDPI( void ) {
 	set_process_dpi_aware_f = (SetProcessDPIAwarePtr)GetProcAddress( u32dll, "SetProcessDPIAware" );
 
 	if ( set_process_dpi_aware_f ) {
-		return set_process_dpi_aware_f() == TRUE ? qtrue : qfalse;
+		return set_process_dpi_aware_f() != FALSE ? qtrue : qfalse;
 	}
 	return qfalse;
 }
@@ -1132,20 +1132,20 @@ pfnOmnibotRenderOGL gOmnibotRenderFunc = 0;
 
 void	Sys_OmnibotLoad()
 {
-	const char * omnibotLibrary = Cvar_VariableString( "omnibot_library" );
+	const char *omnibotLibrary = Cvar_VariableString( "omnibot_library" );
 	if ( omnibotLibrary != NULL && omnibotLibrary[0] != '\0' )
 	{
-		omnibotHandle = LoadLibrary( omnibotLibrary );
+		omnibotHandle = Sys_LoadLibrary( va("%s.dll", omnibotLibrary ) );
 		if ( omnibotHandle )
 		{
-			gOmnibotRenderFunc = (pfnOmnibotRenderOGL)GetProcAddress( omnibotHandle, "RenderOpenGL" );
+			gOmnibotRenderFunc = (pfnOmnibotRenderOGL)Sys_LoadFunction( omnibotHandle, "RenderOpenGL" );
 		}
 	}
 }
 
 void	Sys_OmnibotUnLoad()
 {
-	FreeLibrary( omnibotHandle );
+	Sys_UnloadLibrary( omnibotHandle );
 	omnibotHandle = NULL;
 }
 

@@ -321,10 +321,6 @@ static int		fs_numServerReferencedPaks;
 static int		fs_serverReferencedPaks[MAX_REF_PAKS];		// checksums
 static char		*fs_serverReferencedPakNames[MAX_REF_PAKS];	// pk3 names
 
-// last valid game folder used
-static char	lastValidBase[MAX_OSPATH];
-static char	lastValidGame[MAX_OSPATH];
-
 int	fs_lastPakIndex;
 
 #ifdef FS_MISSING
@@ -3883,6 +3879,10 @@ void FS_Shutdown( qboolean closemfp )
 		}
 	}
 
+#ifdef DELAY_WRITECONFIG
+	Com_WriteConfiguration();
+#endif
+
 	// free everything
 	for( p = fs_searchpaths; p; p = next )
 	{
@@ -4645,18 +4645,8 @@ void FS_InitFilesystem( void ) {
 #endif
 
 	// try to start up normally
-	FS_Startup();
+	FS_Restart( 0 );
 
-	// if we can't find default.cfg, assume that the paths are
-	// busted and error out now, rather than getting an unreadable
-	// graphics screen when the font fails to load
-	// Arnout: we want the nice error message here as well
-	if ( FS_ReadFile( "default.cfg", NULL ) <= 0 ) {
-		Com_Error( ERR_FATAL, "Couldn't load default.cfg - I am missing essential files - verify your installation?" );
-	}
-
-	Q_strncpyz(lastValidBase, fs_basepath->string, sizeof(lastValidBase));
-	Q_strncpyz(lastValidGame, fs_gamedirvar->string, sizeof(lastValidGame));
 }
 
 
@@ -4668,6 +4658,10 @@ FS_Restart
 //void CL_PurgeCache( void );
 void Com_ExecuteCfg( qboolean safeMode );
 void FS_Restart( int checksumFeed ) {
+
+	// last valid game folder used
+	static char lastValidBase[MAX_OSPATH];
+	static char lastValidGame[MAX_OSPATH];
 
 	static qboolean execConfig = qfalse;
 #ifndef DEDICATED
@@ -4787,6 +4781,7 @@ int	FS_FOpenFileByMode( const char *qpath, fileHandle_t *f, fsMode_t mode ) {
 		break;
 	case FS_APPEND_SYNC:
 		sync = qtrue;
+		// fall-through intended
 	case FS_APPEND:
 		if ( f == NULL )
 			return -1;

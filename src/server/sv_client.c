@@ -339,10 +339,10 @@ void SV_DirectConnect( const netadr_t *from ) {
 		longstr = qfalse;
 
 	// we don't need these keys after connection, release some space in userinfo
-	Info_SetValueForKey( userinfo, "challenge", NULL );
-	Info_SetValueForKey( userinfo, "qport", NULL );
-	Info_SetValueForKey( userinfo, "protocol", NULL );
-	Info_SetValueForKey( userinfo, "client", NULL );
+	Info_RemoveKey( userinfo, "challenge" );
+	Info_RemoveKey( userinfo, "qport" );
+	Info_RemoveKey( userinfo, "protocol" );
+	Info_RemoveKey( userinfo, "client" );
 
 	// don't let "ip" overflow userinfo string
 	if ( NET_IsLocalAddress( from ) )
@@ -661,13 +661,13 @@ int SV_RemainingGameState( void )
 		if ( start == CS_SERVERINFO ) {
 			MSG_WriteByte( &msg, svc_configstring );
 			MSG_WriteShort( &msg, start );
-			MSG_WriteBigString( &msg, Cvar_InfoString( CVAR_SERVERINFO | CVAR_SERVERINFO_NOUPDATE ) );
+			MSG_WriteBigString( &msg, Cvar_InfoString( CVAR_SERVERINFO | CVAR_SERVERINFO_NOUPDATE, NULL ) );
 			continue;
 		}
 		if ( start == CS_SYSTEMINFO ) {
 			MSG_WriteByte( &msg, svc_configstring );
 			MSG_WriteShort( &msg, start );
-			MSG_WriteBigString( &msg, Cvar_InfoString_Big( CVAR_SYSTEMINFO ) );
+			MSG_WriteBigString( &msg, Cvar_InfoString_Big( CVAR_SYSTEMINFO, NULL ) );
 			continue;
 		}
 		if ( sv.configstrings[start][0] ) {
@@ -1042,7 +1042,7 @@ when the cvar is set to something, the download server will effectively never us
 ==================
 */
 static qboolean SV_CheckFallbackURL( client_t *cl, msg_t *msg ) {
-	if ( !sv_wwwFallbackURL->string || strlen( sv_wwwFallbackURL->string ) == 0 ) {
+	if ( !sv_wwwFallbackURL->string || sv_wwwFallbackURL->string[0] == '\0'/*strlen( sv_wwwFallbackURL->string ) == 0*/ ) {
 		return qfalse;
 	}
 

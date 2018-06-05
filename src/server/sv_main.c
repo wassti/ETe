@@ -818,7 +818,7 @@ static void SVC_Status( const netadr_t *from ) {
 		return;
 	}
 
-	Q_strncpyz( infostring, Cvar_InfoString( CVAR_SERVERINFO | CVAR_SERVERINFO_NOUPDATE ), sizeof( infostring ) );
+	Q_strncpyz( infostring, Cvar_InfoString( CVAR_SERVERINFO | CVAR_SERVERINFO_NOUPDATE, NULL ), sizeof( infostring ) );
 
 	// echo back the parameter to status. so master servers can use it as a challenge
 	// to prevent timed spoofed reply packets that add ghost servers
@@ -895,7 +895,7 @@ void SVC_GameCompleteStatus( const netadr_t *from ) {
 		return;
 	}
 
-	strcpy( infostring, Cvar_InfoString( CVAR_SERVERINFO | CVAR_SERVERINFO_NOUPDATE ) );
+	strcpy( infostring, Cvar_InfoString( CVAR_SERVERINFO | CVAR_SERVERINFO_NOUPDATE, NULL ) );
 
 	// echo back the parameter to status. so master servers can use it as a challenge
 	// to prevent timed spoofed reply packets that add ghost servers
@@ -1218,6 +1218,10 @@ void SV_PacketEvent( const netadr_t *from, msg_t *msg ) {
 		return;
 	}
 
+	if ( sv.state == SS_DEAD ) {
+		return;
+	}
+
 	// read the qport out of the message so we can fix up
 	// stupid address translating routers
 	MSG_BeginReadingOOB( msg );
@@ -1379,18 +1383,17 @@ SV_CheckPaused
 ==================
 */
 static qboolean SV_CheckPaused( void ) {
-	int		count;
-	client_t	*cl;
-	int		i;
-
 #ifdef DEDICATED
 	// can't pause on dedicated servers
 	return qfalse;
 #else
+	int		count;
+	client_t	*cl;
+	int		i;
+
 	if ( !cl_paused->integer ) {
 		return qfalse;
 	}
-#endif
 
 	// only pause if there is just a single client connected
 	count = 0;
@@ -1410,6 +1413,7 @@ static qboolean SV_CheckPaused( void ) {
 	if (!sv_paused->integer)
 		Cvar_Set("sv_paused", "1");
 	return qtrue;
+#endif
 }
 
 
@@ -1571,20 +1575,20 @@ void SV_Frame( int msec ) {
 
 	// update infostrings if anything has been changed
 	if ( cvar_modifiedFlags & CVAR_SERVERINFO ) {
-		SV_SetConfigstring( CS_SERVERINFO, Cvar_InfoString( CVAR_SERVERINFO | CVAR_SERVERINFO_NOUPDATE ) );
+		SV_SetConfigstring( CS_SERVERINFO, Cvar_InfoString( CVAR_SERVERINFO | CVAR_SERVERINFO_NOUPDATE, NULL ) );
 		cvar_modifiedFlags &= ~CVAR_SERVERINFO;
 	}
 	if ( cvar_modifiedFlags & CVAR_SERVERINFO_NOUPDATE ) {
-		SV_SetConfigstringNoUpdate( CS_SERVERINFO, Cvar_InfoString( CVAR_SERVERINFO | CVAR_SERVERINFO_NOUPDATE ) );
+		SV_SetConfigstringNoUpdate( CS_SERVERINFO, Cvar_InfoString( CVAR_SERVERINFO | CVAR_SERVERINFO_NOUPDATE, NULL ) );
 		cvar_modifiedFlags &= ~CVAR_SERVERINFO_NOUPDATE;
 	}
 	if ( cvar_modifiedFlags & CVAR_SYSTEMINFO ) {
-		SV_SetConfigstring( CS_SYSTEMINFO, Cvar_InfoString_Big( CVAR_SYSTEMINFO ) );
+		SV_SetConfigstring( CS_SYSTEMINFO, Cvar_InfoString_Big( CVAR_SYSTEMINFO, NULL ) );
 		cvar_modifiedFlags &= ~CVAR_SYSTEMINFO;
 	}
 	// NERVE - SMF
 	if ( cvar_modifiedFlags & CVAR_WOLFINFO ) {
-		SV_SetConfigstring( CS_WOLFINFO, Cvar_InfoString( CVAR_WOLFINFO ) );
+		SV_SetConfigstring( CS_WOLFINFO, Cvar_InfoString( CVAR_WOLFINFO, NULL ) );
 		cvar_modifiedFlags &= ~CVAR_WOLFINFO;
 	}
 
@@ -1821,9 +1825,8 @@ int SV_LoadTag( const char *mod_name ) {
 	}
 
 	if ( sv.num_tagheaders >= MAX_TAG_FILES ) {
-		Com_Error( ERR_DROP, "MAX_TAG_FILES reached\n" );
-
 		FS_FreeFile( buffer );
+		Com_Error( ERR_DROP, "MAX_TAG_FILES reached\n" );
 		return 0;
 	}
 
@@ -1837,9 +1840,8 @@ int SV_LoadTag( const char *mod_name ) {
 	sv.tagHeadersExt[sv.num_tagheaders].count = pinmodel->numTags;
 
 	if ( sv.num_tags + pinmodel->numTags >= MAX_SERVER_TAGS ) {
-		Com_Error( ERR_DROP, "MAX_SERVER_TAGS reached\n" );
-
 		FS_FreeFile( buffer );
+		Com_Error( ERR_DROP, "MAX_SERVER_TAGS reached\n" );
 		return qfalse;
 	}
 

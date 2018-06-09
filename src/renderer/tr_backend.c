@@ -1935,6 +1935,7 @@ void RB_ExecuteRenderCommands( const void *data ) {
 			break;
 		case RC_CLEARDEPTH:
 			data = RB_ClearDepth(data);
+			break;
 			//bani
 		case RC_RENDERTOTEXTURE:
 			data = RB_RenderToTexture( data );

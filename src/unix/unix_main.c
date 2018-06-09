@@ -110,13 +110,6 @@ static field_t tty_con;
 static cvar_t *ttycon_ansicolor = NULL;
 static qboolean ttycon_color_on = qfalse;
 
-// history
-// NOTE TTimo this is a bit duplicate of the graphical console history
-//   but it's safer and faster to write our own here
-#define TTY_HISTORY 32
-static field_t ttyEditLines[TTY_HISTORY];
-static int hist_current = -1, hist_count = 0;
-
 tty_err Sys_ConsoleInputInit( void );
 
 // =======================================================================
@@ -139,8 +132,12 @@ qboolean Sys_LowPhysicalMemory( void )
 	return qfalse; // bk001207 - FIXME
 }
 
-void Sys_BeginProfiling( void ) {
+
+void Sys_BeginProfiling( void )
+{
+
 }
+
 
 /*
 =================
@@ -166,7 +163,7 @@ void Sys_In_Restart_f( void )
 
 // flush stdin, I suspect some terminals are sending a LOT of shit
 // FIXME TTimo relevant?
-void tty_FlushIn( void )
+static void tty_FlushIn( void )
 {
 #if 1
 	tcflush( STDIN_FILENO, TCIFLUSH );
@@ -181,16 +178,9 @@ void tty_FlushIn( void )
 // TTimo NOTE: it seems on some terminals just sending '\b' is not enough
 //   so for now, in any case we send "\b \b" .. yeah well ..
 //   (there may be a way to find out if '\b' alone would work though)
-void tty_Back( void )
+static void tty_Back( void )
 {
-	char key;
-
-	key = '\b';
-	write( STDOUT_FILENO, &key, 1 );
-	key = ' ';
-	write( STDOUT_FILENO, &key, 1 );
-	key = '\b';
-	write( STDOUT_FILENO, &key, 1 );
+	write( STDOUT_FILENO, "\b \b", 3 );
 }
 
 
@@ -228,15 +218,17 @@ void tty_Show( void )
 	if ( !ttycon_on )
 		return;
 
-	assert( ttycon_hide > 0 );
-	ttycon_hide--;
-	if ( ttycon_hide == 0 )
+	if ( ttycon_hide > 0 )
 	{
-		(void)write( STDOUT_FILENO, "]", 1 ); // -EC-
-
-		if ( tty_con.cursor > 0 )
+		ttycon_hide--;
+		if ( ttycon_hide == 0 )
 		{
-			(void)write( STDOUT_FILENO, tty_con.buffer, tty_con.cursor );
+			write( STDOUT_FILENO, "]", 1 ); // -EC-
+
+			if ( tty_con.cursor > 0 )
+			{
+				write( STDOUT_FILENO, tty_con.buffer, tty_con.cursor );
+			}
 		}
 	}
 }
@@ -258,7 +250,7 @@ void Sys_ConsoleInputShutdown( void )
 		fcntl( STDIN_FILENO, F_SETFL, stdin_flags );
 //		fcntl( STDIN_FILENO, F_SETFL, fcntl( STDIN_FILENO, F_GETFL, 0 ) & ~O_NONBLOCK );
 	}
-	
+
 	Com_Memset( &tty_con, 0, sizeof( tty_con ) );
 
 	stdin_active = qfalse;
@@ -266,63 +258,6 @@ void Sys_ConsoleInputShutdown( void )
 	
 	ttycon_hide = 0;
 }
-
-
-void Hist_Add(field_t *field)
-{
-	int i;
-	assert(hist_count <= TTY_HISTORY);
-	assert(hist_count >= 0);
-	assert(hist_current >= -1);
-	assert(hist_current <= hist_count);
-	// make some room
-	for ( i = TTY_HISTORY-1; i > 0; i-- )
-	{
-		ttyEditLines[i] = ttyEditLines[i-1];
-	}
-	ttyEditLines[0] = *field;
-	if ( hist_count < TTY_HISTORY )
-	{
-		hist_count++;
-	}
-	hist_current = -1; // re-init
-}
-
-
-field_t *Hist_Prev( void )
-{
-	int hist_prev;
-	assert(hist_count <= TTY_HISTORY);
-	assert(hist_count >= 0);
-	assert(hist_current >= -1);
-	assert(hist_current <= hist_count);
-	hist_prev = hist_current + 1;
-	if ( hist_prev >= hist_count )
-	{
-		return NULL;
-	}
-	hist_current++;
-	return &(ttyEditLines[hist_current]);
-}
-
-
-field_t *Hist_Next( void )
-{
-	assert(hist_count <= TTY_HISTORY);
-	assert(hist_count >= 0);
-	assert(hist_current >= -1);
-	assert(hist_current <= hist_count);
-	if (hist_current >= 0)
-	{
-		hist_current--;
-	}
-	if (hist_current == -1)
-	{
-		return NULL;
-	}
-	return &(ttyEditLines[hist_current]);
-}
-
 
 /*
 ==================
@@ -545,7 +480,7 @@ char *Sys_ConsoleInput( void )
 	int avail;
 	char key;
 	char *s;
-	field_t *history;
+	field_t history;
 
 	if ( ttycon_on )
 	{
@@ -567,18 +502,18 @@ char *Sys_ConsoleInput( void )
 			}
 
 			// check if this is a control char
-			if ((key) && (key) < ' ')
+			if (key && key < ' ')
 			{
 				if (key == '\n')
 				{
 					// push it in history
-					Hist_Add( &tty_con );
-					Q_strncpyz( text, tty_con.buffer, sizeof( text ) );
+					Con_SaveField( &tty_con );
+					s = tty_con.buffer;
+					while ( *s == '\\' || *s == '/' ) // skip leading slashes
+						s++;
+					Q_strncpyz( text, s, sizeof( text ) );
 					Field_Clear( &tty_con );
-					//key = '\n';
-					//write( STDOUT_FILENO, &key, 1 );
-					//(void)write( STDOUT_FILENO, "]", 1 );
-					(void)write( STDOUT_FILENO, "\n]", 2 );
+					write( STDOUT_FILENO, "\n]", 2 );
 					return text;
 				}
 
@@ -602,25 +537,22 @@ char *Sys_ConsoleInput( void )
 							switch (key)
 							{
 							case 'A':
-								history = Hist_Prev();
-								if (history)
+								if ( Con_HistoryGetPrev( &history ) )
 								{
 									tty_Hide();
-									tty_con = *history;
+									tty_con = history;
 									tty_Show();
 								}
 								tty_FlushIn();
 								return NULL;
 								break;
 							case 'B':
-								history = Hist_Next();
-								tty_Hide();
-								if ( history ) {
-									tty_con = *history;
-								} else {
-									Field_Clear(&tty_con);
+								if ( Con_HistoryGetNext( &history ) )
+								{
+									tty_Hide();
+									tty_con = history;
+									tty_Show();
 								}
-								tty_Show();
 								tty_FlushIn();
 								return NULL;
 								break;
@@ -636,10 +568,10 @@ char *Sys_ConsoleInput( void )
 
 				if ( key == 12 ) // clear teaminal
 				{
-					(void)write( STDOUT_FILENO, "\ec]", 3 );
+					write( STDOUT_FILENO, "\ec]", 3 );
 					if ( tty_con.cursor )
 					{
-						(void)write( STDOUT_FILENO, tty_con.buffer, tty_con.cursor );
+						write( STDOUT_FILENO, tty_con.buffer, tty_con.cursor );
 					}
 					tty_FlushIn();
 					return NULL;
@@ -715,7 +647,7 @@ void Sys_SendKeyEvents( void )
 
 /*****************************************************************************/
 
-char *do_dlerror(void)
+char *do_dlerror( void )
 {
 	return dlerror();
 }
@@ -1351,7 +1283,7 @@ const char *Sys_BinName( const char *arg0 )
 	if ( n >= 0 && n < PATH_MAX )
 		dst[ n ] = '\0';
 	else
-	Q_strncpyz( dst, arg0, PATH_MAX );
+		Q_strncpyz( dst, arg0, PATH_MAX );
 #else
 #warning Sys_BinName not implemented
 	Q_strncpyz( dst, arg0, PATH_MAX );

@@ -53,9 +53,9 @@ void *R_GetImageBuffer( int size, bufferMemType_t bufferType ) {
 //DAJ TEST		imageBufferPtr[bufferType] = Z_Malloc( imageBufferSize[bufferType] );
 	}
 	if ( size > imageBufferSize[bufferType] ) {   // it needs to grow
-		if ( imageBufferPtr[bufferType] ) {
+		//if ( imageBufferPtr[bufferType] ) {
 			free( imageBufferPtr[bufferType] );
-		}
+		//}
 //DAJ TEST		Z_Free( imageBufferPtr[bufferType] );
 		imageBufferSize[bufferType] = size;
 		imageBufferPtr[bufferType] = malloc( imageBufferSize[bufferType] );

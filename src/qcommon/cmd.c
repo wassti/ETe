@@ -25,7 +25,6 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-
 // cmd.c -- Quake script command processing module
 
 #include "q_shared.h"

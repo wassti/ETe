@@ -1365,7 +1365,7 @@ static void ParseDeform( const char **text ) {
 			return;
 		}
 
-		if ( atof( token ) != 0 )
+		if ( atof( token ) != 0.0 )
 		{
 			ds->deformationSpread = 1.0f / atof( token );
 		}
@@ -1468,8 +1468,8 @@ static void ParseSkyParms( const char **text ) {
 		return;
 	}
 	shader.sky.cloudHeight = atof( token );
-	if ( !shader.sky.cloudHeight ) {
-		shader.sky.cloudHeight = 512;
+	if ( shader.sky.cloudHeight == 0.0 ) {
+		shader.sky.cloudHeight = 512.0;
 	}
 	R_InitSkyTexCoords( shader.sky.cloudHeight );
 
@@ -1533,7 +1533,6 @@ void ParseSort( const char **text ) {
 }
 
 
-
 // this table is also present in q3map
 
 typedef struct {
@@ -1541,7 +1540,7 @@ typedef struct {
 	int clearSolid, surfaceFlags, contents;
 } infoParm_t;
 
-infoParm_t infoParms[] = {
+static const infoParm_t infoParms[] = {
 	// server relevant contents
 
 //----(SA)	modified

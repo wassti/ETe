@@ -40,7 +40,7 @@ static void R_PerformanceCounters( void ) {
 		return;
 	}
 
-	if ( r_speeds->integer ) { //%	== 1)
+	/*if ( r_speeds->integer )*/ { //%	== 1)
 		ri.Printf( PRINT_ALL, "%i/%i shaders/surfs %i leafs %i verts %i/%i tris %.2f mtex %.2f dc\n",
 				   backEnd.pc.c_shaders, backEnd.pc.c_surfaces, tr.pc.c_leafs, backEnd.pc.c_vertexes,
 				   backEnd.pc.c_indexes / 3, backEnd.pc.c_totalIndexes / 3,

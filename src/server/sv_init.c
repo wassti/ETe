@@ -26,13 +26,6 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-/*
- * name:		sv_init.c
- *
- * desc:
- *
-*/
-
 #include "server.h"
 
 
@@ -665,6 +658,9 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 
 	Cvar_Set( "sv_serverRestarting", "1" );
 
+	// make sure that level time is not zero
+	sv.time = sv.time ? sv.time : 1;
+
 	// load and spawn all other entities
 	SV_InitGameProgs();
 
@@ -675,10 +671,9 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 	// run a few frames to allow everything to settle
 	for ( i = 0 ; i < GAME_INIT_FRAMES ; i++ )
 	{
+		sv.time += FRAMETIME;
 		VM_Call (gvm, GAME_RUN_FRAME, sv.time);
 		SV_BotFrame (sv.time);
-		sv.time += FRAMETIME;
-		svs.time += FRAMETIME;
 	}
 
 	// create a baseline for more efficient communications
@@ -723,7 +718,7 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 					client->gentity = ent;
 
 					client->deltaMessage = -1;
-					client->lastSnapshotTime = 0;	// generate a snapshot immediately
+					client->lastSnapshotTime = svs.time - 9999; // generate a snapshot immediately
 
 					VM_Call( gvm, GAME_CLIENT_BEGIN, i );
 				}
@@ -732,9 +727,9 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 	}
 
 	// run another frame to allow things to look at all the players
+	sv.time += FRAMETIME;
 	VM_Call( gvm, GAME_RUN_FRAME, sv.time );
 	SV_BotFrame( sv.time );
-	sv.time += FRAMETIME;
 	svs.time += FRAMETIME;
 
 	// we want the server to reference the mp_bin pk3 that the client is expected to load from
@@ -1007,7 +1002,7 @@ void SV_FinalCommand( const char *cmd, qboolean disconnect ) {
 					}
 				}
 				// force a snapshot to be sent
-				cl->lastSnapshotTime = 0;
+				cl->lastSnapshotTime = svs.time - 9999; // generate a snapshot immediately
 				//cl->state = CS_ZOMBIE; // skip delta generation
 				SV_SendClientSnapshot( cl );
 			}

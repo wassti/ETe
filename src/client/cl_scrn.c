@@ -120,7 +120,6 @@ void SCR_DrawPic( float x, float y, float width, float height, qhandle_t hShader
 }
 
 
-
 /*
 ** SCR_DrawChar
 ** chars are drawn at 640*480 virtual screen size
@@ -159,6 +158,7 @@ static void SCR_DrawChar( int x, int y, float size, int ch ) {
 					   cls.charSetShader );
 }
 
+
 /*
 ** SCR_DrawSmallChar
 ** small chars are drawn at native screen resolution
@@ -174,7 +174,7 @@ void SCR_DrawSmallChar( int x, int y, int ch ) {
 		return;
 	}
 
-	if ( y < -SMALLCHAR_HEIGHT ) {
+	if ( y < -smallchar_height ) {
 		return;
 	}
 
@@ -185,7 +185,7 @@ void SCR_DrawSmallChar( int x, int y, int ch ) {
 	fcol = col*0.0625;
 	size = 0.0625;
 
-	re.DrawStretchPic( x, y, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT,
+	re.DrawStretchPic( x, y, smallchar_width, smallchar_height,
 					   fcol, frow, 
 					   fcol + size, frow + size, 
 					   cls.charSetShader );
@@ -201,7 +201,7 @@ void SCR_DrawSmallString( int x, int y, const char *s, int len ) {
 	float frow, fcol;
 	float size;
 
-	if ( y < -SMALLCHAR_HEIGHT ) {
+	if ( y < -smallchar_height ) {
 		return;
 	}
 
@@ -215,13 +215,14 @@ void SCR_DrawSmallString( int x, int y, const char *s, int len ) {
 		frow = row*0.0625;
 		fcol = col*0.0625;
 
-		re.DrawStretchPic( x, y, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT,
+		re.DrawStretchPic( x, y, smallchar_width, smallchar_height,
 						   fcol, frow, fcol + size, frow + size, 
 						   cls.charSetShader );
 
-		x += SMALLCHAR_WIDTH;
+		x += smallchar_width;
 	}
 }
+
 
 /*
 ==================
@@ -240,7 +241,7 @@ void SCR_DrawStringExt( int x, int y, float size, const char *string, const floa
 	int			xx;
 
 	// draw the drop shadow
-	color[0] = color[1] = color[2] = 0;
+	color[0] = color[1] = color[2] = 0.0f;
 	color[3] = setColor[3];
 	re.SetColor( color );
 	s = string;
@@ -285,6 +286,11 @@ void SCR_DrawStringExt( int x, int y, float size, const char *string, const floa
 }
 
 
+/*
+==================
+SCR_DrawBigString
+==================
+*/
 void SCR_DrawBigString( int x, int y, const char *s, float alpha, qboolean noColorEscape ) {
 	float	color[4];
 
@@ -329,12 +335,11 @@ void SCR_DrawSmallStringExt( int x, int y, const char *string, const float *setC
 			}
 		}
 		SCR_DrawSmallChar( xx, y, *s );
-		xx += SMALLCHAR_WIDTH;
+		xx += smallchar_width;
 		s++;
 	}
 	re.SetColor( NULL );
 }
-
 
 
 /*
@@ -356,11 +361,12 @@ static int SCR_Strlen( const char *str ) {
 	return count;
 }
 
+
 /*
 ** SCR_GetBigStringWidth
 */
 int SCR_GetBigStringWidth( const char *str ) {
-	return SCR_Strlen( str ) * 16;
+	return SCR_Strlen( str ) * BIGCHAR_WIDTH;
 }
 
 
@@ -419,8 +425,6 @@ void SCR_DrawVoipMeter( void ) {
 	SCR_DrawStringExt( 320 - strlen( string ) * 4, 10, 8, string, g_color_table[ ColorIndex( COLOR_WHITE ) ], qtrue, qfalse );
 }
 #endif
-
-
 
 
 /*
@@ -495,11 +499,11 @@ SCR_Init
 ==================
 */
 void SCR_Init( void ) {
-	cl_timegraph = Cvar_Get( "timegraph", "0", CVAR_CHEAT );
-	cl_debuggraph = Cvar_Get( "debuggraph", "0", CVAR_CHEAT );
-	cl_graphheight = Cvar_Get( "graphheight", "32", CVAR_CHEAT );
-	cl_graphscale = Cvar_Get( "graphscale", "1", CVAR_CHEAT );
-	cl_graphshift = Cvar_Get( "graphshift", "0", CVAR_CHEAT );
+	cl_timegraph = Cvar_Get ("timegraph", "0", CVAR_CHEAT);
+	cl_debuggraph = Cvar_Get ("debuggraph", "0", CVAR_CHEAT);
+	cl_graphheight = Cvar_Get ("graphheight", "32", CVAR_CHEAT);
+	cl_graphscale = Cvar_Get ("graphscale", "1", CVAR_CHEAT);
+	cl_graphshift = Cvar_Get ("graphshift", "0", CVAR_CHEAT);
 
 	scr_initialized = qtrue;
 }

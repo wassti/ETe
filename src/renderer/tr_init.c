@@ -130,7 +130,8 @@ cvar_t	*r_logFile;
 cvar_t	*r_stencilbits;
 cvar_t	*r_primitives;
 cvar_t	*r_texturebits;
-cvar_t  *r_ext_multisample;
+cvar_t	*r_ext_multisample;
+cvar_t	*r_ext_supersample;
 
 cvar_t	*r_drawBuffer;
 cvar_t	*r_lightmap;
@@ -531,6 +532,11 @@ static void InitOpenGL( void )
 
 		if ( glConfig.maxActiveTextures && max_bind_units > 0 )
 			glConfig.maxActiveTextures = max_bind_units;
+
+		captureWidth = glConfig.vidWidth;
+		captureHeight = glConfig.vidHeight;
+
+		ri.CL_SetScaling( 1.0, captureWidth, captureHeight );
 
 		QGL_InitARB();
 
@@ -1385,7 +1391,9 @@ static void R_Register( void )
 	r_texturebits = ri.Cvar_Get( "r_texturebits", "0", CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE );
 	r_stencilbits = ri.Cvar_Get( "r_stencilbits", "0", CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE );
 	r_ext_multisample = ri.Cvar_Get( "r_ext_multisample", "0", CVAR_ARCHIVE_ND );
+	r_ext_supersample = ri.Cvar_Get( "r_ext_supersample", "0", CVAR_ARCHIVE_ND | CVAR_LATCH );
 	ri.Cvar_CheckRange( r_ext_multisample, "0", "8", CV_INTEGER );
+	ri.Cvar_CheckRange( r_ext_supersample, "0", "1", CV_INTEGER );
 	ri.Cvar_SetGroup( r_ext_multisample, CVG_RENDERER );
 	r_overBrightBits = ri.Cvar_Get( "r_overBrightBits", "0", CVAR_ARCHIVE_ND | CVAR_LATCH ); // Arnout: disable overbrightbits by default
 	ri.Cvar_CheckRange( r_overBrightBits, "0", "1", CV_INTEGER );                                   // ydnar: limit to overbrightbits 1 (sorry 1337 players)

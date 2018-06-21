@@ -37,6 +37,11 @@ int g_console_field_width = DEFAULT_CONSOLE_WIDTH;
 
 #define CONSOLE_COLOR  COLOR_WHITE //COLOR_BLACK
 
+int bigchar_width;
+int bigchar_height;
+int smallchar_width;
+int smallchar_height;
+
 console_t con;
 
 cvar_t      *con_debug;
@@ -89,7 +94,7 @@ void Con_ToggleConsole_f( void ) {
 	} else {
 		// short console
 		if ( keys[ K_CTRL ].down ) {
-			con.desiredFrac = ( 5.0 * SMALLCHAR_HEIGHT ) / cls.glconfig.vidHeight;
+			con.desiredFrac = ( 5.0 * smallchar_height ) / cls.glconfig.vidHeight;
 		}
 		// full console
 		else if ( keys[ K_ALT ].down ) {
@@ -274,21 +279,23 @@ void Con_CheckResize( void )
 {
 	int		i, j, width, oldwidth, oldtotallines, oldcurrent, numlines, numchars;
 	short	tbuf[CON_TEXTSIZE], *src, *dst;
+	static int old_width, old_vispage;
+	int		vispage;
 
 	if ( con.viswidth == cls.glconfig.vidWidth )
 		return;
 
 	con.viswidth = cls.glconfig.vidWidth;
 
-	// ydnar: wasn't allowing for larger consoles
-	// width = (SCREEN_WIDTH / SMALLCHAR_WIDTH) - 2;
-	width = ( cls.glconfig.vidWidth / SMALLCHAR_WIDTH ) - 2;
+	if ( smallchar_width == 0 ) // might happen on early init
+	{
+		smallchar_width = SMALLCHAR_WIDTH;
+		smallchar_height = SMALLCHAR_HEIGHT;
+		bigchar_width = BIGCHAR_WIDTH;
+		bigchar_height = BIGCHAR_HEIGHT;
+	}
 
-	//if ( width == con.linewidth ) {
-	//	return;
-	//}
-
-	if ( width < 1 ) // video hasn't been initialized yet
+	if ( cls.glconfig.vidWidth == 0 ) // video hasn't been initialized yet
 	{
 		width = DEFAULT_CONSOLE_WIDTH;
 		con.linewidth = width;
@@ -299,15 +306,25 @@ void Con_CheckResize( void )
 	}
 	else
 	{
+		width = (cls.glconfig.vidWidth / smallchar_width) - 2;
+
 		if ( width > MAX_CONSOLE_WIDTH )
 			width = MAX_CONSOLE_WIDTH;
+
+		vispage = cls.glconfig.vidHeight / ( smallchar_height * 2 ) - 1;
+
+		if ( old_vispage == vispage && old_width == width )
+			return;
 
 		oldwidth = con.linewidth;
 		oldtotallines = con.totallines;
 		oldcurrent = con.current;
 		con.linewidth = width;
 		con.totallines = CON_TEXTSIZE / con.linewidth;
-		con.vispage = cls.glconfig.vidHeight / ( SMALLCHAR_HEIGHT * 2 ) - 1;
+		con.vispage = vispage;
+
+		old_vispage = vispage;
+		old_width = width;
 
 		numchars = oldwidth;
 		if ( numchars > con.linewidth )
@@ -607,7 +624,7 @@ void Con_DrawInput( void ) {
 		return;
 	}
 
-	y = con.vislines - ( SMALLCHAR_HEIGHT * 2 );
+	y = con.vislines - ( smallchar_height * 2 );
 
 	// hightlight the current autocompleted part
 	if ( con.acLength ) {
@@ -617,19 +634,19 @@ void Con_DrawInput( void ) {
 
 		if ( cmdLen - con.acLength > 0 ) {
 			re.SetColor( console_highlightcolor );
-			re.DrawStretchPic( con.xadjust + ( 2 + con.acLength ) * SMALLCHAR_WIDTH,
+			re.DrawStretchPic( con.xadjust + ( 2 + con.acLength ) * smallchar_width,
 							   y + 2,
-							   ( cmdLen - con.acLength ) * SMALLCHAR_WIDTH,
-							   SMALLCHAR_HEIGHT - 2, 0, 0, 0, 0, cls.whiteShader );
+							   ( cmdLen - con.acLength ) * smallchar_width,
+							   smallchar_height - 2, 0, 0, 0, 0, cls.whiteShader );
 		}
 	}
 
 	re.SetColor( con.color );
 
-	SCR_DrawSmallChar( con.xadjust + 1 * SMALLCHAR_WIDTH, y, ']' );
+	SCR_DrawSmallChar( con.xadjust + 1 * smallchar_width, y, ']' );
 
-	Field_Draw( &g_consoleField, con.xadjust + 2 * SMALLCHAR_WIDTH, y,
-		SCREEN_WIDTH - 3 * SMALLCHAR_WIDTH, qtrue, qtrue );
+	Field_Draw( &g_consoleField, con.xadjust + 2 * smallchar_width, y,
+		SCREEN_WIDTH - 3 * smallchar_width, qtrue, qtrue );
 }
 
 
@@ -679,44 +696,46 @@ void Con_DrawNotify( void )
 				currentColorIndex = colorIndex;
 				re.SetColor( g_color_table[ colorIndex ] );
 			}
-			SCR_DrawSmallChar( cl_conXOffset->integer + con.xadjust + ( x + 1 ) * SMALLCHAR_WIDTH, v, text[x] & 0xff );
+			SCR_DrawSmallChar( cl_conXOffset->integer + con.xadjust + (x+1)*smallchar_width, v, text[x] & 0xff );
 		}
 
-		v += SMALLCHAR_HEIGHT;
+		v += smallchar_height;
 	}
 
 	re.SetColor( NULL );
 
-	if (Key_GetCatcher( ) & (KEYCATCH_UI | KEYCATCH_CGAME) ) {
+	if ( Key_GetCatcher() & (KEYCATCH_UI | KEYCATCH_CGAME) ) {
 		return;
 	}
 
 	// draw the chat line
 	if ( Key_GetCatcher( ) & KEYCATCH_MESSAGE )
 	{
+		// rescale to virtual 640x480 space
+		v /= cls.glconfig.vidHeight / 480.0;
+
 		if ( chat_team ) {
 			char buf[128];
 			CL_TranslateString( "say_team:", buf );
-			SCR_DrawBigString( 8, v, buf, 1.0f, qfalse );
+			SCR_DrawBigString( SMALLCHAR_WIDTH, v, buf, 1.0f, qfalse );
 			skip = strlen( buf ) + 2;
 		} else if ( chat_buddy ) {
 			char buf[128];
 			CL_TranslateString( "say_fireteam:", buf );
-			SCR_DrawBigString( 8, v, buf, 1.0f, qfalse );
+			SCR_DrawBigString( SMALLCHAR_WIDTH, v, buf, 1.0f, qfalse );
 			skip = strlen( buf ) + 2;
 		} else {
 			char buf[128];
 			CL_TranslateString( "say:", buf );
-			SCR_DrawBigString( 8, v, buf, 1.0f, qfalse );
+			SCR_DrawBigString( SMALLCHAR_WIDTH, v, buf, 1.0f, qfalse );
 			skip = strlen( buf ) + 1;
 		}
 
 		Field_BigDraw( &chatField, skip * BIGCHAR_WIDTH, v,
-					   SCREEN_WIDTH - ( skip + 1 ) * BIGCHAR_WIDTH, qtrue, qtrue );
-
+			SCREEN_WIDTH - ( skip + 1 ) * BIGCHAR_WIDTH, qtrue, qtrue );
 	}
-
 }
+
 
 /*
 ================
@@ -816,15 +835,15 @@ void Con_DrawSolidConsole( float frac ) {
 	// draw the version number
 	re.SetColor( g_color_table[ ColorIndex( CONSOLE_COLOR ) ] );
 
-	SCR_DrawSmallString( cls.glconfig.vidWidth - ( ARRAY_LEN( Q3_VERSION ) ) * SMALLCHAR_WIDTH, 
-		lines - SMALLCHAR_HEIGHT, Q3_VERSION, ARRAY_LEN( Q3_VERSION ) - 1 );
+	SCR_DrawSmallString( cls.glconfig.vidWidth - ( ARRAY_LEN( Q3_VERSION ) ) * smallchar_width, 
+		lines - smallchar_height, Q3_VERSION, ARRAY_LEN( Q3_VERSION ) - 1 );
 
 	// draw the text
 	con.vislines = lines;
 	//rows = ( lines - SMALLCHAR_WIDTH ) / SMALLCHAR_WIDTH;     // rows of text to draw
-	rows = lines / SMALLCHAR_WIDTH - 1;	// rows of text to draw
+	rows = lines / smallchar_width - 1;	// rows of text to draw
 
-	y = lines - (SMALLCHAR_HEIGHT * 3);
+	y = lines - (smallchar_height * 3);
 
 	row = con.display;
 
@@ -834,8 +853,8 @@ void Con_DrawSolidConsole( float frac ) {
 		// draw arrows to show the buffer is backscrolled
 		re.SetColor( g_color_table[ ColorIndex( CONSOLE_COLOR ) ] );
 		for ( x = 0 ; x < con.linewidth ; x += 4 )
-			SCR_DrawSmallChar( con.xadjust + (x+1)*SMALLCHAR_WIDTH, y, '^' );
-		y -= SMALLCHAR_HEIGHT;
+			SCR_DrawSmallChar( con.xadjust + (x+1)*smallchar_width, y, '^' );
+		y -= smallchar_height;
 		row--;
 	}
 
@@ -848,8 +867,8 @@ void Con_DrawSolidConsole( float frac ) {
 		i = strlen( download.progress );
 		for ( x = 0 ; x < i ; x++ ) 
 		{
-			SCR_DrawSmallChar( ( x + 1 ) * SMALLCHAR_WIDTH,
-				lines - SMALLCHAR_HEIGHT, download.progress[x] );
+			SCR_DrawSmallChar( ( x + 1 ) * smallchar_width,
+				lines - smallchar_height, download.progress[x] );
 		}
 	}
 #endif
@@ -857,14 +876,14 @@ void Con_DrawSolidConsole( float frac ) {
 	currentColorIndex = ColorIndex( COLOR_WHITE );
 	re.SetColor( g_color_table[ currentColorIndex ] );
 
-	for ( i = 0 ; i < rows ; i++, y -= SMALLCHAR_HEIGHT, row-- )
+	for ( i = 0 ; i < rows ; i++, y -= smallchar_height, row-- )
 	{
 		if ( row < 0 )
 			break;
 
 		if ( con.current - row >= con.totallines ) {
 			// past scrollback wrap point
-			continue;	
+			continue;
 		}
 
 		text = con.text + (row % con.totallines) * con.linewidth;
@@ -880,7 +899,7 @@ void Con_DrawSolidConsole( float frac ) {
 				currentColorIndex = colorIndex;
 				re.SetColor( g_color_table[ colorIndex ] );
 			}
-			SCR_DrawSmallChar(  con.xadjust + ( x + 1 ) * SMALLCHAR_WIDTH, y, text[x] & 0xff );
+			SCR_DrawSmallChar( con.xadjust + (x + 1) * smallchar_width, y, text[x] & 0xff );
 		}
 	}
 
@@ -954,7 +973,7 @@ void Con_RunConsole( void )
 }
 
 
-void Con_PageUp( int lines ) 
+void Con_PageUp( int lines )
 {
 	if ( lines == 0 )
 		lines = con.vispage - 1;
@@ -965,7 +984,8 @@ void Con_PageUp( int lines )
 }
 
 
-void Con_PageDown( int lines ) {
+void Con_PageDown( int lines )
+{
 	if ( lines == 0 ) {
 		lines = con.vispage - 1;
 	}
@@ -975,7 +995,7 @@ void Con_PageDown( int lines ) {
 }
 
 
-void Con_Top( void ) 
+void Con_Top( void )
 {
 	// this is generally incorrect but will be adjusted in Con_Fixup()
 	con.display = con.current - con.totallines;
@@ -984,7 +1004,7 @@ void Con_Top( void )
 }
 
 
-void Con_Bottom( void ) 
+void Con_Bottom( void )
 {
 	con.display = con.current;
 
@@ -992,9 +1012,9 @@ void Con_Bottom( void )
 }
 
 
-void Con_Close( void ) 
+void Con_Close( void )
 {
-	if ( !com_cl_running->integer ) 
+	if ( !com_cl_running->integer )
 		return;
 
 	Field_Clear( &g_consoleField );

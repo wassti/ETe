@@ -384,24 +384,26 @@ static void SV_MapRestart_f( void ) {
 
 	Cvar_Set( "sv_serverRestarting", "1" );
 
+	// make sure that level time is not zero
+	sv.time = sv.time ? sv.time : 1;
+
 	SV_RestartGameProgs();
 
 	// run a few frames to allow everything to settle
 	for ( i = 0; i < GAME_INIT_FRAMES; i++ ) {
-		VM_Call( gvm, GAME_RUN_FRAME, sv.time );
 		sv.time += FRAMETIME;
-		svs.time += FRAMETIME;
+		VM_Call( gvm, GAME_RUN_FRAME, sv.time );
 	}
 
 	sv.state = SS_GAME;
 	sv.restarting = qfalse;
 
 	// connect and begin all the clients
-	for (i=0 ; i<sv_maxclients->integer ; i++) {
+	for ( i = 0 ; i < sv_maxclients->integer ; i++ ) {
 		client = &svs.clients[i];
 
 		// send the new gamestate to all connected clients
-		if ( client->state < CS_CONNECTED) {
+		if ( client->state < CS_CONNECTED ) {
 			continue;
 		}
 
@@ -439,15 +441,13 @@ static void SV_MapRestart_f( void ) {
 		}
 	}	
 	// run another frame to allow things to look at all the players
-	VM_Call (gvm, GAME_RUN_FRAME, sv.time);
 	sv.time += FRAMETIME;
+	VM_Call (gvm, GAME_RUN_FRAME, sv.time);
 	svs.time += FRAMETIME;
 
 	Cvar_Set( "sv_serverRestarting", "0" );
 }
 
-
-//===============================================================
 
 /*
 ==================
@@ -1319,7 +1319,7 @@ Also called by SV_DropClient, SV_DirectConnect, and SV_SpawnServer
 ==================
 */
 void SV_Heartbeat_f( void ) {
-	svs.nextHeartbeatTime = -9999999;
+	svs.nextHeartbeatTime = svs.time;
 }
 
 

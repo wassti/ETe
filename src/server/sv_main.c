@@ -265,7 +265,7 @@ static void SV_MasterHeartbeat( const char *message )
 		return;		// only dedicated servers send heartbeats
 
 	// if not time yet, don't send anything
-	if ( svs.time < svs.nextHeartbeatTime )
+	if ( svs.nextHeartbeatTime - svs.time > 0 )
 		return;
 
 	svs.nextHeartbeatTime = svs.time + HEARTBEAT_MSEC;
@@ -278,7 +278,7 @@ static void SV_MasterHeartbeat( const char *message )
 
 		// see if we haven't already resolved the name or if it's been over 24 hours
 		// resolving usually causes hitches on win95, so only do it when needed
-		if ( sv_master[i]->modified || svs.time > svs.masterResolveTime[i] )
+		if ( sv_master[i]->modified || svs.time - svs.masterResolveTime[i] > 0 )
 		{
 			sv_master[i]->modified = qfalse;
 			svs.masterResolveTime[i] = svs.time + MASTERDNS_MSEC;
@@ -359,17 +359,15 @@ void SV_MasterGameCompleteStatus( void ) {
 	if (!com_dedicated || com_dedicated->integer != 2 || !(netenabled & (NET_ENABLEV4 | NET_ENABLEV6)))
 		return;     // only dedicated servers send master game status
 
-
 	// send to group masters
 	for (i = 0; i < MAX_MASTER_SERVERS; i++)
 	{
 		if(!sv_master[i]->string[0])
 			continue;
 
-		// see if we haven't already resolved the name
-		// resolving usually causes hitches on win95, so only
-		// do it when needed
-		if(sv_master[i]->modified || (adr[i][0].type == NA_BAD && adr[i][1].type == NA_BAD))
+		// see if we haven't already resolved the name or if it's been over 24 hours
+		// resolving usually causes hitches on win95, so only do it when needed
+		if(sv_master[i]->modified || svs.time - svs.masterResolveTime[i] > 0 )
 		{
 			sv_master[i]->modified = qfalse;
 			svs.masterResolveTime[i] = svs.time + MASTERDNS_MSEC;
@@ -434,13 +432,14 @@ SV_MasterShutdown
 Informs all masters that this server is going down
 =================
 */
-void SV_MasterShutdown( void ) {
+void SV_MasterShutdown( void )
+{
 	// send a heartbeat right now
-	svs.nextHeartbeatTime = -9999;
+	svs.nextHeartbeatTime = svs.time;
 	SV_MasterHeartbeat(HEARTBEAT_FOR_MASTER);
 
 	// send it again to minimize chance of drops
-	svs.nextHeartbeatTime = -9999;
+	svs.nextHeartbeatTime = svs.time;
 	SV_MasterHeartbeat(HEARTBEAT_FOR_MASTER);
 
 	// when the master tries to poll the server, it won't respond, so
@@ -1344,13 +1343,16 @@ static void SV_CheckTimeouts( void ) {
 	droppoint = svs.time - 1000 * sv_timeout->integer;
 	zombiepoint = svs.time - 1000 * sv_zombietime->integer;
 
-	for (i=0,cl=svs.clients ; i < sv_maxclients->integer ; i++,cl++) {
+	for ( i = 0, cl = svs.clients ; i < sv_maxclients->integer ; i++, cl++ ) {
+		if ( cl->state == CS_FREE ) {
+			continue;
+		}
 		// message times may be wrong across a changelevel
-		if (cl->lastPacketTime > svs.time) {
+		if ( cl->lastPacketTime - svs.time > 0 ) {
 			cl->lastPacketTime = svs.time;
 		}
 
-		if ( cl->state == CS_ZOMBIE && cl->lastPacketTime < zombiepoint ) {
+		if ( cl->state == CS_ZOMBIE && cl->lastPacketTime - zombiepoint < 0 ) {
 			// using the client id cause the cl->name is empty at this point
 			Com_DPrintf( "Going from CS_ZOMBIE to CS_FREE for client %d\n", i );
 			cl->state = CS_FREE;	// can now be reused
@@ -1363,7 +1365,7 @@ static void SV_CheckTimeouts( void ) {
 			cl->state = CS_FREE;
 			continue;
 		}
-		if ( cl->state >= CS_CONNECTED && cl->lastPacketTime < droppoint ) {
+		if ( cl->state >= CS_CONNECTED && cl->lastPacketTime - droppoint < 0 ) {
 			// wait several frames so a debugger session doesn't
 			// cause a timeout
 			if ( ++cl->timeoutCount > 5 ) {
@@ -1478,6 +1480,22 @@ void SV_TrackCvarChanges( void )
 
 /*
 ==================
+SV_Restart
+==================
+*/
+static void SV_Restart( const char *reason )
+{
+	char mapName[ MAX_CVAR_VALUE_STRING ];
+	sv.time = 0; // force level time reset
+	sv.restartTime = 0;
+	Cvar_VariableStringBuffer( "mapname", mapName, sizeof( mapName ) );
+	SV_Shutdown( reason );
+	Cbuf_AddText( va( "map %s\n", mapName ) );
+}
+
+
+/*
+==================
 SV_Frame
 
 Player movement occurs as a result of packet events, which
@@ -1540,16 +1558,12 @@ void SV_Frame( int msec ) {
 	// and clear sv.time, rather
 	// than checking for negative time wraparound everywhere.
 	// 2giga-milliseconds = 23 days, so it won't be too often
-	if ( svs.time > 0x78000000 ) {
-		char mapName[ MAX_CVAR_VALUE_STRING ];
-		Cvar_VariableStringBuffer( "mapname", mapName, sizeof( mapName ) );
-		SV_Shutdown( "Restarting server due to time wrapping" );
-		Cbuf_AddText( va( "map %s\n", mapName ) );
+	if ( sv.time > 0x78000000 ) {
+		SV_Restart( "Restarting server due to time wrapping" );
 		return;
 	}
-
 	// try to do silent restart earlier if possible
-	if ( svs.time > 0x40000000 || ( sv.time > (12*3600*1000) && sv_levelTimeReset->integer == 0 ) ) {
+	if ( sv.time > 0x40000000 || ( sv.time > (12*3600*1000) && sv_levelTimeReset->integer == 0 ) ) {
 		n = 0;
 		if ( svs.clients ) {
 			for ( i = 0; i < sv_maxclients->integer; i++ ) {
@@ -1561,15 +1575,12 @@ void SV_Frame( int msec ) {
 			}
 		}
 		if ( !n ) {
-			char mapName[ MAX_CVAR_VALUE_STRING ];
-			Cvar_VariableStringBuffer( "mapname", mapName, sizeof( mapName ) );
-			SV_Shutdown( "Restarting server" );
-			Cbuf_AddText( va( "map %s\n", mapName ) );
+			SV_Restart( "Restarting server" );
 			return;
 		}
 	}
 
-	if( sv.restartTime && sv.time >= sv.restartTime ) {
+	if ( sv.restartTime && sv.time >= sv.restartTime ) {
 		sv.restartTime = 0;
 		Cbuf_AddText( "map_restart 0\n" );
 		return;
@@ -1595,7 +1606,7 @@ void SV_Frame( int msec ) {
 	}
 
 	if ( com_speeds->integer ) {
-		startTime = Sys_Milliseconds ();
+		startTime = Sys_Milliseconds();
 	} else {
 		startTime = 0;	// quite a compiler warning
 	}
@@ -1629,7 +1640,7 @@ void SV_Frame( int msec ) {
 	SV_SendClientMessages();
 
 	// send a heartbeat to the master if needed
-	SV_MasterHeartbeat( HEARTBEAT_FOR_MASTER );
+	SV_MasterHeartbeat(HEARTBEAT_FOR_MASTER);
 
 	if ( com_dedicated->integer ) {
 		frameEndTime = Sys_Milliseconds();
@@ -1675,6 +1686,7 @@ void SV_Frame( int msec ) {
 		svs.serverLoad = -1;
 	}
 }
+
 
 /*
 ====================

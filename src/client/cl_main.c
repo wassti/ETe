@@ -3675,7 +3675,7 @@ static void CL_InitRenderer( void ) {
 	cls.consoleShader = re.RegisterShader( "console-16bit" ); // JPW NERVE shader works with 16bit
 	cls.consoleShader2 = re.RegisterShader( "console2-16bit" ); // JPW NERVE same
 
-	g_console_field_width = cls.glconfig.vidWidth / SMALLCHAR_WIDTH - 2;
+	g_console_field_width = cls.glconfig.vidWidth / smallchar_width - 2;
 	g_consoleField.widthInChars = g_console_field_width;
 }
 
@@ -3767,6 +3767,23 @@ static qboolean CL_IsMininized( void ) {
 
 /*
 ============
+CL_SetScaling
+============
+*/
+static void CL_SetScaling( float factor, int captureWidth, int captureHeight ) {
+	// set console scaling
+	smallchar_width = SMALLCHAR_WIDTH * factor;
+	smallchar_height = SMALLCHAR_HEIGHT * factor;
+	bigchar_width = BIGCHAR_WIDTH * factor;
+	bigchar_height = BIGCHAR_HEIGHT * factor;
+	// set custom capture resolution
+	cls.captureWidth = captureWidth;
+	cls.captureHeight = captureHeight;
+}
+
+
+/*
+============
 CL_InitRef
 ============
 */
@@ -3831,6 +3848,7 @@ static void CL_InitRef( void ) {
 
 	ri.CL_WriteAVIVideoFrame = CL_WriteAVIVideoFrame;
 	ri.CL_IsMinimized = CL_IsMininized;
+	ri.CL_SetScaling = CL_SetScaling;
 
 	ri.Sys_SetClipboardBitmap = Sys_SetClipboardBitmap;
 	ri.Sys_LowPhysicalMemory = Sys_LowPhysicalMemory;
@@ -4471,7 +4489,7 @@ void CL_Init( void ) {
 	Cvar_Set( "cl_running", "1" );
 
 	CL_GenerateETKey();
-	Cvar_Get( "cl_guid", "", CVAR_USERINFO | CVAR_ROM );
+	Cvar_Get( "cl_guid", "", CVAR_USERINFO | CVAR_ROM | CVAR_PROTECTED );
 	CL_UpdateGUID();
 
 #ifndef __MACOS__  //DAJ USA

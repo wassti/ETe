@@ -120,19 +120,19 @@ void Field_VariableSizeDraw( field_t *edit, int x, int y, int width, int size, q
 	}
 
 	// draw it
-	if ( size == SMALLCHAR_WIDTH ) {
-		SCR_DrawSmallStringExt( x, y, str, g_color_table[ ColorIndexFromChar( curColor ) ], 
+	if ( size == smallchar_width ) {
+		SCR_DrawSmallStringExt( x, y, str, g_color_table[ ColorIndexFromChar( curColor ) ],
 			qfalse, noColorEscape );
 		if ( len > drawLen + prestep ) {
 			SCR_DrawSmallChar( x + ( edit->widthInChars - 1 ) * size, y, '>' );
 		}
 	} else {
 		if ( len > drawLen + prestep ) {
-			SCR_DrawStringExt( x + ( edit->widthInChars - 1 ) * size, y, size, ">", 
+			SCR_DrawStringExt( x + ( edit->widthInChars - 1 ) * BIGCHAR_WIDTH, y, size, ">",
 				g_color_table[ ColorIndex( COLOR_WHITE ) ], qfalse, noColorEscape );
 		}
 		// draw big string with drop shadow
-		SCR_DrawStringExt( x, y, size, str, g_color_table[ ColorIndexFromChar( curColor ) ], 
+		SCR_DrawStringExt( x, y, BIGCHAR_WIDTH, str, g_color_table[ ColorIndexFromChar( curColor ) ],
 			qfalse, noColorEscape );
 	}
 
@@ -150,26 +150,26 @@ void Field_VariableSizeDraw( field_t *edit, int x, int y, int width, int size, q
 
 		i = drawLen - strlen( str );
 
-		if ( size == SMALLCHAR_WIDTH ) {
+		if ( size == smallchar_width ) {
 			SCR_DrawSmallChar( x + ( edit->cursor - prestep - i ) * size, y, cursorChar );
 		} else {
 			str[0] = cursorChar;
 			str[1] = '\0';
-			SCR_DrawBigString( x + ( edit->cursor - prestep - i ) * size, y, str, 1.0, qfalse );
+			SCR_DrawBigString( x + ( edit->cursor - prestep - i ) * BIGCHAR_WIDTH, y, str, 1.0, qfalse );
 		}
 	}
 }
 
 
-void Field_Draw( field_t *edit, int x, int y, int width, qboolean showCursor, qboolean noColorEscape ) 
+void Field_Draw( field_t *edit, int x, int y, int width, qboolean showCursor, qboolean noColorEscape )
 {
-	Field_VariableSizeDraw( edit, x, y, width, SMALLCHAR_WIDTH, showCursor, noColorEscape );
+	Field_VariableSizeDraw( edit, x, y, width, smallchar_width, showCursor, noColorEscape );
 }
 
 
-void Field_BigDraw( field_t *edit, int x, int y, int width, qboolean showCursor, qboolean noColorEscape ) 
+void Field_BigDraw( field_t *edit, int x, int y, int width, qboolean showCursor, qboolean noColorEscape )
 {
-	Field_VariableSizeDraw( edit, x, y, width, BIGCHAR_WIDTH, showCursor, noColorEscape );
+	Field_VariableSizeDraw( edit, x, y, width, bigchar_width, showCursor, noColorEscape );
 }
 
 
@@ -178,7 +178,7 @@ void Field_BigDraw( field_t *edit, int x, int y, int width, qboolean showCursor,
 Field_Paste
 ================
 */
-void Field_Paste( field_t *edit ) {
+static void Field_Paste( field_t *edit ) {
 	char	*cbd;
 	int		pasteLen, i;
 
@@ -208,7 +208,7 @@ in-game talk, and menu fields
 Key events are used for non-printable characters, others are gotten from char events.
 =================
 */
-void Field_KeyDownEvent( field_t *edit, int key ) {
+static void Field_KeyDownEvent( field_t *edit, int key ) {
 	int		len;
 
 	// shift-insert is paste
@@ -359,10 +359,10 @@ Console_Key
 Handles history and console scrollback
 ====================
 */
-void Console_Key (int key) {
+static void Console_Key( int key ) {
 	// ctrl-L clears screen
 	if ( key == 'l' && keys[K_CTRL].down ) {
-		Cbuf_AddText ("clear\n");
+		Cbuf_AddText( "clear\n" );
 		return;
 	}
 
@@ -373,7 +373,7 @@ void Console_Key (int key) {
 		// if not in the game explicitly prepend a slash if needed
 		if ( cls.state != CA_ACTIVE 
 			&& g_consoleField.buffer[0] != '\0'
-			&& g_consoleField.buffer[0] != '\\' 
+			&& g_consoleField.buffer[0] != '\\'
 			&& g_consoleField.buffer[0] != '/' ) {
 			char	temp[MAX_EDIT_LINE-1];
 
@@ -382,20 +382,20 @@ void Console_Key (int key) {
 			g_consoleField.cursor++;
 		}
 
-		Com_Printf ( "]%s\n", g_consoleField.buffer );
+		Com_Printf( "]%s\n", g_consoleField.buffer );
 
 		// leading slash is an explicit command
 		if ( g_consoleField.buffer[0] == '\\' || g_consoleField.buffer[0] == '/' ) {
 			Cbuf_AddText( g_consoleField.buffer+1 );	// valid command
-			Cbuf_AddText ("\n");
+			Cbuf_AddText( "\n" );
 		} else {
 			// other text will be chat messages
 			if ( !g_consoleField.buffer[0] ) {
 				return;	// empty lines just scroll the console without adding to history
 			} else {
-				Cbuf_AddText ("cmd say ");
+				Cbuf_AddText( "cmd say " );
 				Cbuf_AddText( g_consoleField.buffer );
-				Cbuf_AddText ("\n");
+				Cbuf_AddText( "\n" );
 			}
 		}
 
@@ -465,7 +465,7 @@ void Console_Key (int key) {
 		if ( keys[K_CTRL].down ) {	// hold <ctrl> to accelerate scrolling
 			Con_PageUp( 4 );
 		} else {
-			Con_PageUp( 1 );		
+			Con_PageUp( 1 );
 		}
 		return;
 	}
@@ -474,7 +474,7 @@ void Console_Key (int key) {
 		if ( keys[K_CTRL].down ) {	// hold <ctrl> to accelerate scrolling
 			Con_PageDown( 4 );
 		} else {
-			Con_PageDown( 1 );		
+			Con_PageDown( 1 );
 		}
 		return;
 	}
@@ -505,7 +505,7 @@ Message_Key
 In game talk message
 ================
 */
-void Message_Key( int key ) {
+static void Message_Key( int key ) {
 
 	char	buffer[MAX_STRING_CHARS];
 

@@ -41,7 +41,7 @@ static qboolean shader_allowCompress;
 
 // ydnar: these are here because they are only referenced while parsing a shader
 static char implicitMap[ MAX_QPATH ];
-static unsigned implicitStateBits;
+static GLbitfield implicitStateBits;
 static cullType_t implicitCullType;
 
 #define FILE_HASH_SIZE      4096
@@ -592,7 +592,7 @@ ParseStage
 static qboolean ParseStage( shaderStage_t *stage, const char **text )
 {
 	char *token;
-	int depthMaskBits = GLS_DEPTHMASK_TRUE, blendSrcBits = 0, blendDstBits = 0, atestBits = 0, depthFuncBits = 0;
+	/*GLbitfield*/int depthMaskBits = GLS_DEPTHMASK_TRUE, blendSrcBits = 0, blendDstBits = 0, atestBits = 0, depthFuncBits = 0;
 	qboolean depthMaskExplicit = qfalse;
 
 	stage->active = qtrue;
@@ -2361,12 +2361,13 @@ done:
 	return;
 }
 
-typedef struct {
-	int blendA;
-	int blendB;
 
-	int multitextureEnv;
-	int multitextureBlend;
+typedef struct {
+	/*GLbitfield*/int blendA;
+	/*GLbitfield*/int blendB;
+
+	/*GLbitfield*/int multitextureEnv;
+	/*GLbitfield*/int multitextureBlend;
 } collapse_t;
 
 static collapse_t collapse[] = {
@@ -2397,8 +2398,10 @@ static collapse_t collapse[] = {
 	{ 0, GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA | GLS_SRCBLEND_SRC_ALPHA,
 	  GL_DECAL, 0 },
 #endif
-	{ -1 }
+	//{ 0xFFFFFFFFu/*-1*/ }
 };
+
+static const size_t numCollapse = ARRAY_LEN( collapse );
 
 /*
 ================
@@ -2408,8 +2411,8 @@ Attempt to combine two stages into a single multitexture stage
 FIXME: I think modulated add + modulated add collapses incorrectly
 =================
 */
-static qboolean CollapseMultitexture( void ) {
-	int abits, bbits;
+static qboolean CollapseMultitexture( shaderStage_t *st0, shaderStage_t *st1, int num_stages ) {
+	/*GLbitfield*/int abits, bbits;
 	int i;
 	textureBundle_t tmpBundle;
 
@@ -2418,24 +2421,24 @@ static qboolean CollapseMultitexture( void ) {
 	}
 
 	// make sure both stages are active
-	if ( !stages[0].active || !stages[1].active ) {
+	if ( !st0->active || !st1->active ) {
 		return qfalse;
 	}
 
 	// on voodoo2, don't combine different tmus
 	if ( glConfig.driverType == GLDRV_VOODOO ) {
-		if ( stages[0].bundle[0].image[0]->TMU ==
-			 stages[1].bundle[0].image[0]->TMU ) {
+		if ( st0->bundle[0].image[0]->TMU ==
+			 st1->bundle[0].image[0]->TMU ) {
 			return qfalse;
 		}
 	}
 
-	abits = stages[0].stateBits;
-	bbits = stages[1].stateBits;
+	abits = st0->stateBits;
+	bbits = st1->stateBits;
 
 	// make sure that both stages have identical state other than blend modes
 	if ( ( abits & ~( GLS_DSTBLEND_BITS | GLS_SRCBLEND_BITS | GLS_DEPTHMASK_TRUE ) ) !=
-		 ( bbits & ~( GLS_DSTBLEND_BITS | GLS_SRCBLEND_BITS | GLS_DEPTHMASK_TRUE ) ) ) {
+		( bbits & ~( GLS_DSTBLEND_BITS | GLS_SRCBLEND_BITS | GLS_DEPTHMASK_TRUE ) ) ) {
 		return qfalse;
 	}
 
@@ -2443,15 +2446,15 @@ static qboolean CollapseMultitexture( void ) {
 	bbits &= ( GLS_DSTBLEND_BITS | GLS_SRCBLEND_BITS );
 
 	// search for a valid multitexture blend function
-	for ( i = 0; collapse[i].blendA != -1 ; i++ ) {
+	for ( i = 0; i < numCollapse/*collapse[i].blendA != -1*/ ; i++ ) {
 		if ( abits == collapse[i].blendA
-			 && bbits == collapse[i].blendB ) {
+			&& bbits == collapse[i].blendB ) {
 			break;
 		}
 	}
 
 	// nothing found
-	if ( collapse[i].blendA == -1 ) {
+	if ( i == numCollapse/*collapse[i].blendA == -1*/ ) {
 		return qfalse;
 	}
 
@@ -2461,55 +2464,62 @@ static qboolean CollapseMultitexture( void ) {
 	}
 
 	// make sure waveforms have identical parameters
-	if ( ( stages[0].rgbGen != stages[1].rgbGen ) ||
-		 ( stages[0].alphaGen != stages[1].alphaGen ) ) {
+	if ( ( st0->rgbGen != st1->rgbGen ) || ( st0->alphaGen != st1->alphaGen ) ) {
 		return qfalse;
 	}
 
 	// an add collapse can only have identity colors
-	if ( collapse[i].multitextureEnv == GL_ADD && stages[0].rgbGen != CGEN_IDENTITY ) {
+	if ( collapse[i].multitextureEnv == GL_ADD && st0->rgbGen != CGEN_IDENTITY ) {
 		return qfalse;
 	}
 
-	if ( stages[0].rgbGen == CGEN_WAVEFORM ) {
-		if ( memcmp( &stages[0].rgbWave,
-					 &stages[1].rgbWave,
-					 sizeof( stages[0].rgbWave ) ) ) {
-			return qfalse;
-		}
-	}
-	if ( stages[0].alphaGen == AGEN_WAVEFORM ) {
-		if ( memcmp( &stages[0].alphaWave,
-					 &stages[1].alphaWave,
-					 sizeof( stages[0].alphaWave ) ) ) {
+	if ( st0->rgbGen == CGEN_WAVEFORM )
+	{
+		if ( memcmp( &st0->rgbWave, &st1->rgbWave, sizeof( stages[0].rgbWave ) ) )
+		{
 			return qfalse;
 		}
 	}
 
+	if ( st0->alphaGen == AGEN_WAVEFORM )
+	{
+		if ( memcmp( &st0->alphaWave, &st1->alphaWave, sizeof( stages[0].alphaWave ) ) )
+		{
+			return qfalse;
+		}
+	}
 
 	// make sure that lightmaps are in bundle 1 for 3dfx
-	if ( stages[0].bundle[0].isLightmap ) {
-		tmpBundle = stages[0].bundle[0];
-		stages[0].bundle[0] = stages[1].bundle[0];
-		stages[0].bundle[1] = tmpBundle;
-	} else
+	if ( st0->bundle[0].isLightmap )
 	{
-		stages[0].bundle[1] = stages[1].bundle[0];
+		tmpBundle = st0->bundle[0];
+		st0->bundle[0] = st1->bundle[0];
+		st0->bundle[1] = tmpBundle;
+	}
+	else
+	{
+		st0->bundle[1] = st1->bundle[0];
 	}
 
 	// set the new blend state bits
-	shader.multitextureEnv = collapse[i].multitextureEnv;
-	stages[0].stateBits &= ~( GLS_DSTBLEND_BITS | GLS_SRCBLEND_BITS );
-	stages[0].stateBits |= collapse[i].multitextureBlend;
+	shader.multitextureEnv = qtrue;
+	st0->mtEnv = collapse[i].multitextureEnv;
+	st0->stateBits &= ~( GLS_DSTBLEND_BITS | GLS_SRCBLEND_BITS );
+	st0->stateBits |= collapse[i].multitextureBlend;
 
 	//
 	// move down subsequent shaders
 	//
-	memmove( &stages[1], &stages[2], sizeof( stages[0] ) * ( MAX_SHADER_STAGES - 2 ) );
-	memset( &stages[MAX_SHADER_STAGES - 1], 0, sizeof( stages[0] ) );
+	if ( num_stages > 2 )
+	{
+		memmove( st1, st1+1, sizeof( stages[0] ) * ( num_stages - 2 ) );
+	} 
+
+	Com_Memset( st0 + num_stages - 1, 0, sizeof( stages[0] ) );
 
 	return qtrue;
 }
+
 
 /*
 =============
@@ -2612,6 +2622,7 @@ static void FixRenderCommandList( int newShader ) {
 	}
 }
 
+
 /*
 ==============
 SortNewShader
@@ -2667,12 +2678,6 @@ static shader_t *GeneratePermanentShader( void ) {
 	newShader = R_CacheShaderAlloc( shader.lightmapIndex < 0 ? va( "%s lm: %i", shader.name, shader.lightmapIndex ) : NULL, sizeof( shader_t ) );
 
 	*newShader = shader;
-
-	if ( shader.sort <= SS_SEE_THROUGH ) {  // ydnar: was SS_DECAL, this allows grates to be fogged
-		newShader->fogPass = FP_EQUAL;
-	} else if ( shader.contentFlags & CONTENTS_FOG ) {
-		newShader->fogPass = FP_LE;
-	}
 
 	tr.shaders[ tr.numShaders ] = newShader;
 	newShader->index = tr.numShaders;
@@ -2760,12 +2765,14 @@ void FindLightingStages( shader_t *sh )
 	}
 
 	// check for collapsed multitexture with lightmap in first bundle
-	if ( sh->lightingStage == -1 && i == 1 && sh->multitextureEnv == GL_MODULATE ) {
+	if ( sh->lightingStage == -1 && i == 1 /*&& sh->multitextureEnv == GL_MODULATE*/ ) {
 		st = sh->stages[ 0 ];
-		if ( !st->bundle[0].isLightmap && st->bundle[1].image[0] && st->rgbGen == CGEN_IDENTITY ) {
-			if ( st->bundle[0].tcGen == TCGEN_LIGHTMAP && st->bundle[1].tcGen == TCGEN_TEXTURE ) {
-				sh->lightingStage = 0;
-				sh->lightingBundle = 1; // select second bundle for lighting pass
+		if ( st->mtEnv == GL_MODULATE ) {
+			if ( !st->bundle[0].isLightmap && st->bundle[1].image[0] && st->rgbGen == CGEN_IDENTITY ) {
+				if ( st->bundle[0].tcGen == TCGEN_LIGHTMAP && st->bundle[1].tcGen == TCGEN_TEXTURE ) {
+					sh->lightingStage = 0;
+					sh->lightingBundle = 1; // select second bundle for lighting pass
+				}
 			}
 		}
 	}
@@ -3023,8 +3030,8 @@ from the current global working shader
 =========================
 */
 static shader_t *FinishShader( void ) {
-	int stage;// , i;
-	qboolean hasLightmapStage;
+	int			stage, i;
+	qboolean	hasLightmapStage;
 
 	hasLightmapStage = qfalse;
 
@@ -3052,7 +3059,7 @@ static shader_t *FinishShader( void ) {
 			break;
 		}
 
-    // check for a missing texture
+		// check for a missing texture
 		if ( !pStage->bundle[0].image[0] ) {
 			ri.Printf( PRINT_WARNING, "Shader %s has a stage with no image\n", shader.name );
 			pStage->active = qfalse;
@@ -3100,7 +3107,6 @@ static shader_t *FinishShader( void ) {
 			}
 		}
 
-
 		// not a true lightmap but we want to leave existing
 		// behaviour in place and not print out a warning
 		//if (pStage->rgbGen == CGEN_VERTEX) {
@@ -3114,8 +3120,8 @@ static shader_t *FinishShader( void ) {
 		//
 		if ( ( pStage->stateBits & ( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) ) &&
 			 ( stages[0].stateBits & ( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) ) ) {
-			int blendSrcBits = pStage->stateBits & GLS_SRCBLEND_BITS;
-			int blendDstBits = pStage->stateBits & GLS_DSTBLEND_BITS;
+			/*GLbitfield*/int blendSrcBits = pStage->stateBits & GLS_SRCBLEND_BITS;
+			/*GLbitfield*/int blendDstBits = pStage->stateBits & GLS_DSTBLEND_BITS;
 
 			// fog color adjustment only works for blend modes that have a contribution
 			// that aproaches 0 as the modulate values aproach 0 --
@@ -3125,19 +3131,22 @@ static shader_t *FinishShader( void ) {
 
 			// modulate, additive
 			if ( ( ( blendSrcBits == GLS_SRCBLEND_ONE ) && ( blendDstBits == GLS_DSTBLEND_ONE ) ) ||
-				 ( ( blendSrcBits == GLS_SRCBLEND_ZERO ) && ( blendDstBits == GLS_DSTBLEND_ONE_MINUS_SRC_COLOR ) ) ) {
+				( ( blendSrcBits == GLS_SRCBLEND_ZERO ) && ( blendDstBits == GLS_DSTBLEND_ONE_MINUS_SRC_COLOR ) ) ) {
 				pStage->adjustColorsForFog = ACFF_MODULATE_RGB;
 			}
 			// strict blend
-			else if ( ( blendSrcBits == GLS_SRCBLEND_SRC_ALPHA ) && ( blendDstBits == GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA ) ) {
+			else if ( ( blendSrcBits == GLS_SRCBLEND_SRC_ALPHA ) && ( blendDstBits == GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA ) )
+			{
 				pStage->adjustColorsForFog = ACFF_MODULATE_ALPHA;
 			}
 			// premultiplied alpha
-			else if ( ( blendSrcBits == GLS_SRCBLEND_ONE ) && ( blendDstBits == GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA ) ) {
+			else if ( ( blendSrcBits == GLS_SRCBLEND_ONE ) && ( blendDstBits == GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA ) )
+			{
 				pStage->adjustColorsForFog = ACFF_MODULATE_RGBA;
 			}
 			// ydnar: zero + blended alpha, one + blended alpha
-			else if ( blendSrcBits == GLS_SRCBLEND_SRC_ALPHA || blendDstBits == GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA ) {
+			else if ( blendSrcBits == GLS_SRCBLEND_SRC_ALPHA || blendDstBits == GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA )
+			{
 				pStage->adjustColorsForFog = ACFF_MODULATE_ALPHA;
 			} else {
 				// we can't adjust this one correctly, so it won't be exactly correct in fog
@@ -3164,7 +3173,7 @@ static shader_t *FinishShader( void ) {
 	}
 
 	//
-	// if we are using permedia hw, never use a lightmap texture
+	// if we are using permedia hw,	 never use a lightmap texture
 	//
 	// NERVE - SMF - temp fix, terrain is having problems with lighting collapse
 	if ( 0 && ( stage > 1 && ( glConfig.hardwareType == GLHW_PERMEDIA2 ) ) ) {
@@ -3176,8 +3185,10 @@ static shader_t *FinishShader( void ) {
 	//
 	// look for multitexture potential
 	//
-	if ( stage > 1 && CollapseMultitexture() ) {
-		stage--;
+	for ( i = 0; i < stage-1; i++ ) {
+		if ( CollapseMultitexture( &stages[i+0], &stages[i+1], stage-i ) ) {
+			stage--;
+		}
 	}
 
 	if ( shader.lightmapIndex >= 0 && !hasLightmapStage ) {
@@ -3194,6 +3205,12 @@ static shader_t *FinishShader( void ) {
 	// fogonly shaders don't have any normal passes
 	if ( stage == 0 && !shader.isSky )
 		shader.sort = SS_FOG;
+
+	if ( shader.sort <= SS_SEE_THROUGH ) {  // ydnar: was SS_DECAL, this allows grates to be fogged
+		shader.fogPass = FP_EQUAL;
+	} else if ( shader.contentFlags & CONTENTS_FOG ) {
+		shader.fogPass = FP_LE;
+	}
 
 	// determine which stage iterator function is appropriate
 	ComputeStageIteratorFunc();
@@ -3539,14 +3556,14 @@ most world construction surfaces.
 ===============
 */
 shader_t *R_FindShader( const char *name, int lightmapIndex, qboolean mipRawImage ) {
-	char strippedName[MAX_QPATH];
-	char fileName[MAX_QPATH];
-	int i, hash;
+	char		strippedName[MAX_QPATH];
+	char		fileName[MAX_QPATH];
+	int			hash;
 	const char	*shaderText;
-	image_t     *image;
-	shader_t    *sh;
+	image_t		*image;
+	shader_t	*sh;
 
-	if ( name[0] == 0 ) {
+	if ( name[0] == '\0' ) {
 		return tr.defaultShader;
 	}
 
@@ -3606,14 +3623,7 @@ shader_t *R_FindShader( const char *name, int lightmapIndex, qboolean mipRawImag
 	}
 	// done.
 
-	// clear the global shader
-	memset( &shader, 0, sizeof( shader ) );
-	memset( &stages, 0, sizeof( stages ) );
-	Q_strncpyz( shader.name, strippedName, sizeof( shader.name ) );
-	shader.lightmapIndex = lightmapIndex;
-	for ( i = 0 ; i < MAX_SHADER_STAGES ; i++ ) {
-		stages[i].bundle[0].texMods = texMods[i];
-	}
+	InitShader( strippedName, lightmapIndex );
 
 	if ( r_ext_compressed_textures->integer == 2 ) {
 		// if the shader hasn't specifically asked for it, don't allow compression
@@ -3633,7 +3643,9 @@ shader_t *R_FindShader( const char *name, int lightmapIndex, qboolean mipRawImag
 	implicitStateBits = GLS_DEFAULT;
 	implicitCullType = CT_FRONT_SIDED;
 
+	//
 	// attempt to define shader from an explicit parameter file
+	//
 	shaderText = FindShaderInShaderText( strippedName );
 	if ( shaderText ) {
 		// enable this when building a pak file to get a global list
@@ -3671,8 +3683,10 @@ shader_t *R_FindShader( const char *name, int lightmapIndex, qboolean mipRawImag
 		shader.noPicMip = qtrue;
 	}
 
+	//
 	// if not defined in the in-memory shader descriptions,
 	// look for a single supported image file
+	//
 	{
 		imgFlags_t flags;
 
@@ -3703,7 +3717,7 @@ shader_t *R_FindShader( const char *name, int lightmapIndex, qboolean mipRawImag
 
 
 qhandle_t RE_RegisterShaderFromImage( const char *name, int lightmapIndex, image_t *image, qboolean mipRawImage ) {
-	int i, hash;
+	int hash;
 	shader_t    *sh;
 
 	hash = generateHashValue(name, FILE_HASH_SIZE);
@@ -3724,14 +3738,7 @@ qhandle_t RE_RegisterShaderFromImage( const char *name, int lightmapIndex, image
 		}
 	}
 
-	// clear the global shader
-	Com_Memset( &shader, 0, sizeof( shader ) );
-	Com_Memset( &stages, 0, sizeof( stages ) );
-	Q_strncpyz( shader.name, name, sizeof( shader.name ) );
-	shader.lightmapIndex = lightmapIndex;
-	for ( i = 0 ; i < MAX_SHADER_STAGES ; i++ ) {
-		stages[i].bundle[0].texMods = texMods[i];
-	}
+	InitShader( name, lightmapIndex );
 
 	// FIXME: set these "need" values apropriately
 	shader.needsNormal = qtrue;
@@ -3743,6 +3750,7 @@ qhandle_t RE_RegisterShaderFromImage( const char *name, int lightmapIndex, image
 	SetImplicitShaderStages( image );
 
 	sh = FinishShader();
+
 	return sh->index;
 }
 
@@ -3905,6 +3913,8 @@ void	R_ShaderList_f (void) {
 			ri.Printf( PRINT_ALL, "MT(m) " );
 		} else if ( sh->multitextureEnv == GL_DECAL ) {
 			ri.Printf( PRINT_ALL, "MT(d) " );
+		} else if ( sh->multitextureEnv ) {
+			ri.Printf( PRINT_ALL, "MT(x) " ); // TODO: per-stage statistics?
 		} else {
 			ri.Printf( PRINT_ALL, "      " );
 		}
@@ -3938,9 +3948,9 @@ void	R_ShaderList_f (void) {
 }
 
 
-#define	MAX_SHADER_FILES	4096
+#define	MAX_SHADER_FILES 16384
 
-static int loadShaderBuffers( char **shaderFiles, const int numShaderFiles, char *buffers[ MAX_SHADER_FILES ] )
+static int loadShaderBuffers( char **shaderFiles, const int numShaderFiles, char **buffers )
 {
 	char filename[MAX_QPATH+8];
 	char shaderName[MAX_QPATH];
@@ -4182,12 +4192,7 @@ static void CreateInternalShaders( void ) {
 	tr.numShaders = 0;
 
 	// init the default shader
-	memset( &shader, 0, sizeof( shader ) );
-	memset( &stages, 0, sizeof( stages ) );
-
-	Q_strncpyz( shader.name, "<default>", sizeof( shader.name ) );
-
-	shader.lightmapIndex = LIGHTMAP_NONE;
+	InitShader( "<default>", LIGHTMAP_NONE );
 	stages[0].bundle[0].image[0] = tr.defaultImage;
 	stages[0].active = qtrue;
 	stages[0].stateBits = GLS_DEFAULT;

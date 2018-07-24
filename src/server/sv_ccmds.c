@@ -161,22 +161,25 @@ static void SV_Map_f( void ) {
 	char        *cmd;
 	char        *map;
 	char mapname[MAX_QPATH];
-	qboolean killBots, cheat, buildScript;
+	qboolean killBots, cheat;
 	char expanded[MAX_QPATH];
 	const char *cl_profileStr = Cvar_VariableString( "cl_profile" );
+	int			len;
 
 	map = Cmd_Argv(1);
 	if ( !map || !*map ) {
 		return;
 	}
 
-	buildScript = Cvar_VariableIntegerValue( "com_buildScript" );
-
 	// make sure the level exists before trying to change, so that
 	// a typo at the server console won't end the game
-	Com_sprintf (expanded, sizeof(expanded), "maps/%s.bsp", map);
-	if ( FS_ReadFile (expanded, NULL) == -1 ) {
-		Com_Printf ("Can't find map %s\n", expanded);
+	Com_sprintf( expanded, sizeof( expanded ), "maps/%s.bsp", map );
+	// bypass pure check so we can open downloaded map
+	FS_BypassPure();
+	len = FS_FOpenFileRead( expanded, NULL, qfalse );
+	FS_RestorePure();
+	if ( len == -1 ) {
+		Com_Printf( "Can't find map %s\n", expanded );
 		return;
 	}
 
@@ -1376,11 +1379,18 @@ Examine the wolfinfo string
 */
 static void SV_Wolfinfo_f( void ) {
 	const char *info;
+	const char *gamedir = Cvar_VariableString( "fs_game" );
+
 	// make sure server is running
 	if ( !com_sv_running->integer ) {
 		Com_Printf( "Server is not running.\n" );
 		return;
 	}
+
+	// WOLFINFO cvars are unused in ETF
+	if ( !Q_stricmp( gamedir, "etf" ) )
+		return;
+
 	Com_Printf( "Wolf info settings:\n" );
 	info = sv.configstrings[CS_WOLFINFO];
 	if ( info ) {

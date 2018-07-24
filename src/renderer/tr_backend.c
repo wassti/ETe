@@ -181,7 +181,7 @@ void GL_Cull( int cullType ) {
 /*
 ** GL_TexEnv
 */
-void GL_TexEnv( int env )
+void GL_TexEnv( GLint env )
 {
 	if ( env == glState.texEnv[glState.currenttmu] )
 	{
@@ -190,20 +190,13 @@ void GL_TexEnv( int env )
 
 	glState.texEnv[glState.currenttmu] = env;
 
-
 	switch ( env )
 	{
 	case GL_MODULATE:
-		qglTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );
-		break;
 	case GL_REPLACE:
-		qglTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE );
-		break;
 	case GL_DECAL:
-		qglTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL );
-		break;
 	case GL_ADD:
-		qglTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_ADD );
+		qglTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, env );
 		break;
 	default:
 		ri.Error( ERR_DROP, "GL_TexEnv: invalid env '%d' passed", env );
@@ -447,13 +440,14 @@ to actually render the visible surfaces for this view
 =================
 */
 static void RB_BeginDrawingView( void ) {
-	int clearBits = 0;
+	GLbitfield clearBits = 0;
 
 	// sync with gl if needed
 	if ( r_finish->integer == 1 && !glState.finishCalled ) {
 		qglFinish();
 		glState.finishCalled = qtrue;
 	}
+
 	if ( r_finish->integer == 0 ) {
 		glState.finishCalled = qtrue;
 	}
@@ -1107,8 +1101,9 @@ void RE_StretchRaw( int x, int y, int w, int h, int cols, int rows, const byte *
 		VBO_UnBind();
 	}
 
-	// sync with gl if needed
-	if ( r_finish->integer == 1 ) {
+	if ( backEnd.doneSurfaces ) {
+		// make sure that we rendered some surfaces before
+		// otherwise some (Intel GMA) drivers may stuck between two consecutive glFinish calls
 		qglFinish();
 	}
 
@@ -1524,7 +1519,6 @@ static const void *RB_StretchPicGradient( const void *data ) {
 /*
 =============
 RB_DrawSurfs
-
 =============
 */
 static const void *RB_DrawSurfs( const void *data ) {
@@ -1625,9 +1619,7 @@ void RB_ShowImages( void ) {
 
 	qglClear( GL_COLOR_BUFFER_BIT );
 
-	if ( r_finish->integer == 1 ) {
-		qglFinish();
-	}
+	qglFinish();
 
 	start = ri.Milliseconds();
 
@@ -1659,9 +1651,7 @@ void RB_ShowImages( void ) {
 		qglEnd();
 	}
 
-	if ( r_finish->integer == 1 ) {
-		qglFinish();
-	}
+	qglFinish();
 
 	end = ri.Milliseconds();
 	ri.Printf( PRINT_ALL, "%i msec to draw all images\n", end - start );
@@ -1714,14 +1704,24 @@ static const void *RB_FinishBloom( const void *data )
 {
 	const finishBloomCommand_t *cmd = data;
 
-	if ( r_bloom->integer && fboEnabled )
+	if ( fboEnabled )
 	{
-		if ( !backEnd.doneBloom && backEnd.doneSurfaces )
+		// let's always render console with the same quality
+		if ( blitMSfbo )
 		{
-			if ( !backEnd.projection2D )
-				RB_SetGL2D();
-			qglColor4f( 1, 1, 1, 1 );
-			FBO_Bloom( 0, 0, qfalse );
+			FBO_BlitMS( qfalse );
+			blitMSfbo = qfalse;
+		}
+
+		if ( r_bloom->integer )
+		{
+			if ( !backEnd.doneBloom && backEnd.doneSurfaces )
+			{
+				if ( !backEnd.projection2D )
+					RB_SetGL2D();
+				qglColor4f( 1, 1, 1, 1 );
+				FBO_Bloom( 0, 0, qfalse );
+			}
 		}
 	}
 
@@ -1747,11 +1747,13 @@ static const void *RB_SwapBuffers( const void *data ) {
 
 	cmd = (const swapBuffersCommand_t *)data;
 
-	if ( r_finish->integer == 1 && !glState.finishCalled ) {
+	if ( backEnd.doneSurfaces && !glState.finishCalled ) {
 		qglFinish();
 	}
 
-	FBO_PostProcess();
+	if ( fboEnabled ) {
+		FBO_PostProcess();
+	}
 
 	if ( backEnd.screenshotMask && tr.frameCount > 1 ) {
 

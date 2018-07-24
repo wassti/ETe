@@ -369,9 +369,6 @@ static void R_LoadLightmaps( const lump_t *l ) {
 	}
 	buf = fileBase + l->fileofs;
 
-	// we are about to upload textures
-	R_IssuePendingRenderCommands();
-
 	// create all the lightmaps
 	tr.numLightmaps = len / (LIGHTMAP_SIZE * LIGHTMAP_SIZE * 3);
 	if ( tr.numLightmaps == 1 ) {
@@ -384,6 +381,9 @@ static void R_LoadLightmaps( const lump_t *l ) {
 	if ( glConfig.hardwareType == GLHW_PERMEDIA2 ) {
 		return;
 	}
+
+	// we are about to upload textures
+	R_IssuePendingRenderCommands();
 
 	for ( i = 0 ; i < tr.numLightmaps ; i++ ) {
 		// expand the 24 bit on-disk to 32 bit
@@ -489,7 +489,7 @@ static shader_t *ShaderForShaderNum( int shaderNum, int lightmapNum ) {
 // memory block for use by surfaces
 static byte *surfHunkPtr;
 static int surfHunkSize;
-#define SURF_HUNK_MAXSIZE 0x40000
+#define SURF_HUNK_MAXSIZE (0x40000)
 #define LL( x ) LittleLong( x )
 
 /*
@@ -512,7 +512,7 @@ void *R_GetSurfMemory( int size ) {
 	byte *retval;
 
 	// round to cacheline
-	size = ( size + 31 ) & ~31;
+	size = PAD( size, 32 );
 
 	surfHunkSize += size;
 	if ( surfHunkSize >= SURF_HUNK_MAXSIZE ) {
@@ -813,11 +813,11 @@ static void ParseTriSurf( dsurface_t *ds, drawVert_t *verts, msurface_t *surf, i
 }
 #else
 static void ParseTriSurf( const dsurface_t *ds, const drawVert_t *verts, msurface_t *surf, int *indexes ) {
-	srfTriangles_t      *tri;
-	int i, j;
-	int numVerts, numIndexes;
-	int lightmapNum;
-
+	srfTriangles_t	*tri;
+	int				i, j;
+	int				numVerts, numIndexes;
+	int				lightmapNum;
+	//float			lightmapX, lightmapY;
 
 	// get lightmap num
 	lightmapNum = LittleLong( ds->lightmapNum );
@@ -830,6 +830,15 @@ static void ParseTriSurf( const dsurface_t *ds, const drawVert_t *verts, msurfac
 	if ( r_singleShader->integer && !surf->shader->isSky ) {
 		surf->shader = tr.defaultShader;
 	}
+
+/*	if ( lightmapNum >= 0 && r_mergeLightmaps->integer ) {
+		lightmapNum = GetLightmapCoords( lightmapNum, &lightmapX, &lightmapY );
+	} else*/ {
+		//lightmapX = lightmapY = 0;
+	}
+
+	//surf->shader->lightmapOffset[0] = lightmapX;
+	//surf->shader->lightmapOffset[1] = lightmapY;
 
 	numVerts = LittleLong( ds->numVerts );
 	numIndexes = LittleLong( ds->numIndexes );
@@ -862,6 +871,11 @@ static void ParseTriSurf( const dsurface_t *ds, const drawVert_t *verts, msurfac
 		}
 
 		R_ColorShiftLightingBytes( verts[i].color, tri->verts[i].color );
+		/*if ( lightmapNum >= 0 && r_mergeLightmaps->integer ) {
+			// adjust lightmap coords
+			tri->verts[i].lightmap[0] = tri->verts[i].lightmap[0] * tr.lightmapScale[0] + lightmapX;
+			tri->verts[i].lightmap[1] = tri->verts[i].lightmap[1] * tr.lightmapScale[1] + lightmapY;
+		}*/
 	}
 
 	// copy indexes
@@ -1829,7 +1843,6 @@ static void R_LoadSurfaces( const lump_t *surfs, const lump_t *verts, const lump
 }
 
 
-
 /*
 =================
 R_LoadSubmodels
@@ -1859,7 +1872,7 @@ static void R_LoadSubmodels( const lump_t *l ) {
 			ri.Error(ERR_DROP, "R_LoadSubmodels: R_AllocModel() failed");
 		}
 
-		model->type = MOD_BRUSH;
+		model->type = MOD_BRUSH; //-V1004
 		model->model.bmodel = out;
 		Com_sprintf( model->name, sizeof( model->name ), "*%d", i );
 
@@ -2028,6 +2041,7 @@ static void R_LoadNodesAndLeafs( const lump_t *nodeLump, const lump_t *leafLump 
 }
 
 //=============================================================================
+
 
 /*
 =================

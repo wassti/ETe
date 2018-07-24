@@ -581,8 +581,14 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 		}
 	}
 
+#ifndef DEDICATED
+	// remove pure paks that may left from client-side
+	FS_PureServerSetLoadedPaks( "", "" );
+	FS_PureServerSetReferencedPaks( "", "" );
+#endif
+
 	// clear pak references
-	FS_ClearPakReferences(0);
+	FS_ClearPakReferences( 0 );
 
 	// allocate the snapshot entities on the hunk
 	svs.snapshotEntities = Hunk_Alloc( sizeof(entityState_t)*svs.numSnapshotEntities, h_high );
@@ -598,6 +604,17 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 	// by the game startup or another console command
 	Cvar_Set( "nextmap", "map_restart 0" );
 //	Cvar_Set( "nextmap", va("map %s", server) );
+
+	// try to reset level time if server is empty
+	if ( !sv_levelTimeReset->integer && !sv.restartTime ) {
+		for ( i = 0; i < sv_maxclients->integer; i++ ) {
+			if ( svs.clients[ i ].state != CS_FREE )
+				break;
+		}
+		if ( i == sv_maxclients->integer ) {
+			sv.time = 0;
+		}
+	}
 
 	for ( i = 0; i < sv_maxclients->integer; i++ ) {
 		// save when the server started for each client already connected
@@ -797,11 +814,9 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 
 	Hunk_SetMark();
 
-	///SV_UpdateConfigStrings();
-
 	Cvar_Set( "sv_serverRestarting", "0" );
 
-	Com_Printf( "-----------------------------------\n" );
+	Com_Printf ("-----------------------------------\n");
 
 	Sys_SetStatus( "Running map %s", mapname );
 }

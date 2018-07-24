@@ -76,7 +76,7 @@ RB_AddQuadStampFadingCornersExt
   Creates a sprite with the center at colors[3] alpha, and the corners all 0 alpha
 ==============
 */
-void RB_AddQuadStampFadingCornersExt( vec3_t origin, vec3_t left, vec3_t up, byte *color, float s1, float t1, float s2, float t2 ) {
+void RB_AddQuadStampFadingCornersExt( const vec3_t origin, const vec3_t left, const vec3_t up, const byte *color, float s1, float t1, float s2, float t2 ) {
 	vec3_t normal;
 	int ndx;
 	byte lColor[4];
@@ -168,12 +168,13 @@ void RB_AddQuadStampFadingCornersExt( vec3_t origin, vec3_t left, vec3_t up, byt
 	tess.numIndexes += 12;
 }
 
+
 /*
 ==============
 RB_AddQuadStampExt
 ==============
 */
-void RB_AddQuadStampExt( vec3_t origin, vec3_t left, vec3_t up, byte *color, float s1, float t1, float s2, float t2 ) {
+void RB_AddQuadStampExt( const vec3_t origin, const vec3_t left, const vec3_t up, const byte *color, float s1, float t1, float s2, float t2 ) {
 	vec3_t		normal;
 	int			ndx;
 
@@ -214,9 +215,9 @@ void RB_AddQuadStampExt( vec3_t origin, vec3_t left, vec3_t up, byte *color, flo
 	// constant normal all the way around
 	VectorSubtract( vec3_origin, backEnd.viewParms.orientation.axis[0], normal );
 
-	tess.normal[ndx][0] = tess.normal[ndx + 1][0] = tess.normal[ndx + 2][0] = tess.normal[ndx + 3][0] = normal[0];
-	tess.normal[ndx][1] = tess.normal[ndx + 1][1] = tess.normal[ndx + 2][1] = tess.normal[ndx + 3][1] = normal[1];
-	tess.normal[ndx][2] = tess.normal[ndx + 1][2] = tess.normal[ndx + 2][2] = tess.normal[ndx + 3][2] = normal[2];
+	tess.normal[ndx][0] = tess.normal[ndx+1][0] = tess.normal[ndx+2][0] = tess.normal[ndx+3][0] = normal[0];
+	tess.normal[ndx][1] = tess.normal[ndx+1][1] = tess.normal[ndx+2][1] = tess.normal[ndx+3][1] = normal[1];
+	tess.normal[ndx][2] = tess.normal[ndx+1][2] = tess.normal[ndx+2][2] = tess.normal[ndx+3][2] = normal[2];
 
 	// standard square texture coordinates
 	tess.texCoords[ndx][0][0] = tess.texCoords[ndx][1][0] = s1;
@@ -233,23 +234,23 @@ void RB_AddQuadStampExt( vec3_t origin, vec3_t left, vec3_t up, byte *color, flo
 
 	// constant color all the way around
 	// should this be identity and let the shader specify from entity?
-	*( unsigned int * ) &tess.vertexColors[ndx] =
-		*( unsigned int * ) &tess.vertexColors[ndx + 1] =
-			*( unsigned int * ) &tess.vertexColors[ndx + 2] =
-				*( unsigned int * ) &tess.vertexColors[ndx + 3] =
-					*( unsigned int * )color;
-
+	* ( unsigned int * ) &tess.vertexColors[ndx] = 
+	* ( unsigned int * ) &tess.vertexColors[ndx+1] = 
+	* ( unsigned int * ) &tess.vertexColors[ndx+2] = 
+	* ( unsigned int * ) &tess.vertexColors[ndx+3] = 
+		* ( unsigned int * )color;
 
 	tess.numVertexes += 4;
 	tess.numIndexes += 6;
 }
+
 
 /*
 ==============
 RB_AddQuadStamp
 ==============
 */
-void RB_AddQuadStamp( vec3_t origin, vec3_t left, vec3_t up, byte *color ) {
+void RB_AddQuadStamp( const vec3_t origin, const vec3_t left, const vec3_t up, const byte *color ) {
 	RB_AddQuadStampExt( origin, left, up, color, 0, 0, 1, 1 );
 }
 
@@ -594,7 +595,6 @@ void RB_SurfaceFoliage( srfFoliage_t *srf ) {
 }
 
 
-
 /*
 ==============
 RB_SurfaceBeam
@@ -603,7 +603,7 @@ RB_SurfaceBeam
 static void RB_SurfaceBeam( void )
 {
 #define NUM_BEAM_SEGS 6
-	refEntity_t *e;
+	const refEntity_t *e;
 	int	i;
 	vec3_t perpvec;
 	vec3_t direction, normalized_direction;
@@ -720,6 +720,7 @@ static void DoRailCore( const vec3_t start, const vec3_t end, const vec3_t up, f
 	tess.indexes[tess.numIndexes++] = vbase + 3;
 }
 
+
 static void DoRailDiscs( int numSegs, const vec3_t start, const vec3_t dir, const vec3_t right, const vec3_t up )
 {
 	int i;
@@ -780,11 +781,12 @@ static void DoRailDiscs( int numSegs, const vec3_t start, const vec3_t dir, cons
 	}
 }
 
+
 /*
 ** RB_SurfaceRailRinges
 */
 static void RB_SurfaceRailRings( void ) {
-	refEntity_t *e;
+	const refEntity_t *e;
 	int			numSegs;
 	int			len;
 	vec3_t		vec;
@@ -810,11 +812,12 @@ static void RB_SurfaceRailRings( void ) {
 	DoRailDiscs( numSegs, start, vec, right, up );
 }
 
+
 /*
 ** RB_SurfaceRailCore
 */
 static void RB_SurfaceRailCore( void ) {
-	refEntity_t *e;
+	const refEntity_t *e;
 	int			len;
 	vec3_t		right;
 	vec3_t		vec;
@@ -840,11 +843,12 @@ static void RB_SurfaceRailCore( void ) {
 	DoRailCore( start, end, right, len, e->frame > 0 ? e->frame : 1 );
 }
 
+
 /*
 ** RB_SurfaceLightningBolt
 */
 static void RB_SurfaceLightningBolt( void ) {
-	refEntity_t *e;
+	const refEntity_t *e;
 	int			len;
 	vec3_t		right;
 	vec3_t		vec;
@@ -1358,7 +1362,6 @@ static void RB_SurfaceFace( const srfSurfaceFace_t *surf ) {
 		tess.texCoords[ndx][1][1] = v[6];
 		* ( unsigned int * ) &tess.vertexColors[ndx] = * ( unsigned int * ) &v[7];
 	}
-
 
 	tess.numVertexes += surf->numPoints;
 }

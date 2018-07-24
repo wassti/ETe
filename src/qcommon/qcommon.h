@@ -25,11 +25,11 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-
 // qcommon.h -- definitions common between client and server, but not game.or ref modules
 #ifndef _QCOMMON_H_
 #define _QCOMMON_H_
 
+#include <sys/types.h>
 #include "../qcommon/cm_public.h"
 
 //Ignore __attribute__ on non-gcc platforms
@@ -703,7 +703,7 @@ typedef enum {
 #define	MAX_FILE_HANDLES	64
 #define	FS_INVALID_HANDLE	0
 
-#define	MAX_FOUND_FILES		0x2000
+#define	MAX_FOUND_FILES		0x5000
 
 #ifdef DEDICATED
 #define Q3CONFIG_CFG "etconfig_server.cfg"
@@ -775,6 +775,9 @@ but that's a C++ construct ..
 #define FS_EXCLUDE_PK3 0x2
 int FS_FOpenFileRead_Filtered( const char *qpath, fileHandle_t *file, qboolean uniqueFILE, int filter_flag );
 
+void FS_BypassPure( void );
+void FS_RestorePure( void );
+
 int FS_Home_FOpenFileRead( const char *filename, fileHandle_t *file );
 
 qboolean FS_FileIsInPAK( const char *filename, int *pChecksum, char *pakName );
@@ -783,8 +786,11 @@ qboolean FS_FileIsInPAK( const char *filename, int *pChecksum, char *pakName );
 int     FS_Delete( const char *filename );    // only works inside the 'save' directory (for deleting savegames/images)
 
 int		FS_PakIndexForHandle( fileHandle_t f );
+
 // returns pak index or -1 if file is not in pak
-int		fs_lastPakIndex;
+extern int fs_lastPakIndex;
+
+extern qboolean fs_reordered;
 
 int		FS_Write( const void *buffer, int len, fileHandle_t f );
 
@@ -1012,8 +1018,9 @@ char		*Com_PBMD5File( char *key );
 qboolean	Com_EarlyParseCmdLine( char *commandLine, char *con_title, int title_size, int *vid_xpos, int *vid_ypos );
 int			Com_Split( char *in, char **out, int outsz, int delim );
 
-int			Com_Filter( const char *filter, const char *name, int casesensitive );
-int			Com_FilterPath( const char *filter, const char *name, int casesensitive );
+int			Com_Filter( const char *filter, const char *name );
+qboolean	Com_FilterExt( const char *filter, const char *name );
+int			Com_FilterPath( const char *filter, const char *name );
 int			Com_RealTime(qtime_t *qtime);
 qboolean	Com_SafeMode( void );
 void		Com_RunAndTimeServerPacket( const netadr_t *evFrom, msg_t *buf );
@@ -1093,6 +1100,7 @@ extern	char	rconPassword2[ MAX_CVAR_VALUE_STRING ];
 typedef enum {
 	TAG_FREE,
 	TAG_GENERAL,
+	TAG_PK3,
 	TAG_BOTLIB,
 	TAG_RENDERER,
 	TAG_SMALL,
@@ -1226,7 +1234,10 @@ void Key_WriteBindings( fileHandle_t f );
 void S_ClearSoundBuffer( qboolean killStreaming );  //----(SA)	modified
 // call before filesystem access
 
-void SCR_DebugGraph( float value, int color );   // FIXME: move logging to common?
+void SCR_DebugGraph( float value );   // FIXME: move logging to common?
+
+void CL_SystemInfoChanged( qboolean onlyGame );
+qboolean CL_GameSwitch( void );
 
 // AVI files have the start of pixel lines 4 byte-aligned
 #define AVI_LINE_PADDING 4
@@ -1346,6 +1357,8 @@ const char *Sys_SteamPath( void );
 
 char	**Sys_ListFiles( const char *directory, const char *extension, const char *filter, int *numfiles, qboolean wantsubs );
 void	Sys_FreeFileList( char **list );
+
+qboolean Sys_GetFileStats( const char *filename, off_t *size, time_t *mtime, time_t *ctime );
 
 void	Sys_BeginProfiling( void );
 void	Sys_EndProfiling( void );

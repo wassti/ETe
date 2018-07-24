@@ -1207,7 +1207,7 @@ static void RB_CalcEnvironmentTexCoordsFPscr( float *st ) {
 		VectorSubtract( backEnd.orientation.viewOrigin, v, viewer );
 		VectorNormalizeFast( viewer );
 
-		d = DotProduct( normal, viewer ) * 0.8;
+		d = DotProduct( normal, viewer );
 
 		reflected[1] = normal[1]*2*d - viewer[1];
 		reflected[2] = normal[2]*2*d - viewer[2];
@@ -1552,16 +1552,16 @@ void RB_CalcRotateTexCoords( float degsPerSecond, float *st )
 **
 ** Calculates specular coefficient and places it in the alpha channel
 */
-vec3_t lightOrigin = { -960, 1980, 96 };        // FIXME: track dynamically
+vec3_t lightOrigin = { -960, 1980, 96 };		// FIXME: track dynamically
 
 void RB_CalcSpecularAlpha( unsigned char *alphas ) {
-	int i;
-	float       *v, *normal;
-	vec3_t viewer,  reflected;
-	float l, d;
-	int b;
-	vec3_t lightDir;
-	int numVertexes;
+	int			i;
+	const float *v, *normal;
+	vec3_t		viewer,  reflected;
+	float		l, d;
+	int			b;
+	vec3_t		lightDir;
+	int			numVertexes;
 
 	v = tess.xyz[0];
 	normal = tess.normal[0];
@@ -1569,7 +1569,7 @@ void RB_CalcSpecularAlpha( unsigned char *alphas ) {
 	alphas += 3;
 
 	numVertexes = tess.numVertexes;
-	for ( i = 0 ; i < numVertexes ; i++, v += 4, normal += 4, alphas += 4 ) {
+	for (i = 0 ; i < numVertexes ; i++, v += 4, normal += 4, alphas += 4) {
 		float ilength;
 
 		VectorSubtract( lightOrigin, v, lightDir );
@@ -1577,27 +1577,27 @@ void RB_CalcSpecularAlpha( unsigned char *alphas ) {
 		VectorNormalizeFast( lightDir );
 
 		// calculate the specular color
-		d = DotProduct( normal, lightDir );
+		d = DotProduct (normal, lightDir);
 //		d *= ilength;
 
 		// we don't optimize for the d < 0 case since this tends to
 		// cause visual artifacts such as faceted "snapping"
-		reflected[0] = normal[0] * 2 * d - lightDir[0];
-		reflected[1] = normal[1] * 2 * d - lightDir[1];
-		reflected[2] = normal[2] * 2 * d - lightDir[2];
+		reflected[0] = normal[0]*2*d - lightDir[0];
+		reflected[1] = normal[1]*2*d - lightDir[1];
+		reflected[2] = normal[2]*2*d - lightDir[2];
 
 		VectorSubtract( backEnd.orientation.viewOrigin, v, viewer );
 		ilength = Q_rsqrt( DotProduct( viewer, viewer ) );
-		l = DotProduct( reflected, viewer );
+		l = DotProduct (reflected, viewer);
 		l *= ilength;
 
-		if ( l < 0 ) {
+		if (l < 0) {
 			b = 0;
 		} else {
-			l = l * l;
-			l = l * l;
+			l = l*l;
+			l = l*l;
 			b = l * 255;
-			if ( b > 255 ) {
+			if (b > 255) {
 				b = 255;
 			}
 		}
@@ -1605,6 +1605,7 @@ void RB_CalcSpecularAlpha( unsigned char *alphas ) {
 		*alphas = b;
 	}
 }
+
 
 /*
 ** RB_CalcDiffuseColor
@@ -1619,7 +1620,7 @@ void RB_CalcSpecularAlpha( unsigned char *alphas ) {
 void RB_CalcDiffuseColor( unsigned char *colors ) {
 	int i, dp, *colorsInt;
 	float           *normal;
-	trRefEntity_t   *ent;
+	const trRefEntity_t   *ent;
 	vec3_t lightDir;
 	int numVertexes;
 
@@ -1655,7 +1656,7 @@ void RB_CalcDiffuseColor( unsigned char *colors ) {
 	int i, j;
 	float           *v, *normal;
 	float incoming;
-	trRefEntity_t   *ent;
+	const trRefEntity_t   *ent;
 	int ambientLightInt;
 	vec3_t ambientLight;
 	vec3_t lightDir;

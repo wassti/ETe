@@ -486,7 +486,7 @@ t0 = most upstream according to spec
 t1 = most downstream according to spec
 ===================
 */
-static void DrawMultitextured( shaderCommands_t *input, int stage ) {
+static void DrawMultitextured( const shaderCommands_t *input, int stage ) {
 	const shaderStage_t *pStage;
 
 	pStage = tess.xstages[ stage ];
@@ -527,7 +527,7 @@ static void DrawMultitextured( shaderCommands_t *input, int stage ) {
 	if ( r_lightmap->integer ) {
 		GL_TexEnv( GL_REPLACE );
 	} else {
-		GL_TexEnv( tess.shader->multitextureEnv );
+		GL_TexEnv( pStage->mtEnv );
 	}
 
 	qglTexCoordPointer( 2, GL_FLOAT, 0, input->svars.texcoords[1] );
@@ -879,13 +879,15 @@ static void RB_FogPass( void ) {
 	R_DrawElements( tess.numIndexes, tess.indexes );
 }
 
+
 /*
 ===============
-ComputeColors
+R_ComputeColors
 ===============
 */
-void R_ComputeColors( const shaderStage_t *pStage ) {
-	int i;
+void R_ComputeColors( const shaderStage_t *pStage )
+{
+	int		i;
 
 	//
 	// rgbGen
@@ -944,7 +946,7 @@ void R_ComputeColors( const shaderStage_t *pStage ) {
 		break;
 	case CGEN_FOG:
 	{
-		fog_t       *fog;
+		const fog_t *fog;
 
 		fog = tr.world->fogs + tess.fogNum;
 
@@ -1071,7 +1073,7 @@ void R_ComputeColors( const shaderStage_t *pStage ) {
 
 /*
 ===============
-ComputeTexCoords
+R_ComputeTexCoords
 ===============
 */
 void R_ComputeTexCoords( const shaderStage_t *pStage ) {
@@ -1178,13 +1180,13 @@ void R_ComputeTexCoords( const shaderStage_t *pStage ) {
 			}
 		}
 
-		if ( r_mergeLightmaps->integer && pStage->bundle[b].isLightmap && pStage->bundle[b].tcGen != TCGEN_LIGHTMAP ) {
+		/*if ( r_mergeLightmaps->integer && pStage->bundle[b].isLightmap && pStage->bundle[b].tcGen != TCGEN_LIGHTMAP ) {
 			// adjust texture coordinates to map on proper lightmap
 			for ( i = 0 ; i < tess.numVertexes ; i++ ) {
 				tess.svars.texcoords[b][i][0] = (tess.svars.texcoords[b][i][0] * tr.lightmapScale[0] ) + tess.shader->lightmapOffset[0];
 				tess.svars.texcoords[b][i][1] = (tess.svars.texcoords[b][i][1] * tr.lightmapScale[1] ) + tess.shader->lightmapOffset[1];
 			}
-		}
+		}*/
 	}
 }
 
@@ -1235,7 +1237,7 @@ void SetIteratorFog( void ) {
 /*
 ** RB_IterateStagesGeneric
 */
-static void RB_IterateStagesGeneric( shaderCommands_t *input )
+static void RB_IterateStagesGeneric( const shaderCommands_t *input )
 {
 	const shaderStage_t *pStage;
 	int stage;
@@ -1249,7 +1251,8 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 		R_ComputeColors( pStage );
 		R_ComputeTexCoords( pStage );
 
-		if ( !setArraysOnce ) {
+		if ( !setArraysOnce )
+		{
 			qglEnableClientState( GL_COLOR_ARRAY );
 			qglColorPointer( 4, GL_UNSIGNED_BYTE, 0, input->svars.colors );
 		}
@@ -1295,7 +1298,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 				} else
 				{
 					int i;
-					unsigned int tempState;
+					GLbitfield tempState;
 					float alphaval;
 
 					if ( fadeEnd < tr.refdef.time ) {     // entity faded out completely
@@ -1323,7 +1326,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 			//----(SA)	end
 			// ydnar: lightmap stages should be GL_ONE GL_ZERO so they can be seen
 			else if ( r_lightmap->integer && ( pStage->bundle[0].isLightmap || pStage->bundle[1].isLightmap ) ) {
-				unsigned int stateBits;
+				GLbitfield stateBits;
 
 
 				stateBits = ( pStage->stateBits & ~( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) ) |
@@ -1346,6 +1349,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input )
 				//GL_State( pStage->stateBits &= ~GLS_DEPTHMASK_TRUE );
 			}
 		}
+
 		// allow skipping out to show just lightmaps during development
 		if ( r_lightmap->integer && ( pStage->bundle[0].isLightmap || pStage->bundle[1].isLightmap ) )
 			break;

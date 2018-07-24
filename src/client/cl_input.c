@@ -267,12 +267,12 @@ void IN_LeanRightUp( void )   { IN_KeyUp( &kb[KB_WBUTTONS5] );  }
 void IN_ProneDown( void ) {IN_KeyDown( &kb[KB_WBUTTONS7] );}
 void IN_ProneUp( void ) {IN_KeyUp( &kb[KB_WBUTTONS7] );}
 
-void IN_ButtonDown( void ) {
+/*void IN_ButtonDown( void ) {
 	IN_KeyDown( &kb[KB_BUTTONS1] );
 }
 void IN_ButtonUp( void ) {
 	IN_KeyUp( &kb[KB_BUTTONS1] );
-}
+}*/
 
 /*
 void IN_CenterView (void) {
@@ -737,10 +737,10 @@ usercmd_t CL_CreateCmd( void ) {
 	// draw debug graphs of turning for mouse testing
 	if ( cl_debugMove->integer ) {
 		if ( cl_debugMove->integer == 1 ) {
-			SCR_DebugGraph( abs( cl.viewangles[YAW] - oldAngles[YAW] ), 0 );
+			SCR_DebugGraph( abs( cl.viewangles[YAW] - oldAngles[YAW] ) );
 		}
 		if ( cl_debugMove->integer == 2 ) {
-			SCR_DebugGraph( abs( cl.viewangles[PITCH] - oldAngles[PITCH] ), 0 );
+			SCR_DebugGraph( abs( cl.viewangles[PITCH] - oldAngles[PITCH] ) );
 		}
 	}
 

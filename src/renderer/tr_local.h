@@ -301,7 +301,8 @@ typedef struct {
 
 	byte constantColor[4];                      // for CGEN_CONST and AGEN_CONST
 
-	unsigned stateBits;                         // GLS_xxxx mask
+	GLbitfield stateBits;						// GLS_xxxx mask
+	GLint			mtEnv;						// 0, GL_MODULATE, GL_ADD, GL_DECAL
 
 	acff_t adjustColorsForFog;
 
@@ -373,7 +374,7 @@ typedef struct shader_s {
 
 	vec4_t distanceCull;                // ydnar: opaque alpha range for foliage (inner, outer, alpha threshold, 1/(outer-inner))
 
-	int multitextureEnv;                // 0, GL_MODULATE, GL_ADD (FIXME: put in stage)
+	qboolean	multitextureEnv;		// if shader has multitexture stage(s)
 
 	cullType_t cullType;                // CT_FRONT_SIDED, CT_BACK_SIDED, or CT_TWO_SIDED
 	qboolean polygonOffset;             // set for decals and other items that must be offset
@@ -406,7 +407,7 @@ typedef struct shader_s {
 	short		vboFPindex;
 	qboolean	hasScreenMap;
 
-	float		lightmapOffset[2];
+	float		lightmapOffset[2];	// within merged lightmap
 
 	void	(*optimalStageIteratorFunc)( void );
 
@@ -1208,7 +1209,7 @@ typedef struct {
 	GLuint		currenttextures[ MAX_TEXTURE_UNITS ];
 	int			currenttmu;
 	qboolean	finishCalled;
-	int			texEnv[2];
+	GLint		texEnv[2];
 	int			faceCulling;
 	GLbitfield	glStateBits;
 } glstate_t;
@@ -1260,7 +1261,7 @@ typedef struct {
 	orientationr_t	orientation;
 	backEndCounters_t	pc;
 	qboolean	isHyperspace;
-	trRefEntity_t	*currentEntity;
+	/*const */trRefEntity_t *currentEntity;
 	qboolean	skyRenderedThisView;	// flag for drawing sun
 
 	qboolean	projection2D;	// if qtrue, drawstretchpic doesn't need to change modes
@@ -1331,7 +1332,7 @@ typedef struct {
 
 	int						numLightmaps;
 	image_t                 *lightmaps[MAX_LIGHTMAPS];
-	float					lightmapScale[2];
+	//float					lightmapScale[2];
 
 	trRefEntity_t			*currentEntity;
 	trRefEntity_t			worldEntity;		// point currentEntity at this when rendering world
@@ -1618,7 +1619,7 @@ void	GL_BindTexture( int unit, GLuint texnum );
 void    GL_TextureMode( const char *string );
 void    GL_CheckErrors( void );
 void    GL_State( GLbitfield stateVector );
-void    GL_TexEnv( int env );
+void	GL_TexEnv( GLint env );
 void    GL_Cull( int cullType );
 
 #define GLS_SRCBLEND_ZERO                       0x00000001
@@ -1796,14 +1797,13 @@ void RB_StageIteratorSky( void );
 void RB_StageIteratorVertexLitTexture( void );
 void RB_StageIteratorLightmappedMultitexture( void );
 
-void RB_AddQuadStamp( vec3_t origin, vec3_t left, vec3_t up, byte *color );
-void RB_AddQuadStampExt( vec3_t origin, vec3_t left, vec3_t up, byte *color, float s1, float t1, float s2, float t2 );
-void RB_AddQuadStampFadingCornersExt( vec3_t origin, vec3_t left, vec3_t up, byte *color, float s1, float t1, float s2, float t2 );
+void RB_AddQuadStamp( const vec3_t origin, const vec3_t left, const vec3_t up, const byte *color );
+void RB_AddQuadStampExt( const vec3_t origin, const vec3_t left, const vec3_t up, const byte *color, float s1, float t1, float s2, float t2 );
+void RB_AddQuadStampFadingCornersExt( const vec3_t origin, const vec3_t left, const vec3_t up, const byte *color, float s1, float t1, float s2, float t2 );
 
 void RB_ShowImages( void );
 
 void RB_DrawBounds( vec3_t mins, vec3_t maxs ); // ydnar
-
 
 /*
 ============================================================

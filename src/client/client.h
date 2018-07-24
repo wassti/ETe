@@ -347,6 +347,7 @@ typedef struct {
 
 typedef struct {
 	connstate_t	state;				// connection status
+	qboolean	gameSwitch;
 
 	qboolean cddialog;              // bring up the cd needed dialog next frame
 
@@ -656,7 +657,6 @@ const char *Key_KeynumToString( int keynum, qboolean bTranslate );
 extern int cl_connectedToPureServer;
 extern int cl_connectedToCheatServer;
 
-void CL_SystemInfoChanged( void );
 void CL_ParseServerMessage( msg_t *msg );
 
 //====================================================================
@@ -729,7 +729,7 @@ void Con_Close( void );
 void	SCR_Init (void);
 void	SCR_UpdateScreen (void);
 
-void    SCR_DebugGraph( float value, int color );
+void    SCR_DebugGraph( float value );
 
 int     SCR_GetBigStringWidth( const char *str );   // returns in virtual 640x480 coordinates
 

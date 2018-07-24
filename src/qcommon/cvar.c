@@ -1536,16 +1536,21 @@ void Cvar_List_f( void ) {
 	i = 0;
 	for (var = cvar_vars ; var ; var = var->next, i++)
 	{
-		if(!var->name || (match && !Com_Filter(match, var->name, qfalse)))
+		if(!var->name || (match && !Com_Filter(match, var->name)))
 			continue;
 
-		if (var->flags & CVAR_SERVERINFO) {
+		if (var->flags & (CVAR_SERVERINFO|CVAR_SERVERINFO_NOUPDATE)) {
 			Com_Printf("S");
 		} else {
 			Com_Printf(" ");
 		}
 		if (var->flags & CVAR_SYSTEMINFO) {
 			Com_Printf("s");
+		} else {
+			Com_Printf(" ");
+		}
+		if (var->flags & CVAR_WOLFINFO) {
+			Com_Printf("W");
 		} else {
 			Com_Printf(" ");
 		}
@@ -1621,7 +1626,7 @@ void Cvar_ListModified_f( void ) {
 
 		totalModified++;
 
-		if (match && !Com_Filter(match, var->name, qfalse))
+		if (match && !Com_Filter(match, var->name))
 			continue;
 
 		if (var->flags & CVAR_SERVERINFO) {

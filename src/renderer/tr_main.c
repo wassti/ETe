@@ -33,7 +33,7 @@ If you have questions concerning this license or the applicable additional terms
 
 trGlobals_t		tr;
 
-static float	s_flipMatrix[16] = {
+static const float s_flipMatrix[16] = {
 	// convert from our coordinate system (looking down X)
 	// to OpenGL's coordinate system (looking down -Z)
 	0, 0, -1, 0,
@@ -257,7 +257,7 @@ R_CullLocalBox
 Returns CULL_IN, CULL_CLIP, or CULL_OUT
 =================
 */
-int R_CullLocalBox (vec3_t bounds[2]) {
+int R_CullLocalBox( vec3_t bounds[2] ) {
 	int		i, j;
 	vec3_t	transformed[8];
 	float	dists[8];
@@ -414,7 +414,6 @@ int R_CullDlight( const dlight_t* dl )
 /*
 =================
 R_LocalNormalToWorld
-
 =================
 */
 void R_LocalNormalToWorld( const vec3_t local, vec3_t world ) {
@@ -427,7 +426,6 @@ void R_LocalNormalToWorld( const vec3_t local, vec3_t world ) {
 /*
 =================
 R_LocalPointToWorld
-
 =================
 */
 void R_LocalPointToWorld( const vec3_t local, vec3_t world ) {
@@ -440,7 +438,6 @@ void R_LocalPointToWorld( const vec3_t local, vec3_t world ) {
 /*
 =================
 R_WorldToLocal
-
 =================
 */
 void R_WorldToLocal( const vec3_t world, vec3_t local ) {
@@ -453,7 +450,6 @@ void R_WorldToLocal( const vec3_t world, vec3_t local ) {
 /*
 ==========================
 R_TransformModelToClip
-
 ==========================
 */
 void R_TransformModelToClip( const vec3_t src, const float *modelMatrix, const float *projectionMatrix,
@@ -789,7 +785,7 @@ void R_SetFrameFog( void ) {
 */
 static void R_SetFarClip( void )
 {
-	float	farthestCornerDistance = 0;
+	float	farthestCornerDistance;
 	int		i;
 
 	// if not rendering the world (icons, menus, etc)

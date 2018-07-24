@@ -435,35 +435,30 @@ DEBUG GRAPH
 ===============================================================================
 */
 
-typedef struct
-{
-	float value;
-	int color;
-} graphsamp_t;
-
-static int current;
-static graphsamp_t values[1024];
+static	int			current;
+static	float		values[1024];
 
 /*
 ==============
 SCR_DebugGraph
 ==============
 */
-void SCR_DebugGraph( float value, int color ) {
-	values[current & 1023].value = value;
-	values[current & 1023].color = color;
-	current++;
+void SCR_DebugGraph (float value)
+{
+	values[current] = value;
+	current = (current + 1) % ARRAY_LEN(values);
 }
+
 
 /*
 ==============
 SCR_DrawDebugGraph
 ==============
 */
-void SCR_DrawDebugGraph( void ) {
-	int a, x, y, w, i, h;
-	float v;
-	int color;
+void SCR_DrawDebugGraph (void)
+{
+	int		a, x, y, w, i, h;
+	float	v;
 
 	//
 	// draw the graph
@@ -471,23 +466,21 @@ void SCR_DrawDebugGraph( void ) {
 	w = cls.glconfig.vidWidth;
 	x = 0;
 	y = cls.glconfig.vidHeight;
-	re.SetColor( g_color_table[0] );
-	re.DrawStretchPic( x, y - cl_graphheight->integer,
-					   w, cl_graphheight->integer, 0, 0, 0, 0, cls.whiteShader );
+	re.SetColor( g_color_table[ ColorIndex( COLOR_BLACK ) ] );
+	re.DrawStretchPic(x, y - cl_graphheight->integer, 
+		w, cl_graphheight->integer, 0, 0, 0, 0, cls.whiteShader );
 	re.SetColor( NULL );
 
-	for ( a = 0 ; a < w ; a++ )
+	for (a=0 ; a<w ; a++)
 	{
-		i = ( current - 1 - a + 1024 ) & 1023;
-		v = values[i].value;
-		color = values[i].color;
+		i = (ARRAY_LEN(values)+current-1-(a % ARRAY_LEN(values))) % ARRAY_LEN(values);
+		v = values[i];
 		v = v * cl_graphscale->integer + cl_graphshift->integer;
-
-		if ( v < 0 ) {
-			v += cl_graphheight->integer * ( 1 + (int)( -v / cl_graphheight->integer ) );
-		}
+		
+		if (v < 0)
+			v += cl_graphheight->integer * (1+(int)(-v / cl_graphheight->integer));
 		h = (int)v % cl_graphheight->integer;
-		re.DrawStretchPic( x + w - 1 - a, y - h, 1, h, 0, 0, 0, 0, cls.whiteShader );
+		re.DrawStretchPic( x+w-1-a, y - h, 1, h, 0, 0, 0, 0, cls.whiteShader );
 	}
 }
 
@@ -625,7 +618,7 @@ void SCR_UpdateScreen( void ) {
 
 	if ( framecount == cls.framecount ) {
 		int ms = Sys_Milliseconds();
-		if ( ms < next_frametime ) {
+		if ( ms - next_frametime < 0 ) {
 			re.ThrottleBackend();
 		} else {
 			next_frametime = ms + 16; // limit to 60 FPS

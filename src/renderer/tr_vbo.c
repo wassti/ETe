@@ -399,7 +399,7 @@ static qboolean isStaticShader( shader_t *shader )
 		return qfalse;
 
 	shader->isStaticShader = qtrue;
-	mtx = shader->stages[0]->bundle[1].image[0] ? shader->multitextureEnv : 0;
+	mtx = shader->stages[0]->bundle[1].image[0] ? shader->stages[0]->mtEnv : 0;
 
 	shader->vboVPindex = getVPindex( mtx, 0 );
 	// generate vertex programs
@@ -1162,7 +1162,7 @@ static void RB_IterateStagesVBO( const shaderCommands_t *input )
 	const shaderStage_t *pStage = tess.xstages[ 0 ];
 	const vbo_t *vbo = &world_vbo;
 	const fogProgramParms_t *fparm;
-	int stateBits;
+	GLbitfield stateBits;
 	qboolean updateArrays;
 	qboolean fogPass;
 	GLuint vp, fp;
@@ -1253,7 +1253,7 @@ static void RB_IterateStagesVBO( const shaderCommands_t *input )
 			}
 			else
 			{
-				GL_TexEnv( tess.shader->multitextureEnv );
+				GL_TexEnv( pStage->mtEnv );
 			}
 		}
 

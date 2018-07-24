@@ -265,7 +265,7 @@ static void CL_ConfigstringModified( void ) {
 
 	if ( index == CS_SYSTEMINFO ) {
 		// parse serverId and other cvars
-		CL_SystemInfoChanged();
+		CL_SystemInfoChanged( qfalse );
 	}
 }
 

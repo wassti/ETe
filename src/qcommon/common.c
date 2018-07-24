@@ -745,21 +745,14 @@ void Info_Print( const char *s ) {
 Com_StringContains
 ============
 */
-static const char *Com_StringContains( const char *str1, const char *str2, int casesensitive ) {
+static const char *Com_StringContains( const char *str1, const char *str2, int len2 ) {
 	int len, i, j;
 
-	len = strlen(str1) - strlen(str2);
+	len = strlen(str1) - len2;
 	for (i = 0; i <= len; i++, str1++) {
 		for (j = 0; str2[j]; j++) {
-			if (casesensitive) {
-				if (str1[j] != str2[j]) {
-					break;
-				}
-			}
-			else {
-				if (locase[(byte)str1[j]] != locase[(byte)str2[j]]) {
-					break;
-				}
+			if (locase[(byte)str1[j]] != locase[(byte)str2[j]]) {
+				break;
 			}
 		}
 		if (!str2[j]) {
@@ -775,7 +768,7 @@ static const char *Com_StringContains( const char *str1, const char *str2, int c
 Com_Filter
 ============
 */
-int Com_Filter( const char *filter, const char *name, int casesensitive )
+int Com_Filter( const char *filter, const char *name )
 {
 	char buf[ MAX_TOKEN_CHARS ];
 	const char *ptr;
@@ -785,15 +778,17 @@ int Com_Filter( const char *filter, const char *name, int casesensitive )
 		if (*filter == '*') {
 			filter++;
 			for (i = 0; *filter; i++) {
-				if (*filter == '*' || *filter == '?') break;
+				if (*filter == '*' || *filter == '?')
+					break;
 				buf[i] = *filter;
 				filter++;
 			}
 			buf[i] = '\0';
-			if (strlen(buf)) {
-				ptr = Com_StringContains(name, buf, casesensitive);
-				if (!ptr) return qfalse;
-				name = ptr + strlen(buf);
+			if ( i ) {
+				ptr = Com_StringContains( name, buf, i );
+				if ( !ptr )
+					return qfalse;
+				name = ptr + i;
 			}
 		}
 		else if (*filter == '?') {
@@ -809,22 +804,14 @@ int Com_Filter( const char *filter, const char *name, int casesensitive )
 			while(*filter && !found) {
 				if (*filter == ']' && *(filter+1) != ']') break;
 				if (*(filter+1) == '-' && *(filter+2) && (*(filter+2) != ']' || *(filter+3) == ']')) {
-					if (casesensitive) {
-						if (*name >= *filter && *name <= *(filter+2)) found = qtrue;
-					}
-					else {
-						if (locase[(byte)*name] >= locase[(byte)*filter] &&
-							locase[(byte)*name] <= locase[(byte)*(filter+2)]) found = qtrue;
-					}
+					if (locase[(byte)*name] >= locase[(byte)*filter] &&
+						locase[(byte)*name] <= locase[(byte)*(filter+2)])
+							found = qtrue;
 					filter += 3;
 				}
 				else {
-					if (casesensitive) {
-						if (*filter == *name) found = qtrue;
-					}
-					else {
-						if (locase[(byte)*filter] == locase[(byte)*name]) found = qtrue;
-					}
+					if (locase[(byte)*filter] == locase[(byte)*name])
+						found = qtrue;
 					filter++;
 				}
 			}
@@ -837,12 +824,8 @@ int Com_Filter( const char *filter, const char *name, int casesensitive )
 			name++;
 		}
 		else {
-			if (casesensitive) {
-				if (*filter != *name) return qfalse;
-			}
-			else {
-				if (locase[(byte)*filter] != locase[(byte)*name]) return qfalse;
-			}
+			if (locase[(byte)*filter] != locase[(byte)*name])
+				return qfalse;
 			filter++;
 			name++;
 		}
@@ -853,10 +836,59 @@ int Com_Filter( const char *filter, const char *name, int casesensitive )
 
 /*
 ============
+Com_FilterExt
+============
+*/
+qboolean Com_FilterExt( const char *filter, const char *name )
+{
+	char buf[ MAX_TOKEN_CHARS ];
+	const char *ptr;
+	int i;
+
+	while ( *filter ) {
+		if ( *filter == '*' ) {
+			filter++;
+			for ( i = 0; *filter != '\0' && i < sizeof(buf)-1; i++ ) {
+				if ( *filter == '*' || *filter == '?' )
+					break;
+				buf[i] = *filter++;
+			}
+			buf[ i ] = '\0';
+			if ( i ) {
+				ptr = Com_StringContains( name, buf, i );
+				if ( !ptr )
+					return qfalse;
+				name = ptr + i;
+			} else if ( *filter == '\0' ) {
+				return qtrue;
+			}
+		}
+		else if ( *filter == '?' ) {
+			if ( *name == '\0' )
+				return qfalse;
+			filter++;
+			name++;
+		}
+		else {
+			if ( locase[(byte)*filter] != locase[(byte)*name] )
+				return qfalse;
+			filter++;
+			name++;
+		}
+	}
+	if ( *name ) {
+		return qfalse;
+	}
+	return qtrue;
+}
+
+
+/*
+============
 Com_FilterPath
 ============
 */
-int Com_FilterPath(const char *filter, const char *name, int casesensitive)
+int Com_FilterPath( const char *filter, const char *name )
 {
 	int i;
 	char new_filter[MAX_QPATH];
@@ -880,7 +912,7 @@ int Com_FilterPath(const char *filter, const char *name, int casesensitive)
 		}
 	}
 	new_name[i] = '\0';
-	return Com_Filter(new_filter, new_name, casesensitive);
+	return Com_Filter( new_filter, new_name );
 }
 
 
@@ -1598,6 +1630,7 @@ static	int		s_hunkTotal;
 static const char *tagName[ TAG_COUNT ] = {
 	"FREE",
 	"GENERAL",
+	"PK3",
 	"BOTLIB",
 	"RENDERER",
 	"SMALL",
@@ -2862,11 +2895,11 @@ void Com_GameRestart( int checksumFeed, qboolean clientRestart )
 	static qboolean com_gameRestarting = qfalse;
 
 	// make sure no recursion can be triggered
-	if(!com_gameRestarting && com_fullyInitialized)
+	if ( !com_gameRestarting && com_fullyInitialized )
 	{
 		com_gameRestarting = qtrue;
-#ifndef DEDICATED		
-		if( clientRestart )
+#ifndef DEDICATED
+		if ( clientRestart )
 		{
 			CL_Disconnect( qfalse );
 			CL_ShutdownAll();
@@ -2878,16 +2911,27 @@ void Com_GameRestart( int checksumFeed, qboolean clientRestart )
 		if ( com_sv_running->integer )
 			SV_Shutdown( "Game directory changed" );
 
+		// Reset console command history
 		Con_ResetHistory();
 
-		FS_Restart( checksumFeed );
-	
+		// Shutdown FS early so Cvar_Restart will not reset old game cvars
+		FS_Shutdown( qfalse );
+
 		// Clean out any user and VM created cvars
-		Cvar_Restart(qtrue);
+		Cvar_Restart( qtrue );
+
+#ifndef DEDICATED
+		// Reparse pure paks and update cvars before FS startup
+		if ( CL_GameSwitch() )
+			CL_SystemInfoChanged( qfalse );
+#endif
+
+		FS_Restart( checksumFeed );
 
 		Com_GetGameInfo();
+		// Load new configuration
 		Com_ExecuteCfg(Com_SafeMode());
-		
+
 #ifndef DEDICATED
 		// Restart sound subsystem so old handles are flushed
 		//CL_Snd_Restart();
@@ -4336,4 +4380,87 @@ void Com_RandomBytes( byte *string, int len )
 	srand( time( NULL ) );
 	for( i = 0; i < len; i++ )
 		string[i] = (unsigned char)( rand() % 256 );
+}
+
+
+static qboolean strgtr(const char *s0, const char *s1) {
+	int l0, l1, i;
+
+	l0 = strlen( s0 );
+	l1 = strlen( s1 );
+
+	if ( l1 < l0 ) {
+		l0 = l1;
+	}
+
+	for( i = 0; i < l0; i++ ) {
+		if ( s1[i] > s0[i] ) {
+			return qtrue;
+		}
+		if ( s1[i] < s0[i] ) {
+			return qfalse;
+		}
+	}
+	return qfalse;
+}
+
+
+/*
+==================
+Com_SortList
+==================
+*/
+static void Com_SortList( char **list, int n )
+{
+	const char *m;
+	char *temp;
+	int i, j;
+	i = 0;
+	j = n;
+	m = list[ n >> 1 ];
+	do
+	{
+		while ( strcmp( list[i], m ) < 0 ) i++;
+		while ( strcmp( list[j], m ) > 0 ) j--;
+		if ( i <= j )
+		{
+			temp = list[i];
+			list[i] = list[j];
+			list[j] = temp;
+			i++;
+			j--;
+		}
+	}
+	while ( i <= j );
+	if ( j > 0 ) Com_SortList( list, j );
+	if ( n > i ) Com_SortList( list+i, n-i );
+}
+
+
+/*
+==================
+Com_SortFileList
+==================
+*/
+void Com_SortFileList( char **list, int nfiles, int fastSort )
+{
+	if ( nfiles > 1 && fastSort )
+	{
+		Com_SortList( list, nfiles-1 );
+	}
+	else // defrag mod demo UI can't handle _properly_ sorted directories
+	{
+		int i, flag;
+		do {
+			flag = 0;
+			for( i = 1; i < nfiles; i++ ) {
+				if ( strgtr( list[i-1], list[i] ) ) {
+					char *temp = list[i];
+					list[i] = list[i-1];
+					list[i-1] = temp;
+					flag = 1;
+				}
+			}
+		} while( flag );
+	}
 }

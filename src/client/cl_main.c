@@ -847,7 +847,9 @@ static int CL_WalkDemoExt( const char *arg, char *name, fileHandle_t *handle )
 	while ( demo_protocols[ i ] )
 	{
 		Com_sprintf( name, MAX_OSPATH, "demos/%s.dm_%d", arg, demo_protocols[ i ] );
+		FS_BypassPure();
 		FS_FOpenFileRead( name, handle, qtrue );
+		FS_RestorePure();
 		if ( *handle != FS_INVALID_HANDLE )
 		{
 			Com_Printf( "Demo file: %s\n", name );
@@ -937,7 +939,9 @@ static void CL_PlayDemo_f( void ) {
 		if ( demo_protocols[ i ] /* || protocol == com_protocol->integer  || protocol == com_legacyprotocol->integer */ )
 		{
 			Com_sprintf(name, sizeof(name), "demos/%s", arg);
+			FS_BypassPure();
 			FS_FOpenFileRead( name, &hFile, qtrue );
+			FS_RestorePure();
 		}
 		else
 		{
@@ -1075,7 +1079,11 @@ void CL_ShutdownAll( void ) {
 
 	// shutdown the renderer
 	if ( re.Shutdown ) {
-		re.Shutdown( 0 ); // don't destroy window or context
+		if ( CL_GameSwitch() ) {
+			CL_ShutdownRef( qfalse ); // shutdown renderer & GLimp
+		} else {
+			re.Shutdown( 0 ); // don't destroy window or context
+		}
 	}
 
 	if ( re.purgeCache ) {
@@ -1403,6 +1411,18 @@ qboolean CL_Disconnect( qboolean showMainMenu ) {
 		VM_Call( uivm, UI_SET_ACTIVE_MENU, UIMENU_NONE );
 	}
 
+	// Remove pure paks
+	FS_PureServerSetLoadedPaks( "", "" );
+	FS_PureServerSetReferencedPaks( "", "" );
+
+	FS_ClearPakReferences( FS_GENERAL_REF | FS_UI_REF | FS_CGAME_REF );
+
+	if ( CL_GameSwitch() ) {
+		// keep current gamestate and connection
+		cl_disconnecting = qfalse;
+		return qfalse;
+	}
+
 	// send a disconnect message to the server
 	// send it a few times in case one is dropped
 	if ( cls.state >= CA_CONNECTED && cls.state != CA_CINEMATIC && !clc.demoplaying ) {
@@ -1411,12 +1431,6 @@ qboolean CL_Disconnect( qboolean showMainMenu ) {
 		CL_WritePacket();
 		CL_WritePacket();
 	}
-	
-	// Remove pure paks
-	FS_PureServerSetLoadedPaks( "", "" );
-	FS_PureServerSetReferencedPaks( "", "" );
-
-	FS_ClearPakReferences( FS_GENERAL_REF | FS_UI_REF | FS_CGAME_REF );
 
 	CL_ClearState();
 
@@ -2100,6 +2114,11 @@ CL_Wolfinfo_f
 */
 static void CL_Wolfinfo_f( void ) {
 	int ofs;
+	const char *gamedir = Cvar_VariableString( "fs_game" );
+
+	// WOLFINFO cvars are unused in ETF
+	if ( !Q_stricmp( gamedir, "etf" ) )
+		return;
 
 	ofs = cl.gameState.stringOffsets[ CS_WOLFINFO ];
 	if ( !ofs )
@@ -2401,7 +2420,7 @@ void CL_InitDownloads( void ) {
 		info = cl.gameState.stringData + cl.gameState.stringOffsets[ CS_SERVERINFO ];
 		mapname = Info_ValueForKey( info, "mapname" );
 		bsp = va( "maps/%s.bsp", mapname );
-		if ( !FS_FileIsInPAK( bsp, NULL, NULL ) && FS_FOpenFileRead( bsp, NULL, qfalse ) == -1 )
+		if ( !FS_FileIsInPAK( bsp, NULL, NULL ) )
 		{
 			if ( CL_Download( "dlmap", mapname, qtrue ) )
 			{
@@ -3440,7 +3459,7 @@ void CL_Frame( int msec ) {
 	cls.realtime += cls.frametime;
 
 	if ( cl_timegraph->integer ) {
-		SCR_DebugGraph( cls.realFrametime * 0.25, 0 );
+		SCR_DebugGraph( cls.realFrametime * 0.25 );
 	}
 
 	// see if we need to update any userinfo
@@ -4092,7 +4111,7 @@ static const vidmode_t cl_vidModes[] =
 	{ "Mode 20: 1920x1200 (16:10)",	1920,	1200,	1 },
 	{ "Mode 21: 2560x1080 (21:9)",	2560,	1080,	1 },
 	{ "Mode 22: 3440x1440 (21:9)",	3440,	1440,	1 },
-	{ "Mode 23: 3840x2160",			3840,	2160,	1 },
+	{ "Mode 23: 3840x2160 (4K UHD)",3840,	2160,	1 },
 	{ "Mode 24: 4096x2160 (4K)",	4096,	2160,	1 }
 };
 static const int s_numVidModes = ARRAY_LEN( cl_vidModes );
@@ -4144,6 +4163,10 @@ static void CL_ModeList_f( void )
 {
 	int i;
 
+	Com_Printf( "\n" );
+	Com_Printf( "Mode -2: Current Desktop Resolution\n" );
+	Com_Printf( "Mode -1: Custom Resolution (%i x %i)\n", r_customwidth->integer, r_customheight->integer );
+	Com_Printf( "         Set r_customWidth and r_customHeight cvars to change\n" );
 	Com_Printf( "\n" );
 	for ( i = 0; i < s_numVidModes; i++ )
 	{
@@ -6200,8 +6223,6 @@ qboolean CL_Download( const char *cmd, const char *pakname, qboolean autoDownloa
 		return qfalse;
 	}
 
-	s = pakname;
-
 	// skip leading slashes
 	while ( *pakname == '/' || *pakname == '\\' )
 		pakname++;
@@ -6221,8 +6242,10 @@ qboolean CL_Download( const char *cmd, const char *pakname, qboolean autoDownloa
 	{
 		Q_strncpyz( name, pakname, sizeof( name ) );
 		FS_StripExt( name, ".pk3" );
+		if ( !name[0] )
+			return qfalse;
 		s = va( "maps/%s.bsp", name );
-		if ( FS_FileIsInPAK( s, NULL, url ) ) 
+		if ( FS_FileIsInPAK( s, NULL, url ) )
 		{
 			Com_Printf( S_COLOR_YELLOW " map %s already exists in %s.pk3\n", name, url );
 			return qfalse;

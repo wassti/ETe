@@ -685,7 +685,7 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 			else if ( !Q_stricmp( token, "$lightmap" ) )
 			{
 				stage->bundle[0].isLightmap = qtrue;
-				if ( shader.lightmapIndex < 0 || !*tr.lightmaps || tr.numLightmaps < 1 ) {
+				if ( shader.lightmapIndex < 0 || !tr.lightmaps[shader.lightmapIndex] ) {
 					stage->bundle[0].image[0] = tr.whiteImage;
 				} else {
 					stage->bundle[0].image[0] = tr.lightmaps[shader.lightmapIndex];
@@ -782,7 +782,7 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 //----(SA) end
 			else if ( !Q_stricmp( token, "$lightmap" ) ) {
 				stage->bundle[0].isLightmap = qtrue;
-				if ( shader.lightmapIndex < 0 ) {
+				if ( shader.lightmapIndex < 0 || !tr.lightmaps[shader.lightmapIndex] ) {
 					stage->bundle[0].image[0] = tr.whiteImage;
 				} else {
 					stage->bundle[0].image[0] = tr.lightmaps[shader.lightmapIndex];
@@ -2883,6 +2883,9 @@ static void InitShader( const char *name, int lightmapIndex ) {
 	// clear the global shader
 	Com_Memset( &shader, 0, sizeof( shader ) );
 	Com_Memset( &stages, 0, sizeof( stages ) );
+
+	if (lightmapIndex >= MAX_LIGHTMAPS)
+		lightmapIndex = LIGHTMAP_NONE;
 	
 	Q_strncpyz( shader.name, name, sizeof( shader.name ) );
 	shader.lightmapIndex = lightmapIndex;
@@ -3493,12 +3496,12 @@ void R_FindLightmap( int *lightmapIndex ) {
 
 
 	// don't fool with bogus lightmap indexes
-	if ( *lightmapIndex < 0 ) {
+	if ( *lightmapIndex < 0 || *lightmapIndex >= MAX_LIGHTMAPS ) {
 		return;
 	}
 
 	// does this lightmap already exist?
-	if ( *lightmapIndex < tr.numLightmaps && tr.lightmaps[ *lightmapIndex ] != NULL ) {
+	if ( tr.lightmaps[ *lightmapIndex ] != NULL ) {
 		return;
 	}
 

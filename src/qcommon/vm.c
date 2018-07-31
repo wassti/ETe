@@ -454,7 +454,7 @@ vm_t *VM_Create( vmIndex_t index, syscall_t systemCalls, dllSyscall_t dllSyscall
 	}
 
 	if ( (unsigned)index >= VM_COUNT ) {
-		Com_Error( ERR_FATAL, "VM_Create: bad vm index %i", index );	
+		Com_Error( ERR_DROP, "VM_Create: bad vm index %i", index );	
 	}
 
 	//remaining = Hunk_MemoryRemaining();
@@ -464,7 +464,7 @@ vm_t *VM_Create( vmIndex_t index, syscall_t systemCalls, dllSyscall_t dllSyscall
 	// see if we already have the VM
 	if ( vm->name ) {
 		if ( vm->index != index ) {
-			Com_Error( ERR_FATAL, "VM_Create: bad allocated vm index %i", vm->index );
+			Com_Error( ERR_DROP, "VM_Create: bad allocated vm index %i", vm->index );
 			return NULL;
 		}
 		return vm;
@@ -570,6 +570,7 @@ vm_t *VM_Create( vmIndex_t index, syscall_t systemCalls, dllSyscall_t dllSyscall
 	return vm;
 #endif
 }
+
 
 /*
 ==============

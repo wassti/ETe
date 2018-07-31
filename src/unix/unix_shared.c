@@ -243,10 +243,13 @@ char **Sys_ListFiles( const char *directory, const char *extension, const char *
 	qboolean dironly = wantsubs;
 	char		search[MAX_OSPATH*2+MAX_QPATH+1];
 	int			nfiles;
+	int			extLen;
+	int			length;
 	char		**listCopy;
 	char		*list[MAX_FOUND_FILES];
 	int			i;
 	struct stat st;
+	qboolean	hasPatterns;
 	const char	*x;
 
 	if ( filter ) {
@@ -277,17 +280,19 @@ char **Sys_ListFiles( const char *directory, const char *extension, const char *
 		dironly = qtrue;
 	}
 
-	if ( extension[0] == '.' && extension[1] != '\0' ) {
+	if ((fdir = opendir(directory)) == NULL) {
+		*numfiles = 0;
+		return NULL;
+	}
+
+	extLen = (int)strlen( extension );
+	hasPatterns = Com_HasPatterns( extension );
+	if ( hasPatterns && extension[0] == '.' && extension[1] != '\0' ) {
 		extension++;
 	}
 	
 	// search
 	nfiles = 0;
-
-	if ((fdir = opendir(directory)) == NULL) {
-		*numfiles = 0;
-		return NULL;
-	}
 
 	while ((d = readdir(fdir)) != NULL) {
 		if ( nfiles == MAX_FOUND_FILES - 1 )
@@ -299,9 +304,16 @@ char **Sys_ListFiles( const char *directory, const char *extension, const char *
 			(!dironly && (st.st_mode & S_IFDIR)))
 			continue;
 		if ( *extension ) {
-			x = strrchr( d->d_name, '.' );
-			if ( !x || !Com_FilterExt( extension, x+1 ) ) {
-				continue;
+			if ( hasPatterns ) {
+				x = strrchr( d->d_name, '.' );
+				if ( !x || !Com_FilterExt( extension, x+1 ) ) {
+					continue;
+				}
+			} else {
+				length = (int) strlen( d->d_name );
+				if ( length < extLen || Q_stricmp( d->d_name + length - extLen, extension ) ) {
+					continue;
+				}
 			}
 		}
 		list[ nfiles ] = FS_CopyString( d->d_name );
@@ -310,7 +322,7 @@ char **Sys_ListFiles( const char *directory, const char *extension, const char *
 
 	list[ nfiles ] = NULL;
 
-	closedir(fdir);
+	closedir( fdir );
 
 	// return a copy of the list
 	*numfiles = nfiles;

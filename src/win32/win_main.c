@@ -381,10 +381,13 @@ char **Sys_ListFiles( const char *directory, const char *extension, const char *
 	struct _finddata_t findinfo;
 	intptr_t	findhandle;
 	int			flag;
+	int			extLen;
+	int			length;
 	int			i;
 	const char	*x;
+	qboolean	hasPatterns;
 
-	if (filter) {
+	if ( filter ) {
 
 		nfiles = 0;
 		Sys_ListFilteredFiles( directory, "", filter, list, &nfiles );
@@ -418,18 +421,20 @@ char **Sys_ListFiles( const char *directory, const char *extension, const char *
 
 	Com_sprintf( search, sizeof(search), "%s\\*%s", directory, extension );
 
-	if ( extension[0] == '.' && extension[1] != '\0' ) {
+	findhandle = _findfirst( search, &findinfo );
+	if ( findhandle == -1 ) {
+		*numfiles = 0;
+		return NULL;
+	}
+
+	extLen = (int)strlen( extension );
+	hasPatterns = Com_HasPatterns( extension );
+	if ( hasPatterns && extension[0] == '.' && extension[1] != '\0' ) {
 		extension++;
 	}
 
 	// search
 	nfiles = 0;
-
-	findhandle = _findfirst (search, &findinfo);
-	if (findhandle == -1) {
-		*numfiles = 0;
-		return NULL;
-	}
 
 	do {
 		if ( (!wantsubs && flag ^ ( findinfo.attrib & _A_SUBDIR )) || (wantsubs && findinfo.attrib & _A_SUBDIR) ) {
@@ -437,9 +442,16 @@ char **Sys_ListFiles( const char *directory, const char *extension, const char *
 				break;
 			}
 			if ( *extension ) {
-				x = strrchr( findinfo.name, '.' );
-				if ( !x || !Com_FilterExt( extension, x+1 ) ) {
-					continue;
+				if ( hasPatterns ) {
+					x = strrchr( findinfo.name, '.' );
+					if ( !x || !Com_FilterExt( extension, x+1 ) ) {
+						continue;
+					}
+				} else {
+					length = strlen( findinfo.name );
+					if ( length < extLen || Q_stricmp( findinfo.name + length - extLen, extension ) ) {
+						continue;
+					}
 				}
 			}
 			list[ nfiles ] = FS_CopyString( findinfo.name );

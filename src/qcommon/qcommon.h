@@ -1020,6 +1020,7 @@ int			Com_Split( char *in, char **out, int outsz, int delim );
 
 int			Com_Filter( const char *filter, const char *name );
 qboolean	Com_FilterExt( const char *filter, const char *name );
+qboolean	Com_HasPatterns( const char *str );
 int			Com_FilterPath( const char *filter, const char *name );
 int			Com_RealTime(qtime_t *qtime);
 qboolean	Com_SafeMode( void );

@@ -921,7 +921,7 @@ static void CL_PlayDemo_f( void ) {
 	}
 
 	// open the demo file
-	arg = Cmd_Argv(1);
+	arg = Cmd_Argv( 1 );
 
 	// check for an extension .dm_?? (?? is protocol)
 	// check for an extension .DEMOEXT_?? (?? is protocol)

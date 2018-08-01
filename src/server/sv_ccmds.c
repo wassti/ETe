@@ -163,7 +163,6 @@ static void SV_Map_f( void ) {
 	char mapname[MAX_QPATH];
 	qboolean killBots, cheat;
 	char expanded[MAX_QPATH];
-	const char *cl_profileStr = Cvar_VariableString( "cl_profile" );
 	int			len;
 
 	map = Cmd_Argv(1);

@@ -3579,7 +3579,7 @@ void Com_Init( char *commandLine ) {
 		if ( !com_dedicated->integer ) {
 #ifndef DEDICATED
 			if ( !com_skipIdLogo || !com_skipIdLogo->integer )
-				Cbuf_AddText( "cinematic etlogo.roq\n" );
+				Cbuf_AddText( "cinematic etintro.roq\n" );
 				//Cvar_Set( "nextmap", "cinematic avlogo.roq" );
 			if( !com_introPlayed->integer ) {
 				Cvar_Set( com_introPlayed->name, "1" );

@@ -2953,6 +2953,18 @@ void Com_GameRestart( int checksumFeed, qboolean clientRestart )
 		// Load new configuration
 		Com_ExecuteCfg(Com_SafeMode());
 
+		if ( clientRestart && !com_dedicated->integer ) {
+#ifndef DEDICATED
+			if ( !com_skipIdLogo || !com_skipIdLogo->integer )
+				Cbuf_AddText( "cinematic etintro.roq\n" );
+			//Cvar_Set( "nextmap", "cinematic avlogo.roq" );
+			if ( !com_introPlayed->integer ) {
+				Cvar_Set( com_introPlayed->name, "1" );
+				Cvar_Set( "nextmap", "cinematic intro.RoQ" );
+			}
+#endif
+		}
+
 #ifndef DEDICATED
 		// Restart sound subsystem so old handles are flushed
 		//CL_Snd_Restart();

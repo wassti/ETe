@@ -645,9 +645,11 @@ typedef struct {
 #define Vector4MA( v, s, b, o )       ( ( o )[0] = ( v )[0] + ( b )[0] * ( s ),( o )[1] = ( v )[1] + ( b )[1] * ( s ),( o )[2] = ( v )[2] + ( b )[2] * ( s ),( o )[3] = ( v )[3] + ( b )[3] * ( s ) )
 #define Vector4Average( v, b, s, o )  ( ( o )[0] = ( ( v )[0] * ( 1 - ( s ) ) ) + ( ( b )[0] * ( s ) ),( o )[1] = ( ( v )[1] * ( 1 - ( s ) ) ) + ( ( b )[1] * ( s ) ),( o )[2] = ( ( v )[2] * ( 1 - ( s ) ) ) + ( ( b )[2] * ( s ) ),( o )[3] = ( ( v )[3] * ( 1 - ( s ) ) ) + ( ( b )[3] * ( s ) ) )
 
+#define Byte4Copy(a,b)			((b)[0]=(a)[0],(b)[1]=(a)[1],(b)[2]=(a)[2],(b)[3]=(a)[3])
+
 #define SnapVector( v ) {v[0] = ( (int)( v[0] ) ); v[1] = ( (int)( v[1] ) ); v[2] = ( (int)( v[2] ) );}
 
-// just in case you do't want to use the macros
+// just in case you don't want to use the macros
 vec_t _DotProduct( const vec3_t v1, const vec3_t v2 );
 void _VectorSubtract( const vec3_t veca, const vec3_t vecb, vec3_t out );
 void _VectorAdd( const vec3_t veca, const vec3_t vecb, vec3_t out );
@@ -1522,7 +1524,7 @@ typedef struct playerState_s {
 #define BUTTON_TALK         2           // displays talk balloon and disables actions
 //#define	BUTTON_USE_HOLDABLE	4
 #define BUTTON_GESTURE      8
-#define BUTTON_WALKING      16          // walking can't just be infered from MOVE_RUN
+#define	BUTTON_WALKING		16			// walking can't just be inferred from MOVE_RUN
 										// because a key pressed late in the frame will
 										// only generate a small move value for that frame
 										// walking will use different animations and

@@ -592,7 +592,7 @@ ParseStage
 static qboolean ParseStage( shaderStage_t *stage, const char **text )
 {
 	char *token;
-	/*GLbitfield*/int depthMaskBits = GLS_DEPTHMASK_TRUE, blendSrcBits = 0, blendDstBits = 0, atestBits = 0, depthFuncBits = 0;
+	GLbitfield depthMaskBits = GLS_DEPTHMASK_TRUE, blendSrcBits = 0, blendDstBits = 0, atestBits = 0, depthFuncBits = 0;
 	qboolean depthMaskExplicit = qfalse;
 
 	stage->active = qtrue;
@@ -803,6 +803,8 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 		//
 		else if ( !Q_stricmp( token, "animMap" ) )
 		{
+			int	totalImages = 0;
+
 			token = COM_ParseExt( text, qfalse );
 			if ( !token[0] )
 			{
@@ -840,6 +842,12 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 					}
 					stage->bundle[0].numImageAnimations++;
 				}
+				totalImages++;
+			}
+
+			if ( totalImages > MAX_IMAGE_ANIMATIONS ) {
+				ri.Printf( PRINT_WARNING, "WARNING: ignoring excess images for 'animMap' (found %d, max is %d) in shader '%s'\n",
+						totalImages, MAX_IMAGE_ANIMATIONS, shader.name );
 			}
 		}
 		else if ( !Q_stricmp( token, "videoMap" ) )
@@ -2363,11 +2371,11 @@ done:
 
 
 typedef struct {
-	/*GLbitfield*/int blendA;
-	/*GLbitfield*/int blendB;
+	GLbitfield blendA;
+	GLbitfield blendB;
 
-	/*GLbitfield*/int multitextureEnv;
-	/*GLbitfield*/int multitextureBlend;
+	GLbitfield multitextureEnv;
+	GLbitfield multitextureBlend;
 } collapse_t;
 
 static collapse_t collapse[] = {
@@ -2398,7 +2406,6 @@ static collapse_t collapse[] = {
 	{ 0, GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA | GLS_SRCBLEND_SRC_ALPHA,
 	  GL_DECAL, 0 },
 #endif
-	//{ 0xFFFFFFFFu/*-1*/ }
 };
 
 static const size_t numCollapse = ARRAY_LEN( collapse );
@@ -2412,7 +2419,7 @@ FIXME: I think modulated add + modulated add collapses incorrectly
 =================
 */
 static qboolean CollapseMultitexture( shaderStage_t *st0, shaderStage_t *st1, int num_stages ) {
-	/*GLbitfield*/int abits, bbits;
+	GLbitfield abits, bbits;
 	int i;
 	textureBundle_t tmpBundle;
 
@@ -2446,7 +2453,7 @@ static qboolean CollapseMultitexture( shaderStage_t *st0, shaderStage_t *st1, in
 	bbits &= ( GLS_DSTBLEND_BITS | GLS_SRCBLEND_BITS );
 
 	// search for a valid multitexture blend function
-	for ( i = 0; i < numCollapse/*collapse[i].blendA != -1*/ ; i++ ) {
+	for ( i = 0; i < numCollapse ; i++ ) {
 		if ( abits == collapse[i].blendA
 			&& bbits == collapse[i].blendB ) {
 			break;
@@ -2454,7 +2461,7 @@ static qboolean CollapseMultitexture( shaderStage_t *st0, shaderStage_t *st1, in
 	}
 
 	// nothing found
-	if ( i == numCollapse/*collapse[i].blendA == -1*/ ) {
+	if ( i == numCollapse ) {
 		return qfalse;
 	}
 
@@ -3123,8 +3130,8 @@ static shader_t *FinishShader( void ) {
 		//
 		if ( ( pStage->stateBits & ( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) ) &&
 			 ( stages[0].stateBits & ( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) ) ) {
-			/*GLbitfield*/int blendSrcBits = pStage->stateBits & GLS_SRCBLEND_BITS;
-			/*GLbitfield*/int blendDstBits = pStage->stateBits & GLS_DSTBLEND_BITS;
+			GLbitfield blendSrcBits = pStage->stateBits & GLS_SRCBLEND_BITS;
+			GLbitfield blendDstBits = pStage->stateBits & GLS_DSTBLEND_BITS;
 
 			// fog color adjustment only works for blend modes that have a contribution
 			// that aproaches 0 as the modulate values aproach 0 --
@@ -3743,7 +3750,7 @@ qhandle_t RE_RegisterShaderFromImage( const char *name, int lightmapIndex, image
 
 	InitShader( name, lightmapIndex );
 
-	// FIXME: set these "need" values apropriately
+	// FIXME: set these "need" values appropriately
 	shader.needsNormal = qtrue;
 	shader.needsST1 = qtrue;
 	shader.needsST2 = qtrue;

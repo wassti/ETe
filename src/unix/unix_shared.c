@@ -368,13 +368,13 @@ void Sys_FreeFileList( char **list ) {
 Sys_GetFileStats
 =============
 */
-qboolean Sys_GetFileStats( const char *filename, off_t *size, time_t *mtime, time_t *ctime ) {
+qboolean Sys_GetFileStats( const char *filename, fileOffset_t *size, fileTime_t *mtime, fileTime_t *ctime ) {
 	struct stat s;
 
 	if ( stat( filename, &s ) == 0 ) {
-		*size = s.st_size;
-		*mtime = s.st_mtime;
-		*ctime = s.st_ctime;
+		*size = (fileOffset_t)s.st_size;
+		*mtime = (fileTime_t)s.st_mtime;
+		*ctime = (fileTime_t)s.st_ctime;
 		return qtrue;
 	} else {
 		return qfalse;

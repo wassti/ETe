@@ -136,7 +136,7 @@ static int				numLoopSounds = 0;
 static	channel_t		*freelist = NULL;
 
 int	s_rawend[MAX_RAW_STREAMS];
-int	s_rawpainted[MAX_RAW_STREAMS];
+//int	s_rawpainted[MAX_RAW_STREAMS];
 portable_samplepair_t	s_rawsamples[MAX_RAW_STREAMS][MAX_RAW_SAMPLES];
 
 
@@ -324,7 +324,7 @@ static sfx_t *S_FindName( const char *name ) {
 		return NULL;
 	}
 
-	if ( strlen(name) > 1 && name[0] == '*' && name[1] != '*'  ) {
+	if ( strlen(name) > 1 && name[0] == '*' && name[1] != '*' ) {
 		Com_Printf( S_COLOR_YELLOW "WARNING: Tried to load player sound directly: %s\n", name );
 		return NULL;
 	}

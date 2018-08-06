@@ -247,26 +247,26 @@ void RB_CalcDeformNormals( deformStage_t *ds ) {
 	}
 }
 
+
 /*
 ========================
 RB_CalcBulgeVertexes
-
 ========================
 */
 void RB_CalcBulgeVertexes( deformStage_t *ds ) {
 	int i;
 	const float *st = ( const float * ) tess.texCoords[0];
-	float       *xyz = ( float * ) tess.xyz;
-	float       *normal = ( float * ) tess.normal;
-	float now;
+	float		*xyz = ( float * ) tess.xyz;
+	float		*normal = ( float * ) tess.normal;
+	double		now;
 
-	now = backEnd.refdef.time * ds->bulgeSpeed * 0.001f;
+	now = backEnd.refdef.time * 0.001 * ds->bulgeSpeed;
 
 	for ( i = 0; i < tess.numVertexes; i++, xyz += 4, st += 4, normal += 4 ) {
-		int off;
+		int64_t off;
 		float scale;
 
-		off = (float)( FUNCTABLE_SIZE / ( M_PI * 2 ) ) * ( st[0] * ds->bulgeWidth + now );
+		off = (float)( FUNCTABLE_SIZE / (M_PI*2) ) * ( st[0] * ds->bulgeWidth + now );
 
 		scale = tr.sinTable[ off & FUNCTABLE_MASK ] * ds->bulgeHeight;
 
@@ -393,22 +393,23 @@ static void GlobalVectorToLocal( const vec3_t in, vec3_t out ) {
 	out[2] = DotProduct( in, backEnd.orientation.axis[2] );
 }
 
+
 /*
 =====================
 AutospriteDeform
 
-Assuming all the triangles for this shader are independant
+Assuming all the triangles for this shader are independent
 quads, rebuild them as forward facing sprites
 =====================
 */
 static void AutospriteDeform( void ) {
-	int i;
-	int oldVerts;
-	float   *xyz;
-	vec3_t mid, delta;
-	float radius;
-	vec3_t left, up;
-	vec3_t leftDir, upDir;
+	int		i;
+	int		oldVerts;
+	float	*xyz;
+	vec3_t	mid, delta;
+	float	radius;
+	vec3_t	left, up;
+	vec3_t	leftDir, upDir;
 
 	if ( tess.numVertexes & 3 ) {
 		ri.Printf( PRINT_WARNING, "Autosprite shader %s had odd vertex count\n", tess.shader->name );
@@ -429,16 +430,16 @@ static void AutospriteDeform( void ) {
 		VectorCopy( backEnd.viewParms.orientation.axis[2], upDir );
 	}
 
-	for ( i = 0 ; i < oldVerts ; i += 4 ) {
+	for ( i = 0 ; i < oldVerts ; i+=4 ) {
 		// find the midpoint
 		xyz = tess.xyz[i];
 
-		mid[0] = 0.25f * ( xyz[0] + xyz[4] + xyz[8] + xyz[12] );
-		mid[1] = 0.25f * ( xyz[1] + xyz[5] + xyz[9] + xyz[13] );
-		mid[2] = 0.25f * ( xyz[2] + xyz[6] + xyz[10] + xyz[14] );
+		mid[0] = 0.25f * (xyz[0] + xyz[4] + xyz[8] + xyz[12]);
+		mid[1] = 0.25f * (xyz[1] + xyz[5] + xyz[9] + xyz[13]);
+		mid[2] = 0.25f * (xyz[2] + xyz[6] + xyz[10] + xyz[14]);
 
 		VectorSubtract( xyz, mid, delta );
-		radius = VectorLength( delta ) * 0.707f;        // / sqrt(2)
+		radius = VectorLength( delta ) * 0.707f;		// / sqrt(2)
 
 		VectorScale( leftDir, radius, left );
 		VectorScale( upDir, radius, up );
@@ -456,8 +457,8 @@ static void AutospriteDeform( void ) {
 			} else {
 				axisLength = 1.0f / axisLength;
 			}
-			VectorScale( left, axisLength, left );
-			VectorScale( up, axisLength, up );
+			VectorScale(left, axisLength, left);
+			VectorScale(up, axisLength, up);
 		}
 
 		RB_AddQuadStamp( mid, left, up, tess.vertexColors[i] );
@@ -482,10 +483,10 @@ static const unsigned int edgeVerts[6][2] = {
 };
 
 static void Autosprite2Deform( void ) {
-	int i, j, k;
-	int indexes;
-	float   *xyz;
-	vec3_t forward;
+	int		i, j, k;
+	int		indexes;
+	float	*xyz;
+	vec3_t	forward;
 
 	if ( tess.numVertexes & 3 ) {
 		ri.Printf( PRINT_WARNING, "Autosprite2 shader %s had odd vertex count\n", tess.shader->name );
@@ -503,12 +504,12 @@ static void Autosprite2Deform( void ) {
 	// this is a lot of work for two triangles...
 	// we could precalculate a lot of it is an issue, but it would mess up
 	// the shader abstraction
-	for ( i = 0, indexes = 0 ; i < tess.numVertexes ; i += 4, indexes += 6 ) {
-		float lengths[2];
-		int nums[2];
-		vec3_t mid[2];
-		vec3_t major, minor;
-		float   *v1, *v2;
+	for ( i = 0, indexes = 0 ; i < tess.numVertexes ; i+=4, indexes+=6 ) {
+		float	lengths[2];
+		int		nums[2];
+		vec3_t	mid[2];
+		vec3_t	major, minor;
+		float	*v1, *v2;
 
 		// find the midpoint
 		xyz = tess.xyz[i];
@@ -518,8 +519,8 @@ static void Autosprite2Deform( void ) {
 		lengths[0] = lengths[1] = 999999;
 
 		for ( j = 0 ; j < 6 ; j++ ) {
-			float l;
-			vec3_t temp;
+			float	l;
+			vec3_t	temp;
 
 			v1 = xyz + 4 * edgeVerts[j][0];
 			v2 = xyz + 4 * edgeVerts[j][1];
@@ -542,9 +543,9 @@ static void Autosprite2Deform( void ) {
 			v1 = xyz + 4 * edgeVerts[nums[j]][0];
 			v2 = xyz + 4 * edgeVerts[nums[j]][1];
 
-			mid[j][0] = 0.5f * ( v1[0] + v2[0] );
-			mid[j][1] = 0.5f * ( v1[1] + v2[1] );
-			mid[j][2] = 0.5f * ( v1[2] + v2[2] );
+			mid[j][0] = 0.5f * (v1[0] + v2[0]);
+			mid[j][1] = 0.5f * (v1[1] + v2[1]);
+			mid[j][2] = 0.5f * (v1[2] + v2[2]);
 		}
 
 		// find the vector of the major axis
@@ -556,7 +557,7 @@ static void Autosprite2Deform( void ) {
 
 		// re-project the points
 		for ( j = 0 ; j < 2 ; j++ ) {
-			float l;
+			float	l;
 
 			v1 = xyz + 4 * edgeVerts[nums[j]][0];
 			v2 = xyz + 4 * edgeVerts[nums[j]][1];
@@ -567,7 +568,7 @@ static void Autosprite2Deform( void ) {
 			// is used to determine direction of projection
 			for ( k = 0 ; k < 5 ; k++ ) {
 				if ( tess.indexes[ indexes + k ] == i + edgeVerts[nums[j]][0]
-					 && tess.indexes[ indexes + k + 1 ] == i + edgeVerts[nums[j]][1] ) {
+					&& tess.indexes[ indexes + k + 1 ] == i + edgeVerts[nums[j]][1] ) {
 					break;
 				}
 			}
@@ -1452,8 +1453,8 @@ void RB_CalcTurbulentTexCoords( const waveForm_t *wf, float *st )
 		float s = st[0];
 		float t = st[1];
 
-		st[0] = s + tr.sinTable[ ( ( int ) ( ( ( tess.xyz[i][0] + tess.xyz[i][2] ) * 1.0 / 128 * 0.125 + now ) * FUNCTABLE_SIZE ) ) & ( FUNCTABLE_MASK ) ] * wf->amplitude;
-		st[1] = t + tr.sinTable[ ( ( int ) ( ( tess.xyz[i][1] * 1.0 / 128 * 0.125 + now ) * FUNCTABLE_SIZE ) ) & ( FUNCTABLE_MASK ) ] * wf->amplitude;
+		st[0] = s + tr.sinTable[ ( ( int64_t ) ( ( ( tess.xyz[i][0] + tess.xyz[i][2] )* 1.0/128 * 0.125 + now ) * FUNCTABLE_SIZE ) ) & ( FUNCTABLE_MASK ) ] * wf->amplitude;
+		st[1] = t + tr.sinTable[ ( ( int64_t ) ( ( tess.xyz[i][1] * 1.0/128 * 0.125 + now ) * FUNCTABLE_SIZE ) ) & ( FUNCTABLE_MASK ) ] * wf->amplitude;
 	}
 }
 

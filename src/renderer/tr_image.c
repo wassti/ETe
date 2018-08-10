@@ -1153,7 +1153,7 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, imgFlags_t flags )
 			flags |= IMGFLAG_NO_COMPRESSION;
 	}
 	
-	if ( tr.mapLoading && r_mapGreyScale->value ) {
+	if ( tr.mapLoading && r_mapGreyScale->value > 0 ) {
 		byte *img;
 		int i;
 		for ( i = 0, img = pic; i < width * height; i++, img += 4 ) {

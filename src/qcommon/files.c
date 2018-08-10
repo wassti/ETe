@@ -260,8 +260,8 @@ typedef struct pack_s {
 } pack_t;
 
 typedef struct {
-	char		path[MAX_OSPATH];		// c:\quake3
-	char		gamedir[MAX_OSPATH];	// baseq3
+	char		*path;		// c:\quake3
+	char		*gamedir;	// baseq3
 } directory_t;
 
 typedef enum {
@@ -515,7 +515,7 @@ static void FS_ReplaceSeparators( char *path ) {
 	char	*s;
 
 	for ( s = path ; *s ; s++ ) {
-		if ( *s == '/' || *s == '\\' ) {
+		if ( *s == PATH_SEP_FOREIGN ) {
 			*s = PATH_SEP;
 		}
 	}
@@ -541,11 +541,11 @@ char *FS_BuildOSPath( const char *base, const char *game, const char *qpath ) {
 	}
 
 	if ( qpath )
-		Com_sprintf( temp, sizeof( temp ), "/%s/%s", game, qpath );
+		Com_sprintf( temp, sizeof( temp ), "%c%s%c%s", PATH_SEP, game, PATH_SEP, qpath );
 	else
-		Com_sprintf( temp, sizeof( temp ), "/%s", game );
+		Com_sprintf( temp, sizeof( temp ), "%c%s", PATH_SEP, game );
 
-	FS_ReplaceSeparators( temp );	
+	FS_ReplaceSeparators( temp );
 	Com_sprintf( ospath[toggle], sizeof( ospath[0] ), "%s%s", base, temp );
 
 	return ospath[toggle];
@@ -833,6 +833,7 @@ FS_InitHandle
 ===========
 */
 static void FS_InitHandle( fileHandleData_t *fd ) {
+	fd->pak = NULL;
 	fd->pakIndex = -1;
 	fs_lastPakIndex = -1;
 }
@@ -1041,7 +1042,7 @@ void FS_FCloseFile( fileHandle_t f ) {
 
 	fd = &fsh[ f ];
 
-	if ( fd->zipFile ) {
+	if ( fd->zipFile && fd->pak ) {
 		unzCloseCurrentFile( fd->handleFiles.file.z );
 		if ( fd->handleFiles.unique ) {
 			unzClose( fd->handleFiles.file.z );
@@ -2655,7 +2656,7 @@ static pack_t *FS_LoadZipFile( const char *zipfile )
 #ifdef USE_PK3_CACHE
 	size += ( filecount + 1 ) * sizeof( fs_headerLongs[0] );
 #endif
-	pack = Z_TagMalloc( size, TAG_PK3 );
+	pack = Z_TagMalloc( size, TAG_PACK );
 	Com_Memset( pack, 0, size );
 
 	pack->handle = uf;
@@ -3278,7 +3279,7 @@ static void FS_GetModDescription( const char *modDir, char *description, int des
 	char			descPath[MAX_QPATH];
 	int				nDescLen;
 
-	Com_sprintf( descPath, sizeof ( descPath ), "%s/description.txt", modDir );
+	Com_sprintf( descPath, sizeof ( descPath ), "%s%cdescription.txt", modDir, PATH_SEP );
 	FS_ReplaceSeparators( descPath );
 	nDescLen = FS_SV_FOpenFileRead( descPath, &descHandle );
 

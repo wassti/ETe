@@ -1651,7 +1651,10 @@ static	int		s_hunkTotal;
 static const char *tagName[ TAG_COUNT ] = {
 	"FREE",
 	"GENERAL",
-	"PK3",
+	"PACK",
+	"SEARCH-PATH",
+	"SEARCH-PACK",
+	"SEARCH-DIR",
 	"BOTLIB",
 	"RENDERER",
 	"SMALL",

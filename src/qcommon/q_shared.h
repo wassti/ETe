@@ -1086,6 +1086,7 @@ default values.
 #define CVAR_NODEFAULT		131072	// do not write to config if matching with default value
 
 #define CVAR_PRIVATE		262144	// can't be read from VM
+#define CVAR_DEVELOPER		524288	// can be set only in developer mode
 
 #define CVAR_ARCHIVE_ND		(CVAR_ARCHIVE | CVAR_NODEFAULT)
 

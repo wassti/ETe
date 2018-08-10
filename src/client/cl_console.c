@@ -977,7 +977,7 @@ void Con_RunConsole( void )
 void Con_PageUp( int lines )
 {
 	if ( lines == 0 )
-		lines = con.vispage - 1;
+		lines = con.vispage - 2;
 
 	con.display -= lines;
 	
@@ -987,9 +987,9 @@ void Con_PageUp( int lines )
 
 void Con_PageDown( int lines )
 {
-	if ( lines == 0 ) {
-		lines = con.vispage - 1;
-	}
+	if ( lines == 0 )
+		lines = con.vispage - 2;
+
 	con.display += lines;
 
 	Con_Fixup();

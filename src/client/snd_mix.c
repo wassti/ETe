@@ -330,7 +330,6 @@ static void S_TransferPaintBuffer( int endtime, byte *buffer )
 
 	pbuf = (unsigned long *)buffer;
 
-
 	if ( s_testsound->integer ) {
 		int		i;
 

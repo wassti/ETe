@@ -3701,7 +3701,7 @@ static void FS_Which_f( void ) {
 				continue;
 			}
 			fclose(temp);
-			Com_sprintf( buf, sizeof( buf ), "%s/%s", dir->path, dir->gamedir );
+			Com_sprintf( buf, sizeof( buf ), "%s%c%s", dir->path, PATH_SEP, dir->gamedir );
 			FS_ReplaceSeparators( buf );
 			Com_Printf( "File \"%s\" found at \"%s\"\n", filename, buf );
 			if ( ++numfound >= 32 ) {
@@ -3727,12 +3727,12 @@ then loads the zip headers
 ================
 */
 static void FS_AddGameDirectory( const char *path, const char *dir ) {
-	searchpath_t	*sp;
+	const searchpath_t *sp;
 	int				len;
 	searchpath_t	*search;
 	const char		*gamedir;
 	pack_t			*pak;
-	char			curpath[MAX_OSPATH + 1];
+	char			curpath[MAX_OSPATH*2 + 1];
 	char			*pakfile;
 	int				numfiles;
 	char			**pakfiles;
@@ -3741,6 +3741,8 @@ static void FS_AddGameDirectory( const char *path, const char *dir ) {
 	char			**pakdirs;
 	int				pakdirsi;
 	int				pakwhich;
+	int				path_len;
+	int				dir_len;
 
 	for ( sp = fs_searchpaths ; sp ; sp = sp->next ) {
 		if ( sp->dir && !Q_stricmp( sp->dir->path, path ) && !Q_stricmp( sp->dir->gamedir, dir )) {
@@ -3753,12 +3755,22 @@ static void FS_AddGameDirectory( const char *path, const char *dir ) {
 	//
 	// add the directory to the search path
 	//
-	search = Z_Malloc( sizeof( *search ) + sizeof( *search->dir ) );
-	search->dir = (directory_t*)( search + 1 );
+	path_len = (int) strlen( path ) + 1;
+	path_len = PAD( path_len, sizeof( int ) );
+	dir_len = (int) strlen( dir ) + 1;
+	dir_len = PAD( dir_len, sizeof( int ) );
+	len = sizeof( *search ) + sizeof( *search->dir ) + path_len + dir_len;
 
-	Q_strncpyz( search->dir->path, path, sizeof( search->dir->path ) );
-	Q_strncpyz( search->dir->gamedir, dir, sizeof( search->dir->gamedir ) );
+	search = Z_TagMalloc( len, TAG_SEARCH_PATH );
+	Com_Memset( search, 0, len );
+	search->dir = (directory_t*)( search + 1 );
+	search->dir->path = (char*)( search->dir + 1 );
+	search->dir->gamedir = (char*)( search->dir->path + path_len );
+
+	strcpy( search->dir->path, path );
+	strcpy( search->dir->gamedir, dir );
 	gamedir = search->dir->gamedir;
+
 	search->next = fs_searchpaths;
 	fs_searchpaths = search;
 
@@ -3827,8 +3839,10 @@ static void FS_AddGameDirectory( const char *path, const char *dir ) {
 			fs_packFiles += pak->numfiles;
 			fs_packCount++;
 
-			search = Z_Malloc( sizeof( *search ) );
+			search = Z_TagMalloc( sizeof( *search ), TAG_SEARCH_PACK );
+			Com_Memset( search, 0, sizeof( *search ) );
 			search->pack = pak;
+
 			search->next = fs_searchpaths;
 			fs_searchpaths = search;
 
@@ -3845,15 +3859,21 @@ static void FS_AddGameDirectory( const char *path, const char *dir ) {
 				continue;
 			}
 
-			pakfile = FS_BuildOSPath(path, dir, pakdirs[pakdirsi]);
-
 			// add the directory to the search path
-			search = Z_Malloc( sizeof( *search ) + sizeof( *search->dir ) );
+			path_len = (int) strlen( curpath ) + 1; 
+			path_len = PAD( path_len, sizeof( int ) );
+			dir_len = PAD( len + 1, sizeof( int ) );
+			len = sizeof( *search ) + sizeof( *search->dir ) + path_len + dir_len;
+
+			search = Z_TagMalloc( len, TAG_SEARCH_DIR );
+			Com_Memset( search, 0, len );
 			search->dir = (directory_t*)(search + 1);
+			search->dir->path = (char*)( search->dir + 1 );
+			search->dir->gamedir = (char*)( search->dir->path + path_len );
 			search->policy = DIR_ALLOW;
 
-			Q_strncpyz(search->dir->path, curpath, sizeof(search->dir->path));	// c:\quake3\baseq3
-			Q_strncpyz(search->dir->gamedir, pakdirs[pakdirsi], sizeof(search->dir->gamedir)); // mypak.pk3dir
+			strcpy( search->dir->path, curpath );				// c:\quake3\baseq3
+			strcpy( search->dir->gamedir, pakdirs[ pakdirsi ] );// mypak.pk3dir
 
 			search->next = fs_searchpaths;
 			fs_searchpaths = search;
@@ -4059,7 +4079,7 @@ void FS_Shutdown( qboolean closemfp )
 	// close opened files
 	//if ( closemfp ) 
 	{
-		for ( i = 1; i < MAX_FILE_HANDLES; i++ ) 
+		for ( i = 1; i < MAX_FILE_HANDLES; i++ )
 		{
 			if ( !fsh[i].handleFiles.file.v  )
 				continue;

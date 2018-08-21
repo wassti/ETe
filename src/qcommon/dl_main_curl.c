@@ -35,7 +35,8 @@ If you have questions concerning this license or the applicable additional terms
 #ifdef __MACOS__
 #include <curl/curl.h>
 #else
-#include "../curl-7.12.2/include/curl/curl.h"
+#include <curl/curl.h>
+//#include "../curl-7.12.2/include/curl/curl.h"
 #endif
 
 #include "../qcommon/q_shared.h"
@@ -44,6 +45,8 @@ If you have questions concerning this license or the applicable additional terms
 
 #define APP_NAME        "ID_DOWNLOAD"
 #define APP_VERSION     "2.0"
+
+#define ALLOWED_PROTOCOLS ( CURLPROTO_HTTP | CURLPROTO_HTTPS | CURLPROTO_FTP | CURLPROTO_FTPS )
 
 // initialize once
 static int dl_initialized = 0;
@@ -111,8 +114,6 @@ setup the download, return once we have a connection
 ===============
 */
 int DL_BeginDownload( const char *localName, const char *remoteName, int debug ) {
-	char referer[MAX_STRING_CHARS + 5 /*"ET://"*/];
-
 	if ( dl_request ) {
 		Com_Printf( "ERROR: DL_BeginDownload called with a download request already active\n" ); \
 		return 0;
@@ -132,18 +133,20 @@ int DL_BeginDownload( const char *localName, const char *remoteName, int debug )
 
 	DL_InitDownload();
 
-	/* ET://ip:port */
-	Com_sprintf( referer, sizeof( referer ), "ET://%s", Cvar_VariableString( "cl_currentServerIP" ) );
-
 	dl_request = curl_easy_init();
+	if ( debug )
+		curl_easy_setopt( dl_request, CURLOPT_VERBOSE, 1 );
 	curl_easy_setopt( dl_request, CURLOPT_USERAGENT, va( "%s %s", APP_NAME "/" APP_VERSION, curl_version() ) );
-	curl_easy_setopt( dl_request, CURLOPT_REFERER, referer );
+	curl_easy_setopt( dl_request, CURLOPT_REFERER, va( "ET://%s", Cvar_VariableString( "cl_currentServerIP" ) ) );
 	curl_easy_setopt( dl_request, CURLOPT_URL, remoteName );
 	curl_easy_setopt( dl_request, CURLOPT_WRITEFUNCTION, DL_cb_FWriteFile );
 	curl_easy_setopt( dl_request, CURLOPT_WRITEDATA, (void*)dl_file );
 	curl_easy_setopt( dl_request, CURLOPT_PROGRESSFUNCTION, DL_cb_Progress );
 	curl_easy_setopt( dl_request, CURLOPT_NOPROGRESS, 0 );
 	curl_easy_setopt( dl_request, CURLOPT_FAILONERROR, 1 );
+	curl_easy_setopt( dl_request, CURLOPT_FOLLOWLOCATION, 1 );
+	curl_easy_setopt( dl_request, CURLOPT_MAXREDIRS, 5 );
+	curl_easy_setopt( dl_request, CURLOPT_PROTOCOLS, ALLOWED_PROTOCOLS );
 
 	curl_multi_add_handle( dl_multi, dl_request );
 

@@ -3811,6 +3811,9 @@ static char** Sys_ConcatenateFileLists( char **list0, char **list1 )
 FS_GetModDescription
 ================
 */
+#ifndef DEDICATED
+const char* CL_TranslateStringBuf( const char *string );
+#endif
 static void FS_GetModDescription( const char *modDir, char *description, int descriptionLen ) {
 	fileHandle_t	descHandle;
 	char			descPath[MAX_QPATH];
@@ -3833,7 +3836,15 @@ static void FS_GetModDescription( const char *modDir, char *description, int des
 		}
 		FS_FCloseFile( descHandle ); 
 	} else {
-		Q_strncpyz( description, modDir, descriptionLen );
+		if ( !Q_stricmp( modDir, fs_basegame->string ) ) {
+#ifdef DEDICATED
+			Q_strncpyz( description, "Wolfenstein: Enemy Territory", descriptionLen );
+#else
+			Q_strncpyz( description, CL_TranslateStringBuf( "Wolfenstein: Enemy Territory" ), descriptionLen );
+#endif
+		} else {
+			Q_strncpyz( description, modDir, descriptionLen );
+		}
 	}
 }
 
@@ -3892,7 +3903,7 @@ static int FS_GetModList( char *listbuf, int bufsize ) {
 			}
 		}
 		// we also drop "baseq3" "." and ".."
-		if ( bDrop || Q_stricmp( name, fs_basegame->string ) == 0 || Q_stricmpn(name, ".", 1) == 0 ) {
+		if ( bDrop || /*Q_stricmp( name, fs_basegame->string ) == 0 ||*/ Q_stricmpn(name, ".", 1) == 0 ) {
 			continue;
 		}
 

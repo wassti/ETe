@@ -34,6 +34,12 @@ If you have questions concerning this license or the applicable additional terms
 
 typedef struct
 {
+	qboolean	isattached;
+	HMODULE		handle;
+} steamoverlay_t;
+
+typedef struct
+{
 	WNDPROC		wndproc;
 
 	HDC     hDC;			// handle to device context
@@ -58,6 +64,8 @@ typedef struct
 	FILE		*log_fp;	// TODO: implement?
 
 	glconfig_t	*config;	// feedback to renderer module
+
+	steamoverlay_t	overlay;
 
 } glwstate_t;
 

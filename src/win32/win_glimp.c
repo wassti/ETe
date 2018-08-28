@@ -1321,6 +1321,20 @@ static qboolean GLW_StartOpenGL( void )
 	return qtrue;
 }
 
+static void GLimp_DetectSteamOverlay( void ) {
+	HMODULE gameoverlaydll = GetModuleHandle( T( "GameOverlayRenderer.dll" ) );
+
+	if ( !gameoverlaydll ) {
+		memset( &glw_state.overlay, 0, sizeof( glw_state.overlay ) );
+		return;
+	}
+
+	glw_state.overlay.isattached = qtrue;
+	glw_state.overlay.handle = gameoverlaydll;
+
+	Com_Printf( S_COLOR_CYAN "Steam Overlay Detected\n" );
+}
+
 
 /*
 ** GLimp_Init
@@ -1350,6 +1364,8 @@ void GLimp_Init( glconfig_t *config )
 	// load appropriate DLL and initialize subsystem
 	if ( !GLW_StartOpenGL() )
 		return;
+
+	GLimp_DetectSteamOverlay();
 
 	//glConfig.driverType = GLDRV_ICD;
 	config->hardwareType = GLHW_GENERIC;

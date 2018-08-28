@@ -1123,6 +1123,60 @@ fileHandle_t FS_FOpenFileWrite( const char *filename ) {
 
 /*
 ===========
+FS_FOpenDLLWrite
+
+Like FS_FOpenFileWrite except it allows dll/so/dylibs
+Used for extraction, expects that you know what you are doing
+as far as making sure the extension is allowed
+===========
+*/
+static fileHandle_t FS_FOpenDLLWrite( const char *filename ) {
+	char			*ospath;
+	fileHandle_t	f;
+	fileHandleData_t *fd;
+
+	if ( !fs_searchpaths ) {
+		Com_Error( ERR_FATAL, "Filesystem call made without initialization" );
+	}
+
+	if ( !filename || !*filename ) {
+		return FS_INVALID_HANDLE;
+	}
+
+	ospath = FS_BuildOSPath( fs_homepath->string, fs_gamedir, filename );
+
+	if ( fs_debug->integer ) {
+		Com_Printf( "FS_FOpenDLLWrite: %s\n", ospath );
+	}
+
+	f = FS_HandleForFile();
+	fd = &fsh[ f ];
+	FS_InitHandle( fd );
+
+	// enabling the following line causes a recursive function call loop
+	// when running with +set logfile 1 +set developer 1
+	//Com_DPrintf( "writing to: %s\n", ospath );
+	fd->handleFiles.file.o = Sys_FOpen( ospath, "wb" );
+	if ( fd->handleFiles.file.o == NULL ) {
+		if ( FS_CreatePath( ospath ) ) {
+			return FS_INVALID_HANDLE;
+		}
+		fd->handleFiles.file.o = Sys_FOpen( ospath, "wb" );
+		if ( fd->handleFiles.file.o == NULL ) {
+			return FS_INVALID_HANDLE;
+		}
+	}
+
+	Q_strncpyz( fd->name, filename, sizeof( fd->name ) );
+	fd->handleSync = qfalse;
+	fd->zipFile = qfalse;
+
+	return f;
+}
+
+
+/*
+===========
 FS_FOpenFileAppend
 ===========
 */
@@ -1686,18 +1740,20 @@ NOTE TTimo:
 qboolean FS_CL_ExtractFromPakFile( const char *fullpath, const char *gamedir, const char *filename, const char *cvar_lastVersion ) {
 	int srcLength;
 	int destLength;
-	unsigned char   *srcData;
-	unsigned char   *destData;
+	byte *srcData;
+	byte *destData;
 	qboolean needToCopy;
-	FILE            *destHandle;
+	FILE *destHandle;
 
 	needToCopy = qtrue;
 
-	// read in compressed file
+	// read in compressed file (force it to exclude files from directories)
+	fs_filter_flag = FS_EXCLUDE_DIR;
 	srcLength = FS_ReadFile( filename, (void **)&srcData );
+	fs_filter_flag = 0;
 
 	// if its not in the pak, we bail
-	if ( srcLength == -1 ) {
+	if ( srcLength <= 0 ) {
 		return qfalse;
 	}
 
@@ -1711,10 +1767,15 @@ qboolean FS_CL_ExtractFromPakFile( const char *fullpath, const char *gamedir, co
 		fseek( destHandle, 0, SEEK_SET );
 
 		if ( destLength > 0 ) {
-			destData = (unsigned char*)Z_Malloc( destLength );
+			destData = (byte *)Z_Malloc( destLength );
 
 //			fread( destData, 1, destLength, destHandle );
-			fread( destData, destLength, 1, destHandle );
+			if ( fread( destData, destLength, 1, destHandle ) != 1 && ( !feof( destHandle ) || ferror( destHandle ) ) ) {
+				Z_Free( destData );
+				FS_FreeFile( srcData );
+				fclose( destHandle );
+				Com_Error( ERR_FATAL, "FS_CL_ExtractFromPakFile: Short read '%s'", filename );
+			}
 
 			// compare files
 			if ( destLength == srcLength ) {
@@ -1742,9 +1803,10 @@ qboolean FS_CL_ExtractFromPakFile( const char *fullpath, const char *gamedir, co
 		fileHandle_t f;
 
 		// Com_DPrintf("FS_ExtractFromPakFile: FS_FOpenFileWrite '%s'\n", filename);
-		f = FS_FOpenFileWrite( filename );
+		f = FS_FOpenDLLWrite( filename );
 		if ( !f ) {
 			Com_Printf( "Failed to open %s\n", filename );
+			FS_FreeFile( srcData );
 			return qfalse;
 		}
 

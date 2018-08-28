@@ -288,7 +288,6 @@ static void PutPointsOnCurve( drawVert_t ctrl[MAX_GRID_SIZE][MAX_GRID_SIZE],
 	}
 }
 
-
 /*
 =================
 R_CreateSurfaceGridMesh

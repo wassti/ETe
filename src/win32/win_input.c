@@ -1069,6 +1069,22 @@ static void IN_GetHotkey( cvar_t *var, int *pHotKey ) {
 }
 
 
+void IN_Minimize( void ) {
+	if ( gw_active )
+	{
+		if ( !CL_VideoRecording() || ( re.CanMinimize && re.CanMinimize() ) )
+			ShowWindow( g_wv.hWnd, SW_MINIMIZE );
+	}
+	else
+	{
+		SetForegroundWindow( g_wv.hWnd );
+		SetFocus( g_wv.hWnd );
+		ShowWindow( g_wv.hWnd, SW_RESTORE );
+	}
+}
+
+
+
 /*
 ===========
 IN_Startup
@@ -1103,6 +1119,7 @@ void IN_Shutdown( void ) {
 	IN_ShutdownMIDI();
 	Cmd_RemoveCommand("midiinfo" );
 #endif
+	Cmd_RemoveCommand("minimize");
 }
 
 
@@ -1150,6 +1167,8 @@ void IN_Init( void ) {
 
 	in_minimize	= Cvar_Get( "in_minimize", "", CVAR_ARCHIVE | CVAR_LATCH );
 	IN_GetHotkey( in_minimize, &HotKey );
+
+	Cmd_AddCommand( "minimize", IN_Minimize );
 
 	IN_Startup();
 }

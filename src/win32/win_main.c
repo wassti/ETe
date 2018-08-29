@@ -749,6 +749,20 @@ qboolean Sys_DLLNeedsUnpacking( void )
 }
 #endif
 
+static qboolean Sys_DLLNeedsUnpacking( const char* name ) {
+#if defined(DEDICATED)
+	return qfalse;
+#else
+	if ( !Q_stricmpn( name, "qagame", 6 ) )
+		return qfalse;
+#ifdef _DEBUG
+	return cl_connectedToPureServer != 0 ? qtrue : qfalse;
+#else
+	return qtrue;
+#endif
+#endif
+}
+
 /*
 =================
 Sys_LoadDll
@@ -761,7 +775,7 @@ const char* Sys_GetDLLName( const char *name ) {
 	return va( "%s_mp_" ARCH_STRING DLL_EXT, name );
 }
 
-void * QDECL Sys_LoadDll( const char *name, dllSyscall_t *entryPoint, dllSyscall_t systemcalls ) {
+void *QDECL Sys_LoadDll( const char *name, dllSyscall_t *entryPoint, dllSyscall_t systemcalls ) {
 	HINSTANCE libHandle;
 	dllEntry_t	dllEntry;
 	const char	*basepath;
@@ -769,6 +783,9 @@ void * QDECL Sys_LoadDll( const char *name, dllSyscall_t *entryPoint, dllSyscall
 	const char	*gamedir;
 	char		*fn;
 	char		filename[ MAX_QPATH ];
+#if !defined( DEDICATED )
+	qboolean	unpack = qfalse;
+#endif
 
 	Q_strncpyz( filename, Sys_GetDLLName( name ), sizeof( filename ) );
 
@@ -794,13 +811,19 @@ void * QDECL Sys_LoadDll( const char *name, dllSyscall_t *entryPoint, dllSyscall
 	// TTimo - this is only relevant for full client
 	// if a full client runs a dedicated server, it's not affected by this
 #if !defined( DEDICATED )
+	unpack = Sys_DLLNeedsUnpacking( name );
 	// NERVE - SMF - extract dlls from pak file for security
 	// we have to handle the game dll a little differently
 	// TTimo - passing the exact path to check against
 	//   (compatibility with other OSes loading procedure)
-	if ( cl_connectedToPureServer && Q_strncmp( name, "qagame", 6 ) ) {
+	if ( unpack ) {
+	//if ( cl_connectedToPureServer && Q_strncmp( name, "qagame", 6 ) ) {
 		if ( !FS_CL_ExtractFromPakFile( fn, gamedir, filename, NULL ) ) {
-			Com_Error( ERR_DROP, "Game code(%s) failed Pure Server check", filename );
+			Com_Printf( "Sys_LoadDLL(%s/%s) failed to extract library\n", gamedir, name );
+			//Com_Error( ERR_DROP, "Game code(%s) failed Pure Server check", filename );
+		}
+		else {
+			Com_Printf( "Sys_LoadDLL(%s/%s) library extraction succeeded\n", gamedir, name );
 		}
 	}
 #endif
@@ -811,6 +834,22 @@ void * QDECL Sys_LoadDll( const char *name, dllSyscall_t *entryPoint, dllSyscall
 	if ( !libHandle && *homepath && Q_stricmp( basepath, homepath ) ) {
 		fn = FS_BuildOSPath( homepath, gamedir, filename );
 		libHandle = LoadLibrary( AtoW( fn ) );
+	}
+
+	if ( !libHandle && !strcmp( name, "ui" ) && strcmp( gamedir, BASEGAME ) != 0 ) {
+		const char *basefn = va( "%s%c%s", BASEGAME, PATH_SEP, filename );
+		Com_Printf( "Sys_LoadDLL(%s/%s) trying %s override\n", gamedir, name, BASEGAME );
+
+		if ( FS_SV_FileExists( basefn ) ) {
+			fn = FS_BuildOSPath( basepath, BASEGAME, filename );
+			libHandle = LoadLibrary( AtoW( fn ) );
+			if ( !libHandle && *homepath && Q_stricmp( basepath, homepath ) ) {
+				fn = FS_BuildOSPath( homepath, BASEGAME, filename );
+				libHandle = LoadLibrary( AtoW( fn ) );
+			}
+		} else {
+			// TODO extract from basegame to moddir
+		}
 	}
 
 	if ( !libHandle ) {

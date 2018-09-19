@@ -1568,8 +1568,8 @@ void SV_Frame( int msec ) {
 
 	sv.timeResidual += msec;
 
-	if ( !com_dedicated->integer )
-		SV_BotFrame( sv.time + sv.timeResidual );
+	/*if ( !com_dedicated->integer )
+		SV_BotFrame( sv.time + sv.timeResidual );*/
 
 	// if time is about to hit the 32nd bit, kick all clients
 	// and clear sv.time, rather
@@ -1632,7 +1632,7 @@ void SV_Frame( int msec ) {
 	// update ping based on the all received frames
 	SV_CalcPings();
 
-	if (com_dedicated->integer) SV_BotFrame (sv.time);
+	//if (com_dedicated->integer) SV_BotFrame (sv.time);
 
 	// run the game simulation in chunks
 	while ( sv.timeResidual >= frameMsec ) {

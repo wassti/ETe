@@ -703,7 +703,7 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 	{
 		sv.time += FRAMETIME;
 		VM_Call (gvm, GAME_RUN_FRAME, sv.time);
-		SV_BotFrame (sv.time);
+		////SV_BotFrame (sv.time);
 	}
 
 	// create a baseline for more efficient communications
@@ -759,7 +759,7 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 	// run another frame to allow things to look at all the players
 	sv.time += FRAMETIME;
 	VM_Call( gvm, GAME_RUN_FRAME, sv.time );
-	SV_BotFrame( sv.time );
+	////SV_BotFrame( sv.time );
 	svs.time += FRAMETIME;
 
 	// we want the server to reference the mp_bin pk3 that the client is expected to load from

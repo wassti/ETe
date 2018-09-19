@@ -736,6 +736,8 @@ void Con_DrawNotify( void )
 	}
 }
 
+#define CONSOLE_BUILD_STRING "Build Date: " __DATE__
+
 
 /*
 ================
@@ -836,8 +838,14 @@ void Con_DrawSolidConsole( float frac ) {
 	// draw the version number
 	re.SetColor( g_color_table[ ColorIndex( CONSOLE_COLOR ) ] );
 
-	SCR_DrawSmallString( cls.glconfig.vidWidth - ( ARRAY_LEN( Q3_VERSION ) ) * smallchar_width, 
-		lines - smallchar_height, Q3_VERSION, ARRAY_LEN( Q3_VERSION ) - 1 );
+	SCR_DrawSmallString( cls.glconfig.vidWidth - ( ARRAY_LEN( ETe_VERSION ) ) * smallchar_width,
+		lines - smallchar_height, ETe_VERSION, ARRAY_LEN( ETe_VERSION ) - 1 );
+
+	SCR_DrawSmallString( cls.glconfig.vidWidth - ( ARRAY_LEN( CONSOLE_BUILD_STRING ) ) * smallchar_width,
+		lines - (smallchar_height*2), CONSOLE_BUILD_STRING, ARRAY_LEN( CONSOLE_BUILD_STRING ) - 1 );
+
+	SCR_DrawSmallString( cls.glconfig.vidWidth - ( ARRAY_LEN( PLATFORM_STRING ) ) * smallchar_width,
+		lines - ( smallchar_height * 3 ), PLATFORM_STRING, ARRAY_LEN( PLATFORM_STRING ) - 1 );
 
 	// draw the text
 	con.vislines = lines;

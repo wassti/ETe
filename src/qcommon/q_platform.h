@@ -61,6 +61,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define DLL_EXT ".dll"
 
 #if defined( _M_IX86 )
+#define OSARCH_STRING "win32"
 #define ARCH_STRING "x86"
 #define Q3_LITTLE_ENDIAN
 #undef id386
@@ -68,6 +69,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #endif
 
 #if defined( _M_AMD64 )
+#define OSARCH_STRING "win64"
 #define ARCH_STRING "x86_64"
 #define Q3_LITTLE_ENDIAN
 #undef idx64
@@ -94,6 +96,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define DLL_EXT ".so"
 
 #if defined __i386__
+#define OSARCH_STRING "linux32"
 #define ARCH_STRING "i386"
 #define Q3_LITTLE_ENDIAN
 #undef id386
@@ -101,6 +104,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #endif
 
 #if defined __x86_64__
+#define OSARCH_STRING "linux64"
 #define ARCH_STRING "x86_64"
 #define Q3_LITTLE_ENDIAN
 #undef idx64
@@ -123,6 +127,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define DLL_EXT ".so"
 
 #if defined __i386__
+#define OSARCH_STRING "freebsd32"
 #define ARCH_STRING "i386"
 #define Q3_LITTLE_ENDIAN
 #undef id386
@@ -130,6 +135,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #endif
 
 #if defined __x86_64__
+#define OSARCH_STRING "freebsd64"
 #define ARCH_STRING "x86_64"
 #define Q3_LITTLE_ENDIAN
 #undef idx64
@@ -153,6 +159,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define PATH_SEP_FOREIGN '\\'
 
 #ifdef __i386__
+#define OSARCH_STRING "netbsd"
 #define ARCH_STRING "i386"
 // Netbsd has alot of platforms
 #endif
@@ -171,6 +178,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #ifdef Q3_VM
 
+#define OSARCH_STRING "q3vm32"
 #define OS_STRING "q3vm"
 #define ID_INLINE
 #define PATH_SEP '/'
@@ -191,6 +199,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #if !defined( ARCH_STRING )
 #error "Architecture not supported"
+#endif
+
+#if !defined( OSARCH_STRING )
+#error "OSARCH_STRING not defined"
 #endif
 
 #ifndef ID_INLINE

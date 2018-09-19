@@ -34,6 +34,8 @@ If you have questions concerning this license or the applicable additional terms
 
 #define Q3_VERSION      "ET 2.60d"
 
+#define ETe_VERSION		"ET 2.60e"
+
 #ifndef GIT_VERSION
 #define GIT_VERSION Q3_VERSION
 #endif

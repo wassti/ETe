@@ -57,7 +57,7 @@ static void *S_CodecGetSound(const char *filename, snd_info_t *info)
 	char		altName[ MAX_QPATH ];
 	void		*rtn = NULL;
 
-	Q_strncpyz(localName, filename, MAX_QPATH);
+	Q_strncpyz( localName, filename, sizeof( localName ) );
 
 	ext = COM_GetExtension(localName);
 
@@ -145,7 +145,7 @@ void S_CodecInit()
 	S_CodecRegister(&ogg_codec);
 #endif
 
-// Register wav codec last so that it is always tried first when a file extension was not found
+	// Register wav codec last so that it is always tried first when a file extension was not found
 	S_CodecRegister(&wav_codec);
 }
 
@@ -215,8 +215,8 @@ snd_stream_t *S_CodecUtilOpen(const char *filename, snd_codec_t *codec)
 	int length;
 
 	// Try to open the file
-	length = FS_FOpenFileRead(filename, &hnd, qtrue);
-	if(!hnd)
+	length = FS_FOpenFileRead( filename, &hnd, qtrue );
+	if ( hnd == FS_INVALID_HANDLE )
 	{
 		Com_DPrintf("Can't read sound file %s\n", filename);
 		return NULL;
@@ -224,9 +224,9 @@ snd_stream_t *S_CodecUtilOpen(const char *filename, snd_codec_t *codec)
 
 	// Allocate a stream
 	stream = Z_Malloc(sizeof(snd_stream_t));
-	if(!stream)
+	if ( !stream )
 	{
-		FS_FCloseFile(hnd);
+		FS_FCloseFile( hnd );
 		return NULL;
 	}
 

@@ -494,6 +494,8 @@ gotnewcl:
 
 	newcl->longstr = longstr;
 
+	SV_UserinfoChanged( newcl, qtrue );
+
 	// get the game a chance to reject this connection or modify the userinfo
 	denied = VM_Call( gvm, GAME_CLIENT_CONNECT, clientNum, qtrue, qfalse ); // firstTime = qtrue
 	if ( denied ) {
@@ -504,8 +506,6 @@ gotnewcl:
 		Com_DPrintf( "Game rejected a connection: %s.\n", str );
 		return;
 	}
-
-	SV_UserinfoChanged( newcl, qtrue );
 
 	// send the connect packet to the client
 	NET_OutOfBandPrint( NS_SERVER, from, "connectResponse %d", challenge );
@@ -1582,6 +1582,18 @@ void SV_UserinfoChanged( client_t *cl, qboolean updateUserinfo ) {
 		cl->lastSnapshotTime = svs.time - 9999; // generate a snapshot immediately
 		cl->snapshotMsec = 1000 / sv_fps->integer;
 		cl->rate = 0;
+
+		if ( !updateUserinfo )
+			return;
+
+		// name for C code
+		Q_strncpyz( cl->name, Info_ValueForKey( cl->userinfo, "name" ), sizeof( cl->name ) );
+
+		// TTimo
+		// maintain the IP information
+		// the banning code relies on this being consistently present
+		if ( !Info_SetValueForKey( cl->userinfo, "ip", "bot" ) )
+			SV_DropClient( cl, "userinfo string length exceeded" );
 		return;
 	}
 

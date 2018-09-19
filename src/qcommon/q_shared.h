@@ -286,7 +286,7 @@ typedef int		clipHandle_t;
 #define	MAX_INFO_KEY		1024
 #define	MAX_INFO_VALUE		1024
 
-#define MAX_USERINFO_LENGTH (MAX_INFO_STRING-12-19) // incl. length of 'connect ""' or 'userinfo ""' and '\ip\255.255.255.255' key on server side
+#define MAX_USERINFO_LENGTH (MAX_INFO_STRING-13-19) // incl. length of 'connect ""' or 'userinfo ""' and '\ip\255.255.255.255' key on server side and reserving one byte to avoid q3msgboom
 													
 #define	BIG_INFO_STRING		8192  // used for system info key only
 #define	BIG_INFO_KEY		  8192
@@ -1020,6 +1020,8 @@ void Com_TruncateLongString( char *buffer, const char *s );
 // key / value info strings
 //
 char *Info_ValueForKey( const char *s, const char *key );
+void Info_Tokenize( const char *s );
+const char *Info_ValueForKeyToken( const char *key );
 #define Info_SetValueForKey( buf, key, value ) Info_SetValueForKey_s( (buf), MAX_INFO_STRING, (key), (value) )
 qboolean Info_SetValueForKey_s( char *s, int slen, const char *key, const char *value );
 qboolean Info_Validate( const char *s );

@@ -2057,9 +2057,9 @@ int FS_Write( const void *buffer, int len, fileHandle_t h ) {
 	}
 
 	// ENSI NOTE q3e has commented out <= 0 and >= max handles
-	if ( !h ) {
-		return 0;
-	}
+	//if ( !h ) {
+	//	return 0;
+	//}
 
 	f = FS_FileForHandle(h);
 	buf = (byte *)buffer;

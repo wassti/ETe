@@ -325,6 +325,8 @@ static void SV_SetSnapshotParams( void )
 	svs.numSnapshotEntities = PACKET_BACKUP * MAX_GENTITIES;
 }
 
+#define USE_CLIENTS_ZONE 1
+
 
 /*
 ===============
@@ -342,11 +344,16 @@ static void SV_Startup( void ) {
 	}
 	SV_BoundMaxClients( 1 );
 
+#ifdef USE_CLIENTS_ZONE
+	svs.clients = Z_TagMalloc( sv_maxclients->integer * sizeof( client_t ), TAG_CLIENTS );
+	Com_Memset( svs.clients, 0, sv_maxclients->integer * sizeof( client_t ) );
+#else
 	// RF, avoid trying to allocate large chunk on a fragmented zone
 	svs.clients = calloc( sizeof( client_t ) * sv_maxclients->integer, 1 );
 	if ( !svs.clients ) {
 		Com_Error( ERR_FATAL, "SV_Startup: unable to allocate svs.clients" );
 	}
+#endif
 
 	SV_SetSnapshotParams();
 	svs.initialized = qtrue;
@@ -404,17 +411,23 @@ void SV_ChangeMaxClients( void ) {
 	}
 
 	// free old clients arrays
-	//Z_Free( svs.clients );
+#ifdef USE_CLIENTS_ZONE
+	Z_Free( svs.clients );
+#else
 	free( svs.clients );    // RF, avoid trying to allocate large chunk on a fragmented zone
+#endif
 
 	// allocate new clients
+#ifdef USE_CLIENTS_ZONE
+	svs.clients = Z_TagMalloc( sv_maxclients->integer * sizeof(client_t), TAG_CLIENTS );
+	Com_Memset( svs.clients, 0, sv_maxclients->integer * sizeof( client_t ) );
+#else
 	// RF, avoid trying to allocate large chunk on a fragmented zone
 	svs.clients = calloc( sizeof( client_t ) * sv_maxclients->integer, 1 );
 	if ( !svs.clients ) {
 		Com_Error( ERR_FATAL, "SV_Startup: unable to allocate svs.clients" );
 	}
-
-	Com_Memset( svs.clients, 0, sv_maxclients->integer * sizeof(client_t) );
+#endif
 
 	// copy the clients over
 	for ( i = 0 ; i < count ; i++ ) {
@@ -1062,8 +1075,11 @@ void SV_Shutdown( const char *finalmsg ) {
 		for ( index = 0; index < sv_maxclients->integer; index++ )
 			SV_FreeClient( &svs.clients[ index ] );
 		
-		//Z_Free( svs.clients );
+#ifdef USE_CLIENTS_ZONE
+		Z_Free( svs.clients );
+#else
 		free( svs.clients );    // RF, avoid trying to allocate large chunk on a fragmented zone
+#endif
 	}
 	Com_Memset( &svs, 0, sizeof( svs ) );
 	sv.time = 0;

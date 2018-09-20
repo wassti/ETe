@@ -761,6 +761,17 @@ void Cmd_RemoveCommand( const char *cmd_name ) {
 	}
 }
 
+static const char *safeCommands[] = {
+	"+button4",
+	"-button4",
+	"+lookup",
+	"-lookup",
+	"+lookdown",
+	"-lookdown",
+	"configstrings"
+};
+
+static const size_t numSafeCommands = ARRAY_LEN( safeCommands );
 
 /*
 ============
@@ -777,8 +788,17 @@ void Cmd_RemoveCommandSafe( const char *cmd_name )
 		return;
 	if( cmd->function )
 	{
-		Com_Error( ERR_DROP, "Restricted source tried to remove "
-			"system command \"%s\"", cmd_name );
+		const char *foundkey = NULL;
+
+		foundkey = (const char *)Q_LinearSearch( cmd_name, safeCommands, numSafeCommands, sizeof( safeCommands[0] ), Q_stricmp );
+		//if ( foundkey ) {
+			Com_Printf( S_COLOR_RED, "Restricted source tried to remove "
+				"system command \"%s\"", cmd_name );
+		//}
+		//else {
+			//Com_Error( ERR_DROP, "Restricted source tried to remove "
+			//	"system command \"%s\"", cmd_name );
+		//}
 		return;
 	}
 

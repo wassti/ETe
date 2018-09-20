@@ -866,9 +866,9 @@ void *QDECL Sys_LoadDll( const char *name, dllSyscall_t *entryPoint, dllSyscall_
 		return NULL;
 	}
 
-	Com_Printf( "Sys_LoadDll(%s) found **vmMain** at %p\n", name, *entryPoint );
+	Com_Printf( "Sys_LoadDll(%s/%s) found **vmMain** at %p\n", gamedir, name, *entryPoint );
 	dllEntry( systemcalls );
-	Com_Printf( "Sys_LoadDll(%s) succeeded!\n", name );
+	Com_Printf( "Sys_LoadDll(%s/%s) succeeded!\n", gamedir, name );
 
 	return libHandle;
 }

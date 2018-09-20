@@ -161,6 +161,7 @@ dlStatus_t DL_DownloadLoop() {
 	CURLMsg *msg;
 	int dls = 0;
 	const char *err = NULL;
+	long code = 0L;
 
 	if ( !dl_request ) {
 		Com_DPrintf( "DL_DownloadLoop: unexpected call with dl_request == NULL\n" );
@@ -179,6 +180,7 @@ dlStatus_t DL_DownloadLoop() {
 	}
 
 	if ( msg->data.result != CURLE_OK ) {
+		code = curl_easy_getinfo( msg->easy_handle, CURLINFO_RESPONSE_CODE, &code );
 #ifdef __MACOS__ // ���
 		err = "unknown curl error.";
 #else
@@ -199,7 +201,7 @@ dlStatus_t DL_DownloadLoop() {
 	Cvar_Set( "ui_dl_running", "0" );
 
 	if ( err ) {
-		Com_DPrintf( "DL_DownloadLoop: request terminated with failure status '%s'\n", err );
+		Com_DPrintf( "DL_DownloadLoop: request terminated with failure status '%s' (%ld)\n", err, code );
 		return DL_FAILED;
 	}
 

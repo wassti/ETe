@@ -976,6 +976,11 @@ void SV_Init( void )
 	sv_levelTimeReset = Cvar_Get( "sv_levelTimeReset", "0", CVAR_ARCHIVE_ND );
 
 	sv_leanPakRefs = Cvar_Get( "sv_leanPakRefs", "0", CVAR_LATCH );
+
+	sv_filterCommands = Cvar_Get( "sv_filterCommands", "1", CVAR_ARCHIVE );
+
+	Cvar_SetDescription( sv_filterCommands, "0: Disabled\n1: Filter newlines and carriage returns in reliable commands.\n2: Also filter semicolons" );
+
 	// initialize bot cvars so they are listed and can be set before loading the botlib
 	SV_BotInitCvars();
 

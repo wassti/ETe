@@ -345,6 +345,8 @@ extern cvar_t* g_gameType;
 
 extern cvar_t  *sv_leanPakRefs;
 
+extern cvar_t  *sv_filterCommands;
+
 // Rafael gameskill
 //extern	cvar_t	*sv_gameskill;
 // done

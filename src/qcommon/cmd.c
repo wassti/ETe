@@ -515,7 +515,7 @@ char *Cmd_Cmd( void )
    https://bugzilla.icculus.org/show_bug.cgi?id=3593
    https://bugzilla.icculus.org/show_bug.cgi?id=4769
 */
-void Cmd_Args_Sanitize( void )
+void Cmd_Args_Sanitize( const char *separators )
 {
 	int i;
 
@@ -526,7 +526,7 @@ void Cmd_Args_Sanitize( void )
 		if(strlen(c) > MAX_CVAR_VALUE_STRING - 1)
 			c[MAX_CVAR_VALUE_STRING - 1] = '\0';
 		
-		while ( (c = strpbrk(c, "\n\r")) != NULL ) {
+		while ( ( c = strpbrk( c, separators ) ) != NULL ) {
 			*c = ' ';
 			++c;
 		}

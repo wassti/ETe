@@ -532,7 +532,7 @@ char	*Cmd_ArgsFrom( int arg );
 char	*Cmd_ArgsRange( int arg, int count );
 void	Cmd_ArgsBuffer( char *buffer, int bufferLength );
 char	*Cmd_Cmd( void );
-void	Cmd_Args_Sanitize( void );
+void	Cmd_Args_Sanitize( const char *separators );
 // The functions that execute commands get their parameters with these
 // functions. Cmd_Argv () will return an empty string, not a NULL
 // if arg > argc, so string operations are allways safe.

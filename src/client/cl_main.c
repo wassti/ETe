@@ -4627,11 +4627,11 @@ static void CL_SetServerInfo( serverInfo_t *server, const char *info, int ping )
 	if ( server ) {
 		if ( info ) {
 			server->clients = atoi( Info_ValueForKey( info, "clients" ) );
-			Q_strncpyz( server->hostName,Info_ValueForKey( info, "hostname" ), MAX_NAME_LENGTH );
+			Q_strncpyz( server->hostName, Info_ValueForKey( info, "hostname" ), sizeof( server->hostName ) );
 			server->load = atoi( Info_ValueForKey( info, "serverload" ) );
-			Q_strncpyz( server->mapName, Info_ValueForKey( info, "mapname" ), MAX_NAME_LENGTH );
+			Q_strncpyz( server->mapName, Info_ValueForKey( info, "mapname" ), sizeof( server->mapName ) );
 			server->maxClients = atoi( Info_ValueForKey( info, "sv_maxclients" ) );
-			Q_strncpyz( server->game,Info_ValueForKey( info, "game" ), MAX_NAME_LENGTH );
+			Q_strncpyz( server->game, Info_ValueForKey( info, "game" ), sizeof( server->game ) );
 			server->gameType = atoi( Info_ValueForKey( info, "gametype" ) );
 			server->netType = atoi( Info_ValueForKey( info, "nettype" ) );
 			server->minPing = atoi( Info_ValueForKey( info, "minping" ) );
@@ -4640,7 +4640,7 @@ static void CL_SetServerInfo( serverInfo_t *server, const char *info, int ping )
 			server->maxlives = atoi( Info_ValueForKey( info, "maxlives" ) );                 // NERVE - SMF
 			server->needpass = atoi( Info_ValueForKey( info, "needpass" ) );                 // NERVE - SMF
 			server->punkbuster = atoi( Info_ValueForKey( info, "punkbuster" ) );             // DHM - Nerve
-			Q_strncpyz( server->gameName, Info_ValueForKey( info, "gamename" ), MAX_NAME_LENGTH );   // Arnout
+			Q_strncpyz( server->gameName, Info_ValueForKey( info, "gamename" ), sizeof( server->gameName ) );   // Arnout
 			server->antilag = atoi( Info_ValueForKey( info, "g_antilag" ) );
 			server->weaprestrict = atoi( Info_ValueForKey( info, "weaprestrict" ) );
 			server->balancedteams = atoi( Info_ValueForKey( info, "balancedteams" ) );

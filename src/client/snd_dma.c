@@ -1300,14 +1300,14 @@ void S_Base_RawSamples( int stream, int samples, int rate, int width, int n_chan
 	//if ( s_muted->integer ) {
 	//	intVolumeLeft = intVolumeRight = 0;
 	/*} else*/ {
-		int leftvol, rightvol;
+		/*int leftvol, rightvol;
 
 		if ( entityNum >= 0 && entityNum < MAX_GENTITIES ) {
 			// support spatialized raw streams, e.g. for VoIP
 			S_SpatializeOrigin( entityPositions[ entityNum ], 256, &leftvol, &rightvol, SOUND_RANGE_DEFAULT, qfalse );
 		} else {
 			leftvol = rightvol = 256;
-		}
+		}*/
 
 		if (stream == 0)
 		{
@@ -1316,8 +1316,8 @@ void S_Base_RawSamples( int stream, int samples, int rate, int width, int n_chan
 		}
 		else
 		{
-			intVolumeLeft = leftvol * lvol * s_volume->value;
-			intVolumeRight = rightvol * rvol * s_volume->value;
+			intVolumeLeft = 256/*leftvol*/ * lvol * s_volume->value;
+			intVolumeRight = 256/*rightvol*/ * rvol * s_volume->value;
 		}
 	}
 

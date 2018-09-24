@@ -94,7 +94,7 @@ cvar_t *sv_levelTimeReset;
 
 cvar_t  *sv_leanPakRefs = NULL;
 
-cvar_t  sv_filterCommands;
+cvar_t  *sv_filterCommands;
 
 #ifdef USE_BANS
 cvar_t	*sv_banFile;

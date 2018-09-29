@@ -287,7 +287,7 @@ typedef struct {
 
 	float	aviVideoFrameRemainder;
 	float	aviSoundFrameRemainder;
-	char	videoName[MAX_QPATH];
+	char	videoName[MAX_OSPATH];
 	int		videoIndex;
 
 	// big stuff at end of structure so most offsets are 15 bits or less
@@ -386,8 +386,6 @@ typedef struct {
 	netadr_t	updateServer;
 	char		updateChallenge[MAX_TOKEN_CHARS];
 	char		updateInfoString[MAX_INFO_STRING];
-
-	netadr_t	authorizeServer;
 
 	// rendering info
 	glconfig_t glconfig;

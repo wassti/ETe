@@ -359,9 +359,9 @@ void CL_StopRecord_f( void ) {
 	}
 
 	clc.demorecording = qfalse;
-	Cvar_Set( "cl_demorecording", "0" ); // fretn
 	Cvar_Set( "cl_demofilename", "" ); // bani
 	Cvar_Set( "cl_demooffset", "0" ); // bani
+	Cvar_Set( "cl_demorecording", "0" ); // fretn
 }
 
 
@@ -697,8 +697,12 @@ static void CL_Record_f( void ) {
 	}
 
 	clc.demorecording = qtrue;
-
+	
 	Com_TruncateLongString( clc.recordNameShort, clc.recordName );
+	Cvar_Set( "cl_demofilename", clc.recordNameShort ); // bani
+	Cvar_Set( "cl_demooffset", "0" ); // bani
+	Cvar_Set( "cl_demorecording", "1" ); // fretn
+
 
 	// don't start saving messages until a non-delta compressed message is received
 	clc.demowaiting = qtrue;

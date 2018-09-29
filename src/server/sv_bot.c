@@ -35,7 +35,7 @@ If you have questions concerning this license or the applicable additional terms
 static bot_debugpoly_t debugpolygons[MAX_DEBUGPOLYS];
 
 extern botlib_export_t  *botlib_export;
-int bot_enable;
+int bot_enable = 0;
 
 /*
 ==================
@@ -626,7 +626,7 @@ void SV_BotInitCvars( void ) {
 	Cvar_Get( "bot_rocketjump", "0", 0 );           //enable rocket jumping
 	Cvar_Get( "bot_norcd", "0", 0 );                //enable creation of RCD file
 
-	bot_enable = Cvar_VariableIntegerValue( "bot_enable" );
+	bot_enable = !!Cvar_VariableIntegerValue( "bot_enable" );
 }
 
 #ifndef DEDICATED

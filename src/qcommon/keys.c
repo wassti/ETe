@@ -28,7 +28,7 @@ qkey_t	 keys[MAX_KEYS];
 qboolean key_overstrikeMode;
 
 typedef struct {
-    char *name;
+    const char *name;
     int keynum;
 } keyname_t;
 

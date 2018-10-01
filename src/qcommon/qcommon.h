@@ -521,7 +521,7 @@ void	Cmd_CommandCompletion( void(*callback)(const char *s) );
 // callback with each valid string
 void	Cmd_SetCommandCompletionFunc( const char *command, completionFunc_t complete );
 void	Cmd_CompleteArgument( const char *command, char *args, int argNum );
-void	Cmd_CompleteCfgName( char *args, int argNum );
+//void	Cmd_CompleteCfgName( char *args, int argNum );
 void	Cmd_CompleteWriteCfgName( char *args, int argNum );
 
 int		Cmd_Argc( void );

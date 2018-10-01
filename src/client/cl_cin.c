@@ -1445,11 +1445,18 @@ int CIN_PlayCinematic( const char *arg, int x, int y, int w, int h, int systemBi
 	unsigned short RoQID;
 	char name[MAX_OSPATH];
 	int i;
+	const char *ext;
 
 	if ( strchr( arg, '/' ) == NULL && strchr( arg, '\\' ) == NULL ) {
 		Com_sprintf( name, sizeof( name ), "video/%s", arg );
 	} else {
 		Com_sprintf( name, sizeof( name ), "%s", arg );
+	}
+
+	ext = COM_GetExtension( name );
+
+	if ( !*ext ) {
+		COM_DefaultExtension( name, sizeof( name ), ".roq" );
 	}
 
 	if ( !( systemBits & CIN_system ) ) {

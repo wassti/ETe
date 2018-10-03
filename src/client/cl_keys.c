@@ -43,7 +43,7 @@ qboolean chat_buddy;
 qboolean UI_checkKeyExec( int key );        // NERVE - SMF
 qboolean CL_CGameCheckKeyExec( int key );
 
-void Field_CharEvent( field_t *edit, int ch );
+static void Field_CharEvent( field_t *edit, int ch );
 
 /*
 =============================================================================

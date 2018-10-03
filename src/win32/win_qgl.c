@@ -98,7 +98,7 @@ void *GL_GetProcAddress( const char *name )
 */
 qboolean QGL_Init( const char *dllname )
 {
-#if 0
+#if 1
 	char systemDir[1024];
 	char libName[1024];
 
@@ -116,14 +116,14 @@ qboolean QGL_Init( const char *dllname )
 	if ( glw_state.OpenGLLib == NULL )
 	{
 		// NOTE: this assumes that 'dllname' is lower case (and it should be)!
-#if 0
+#if 1
 		if ( dllname[0] != '!' )
 			Com_sprintf( libName, sizeof( libName ), "%s\\%s", systemDir, dllname );
 		else
 			Q_strncpyz( libName, dllname+1, sizeof( libName ) );
 
 		Com_Printf( "...loading '%s.dll' : ", libName );
-		glw_state.OpenGLLib = Sys_LoadLibrary( libName );
+		glw_state.OpenGLLib = Sys_LoadLibrary( va( "%s.dll", libName ) );
 #else
 		Com_Printf( "...loading '%s.dll' : ", dllname );
 		glw_state.OpenGLLib = Sys_LoadLibrary( va( "%s.dll", dllname ) );

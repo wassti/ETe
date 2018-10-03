@@ -542,7 +542,6 @@ void CL_AddReliableCommand( const char *cmd, qboolean isDisconnectCmd );
 void CL_StartHunkUsers( void );
 
 void CL_Disconnect_f( void );
-void CL_Vid_Restart_f( void );
 void CL_ReadDemoMessage( void );
 void CL_StopRecord_f(void);
 
@@ -554,8 +553,6 @@ void CL_GetPingInfo( int n, char *buf, int buflen );
 void CL_ClearPing( int n );
 int CL_GetPingQueueCount( void );
 
-void CL_ShutdownRef( qboolean unloadDLL );
-void CL_InitRef( void );
 int CL_ServerStatus( const char *serverAddress, char *serverStatusString, int maxLen );
 
 void CL_AddToLimboChat( const char *str );                  // NERVE - SMF
@@ -642,7 +639,6 @@ extern  field_t     g_consoleField;
 extern	qboolean	chat_team;
 extern	qboolean	chat_buddy;
 
-void Field_CharEvent( field_t *edit, int ch );
 void Field_Draw( field_t *edit, int x, int y, int width, qboolean showCursor, qboolean noColorEscape );
 void Field_BigDraw( field_t *edit, int x, int y, int width, qboolean showCursor, qboolean noColorEscape );
 
@@ -659,9 +655,6 @@ void CL_ParseServerMessage( msg_t *msg );
 
 //====================================================================
 
-void	CL_LocalServers_f( void );
-void	CL_GlobalServers_f( void );
-void	CL_Ping_f( void );
 qboolean CL_UpdateVisiblePings_f( int source );
 qboolean CL_ValidPakSignature( const byte *data, int len );
 

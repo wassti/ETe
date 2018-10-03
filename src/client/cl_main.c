@@ -2251,7 +2251,9 @@ static void CL_BeginDownload( const char *localName, const char *remoteName ) {
 				"****************************\n", localName, remoteName);
 
 	Q_strncpyz ( clc.downloadName, localName, sizeof(clc.downloadName) );
+	Q_strncpyz ( cls.downloadName, localName, sizeof(cls.downloadName) );
 	Com_sprintf( clc.downloadTempName, sizeof(clc.downloadTempName), "%s.tmp", localName );
+	Com_sprintf( cls.downloadTempName, sizeof(cls.downloadTempName), "%s.tmp", localName );
 
 	// Set so UI gets access to it
 	Cvar_Set( "cl_downloadName", remoteName );

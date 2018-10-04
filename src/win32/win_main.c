@@ -991,34 +991,69 @@ void Sys_Init( void ) {
 
 //#include <ShellScalingApi.h>
 
-typedef HANDLE( WINAPI *SetThreadDpiAwarenessContextPtr )( HANDLE );
+typedef enum ETE_PROCESS_DPI_AWARENESS { //with out win header, some rename....
+	ETE_PROCESS_DPI_UNAWARE = 0,
+	ETE_PROCESS_SYSTEM_DPI_AWARE = 1,
+	ETE_PROCESS_PER_MONITOR_DPI_AWARE = 2
+} ETE_PROCESS_DPI_AWARENESS;
+
+typedef LONG( WINAPI *RtlGetVersionPtr )( RTL_OSVERSIONINFOEXW* );
+typedef BOOL( WINAPI *SetProcessDpiAwarenessContextPtr )( HANDLE );
 typedef HRESULT( WINAPI *SetProcessDpiAwarenessPtr )( int );
 typedef BOOL( WINAPI *SetProcessDPIAwarePtr )( void );
 
-// TODO print sucess/fail
-static qboolean TryThreadHighDPI( HANDLE value ) {
-	SetThreadDpiAwarenessContextPtr set_thread_dpi_awareness_context_f = NULL;
+#define ETE_DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 ((HANDLE)-4)
+
+// MSDN SetProcessDpiAwarenessContext
+static qboolean EnablePerMonitorV2( void ) {
+	SetProcessDpiAwarenessContextPtr set_process_dpi_awareness_context_f = NULL;
 	HMODULE u32dll = GetModuleHandle( T( "user32" ) );
 
 	if ( !u32dll ) {
 		return qfalse;
 	}
 
-	set_thread_dpi_awareness_context_f = (SetThreadDpiAwarenessContextPtr)GetProcAddress( u32dll, "SetThreadDpiAwarenessContext" );
+	set_process_dpi_awareness_context_f = (SetProcessDpiAwarenessContextPtr)GetProcAddress( u32dll, "SetProcessDpiAwarenessContext" );
 
-	if ( set_thread_dpi_awareness_context_f ) {
-		HANDLE ret = set_thread_dpi_awareness_context_f( value );
-		if ( ret != NULL ) {
-			return qtrue;
-		}
+	if ( set_process_dpi_awareness_context_f ) {
+		return set_process_dpi_awareness_context_f( ETE_DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 ) != FALSE ? qtrue : qfalse;
 	}
 	return qfalse;
 }
 
-// TODO print sucess/fail
-static qboolean TryModernProcessHighDPI( int value ) {
+// Ugly hack to detect Win10 without manifest
+// http://www.codeproject.com/Articles/678606/Part-Overcoming-Windows-s-deprecation-of-GetVe?msg=5080848#xx5080848xx
+static qboolean IsWin10( void ) {
+	RtlGetVersionPtr rtl_get_version_f = NULL;
+	HMODULE ntdll = GetModuleHandle( T( "ntdll" ) );
+	RTL_OSVERSIONINFOEXW osver;
+
+	if ( !ntdll )
+		return qfalse; // will never happen
+
+	rtl_get_version_f = (RtlGetVersionPtr)GetProcAddress( ntdll, "RtlGetVersion" );
+
+	if ( !rtl_get_version_f )
+		return qfalse; // will never happen
+
+	osver.dwOSVersionInfoSize = sizeof( RTL_OSVERSIONINFOEXW );
+
+	if ( rtl_get_version_f( &osver ) == 0 ) {
+		if ( osver.dwMajorVersion >= 10 )
+			return qtrue;
+	}
+
+	return qfalse;
+}
+
+
+// secret sauce SetProcessDpiAwarenessInternal
+// MSDN says SetProcessDpiAwareness but the actual symbol is with `Internal`
+// We must check for Win10 to use Per Monitor support, otherwise use system
+static qboolean EnablePerMonitor( void ) {
 	SetProcessDpiAwarenessPtr set_process_dpi_awareness_f = NULL;
 	HMODULE u32dll = GetModuleHandle( T( "user32" ) );
+	qboolean win10 = qfalse;
 
 	if ( !u32dll ) {
 		return qfalse;
@@ -1026,8 +1061,10 @@ static qboolean TryModernProcessHighDPI( int value ) {
 
 	set_process_dpi_awareness_f = (SetProcessDpiAwarenessPtr)GetProcAddress( u32dll, "SetProcessDpiAwarenessInternal" );
 
+	win10 = IsWin10();
+
 	if ( set_process_dpi_awareness_f ) {
-		HRESULT hr = set_process_dpi_awareness_f( value );
+		HRESULT hr = set_process_dpi_awareness_f( win10 ? ETE_PROCESS_PER_MONITOR_DPI_AWARE : ETE_PROCESS_SYSTEM_DPI_AWARE );
 
 		if ( SUCCEEDED( hr ) ) {
 			return qtrue;
@@ -1039,7 +1076,8 @@ static qboolean TryModernProcessHighDPI( int value ) {
 	return qfalse;
 }
 
-static qboolean TryLegacyProcessHighDPI( void ) {
+// Legacy DPI awareness (Vista+) or all else fails
+static qboolean EnableDPIAware( void ) {
 	SetProcessDPIAwarePtr set_process_dpi_aware_f = NULL;
 	HMODULE u32dll = GetModuleHandle( T( "user32" ) );
 
@@ -1055,25 +1093,27 @@ static qboolean TryLegacyProcessHighDPI( void ) {
 	return qfalse;
 }
 
-static void SetupHighDPISupport( void ) {
-	//const HANDLE contextPerMonitorV2 = (HANDLE)-4;
-	//const HANDLE contextPerMonitor = (HANDLE)-3;
-
-
-	int dpiValue = 0;
-	if ( qtrue ) { // If Windows 10 or greater TODO implement
-		dpiValue = 2; // PROCESS_PER_MONITOR_DPI_AWARE
+static void SetupDPIAwareness( void ) {
+	Com_DPrintf( "Setup DPI Awareness...\n" );
+	if ( !EnablePerMonitorV2() ) {
+		Com_DPrintf( " ...per monitor v2: failed\n" );
 	} else {
-		dpiValue = 1; // PROCESS_SYSTEM_DPI_AWARE
+		Com_DPrintf( " ...per monitor v2: succeeded\n" );
+		return;
+	}
+	if ( !EnablePerMonitor() ) {
+		Com_DPrintf( " ...per monitor: failed\n" );
+	} else {
+		Com_DPrintf( " ...per monitor: succeeded\n" );
+		return;
 	}
 
-	//if ( !TryThreadHighDPI( contextPerMonitorV2 ) ) {
-	//	if ( !TryThreadHighDPI( contextPerMonitor ) ) {
-			if ( !TryModernProcessHighDPI( dpiValue ) ) {
-				TryLegacyProcessHighDPI();
-			}
-	//	}
-	//}
+	if ( !EnableDPIAware() ) {
+		Com_DPrintf( " ...per process: failed\n" );
+	} else {
+		Com_DPrintf( " ...per process: succeeded\n" );
+		return;
+	}
 }
 
 
@@ -1117,7 +1157,7 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 		return 0;
 	}
 
-	SetupHighDPISupport();
+	SetupDPIAwareness();
 
 	g_wv.hInstance = hInstance;
 	Q_strncpyz( sys_cmdline, lpCmdLine, sizeof( sys_cmdline ) );

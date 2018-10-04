@@ -175,7 +175,8 @@ nmake /f Makefile.vc6 CFG=release
     <Manifest>
       <InputResourceManifests>
       </InputResourceManifests>
-      <AdditionalManifestFiles>$(SolutionDir)win32\wolfet.manifest</AdditionalManifestFiles>
+      <AdditionalManifestFiles>
+      </AdditionalManifestFiles>
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>

@@ -52,9 +52,11 @@ Sys_LowPhysicalMemory
 ==================
 */
 qboolean Sys_LowPhysicalMemory( void ) {
-	MEMORYSTATUS stat;
-	GlobalMemoryStatus( &stat );
-	return (stat.dwTotalPhys <= MEM_THRESHOLD) ? qtrue : qfalse;
+	MEMORYSTATUSEX statex;
+	statex.dwLength = sizeof( statex );
+
+	GlobalMemoryStatusEx( &statex );
+	return (statex.ullTotalPhys <= MEM_THRESHOLD) ? qtrue : qfalse;
 }
 
 /*

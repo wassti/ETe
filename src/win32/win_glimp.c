@@ -765,22 +765,31 @@ static void PrintCDSError( int value )
 static DEVMODE dm_desktop, dm_current;
 
 
-static void ResetDisplaySettings( void )
+static void ResetDisplaySettings( qboolean verbose )
 {
+	if ( verbose )
+		Com_Printf( "...restoring display settings\n" );
+
 	if ( glw_state.displayName[0] )
 		ChangeDisplaySettingsEx( glw_state.displayName, NULL, NULL, 0, NULL );
 	else
-		ChangeDisplaySettingsEx( NULL, NULL, NULL, 0, NULL );
+		ChangeDisplaySettings( NULL, 0 );
 }
 
 
 static LONG ApplyDisplaySettings( DEVMODE *dm )
 {
 	DEVMODE curr;
-	LONG result;
+	LONG lResult;
+	BOOL bResult;
 
 	// Get current display mode on current monitor
-	if ( !EnumDisplaySettings( glw_state.displayName, ENUM_CURRENT_SETTINGS, &curr ) )
+	if ( glw_state.displayName[0] )
+		bResult = EnumDisplaySettings( glw_state.displayName, ENUM_CURRENT_SETTINGS, &curr );
+	else
+		bResult = EnumDisplaySettings( NULL, ENUM_CURRENT_SETTINGS, &curr );
+
+	if ( !bResult )
 		return DISP_CHANGE_FAILED;
 
 	// Check if current resolution is the same as we want to set
@@ -803,12 +812,15 @@ static LONG ApplyDisplaySettings( DEVMODE *dm )
 	}
 
 	// Apply requested mode
-	result = ChangeDisplaySettingsEx( glw_state.displayName, dm, NULL, CDS_FULLSCREEN, NULL );
-	if ( result == DISP_CHANGE_SUCCESSFUL ) {
-		memcpy( &dm_current, dm, sizeof( dm_current ) );
-	}
+	if ( glw_state.displayName[0] )
+		lResult = ChangeDisplaySettingsEx( glw_state.displayName, dm, NULL, CDS_FULLSCREEN, NULL );
+	else
+		lResult = ChangeDisplaySettings( dm, 0 );
 
-	return result;
+	if ( lResult == DISP_CHANGE_SUCCESSFUL )
+		memcpy( &dm_current, dm, sizeof( dm_current ) );
+
+	return lResult;
 }
 
 
@@ -818,11 +830,13 @@ void SetGameDisplaySettings( void )
 }
 
 
-void SetDesktopDisplaySettings( void ) 
+void SetDesktopDisplaySettings( void )
 {
-	ResetDisplaySettings();
+	ResetDisplaySettings( qfalse );
+
 	memset( &dm_desktop, 0, sizeof( dm_desktop ) );
 	dm_desktop.dmSize = sizeof( DEVMODE );
+
 	if ( glw_state.displayName[0] )
 		EnumDisplaySettings( glw_state.displayName, ENUM_CURRENT_SETTINGS, &dm_desktop );
 	else
@@ -1023,8 +1037,8 @@ static rserr_t GLW_SetMode( const char *drivername, int mode, const char *modeFS
 
 			if ( !GLW_CreateWindow( drivername, config->vidWidth, config->vidHeight, colorbits, qtrue ) )
 			{
-				Com_Printf( "...restoring display settings\n" );
-				ResetDisplaySettings();
+				ResetDisplaySettings( qtrue );
+				glw_state.cdsFullscreen = qfalse;
 				return RSERR_INVALID_MODE;
 			}
 		}
@@ -1043,8 +1057,8 @@ static rserr_t GLW_SetMode( const char *drivername, int mode, const char *modeFS
 
 				if ( !GLW_CreateWindow( drivername, config->vidWidth, config->vidHeight, colorbits, qtrue) )
 				{
-					Com_Printf( "...restoring display settings\n" );
-					ResetDisplaySettings();
+					ResetDisplaySettings( qtrue );
+					glw_state.cdsFullscreen = qfalse;
 					return RSERR_INVALID_MODE;
 				}
 			}
@@ -1064,7 +1078,12 @@ static rserr_t GLW_SetMode( const char *drivername, int mode, const char *modeFS
 				
 				// we could do a better matching job here...
 				for ( modeNum = 0 ; ; modeNum++ ) {
-					if ( !EnumDisplaySettings( glw_state.displayName, modeNum, &devmode ) ) {
+					BOOL bResult;
+					if ( glw_state.displayName[0] )
+						bResult = EnumDisplaySettings( glw_state.displayName, modeNum, &devmode );
+					else
+						bResult = EnumDisplaySettings( NULL, modeNum, &devmode );
+					if ( !bResult ) {
 						modeNum = -1;
 						break;
 					}
@@ -1080,8 +1099,8 @@ static rserr_t GLW_SetMode( const char *drivername, int mode, const char *modeFS
 					Com_Printf( " ok\n" );
 					if ( !GLW_CreateWindow( drivername, config->vidWidth, config->vidHeight, colorbits, qtrue) )
 					{
-						Com_Printf( "...restoring display settings\n" );
-						ResetDisplaySettings();
+						ResetDisplaySettings( qtrue );
+						glw_state.cdsFullscreen = qfalse;
 						return RSERR_INVALID_MODE;
 					}
 				}
@@ -1091,11 +1110,10 @@ static rserr_t GLW_SetMode( const char *drivername, int mode, const char *modeFS
 					
 					PrintCDSError( cdsRet );
 					
-					Com_Printf( "...restoring display settings\n" );
-					ResetDisplaySettings();
-					
+					ResetDisplaySettings( qtrue );
+					glw_state.cdsFullscreen = qfalse;
 					glw_state.config->isFullscreen = qfalse;
-					if ( !GLW_CreateWindow( drivername, config->vidWidth, config->vidHeight, colorbits, qfalse) )
+					if ( !GLW_CreateWindow( drivername, config->vidWidth, config->vidHeight, colorbits, qfalse ) )
 					{
 						return RSERR_INVALID_MODE;
 					}
@@ -1108,7 +1126,8 @@ static rserr_t GLW_SetMode( const char *drivername, int mode, const char *modeFS
 	{
 		if ( glw_state.cdsFullscreen )
 		{
-			ResetDisplaySettings();
+			ResetDisplaySettings( qtrue );
+			glw_state.cdsFullscreen = qfalse;
 		}
 
 		if ( !GLW_CreateWindow( drivername, config->vidWidth, config->vidHeight, colorbits, qfalse ) )

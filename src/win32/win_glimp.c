@@ -1484,8 +1484,7 @@ void GLimp_Shutdown( qboolean unloadDLL )
 	// reset display settings
 	if ( glw_state.cdsFullscreen )
 	{
-		Com_Printf( "...resetting display\n" );
-		ResetDisplaySettings();
+		ResetDisplaySettings( qtrue );
 		glw_state.cdsFullscreen = qfalse;
 	}
 

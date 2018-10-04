@@ -2261,13 +2261,20 @@ static void R_LoadFogs( const lump_t *l, const lump_t *brushesLump, const lump_t
 		sideNum = LittleLong( fogs->visibleSide );
 
 		// ydnar: made this check a little more strenuous (was sideNum == -1)
-		if ( sideNum < 0 || sideNum >= sidesCount ) {
+		//if ( sideNum < 0 || sideNum >= sidesCount ) {
+		if ( sideNum == -1 ) {
 			out->hasSurface = qfalse;
 		} else {
-			out->hasSurface = qtrue;
-			planeNum = LittleLong( sides[ firstSide + sideNum ].planeNum );
-			VectorSubtract( vec3_origin, s_worldData.planes[ planeNum ].normal, out->surface );
-			out->surface[3] = -s_worldData.planes[ planeNum ].dist;
+			int sideOffset = firstSide + sideNum;
+			if ( (unsigned)sideOffset >= sidesCount ) {
+				ri.Printf( PRINT_WARNING, "bad fog side offset %i\n", sideOffset );
+				out->hasSurface = qfalse;
+			} else {
+				out->hasSurface = qtrue;
+				planeNum = LittleLong( sides[ sideOffset /*firstSide + sideNum*/ ].planeNum );
+				VectorSubtract( vec3_origin, s_worldData.planes[ planeNum ].normal, out->surface );
+				out->surface[3] = -s_worldData.planes[ planeNum ].dist;
+			}
 		}
 
 		out++;

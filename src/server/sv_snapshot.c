@@ -554,6 +554,7 @@ static void SV_AddEntitiesVisibleFromPoint( const vec3_t origin, clientSnapshot_
 	}
 }
 
+
 /*
 ===============
 SV_InitSnapshotStorage
@@ -668,7 +669,7 @@ static void SV_BuildCommonSnapshot( void )
 
 	// should never happen but anyway
 	if ( svs.freeStorageEntities < count ) {
-		Com_Error( ERR_FATAL, "Not enough snapshot storage: %i < %i", svs.freeStorageEntities, count );
+		Com_Error( ERR_DROP, "Not enough snapshot storage: %i < %i", svs.freeStorageEntities, count );
 	}
 
 	// allocate storage

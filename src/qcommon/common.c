@@ -3174,6 +3174,18 @@ void Com_GameRestart( int checksumFeed, qboolean clientRestart )
 		// Reset console command history
 		Con_ResetHistory();
 
+#ifndef DEDICATED
+		{
+			const char *cl_profileStr = Cvar_VariableString( "cl_profile" );
+			// delete pid file
+			if ( com_gameInfo.usesProfiles && cl_profileStr[0] ) {
+				if ( FS_FileExists( va( "profiles/%s/profile.pid", cl_profileStr ) ) ) {
+					FS_Delete( va( "profiles/%s/profile.pid", cl_profileStr ) );
+				}
+			}
+		}
+#endif
+
 		// Shutdown FS early so Cvar_Restart will not reset old game cvars
 		FS_Shutdown( qfalse );
 

@@ -161,3 +161,5 @@ void WIN_EnableHook( void  );
 
 void WIN_DisableAltTab( void );
 void WIN_EnableAltTab( void );
+
+void SetupDPIAwareness( void );

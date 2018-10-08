@@ -1754,9 +1754,9 @@ void SV_ExecuteClientCommand( client_t *cl, const char *s, qboolean clientOK, qb
 		if (!u->name && sv.state == SS_GAME && cl->state >= CS_PRIMED ) {
 			if ( sv_filterCommands->integer > 0 ) {
 				if ( sv_filterCommands->integer >= 2 )
-					Cmd_Args_Sanitize( "\n\r;" );
+					Cmd_Args_Sanitize( "\n\r;", qtrue );
 				else
-					Cmd_Args_Sanitize( "\n\r" );
+					Cmd_Args_Sanitize( "\n\r", qtrue );
 			}
 			VM_Call( gvm, GAME_CLIENT_COMMAND, cl - svs.clients );
 		}

@@ -515,16 +515,17 @@ char *Cmd_Cmd( void )
    https://bugzilla.icculus.org/show_bug.cgi?id=3593
    https://bugzilla.icculus.org/show_bug.cgi?id=4769
 */
-void Cmd_Args_Sanitize( const char *separators )
+void Cmd_Args_Sanitize( const char *separators, qboolean caplength )
 {
 	int i;
 
 	for( i = 1; i < cmd_argc; i++ )
 	{
 		char *c = cmd_argv[i];
-		
-		if(strlen(c) > MAX_CVAR_VALUE_STRING - 1)
-			c[MAX_CVAR_VALUE_STRING - 1] = '\0';
+	
+		if ( caplength )
+			if(strlen(c) > MAX_CVAR_VALUE_STRING - 1)
+				c[MAX_CVAR_VALUE_STRING - 1] = '\0';
 		
 		while ( ( c = strpbrk( c, separators ) ) != NULL ) {
 			*c = ' ';

@@ -905,6 +905,8 @@ void SV_Init( void )
 	Cvar_Get ("nextmap", "", CVAR_TEMP );
 
 	sv_allowDownload = Cvar_Get( "sv_allowDownload", "1", CVAR_ARCHIVE|CVAR_SERVERINFO );
+	Cvar_Get ("sv_dlURL", "", CVAR_SERVERINFO | CVAR_ARCHIVE);
+
 	sv_master[0] = Cvar_Get( "sv_master1", MASTER_SERVER_NAME, CVAR_INIT );
 	sv_master[1] = Cvar_Get( "sv_master2", "master.etlegacy.com", CVAR_INIT );
 	sv_master[2] = Cvar_Get( "sv_master3", "", CVAR_ARCHIVE_ND );

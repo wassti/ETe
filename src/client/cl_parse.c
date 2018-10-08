@@ -625,21 +625,21 @@ CL_ParseServerInfo
 static void CL_ParseServerInfo( void )
 {
 	const char *serverInfo;
-//	size_t	len;
+	size_t	len;
 
 	serverInfo = cl.gameState.stringData
 		+ cl.gameState.stringOffsets[ CS_SERVERINFO ];
 
-	//clc.sv_allowDownload = atoi(Info_ValueForKey(serverInfo,
-//		"sv_allowDownload"));
-//	Q_strncpyz(clc.sv_dlURL,
-//		Info_ValueForKey(serverInfo, "sv_dlURL"),
-//		sizeof(clc.sv_dlURL));
-//
+	clc.sv_allowDownload = atoi(Info_ValueForKey(serverInfo,
+		"sv_allowDownload"));
+	Q_strncpyz(clc.sv_dlURL,
+		Info_ValueForKey(serverInfo, "sv_dlURL"),
+		sizeof(clc.sv_dlURL));
+
 	/* remove ending slash in URLs */
-//	len = strlen( clc.sv_dlURL );
-//	if ( len > 0 &&  clc.sv_dlURL[len-1] == '/' )
-//		clc.sv_dlURL[len-1] = '\0';
+	len = strlen( clc.sv_dlURL );
+	if ( len > 0 &&  clc.sv_dlURL[len-1] == '/' )
+		clc.sv_dlURL[len-1] = '\0';
 }
 
 

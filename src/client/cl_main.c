@@ -1416,8 +1416,9 @@ qboolean CL_Disconnect( qboolean showMainMenu ) {
 	}
 
 	// Remove pure paks
-	FS_PureServerSetLoadedPaks( "", "" );
-	FS_PureServerSetReferencedPaks( "", "" );
+	FS_ClearPureServerPaks();
+	//FS_PureServerSetLoadedPaks( "", "" );
+	//FS_PureServerSetReferencedPaks( "", "" );
 
 	FS_ClearPakReferences( FS_GENERAL_REF | FS_UI_REF | FS_CGAME_REF );
 

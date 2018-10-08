@@ -5291,6 +5291,38 @@ static void FS_SetDirPolicy( dirPolicy_t policy ) {
 }
 
 
+void FS_ClearPureServerPaks( void ) {
+	//int i;
+
+	fs_numServerPaks = 0;
+	fs_numServerReferencedPaks = 0;
+
+	/*memset( fs_serverPaks, 0, sizeof( fs_serverPaks ) );
+	memset( fs_serverReferencedPaks, 0, sizeof( fs_serverReferencedPaks ) );
+
+	for ( i = 0; i < MAX_REF_PAKS; i++ ) {
+		if ( fs_serverPakNames[i] )
+			Z_Free( fs_serverPakNames[i] );
+		if ( fs_serverReferencedPakNames[i] )
+			Z_Free( fs_serverReferencedPakNames[i] );
+		fs_serverPakNames[i] = NULL;
+		fs_serverReferencedPakNames[i] = NULL;
+	}*/
+
+	FS_SetDirPolicy( DIR_ALLOW );
+
+	if ( fs_reordered )
+	{
+		// https://zerowing.idsoftware.com/bugzilla/show_bug.cgi?id=540
+		// force a restart to make sure the search order will be correct
+		Com_DPrintf( "FS search reorder is required\n" );
+		FS_Restart( fs_checksumFeed );
+		return;
+	}
+
+}
+
+
 /*
 =====================
 FS_PureServerSetLoadedPaks

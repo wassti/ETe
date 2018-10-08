@@ -596,8 +596,9 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 
 #ifndef DEDICATED
 	// remove pure paks that may left from client-side
-	FS_PureServerSetLoadedPaks( "", "" );
-	FS_PureServerSetReferencedPaks( "", "" );
+	FS_ClearPureServerPaks();
+	//FS_PureServerSetLoadedPaks( "", "" );
+	//FS_PureServerSetReferencedPaks( "", "" );
 #endif
 
 	// clear pak references

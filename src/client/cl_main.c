@@ -1253,6 +1253,8 @@ static void CL_GenerateETKey(void)
 	char         buff[ETKEY_SIZE];
 	fileHandle_t f;
 
+	buff[0] = '\0';
+
 	len = FS_SV_FOpenFileRead(BASEGAME "/" ETKEY_FILE, &f);
 	FS_FCloseFile(f);
 	if (len > 0)
@@ -1276,12 +1278,18 @@ static void CL_GenerateETKey(void)
 		f = FS_SV_FOpenFileWrite(BASEGAME "/" ETKEY_FILE);
 		if (!f)
 		{
-			Com_Printf(S_COLOR_RED "ERROR: Could not open %s for write\n", ETKEY_FILE);
+			Com_Printf(S_COLOR_RED "ERROR: Could not open %s for write.\n", ETKEY_FILE);
 			return;
 		}
-		(void) FS_Write(buff, sizeof(buff), f);
-		FS_FCloseFile(f);
-		Com_Printf(S_COLOR_CYAN "ETKEY file generated.\n");
+		if (FS_Write(buff, sizeof(buff), f) > 0)
+		{
+			Com_Printf(S_COLOR_CYAN "ETKEY file generated.\n");
+		}
+		else
+		{
+			Com_Printf(S_COLOR_RED "ERROR: Could not write file %s.\n", ETKEY_FILE);
+		}
+		FS_FCloseFile( f );
 	}
 }
 

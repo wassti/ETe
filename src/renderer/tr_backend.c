@@ -1565,7 +1565,9 @@ static const void *RB_DrawSurfs( const void *data ) {
 	}
 
 	//TODO Maybe check for rdf_noworld stuff but q3mme has full 3d ui
-	backEnd.doneSurfaces = qtrue; // for bloom
+	if ( !( backEnd.refdef.rdflags & RDF_SKYBOXPORTAL ) ) {
+		backEnd.doneSurfaces = qtrue; // for bloom
+	}
 
 	return (const void *)(cmd + 1);
 }

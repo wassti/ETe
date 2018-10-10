@@ -4625,7 +4625,7 @@ void FS_Shutdown( qboolean closemfp )
 	int i;
 
 	// close opened files
-	//if ( closemfp ) 
+	if ( closemfp ) 
 	{
 		for ( i = 1; i < MAX_FILE_HANDLES; i++ )
 		{

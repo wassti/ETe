@@ -2192,6 +2192,7 @@ static void R_LoadFogs( const lump_t *l, const lump_t *brushesLump, const lump_t
 		if ( out->originalBrushNumber == -1 ) {
 			VectorSet( out->bounds[ 0 ], MIN_WORLD_COORD, MIN_WORLD_COORD, MIN_WORLD_COORD );
 			VectorSet( out->bounds[ 1 ], MAX_WORLD_COORD, MAX_WORLD_COORD, MAX_WORLD_COORD );
+			firstSide = 0;
 		} else
 		{
 			if ( (unsigned)out->originalBrushNumber >= brushesCount ) {

@@ -1061,7 +1061,8 @@ void S_Base_AddLoopingSound( const vec3_t origin, const vec3_t velocity, const i
 			loopSounds[numLoopSounds].doppler = qfalse;
 		}
 		lena = DistanceSquared(entityPositions[listener_number], loopSounds[numLoopSounds].origin);
-		VectorAdd(loopSounds[numLoopSounds].origin, loopSounds[numLoopSounds].velocity, out);
+		VectorAdd(entityPositions[numLoopSounds], loopSounds[numLoopSounds].velocity, out);
+		//VectorAdd(loopSounds[numLoopSounds].origin, loopSounds[numLoopSounds].velocity, out);
 		lenb = DistanceSquared(entityPositions[listener_number], out);
 		if ((loopSounds[numLoopSounds].framenum+1) != cls.framecount) {
 			loopSounds[numLoopSounds].oldDopplerScale = 1.0;
@@ -1262,10 +1263,18 @@ void S_AddLoopSounds (void) {
 		ch->startSample = loop->startSample;
 
 		numLoopChannels++;
+		#if 1
+		if (numLoopChannels == MAX_CHANNELS)
+		{
+			Com_Printf("S_AddLoopSounds warning: MAX_CHANNELS %i reached - loop sound dropped\n", MAX_CHANNELS);
+			return;
+		}
+		#else
 		if (numLoopChannels == MAX_CHANNELS) {
 			i = numLoopSounds + 1;
 			//return;
 		}
+		#endif
 	}
 }
 

@@ -709,7 +709,7 @@ static intptr_t CL_CgameSystemCalls( intptr_t *args ) {
 		S_ClearLoopingSounds( );
 		return 0;
 	case CG_S_CLEARSOUNDS:
-		S_ClearSoundBuffer( qtrue );
+		//S_ClearSoundBuffer( qtrue );
 		if ( args[1] == 0 ) {
 			S_ClearSounds( qtrue, qfalse );
 		} else if ( args[1] == 1 ) {

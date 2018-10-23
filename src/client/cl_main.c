@@ -1065,6 +1065,14 @@ CL_ShutdownAll
 */
 void CL_ShutdownAll( void ) {
 
+	// stop recording video on map change
+	if ( CL_VideoRecording() )
+		CL_CloseAVI();
+
+	// stop recording demo on map change
+	if ( clc.demorecording )
+		CL_StopRecord_f();
+
 #ifdef USE_CURL
 	CL_cURL_Shutdown();
 #endif

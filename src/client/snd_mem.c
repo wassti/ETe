@@ -180,7 +180,7 @@ static int ResampleSfx( sfx_t *sfx, int channels, int inrate, int inwidth, int s
 
 	srcsample = 0;
 	samplefrac = 0;
-	fracstep = stepscale * 256 * channels;
+	fracstep = (int)(stepscale * 256 * channels);
 	chunk = sfx->soundData;
 
 	for (i=0 ; i<outcount ; i++)
@@ -234,7 +234,7 @@ static int ResampleSfxRaw( short *sfx, int channels, int inrate, int inwidth, in
 
 	srcsample = 0;
 	samplefrac = 0;
-	fracstep = stepscale * 256 * channels;
+	fracstep = (int)(stepscale * 256 * channels);
 
 	for (i=0 ; i<outcount ; i++)
 	{

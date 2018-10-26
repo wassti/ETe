@@ -50,7 +50,7 @@ static client_t *SV_GetPlayerByHandle( void ) {
 	client_t	*cl;
 	int			i;
 	char		*s;
-	char		cleanName[64];
+	char		cleanName[ MAX_NAME_LENGTH ];
 
 	// make sure server is running
 	if ( !com_sv_running->integer ) {
@@ -83,7 +83,7 @@ static client_t *SV_GetPlayerByHandle( void ) {
 
 	// check for a name match
 	for ( i=0, cl=svs.clients ; i < sv_maxclients->integer ; i++,cl++ ) {
-		if ( !cl->state ) { // <= CS_ZOMBIE
+		if ( cl->state < CS_CONNECTED ) {
 			continue;
 		}
 		if ( !Q_stricmp( cl->name, s ) ) {
@@ -101,6 +101,7 @@ static client_t *SV_GetPlayerByHandle( void ) {
 
 	return NULL;
 }
+
 
 /*
 ==================
@@ -140,7 +141,7 @@ static client_t *SV_GetPlayerByNum( void ) {
 	}
 
 	cl = &svs.clients[idnum];
-	if ( !cl->state ) { // <= CS_ZOMBIE
+	if ( !cl->state ) {
 		Com_Printf( "Client %i is not active\n", idnum );
 		return NULL;
 	}
@@ -192,8 +193,8 @@ static void SV_Map_f( void ) {
 	if ( !Q_stricmp( cmd, "devmap" ) ) {
 		cheat = qtrue;
 		killBots = qtrue;
-	} else
-	{
+	}
+	else {
 		cheat = qfalse;
 		killBots = qfalse;
 	}
@@ -326,7 +327,7 @@ static void SV_MapRestart_f( void ) {
 
 	if ( delay ) {
 		sv.restartTime = sv.time + delay * 1000;
-		SV_SetConfigstring( CS_WARMUP, va( "%i", sv.restartTime ) );
+		SV_SetConfigstring( CS_WARMUP, va("%i", sv.restartTime) );
 		return;
 	}
 

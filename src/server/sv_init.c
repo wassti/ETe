@@ -280,7 +280,6 @@ static void SV_CreateBaseline( void ) {
 /*
 ===============
 SV_BoundMaxClients
-
 ===============
 */
 static void SV_BoundMaxClients( int minimum ) {
@@ -867,8 +866,10 @@ void SV_Init( void )
 	Cvar_Get( "protocol", va( "%i", PROTOCOL_VERSION ), CVAR_SERVERINFO | CVAR_ROM );
 	sv_mapname = Cvar_Get( "mapname", "nomap", CVAR_SERVERINFO | CVAR_ROM );
 	sv_privateClients = Cvar_Get( "sv_privateClients", "0", CVAR_SERVERINFO );
+	Cvar_CheckRange( sv_privateClients, "0", va( "%i", MAX_CLIENTS-1 ), CV_INTEGER );
 	sv_hostname = Cvar_Get( "sv_hostname", "ETHost", CVAR_SERVERINFO | CVAR_ARCHIVE );
 	sv_maxclients = Cvar_Get( "sv_maxclients", "20", CVAR_SERVERINFO | CVAR_LATCH );               // NERVE - SMF - changed to 20 from 8
+	Cvar_CheckRange( sv_maxclients, "1", XSTRING(MAX_CLIENTS), CV_INTEGER );
 
 	sv_maxconcurrent = Cvar_Get( "sv_maxconcurrent", "4", CVAR_ARCHIVE );
 	Cvar_CheckRange( sv_maxconcurrent, "1", NULL, CV_INTEGER );

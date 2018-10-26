@@ -573,10 +573,12 @@ static void RB_BeginDrawingView( void ) {
 
 //----(SA)	done
 
-	if ( ( backEnd.refdef.rdflags & RDF_HYPERSPACE ) ) {
+	if ( backEnd.refdef.rdflags & RDF_HYPERSPACE )
+	{
 		RB_Hyperspace();
 		return;
-	} else
+	}
+	else
 	{
 		backEnd.isHyperspace = qfalse;
 	}

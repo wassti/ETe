@@ -282,6 +282,7 @@ static void Cmd_Exec_f( void ) {
 		void *v;
 	} f;
 	char filename[MAX_QPATH];
+	int filter = 0;
 
 	quiet = !Q_stricmp(Cmd_Argv(0), "execq");
 
@@ -293,7 +294,20 @@ static void Cmd_Exec_f( void ) {
 
 	Q_strncpyz( filename, Cmd_Argv(1), sizeof( filename ) );
 	COM_DefaultExtension( filename, sizeof( filename ), ".cfg" );
+
+	// only load default.cfg from paks in release
+#ifdef NDEBUG
+	if ( !FS_FilenameCompare( filename, "default.cfg" ) )
+		filter = FS_EXCLUDE_DIR;
+	else
+#endif
+	// only load generated config from directory
+	if ( !FS_FilenameCompare( filename, Q3CONFIG_CFG ) )
+		filter = FS_EXCLUDE_PK3;
+
+	if ( filter != 0 ) FS_SetFilterFlag( filter );
 	FS_ReadFile( filename, &f.v );
+	if ( filter != 0 ) FS_SetFilterFlag( 0 );
 	if ( f.v == NULL ) {
 		Com_Printf( "couldn't exec %s\n", filename );
 		return;

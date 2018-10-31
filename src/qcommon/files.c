@@ -1421,6 +1421,10 @@ extern qboolean		com_fullyInitialized;
 // see FS_FOpenFileRead_Filtered
 static int fs_filter_flag = 0;
 
+void FS_SetFilterFlag( int flag ) {
+	fs_filter_flag = flag;
+}
+
 int FS_FOpenFileRead( const char *filename, fileHandle_t *file, qboolean uniqueFILE ) {
 	searchpath_t	*search;
 	char			*netpath;

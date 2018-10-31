@@ -778,6 +778,8 @@ but that's a C++ construct ..
 #define FS_EXCLUDE_PK3 0x2
 int FS_FOpenFileRead_Filtered( const char *qpath, fileHandle_t *file, qboolean uniqueFILE, int filter_flag );
 
+void FS_SetFilterFlag( int flag );
+
 void FS_BypassPure( void );
 void FS_RestorePure( void );
 

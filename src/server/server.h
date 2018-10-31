@@ -355,6 +355,7 @@ extern cvar_t  *sv_reloading;
 
 
 extern	cvar_t *sv_levelTimeReset;
+extern	cvar_t *sv_filter;
 
 // TTimo - autodl
 extern cvar_t *sv_dl_maxRate;
@@ -450,7 +451,7 @@ void SV_InitChallenger( void );
 void SV_DirectConnect( const netadr_t *from );
 
 void SV_ExecuteClientMessage( client_t *cl, msg_t *msg );
-void SV_UserinfoChanged( client_t *cl, qboolean updateUserinfo );
+void SV_UserinfoChanged( client_t *cl, qboolean updateUserinfo, qboolean runFilter );
 
 void SV_ClientEnterWorld( client_t *client, usercmd_t *cmd );
 void SV_FreeClient( client_t *client );
@@ -467,6 +468,7 @@ int SV_SendQueuedMessages( void );
 // sv_ccmds.c
 //
 void SV_Heartbeat_f( void );
+client_t *SV_GetPlayerByHandle( void );
 
 qboolean SV_TempBanIsBanned( const netadr_t *address );
 void SV_TempBanNetAddress( const netadr_t *address, int length );
@@ -591,6 +593,14 @@ void SV_Netchan_Transmit( client_t *client, msg_t *msg);
 int SV_Netchan_TransmitNextFragment( client_t *client );
 qboolean SV_Netchan_Process( client_t *client, msg_t *msg );
 void SV_Netchan_FreeQueue( client_t *client );
+
+//
+// sv_filter.c
+//
+void SV_LoadFilters( const char *filename );
+const char *SV_RunFilters( const char *userinfo, const netadr_t *addr );
+void SV_AddFilter_f( void );
+void SV_AddFilterCmd_f( void );
 
 //bani - cl->downloadnotify
 #define DLNOTIFY_REDIRECT   0x00000001  // "Redirecting client ..."

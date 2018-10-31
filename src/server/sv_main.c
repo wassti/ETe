@@ -91,6 +91,7 @@ cvar_t  *sv_packetdelay;
 cvar_t  *sv_fullmsg;
 
 cvar_t *sv_levelTimeReset;
+cvar_t *sv_filter;
 
 cvar_t  *sv_leanPakRefs = NULL;
 
@@ -1474,7 +1475,7 @@ void SV_TrackCvarChanges( void )
 
 	for ( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ ) {
 		if ( cl->state >= CS_CONNECTED ) {
-			SV_UserinfoChanged( cl, qfalse );
+			SV_UserinfoChanged( cl, qfalse, qfalse ); // do not update userinfo, do not run filter
 		}
 	}
 }

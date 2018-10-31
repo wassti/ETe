@@ -979,6 +979,8 @@ void SV_Init( void )
 
 	sv_levelTimeReset = Cvar_Get( "sv_levelTimeReset", "0", CVAR_ARCHIVE_ND );
 
+	sv_filter = Cvar_Get( "sv_filter", "filter.txt", CVAR_ARCHIVE );
+
 	sv_leanPakRefs = Cvar_Get( "sv_leanPakRefs", "0", CVAR_LATCH );
 
 	sv_filterCommands = Cvar_Get( "sv_filterCommands", "1", CVAR_ARCHIVE );

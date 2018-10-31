@@ -46,7 +46,7 @@ SV_GetPlayerByHandle
 Returns the player with player id or name from Cmd_Argv(1)
 ==================
 */
-static client_t *SV_GetPlayerByHandle( void ) {
+client_t *SV_GetPlayerByHandle( void ) {
 	client_t	*cl;
 	int			i;
 	char		*s;
@@ -1508,6 +1508,8 @@ void SV_AddOperatorCommands( void ) {
 	Cmd_AddCommand("exceptdel", SV_ExceptDel_f);
 	Cmd_AddCommand("flushbans", SV_FlushBans_f);
 #endif
+	Cmd_AddCommand( "filter", SV_AddFilter_f );
+	Cmd_AddCommand( "filtercmd", SV_AddFilterCmd_f );
 }
 
 

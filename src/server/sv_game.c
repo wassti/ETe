@@ -1172,6 +1172,9 @@ void SV_RestartGameProgs( void ) {
 	}
 
 	SV_InitGameVM( qtrue );
+
+	// load userinfo filters
+	SV_LoadFilters( sv_filter->string );
 }
 
 
@@ -1196,6 +1199,9 @@ void SV_InitGameProgs( void ) {
 
 	// unload the refs during a map change
 	Sys_OmnibotLoad();
+
+	// load userinfo filters
+	SV_LoadFilters( sv_filter->string );
 }
 
 

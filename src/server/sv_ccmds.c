@@ -150,6 +150,7 @@ static client_t *SV_GetPlayerByNum( void ) {
 
 //=========================================================
 
+int sv_cachedGametype = 0;
 
 /*
 ==================
@@ -182,6 +183,11 @@ static void SV_Map_f( void ) {
 		Com_Printf( "Can't find map %s\n", expanded );
 		return;
 	}
+
+	if ( g_gameType->latchedString )
+		sv_cachedGametype = atoi(g_gameType->latchedString);
+	else
+		sv_cachedGametype = g_gameType->integer;
 
 	Cvar_Set( "gamestate", va( "%i", GS_INITIALIZE ) );       // NERVE - SMF - reset gamestate on map/devmap
 

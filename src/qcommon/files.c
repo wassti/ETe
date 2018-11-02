@@ -1326,6 +1326,7 @@ static const char *FS_HasExt( const char *fileName, const char **extList, int ex
 	return NULL;
 }
 
+extern int sv_cachedGametype;
 
 static qboolean FS_GeneralRef( const char *filename, const char *pakfile ) 
 {
@@ -1334,6 +1335,13 @@ static qboolean FS_GeneralRef( const char *filename, const char *pakfile )
 
 	if ( FS_HasExt( filename, extList, ARRAY_LEN( extList ) ) )
 		return qfalse;
+
+	// campaigns should only be referenced when running campaign mode on dedicated
+	// listen servers should always reference like vanilla
+	if ( FS_IsExt( filename, ".campaign", strlen( filename ) ) ) {
+		if ( /*Cvar_VariableIntegerValue( "g_gametype" )*/sv_cachedGametype != 4 && com_dedicated->integer != 0 )
+			return qfalse;
+	}
 	
 	if ( !FS_FilenameCompare( filename, SYS_DLLNAME_QAGAME ) )
 		return qfalse;

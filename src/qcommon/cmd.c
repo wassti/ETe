@@ -302,7 +302,8 @@ static void Cmd_Exec_f( void ) {
 	else
 #endif
 	// only load generated config from directory
-	if ( !FS_FilenameCompare( filename, Q3CONFIG_CFG ) )
+	// only load autoexec config from directory
+	if ( strstr( filename, Q3CONFIG_CFG ) || !FS_FilenameCompare( filename, "autoexec.cfg" ) )
 		filter = FS_EXCLUDE_PK3;
 
 	if ( filter != 0 ) FS_SetFilterFlag( filter );
@@ -318,7 +319,7 @@ static void Cmd_Exec_f( void ) {
 	Cbuf_InsertText( f.c );
 
 #ifdef DELAY_WRITECONFIG
-	if ( !Q_stricmp( filename, Q3CONFIG_CFG ) ) {
+	if ( strstr( filename, Q3CONFIG_CFG ) ) {
 		Com_WriteConfiguration(); // to avoid loading outdated values
 	}
 #endif

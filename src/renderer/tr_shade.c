@@ -276,6 +276,9 @@ static void DrawTris( shaderCommands_t *input ) {
 	GLbitfield stateBits = 0;
 	GLboolean didDepth = GL_FALSE, polygonState = GL_FALSE;
 
+	if ( backEnd.projection2D )
+		return;
+
 	GL_ProgramDisable();
 	tess.dlightUpdateParams = qtrue;
 

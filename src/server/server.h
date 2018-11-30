@@ -320,7 +320,7 @@ extern cvar_t  *sv_friendlyFire;        // NERVE - SMF
 extern cvar_t  *sv_maxlives;            // NERVE - SMF
 extern cvar_t  *sv_maxclients;
 extern cvar_t  *sv_needpass;
-extern	cvar_t	*sv_maxconcurrent;
+extern	cvar_t	*sv_maxclientsPerIP;
 
 extern cvar_t  *sv_privateClients;
 extern cvar_t  *sv_hostname;

@@ -43,7 +43,6 @@ and one exported function: Perform
 #include "vm_local.h"
 
 
-vm_t    *currentVM = NULL; // bk001212
 vm_t    *lastVM    = NULL; // bk001212
 int vm_debugLevel;
 
@@ -374,17 +373,15 @@ vm_t *VM_Restart( vm_t *vm ) {
 	if ( vm->dllHandle ) {
 		syscall_t		systemCall;
 		dllSyscall_t	dllSyscall;
-		const int*		vmMainArgs;
 		vmIndex_t		index;
 				
 		index = vm->index;
 		systemCall = vm->systemCall;
 		dllSyscall = vm->dllSyscall;
-		vmMainArgs = vm->vmMainArgs;
 
 		VM_Free( vm );
 
-		vm = VM_Create( index, systemCall, dllSyscall, vmMainArgs, VMI_NATIVE );
+		vm = VM_Create( index, systemCall, dllSyscall, VMI_NATIVE );
 		return vm;
 	}
 
@@ -444,7 +441,7 @@ If image ends in .qvm it will be interpreted, otherwise
 it will attempt to load as a system dll
 ================
 */
-vm_t *VM_Create( vmIndex_t index, syscall_t systemCalls, dllSyscall_t dllSyscalls, const int *vmMainArgs, vmInterpret_t interpret ) {
+vm_t *VM_Create( vmIndex_t index, syscall_t systemCalls, dllSyscall_t dllSyscalls, vmInterpret_t interpret ) {
 	const char	*name;
 //	vmHeader_t  *header;
 	vm_t        *vm;
@@ -476,7 +473,6 @@ vm_t *VM_Create( vmIndex_t index, syscall_t systemCalls, dllSyscall_t dllSyscall
 	vm->index = index;
 	vm->systemCall = systemCalls;
 	vm->dllSyscall = dllSyscalls;
-	vm->vmMainArgs = vmMainArgs;
 	vm->privateFlag = CVAR_PRIVATE;
 
 
@@ -655,11 +651,10 @@ locals from sp
 ==============
 */
 
-intptr_t QDECL VM_Call( vm_t *vm, int callnum, ... )
+intptr_t QDECL VM_Call( vm_t *vm, int nargs, int callnum, ... )
 {
 	//vm_t	*oldVM;
-	intptr_t r = 0;
-	int	nargs;
+	intptr_t r;
 	int i;
 
 	if ( !vm ) {
@@ -670,7 +665,11 @@ intptr_t QDECL VM_Call( vm_t *vm, int callnum, ... )
 	  Com_Printf( "VM_Call( %d )\n", callnum );
 	}
 
-	nargs = vm->vmMainArgs[ callnum ]; // counting callnum
+#ifdef DEBUG
+	if ( nargs >= MAX_VMMAIN_CALL_ARGS ) {
+		Com_Error( ERR_DROP, "VM_Call: nargs >= MAX_VMMAIN_CALL_ARGS" );
+	}
+#endif
 
 	++vm->callLevel;
 	// if we have a dll loaded, call it directly
@@ -680,7 +679,7 @@ intptr_t QDECL VM_Call( vm_t *vm, int callnum, ... )
 		int args[MAX_VMMAIN_CALL_ARGS-1];
 		va_list ap;
 		va_start( ap, callnum );
-		for ( i = 0; i < nargs-1; i++ ) {
+		for ( i = 0; i < nargs; i++ ) {
 			args[i] = va_arg( ap, int );
 		}
 		va_end(ap);

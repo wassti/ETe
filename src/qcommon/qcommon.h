@@ -429,7 +429,7 @@ typedef enum {
 } vmIndex_t;
 
 void	VM_Init( void );
-vm_t	*VM_Create( vmIndex_t index, syscall_t systemCalls, dllSyscall_t dllSyscalls, const int *vmMainArgs, vmInterpret_t interpret );
+vm_t	*VM_Create( vmIndex_t index, syscall_t systemCalls, dllSyscall_t dllSyscalls, vmInterpret_t interpret );
 
 // module should be bare: "cgame", not "cgame.dll" or "vm/cgame.qvm"
 
@@ -439,7 +439,7 @@ void	VM_Forced_Unload_Start(void);
 void	VM_Forced_Unload_Done(void);
 vm_t	*VM_Restart( vm_t *vm );
 
-intptr_t	QDECL VM_Call( vm_t *vm, int callNum, ... );
+intptr_t	QDECL VM_Call( vm_t *vm, int nargs, int callNum, ... );
 
 void	VM_Debug( int level );
 

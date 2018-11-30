@@ -282,13 +282,13 @@ void IN_CenterView (void) {
 
 void IN_Notebook( void ) {
 	//if ( cls.state == CA_ACTIVE && !clc.demoplaying ) {
-	//VM_Call( uivm, UI_SET_ACTIVE_MENU, UIMENU_NOTEBOOK);	// startup notebook
+	//VM_Call( uivm, 1, UI_SET_ACTIVE_MENU, UIMENU_NOTEBOOK);	// startup notebook
 	//}
 }
 
 void IN_Help( void ) {
 	if ( cls.state == CA_ACTIVE && !clc.demoplaying ) {
-		VM_Call( uivm, UI_SET_ACTIVE_MENU, UIMENU_HELP );        // startup help system
+		VM_Call( uivm, 1, UI_SET_ACTIVE_MENU, UIMENU_HELP );        // startup help system
 	}
 }
 
@@ -436,7 +436,7 @@ void CL_MouseEvent( int dx, int dy, int time ) {
 			cl.mouseDx[cl.mouseIndex] += dx;
 			cl.mouseDy[cl.mouseIndex] += dy;
 		} else {
-			VM_Call( uivm, UI_MOUSE_EVENT, dx, dy );
+			VM_Call( uivm, 2, UI_MOUSE_EVENT, dx, dy );
 		}
 
 	} else if ( Key_GetCatcher( ) & KEYCATCH_CGAME ) {
@@ -444,7 +444,7 @@ void CL_MouseEvent( int dx, int dy, int time ) {
 			cl.mouseDx[cl.mouseIndex] += dx;
 			cl.mouseDy[cl.mouseIndex] += dy;
 		} else {
-			VM_Call( cgvm, CG_MOUSE_EVENT, dx, dy );
+			VM_Call( cgvm, 2, CG_MOUSE_EVENT, dx, dy );
 		}
 	} else {
 		cl.mouseDx[cl.mouseIndex] += dx;

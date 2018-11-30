@@ -57,7 +57,7 @@ typedef struct filter_node_s
 static filter_node_t *nodes;
 
 static char filterMessage[ MAX_FILTER_MESSAGE ];
-static char filterDate[ 32 ];  // current date string in "YYYY-MM-DD HH:mm" format
+static char filterDate[ 64 ];  // current date string in "YYYY-MM-DD HH:mm" format
 static char filterName[ 256 ]; // filtered "name" userinfo key
 static int  filterDateMsec;
 static int  filterCurrMsec;
@@ -596,9 +596,9 @@ static const char *parse_section( const char *text, int level, filter_node_t **r
 			//  value must be sting or quoted string, `~` must be used with quoted strings only
 			if ( (com_tokentype != TK_STRING && com_tokentype != TK_QUOTED) || (op == TK_MATCH && com_tokentype != TK_QUOTED ) ) 
 			{
-				COM_ParseError( "unexpected '%s'", v0 );
+				COM_ParseError( "expecting value for key '%s' instead of '%s'", lvalue, v0 );
 				return NULL;
-			}       	
+			}
 
 			switch ( op ) 
 			{
@@ -620,20 +620,16 @@ static const char *parse_section( const char *text, int level, filter_node_t **r
 			ch = new_node( lvalue, v0, fop, (com_tokentype == TK_QUOTED) ); // quoted = x
 			if ( ch == NULL )
 				return NULL;
-    
+
 			back = text;
 			v0 = COM_ParseComplex( &text, qfalse ); // check current line
 			if ( *v0 == '{' ) // open new section
 			{
 				text = parse_section( text, level + 1, &ch->child, qtrue );
-				if ( text == NULL ) 
-					return NULL;
 			}
 			else if ( com_tokentype == TK_STRING ) // new key/action on the same line, open new section
 			{
 				text = parse_section( back, level + 1, &ch->child, qfalse );
-				if ( text == NULL ) 
-					return NULL;
 			} 
 			else if ( com_tokentype == TK_NEWLINE || com_tokentype == TK_EOF )  // expect new section
 			{
@@ -641,13 +637,11 @@ static const char *parse_section( const char *text, int level, filter_node_t **r
 				if ( *v0 == '{' )
 				{ 
 					text = parse_section( text, level + 1, &ch->child, qtrue );
-					if ( text == NULL ) 
-						return NULL;
 				}
 				else
 				{
 					COM_ParseError( "expecting new section/action node" );
-					return NULL;
+					text = NULL;
 				}
 			} // else parse new key/action
 		}
@@ -658,7 +652,10 @@ static const char *parse_section( const char *text, int level, filter_node_t **r
 		else 
 			curr->next = ch;
 
-   		curr = ch;
+		curr = ch;
+
+		if ( text == NULL )
+			break;
 	}
 
 	return text;
@@ -760,7 +757,7 @@ static void SV_ReloadFilters( const char *filename, filter_node_t *new_node )
 			//Com_Printf( "...reloading filter nodes from %s\n", ospath );
 			if ( parse_file( ospath ) ) 
 			{
-				Q_strncpyz( loaded_name, ospath, sizeof( loaded_name ) );			
+				Q_strncpyz( loaded_name, ospath, sizeof( loaded_name ) );
 				Sys_GetFileStats( loaded_name, &loaded_fsize, &loaded_mtime, &loaded_ctime );
 			}
 		}
@@ -770,7 +767,7 @@ static void SV_ReloadFilters( const char *filename, filter_node_t *new_node )
 		// add new nodes(s)
 		if ( new_node )
 		{
-			clear_tags( nodes );		
+			clear_tags( nodes );
 			// link new new node
 			new_node->next = nodes;
 			nodes = new_node;
@@ -1094,7 +1091,21 @@ void SV_AddFilter_f( void )
 	Com_DPrintf( "bancmd: `%s`\n", cmd );
 
 	new_node = NULL;
-	parse_section( cmd, 0, &new_node, qtrue ); // level=0,in_scope=qtrue
+	COM_BeginParseSession( "command" );
+	s = parse_section( cmd, 0, &new_node, qtrue ); // level=0,in_scope=qtrue
+	if ( s == NULL ) // syntax error
+	{
+		free_nodes( new_node );
+		return;
+	}
+
+	if ( new_node && new_node->fop == FOP_DROP )
+	{
+		Com_Printf( S_COLOR_YELLOW "Standalone \"drop\" nodes is not allowed!\n" );
+		free_nodes( new_node );
+		return;
+	}
+
 	if ( new_node ) // should always success
 	{
 		SV_ReloadFilters( sv_filter->string, new_node );
@@ -1113,7 +1124,7 @@ Parses raw filter command string
 void SV_AddFilterCmd_f( void ) 
 {
 	filter_node_t *new_node;
-	const char *cmd;
+	const char *cmd, *s;
 		
 	if ( !sv_filter->string[0] ) 
 	{
@@ -1129,8 +1140,24 @@ void SV_AddFilterCmd_f( void )
 	}
 
 	cmd = Cmd_Cmd() + strlen( Cmd_Argv( 0 ) ) + 1;
-	parse_section( cmd, 0, &new_node, qtrue ); // level=0,in_scope=qtrue
-	if ( new_node ) 
+
+	new_node = NULL;
+	COM_BeginParseSession( "command" );
+	s = parse_section( cmd, 0, &new_node, qtrue ); // level=0,in_scope=qtrue
+	if ( s == NULL ) // syntax error
+	{
+		free_nodes( new_node );
+		return;
+	}
+
+	if ( new_node && new_node->fop == FOP_DROP )
+	{
+		Com_Printf( S_COLOR_YELLOW "Standalone \"drop\" nodes is not allowed!\n" );
+		free_nodes( new_node );
+		return;
+	}
+
+	if ( new_node )
 	{
 		SV_ReloadFilters( sv_filter->string, new_node );
 	}

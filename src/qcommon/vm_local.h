@@ -142,10 +142,7 @@ struct vm_s {
 	//------------------------------------
    
 	const char	*name;
-
 	vmIndex_t	index;
-
-	const int	*vmMainArgs;
 
 	// for dynamic linked modules
 	void		*dllHandle;
@@ -178,7 +175,6 @@ struct vm_s {
 	int			privateFlag;
 };
 
-extern vm_t    *currentVM;
 extern	int		vm_debugLevel;
 
 void VM_Compile( vm_t *vm, vmHeader_t *header );

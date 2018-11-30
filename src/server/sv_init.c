@@ -702,7 +702,7 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 	for ( i = 0 ; i < GAME_INIT_FRAMES ; i++ )
 	{
 		sv.time += FRAMETIME;
-		VM_Call (gvm, GAME_RUN_FRAME, sv.time);
+		VM_Call( gvm, 1, GAME_RUN_FRAME, sv.time );
 		////SV_BotFrame (sv.time);
 	}
 
@@ -726,7 +726,7 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 			}
 
 			// connect the client again
-			denied = GVM_ArgPtr( VM_Call( gvm, GAME_CLIENT_CONNECT, i, qfalse, isBot ) );	// firstTime = qfalse
+			denied = GVM_ArgPtr( VM_Call( gvm, 3, GAME_CLIENT_CONNECT, i, qfalse, isBot ) );	// firstTime = qfalse
 			if ( denied ) {
 				// this generally shouldn't happen, because the client
 				// was connected before the level change
@@ -750,7 +750,7 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 					client->deltaMessage = -1;
 					client->lastSnapshotTime = svs.time - 9999; // generate a snapshot immediately
 
-					VM_Call( gvm, GAME_CLIENT_BEGIN, i );
+					VM_Call( gvm, 1, GAME_CLIENT_BEGIN, i );
 				}
 			}
 		}
@@ -758,7 +758,7 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 
 	// run another frame to allow things to look at all the players
 	sv.time += FRAMETIME;
-	VM_Call( gvm, GAME_RUN_FRAME, sv.time );
+	VM_Call( gvm, 1, GAME_RUN_FRAME, sv.time );
 	////SV_BotFrame( sv.time );
 	svs.time += FRAMETIME;
 
@@ -871,9 +871,9 @@ void SV_Init( void )
 	sv_maxclients = Cvar_Get( "sv_maxclients", "20", CVAR_SERVERINFO | CVAR_LATCH );               // NERVE - SMF - changed to 20 from 8
 	Cvar_CheckRange( sv_maxclients, "1", XSTRING(MAX_CLIENTS), CV_INTEGER );
 
-	sv_maxconcurrent = Cvar_Get( "sv_maxconcurrent", "4", CVAR_ARCHIVE );
-	Cvar_CheckRange( sv_maxconcurrent, "1", NULL, CV_INTEGER );
-	Cvar_SetDescription( sv_maxconcurrent, "Limits number of simultaneous connections from the same IP address." );
+	sv_maxclientsPerIP = Cvar_Get( "sv_maxclientsPerIP", "3", CVAR_ARCHIVE );
+	Cvar_CheckRange( sv_maxclientsPerIP, "1", NULL, CV_INTEGER );
+	Cvar_SetDescription( sv_maxclientsPerIP, "Limits number of simultaneous connections from the same IP address." );
 
 	sv_minRate = Cvar_Get ("sv_minRate", "0", CVAR_ARCHIVE_ND | CVAR_SERVERINFO );
 	sv_maxRate = Cvar_Get( "sv_maxRate", "0", CVAR_ARCHIVE_ND | CVAR_SERVERINFO );

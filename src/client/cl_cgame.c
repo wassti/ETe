@@ -202,7 +202,7 @@ static void CL_AddCgameCommand( const char *cmdName ) {
 
 qboolean CL_CGameCheckKeyExec( int key ) {
 	if ( cgvm ) {
-		return VM_Call( cgvm, CG_CHECKEXECKEY, key );
+		return VM_Call( cgvm, 1, CG_CHECKEXECKEY, key );
 	} else {
 		return qfalse;
 	}
@@ -365,7 +365,7 @@ rescan:
 	if ( !strcmp( cmd, "popup" ) ) { // direct server to client popup request, bypassing cgame
 //		trap_UI_Popup(Cmd_Argv(1));
 //		if ( cls.state == CA_ACTIVE && !clc.demoplaying ) {
-//			VM_Call( uivm, UI_SET_ACTIVE_MENU, UIMENU_CLIPBOARD);
+//			VM_Call( uivm, 1, UI_SET_ACTIVE_MENU, UIMENU_CLIPBOARD);
 //			Menus_OpenByName(Cmd_Argv(1));
 //		}
 		return qfalse;
@@ -486,7 +486,7 @@ void CL_CGameBinaryMessageReceived( const char *buf, int buflen, int serverTime 
 	// TODO error instead or is this sufficient?
 	if ( !cgvm )
 		return;
-	VM_Call( cgvm, CG_MESSAGERECEIVED, buf, buflen, serverTime );
+	VM_Call( cgvm, 3, CG_MESSAGERECEIVED, buf, buflen, serverTime );
 }
 
 /*
@@ -525,7 +525,7 @@ void CL_ShutdownCGame( void ) {
 	if ( !cgvm ) {
 		return;
 	}
-	VM_Call( cgvm, CG_SHUTDOWN );
+	VM_Call( cgvm, 0, CG_SHUTDOWN );
 	VM_Free( cgvm );
 	cgvm = NULL;
 	FS_VM_CloseFiles( H_CGAME );
@@ -553,7 +553,7 @@ static void *VM_ArgPtr( intptr_t intValue ) {
 
 static qboolean CL_GetValue( char* value, int valueSize, const char* key ) {
 
-	if ( !Q_stricmp( key, "trap_R_AddRefEntityToScene2" ) ) {
+	if ( !Q_stricmp( key, "trap_R_AddRefEntityToScene2_ETE" ) ) {
 		Com_sprintf( value, valueSize, "%i", CG_R_ADDREFENTITYTOSCENE2 );
 		return qtrue;
 	}
@@ -988,7 +988,7 @@ static intptr_t CL_CgameSystemCalls( intptr_t *args ) {
 	case CG_INGAME_POPUP:
 		if ( cls.state == CA_ACTIVE && !clc.demoplaying ) {
 			if ( uivm ) { // Gordon: can be called as the system is shutting down
-				VM_Call( uivm, UI_SET_ACTIVE_MENU, args[1] );
+				VM_Call( uivm, 1, UI_SET_ACTIVE_MENU, args[1] );
 			}
 		}
 		return 0;
@@ -1099,21 +1099,6 @@ static intptr_t QDECL CL_DllSyscall( intptr_t arg, ... ) {
 #endif
 }
 
-static const int cg_vmMainArgs[ CG_EXPORT_LAST ] = {
-	5, // CG_INIT,	void CG_Init( int serverMessageNum, int serverCommandSequence, int clientNum, demoPlayback )
-	1, // CG_SHUTDOWN, void (*CG_Shutdown)( void );
-	1, // CG_CONSOLE_COMMAND, qboolean (*CG_ConsoleCommand)( void );
-	4, // CG_DRAW_ACTIVE_FRAME, void (*CG_DrawActiveFrame)( int serverTime, stereoFrame_t stereoView, qboolean demoPlayback );
-	1, // CG_CROSSHAIR_PLAYER, int (*CG_CrosshairPlayer)( void );
-	1, // CG_LAST_ATTACKER, int (*CG_LastAttacker)( void );
-	3, // CG_KEY_EVENT, void	(*CG_KeyEvent)( int key, qboolean down );
-	3, // CG_MOUSE_EVENT, void	(*CG_MouseEvent)( int dx, int dy );
-	3, // CG_EVENT_HANDLING, void (*CG_EventHandling)(int type);
-	4, // CG_GET_TAG, void (*CG_GetTag)(int clientNum, char *tagname, orientation_t *or);
-	2, // CG_CHECKEXECKEY,
-	1, // CG_WANTSBINDKEYS,
-	4, // CG_MESSAGERECEIVED, void (*CG_MessageReceived)( const char *buf, int buflen, int serverTime );
-};
 
 /*
 ====================
@@ -1231,7 +1216,7 @@ void CL_InitCGame( void ) {
 	Com_sprintf( cl.mapname, sizeof( cl.mapname ), "maps/%s.bsp", mapname );
 
 	// load the dll
-	cgvm = VM_Create( VM_CGAME, CL_CgameSystemCalls, CL_DllSyscall, cg_vmMainArgs, VMI_NATIVE );
+	cgvm = VM_Create( VM_CGAME, CL_CgameSystemCalls, CL_DllSyscall, VMI_NATIVE );
 	if ( !cgvm ) {
 		Com_Error( ERR_DROP, "VM_Create on cgame failed" );
 	}
@@ -1241,7 +1226,7 @@ void CL_InitCGame( void ) {
 	// use the lastExecutedServerCommand instead of the serverCommandSequence
 	// otherwise server commands sent just before a gamestate are dropped
 	//bani - added clc.demoplaying, since some mods need this at init time, and drawactiveframe is too late for them
-	VM_Call( cgvm, CG_INIT, clc.serverMessageSequence, clc.lastExecutedServerCommand, clc.clientNum, clc.demoplaying );
+	VM_Call( cgvm, 4, CG_INIT, clc.serverMessageSequence, clc.lastExecutedServerCommand, clc.clientNum, clc.demoplaying );
 
 	// reset any CVAR_CHEAT cvars registered by cgame
 	if ( !clc.demoplaying && !cl_connectedToCheatServer )
@@ -1287,7 +1272,7 @@ qboolean CL_GameCommand( void ) {
 		return qfalse;
 	}
 
-	return VM_Call( cgvm, CG_CONSOLE_COMMAND );
+	return VM_Call( cgvm, 0, CG_CONSOLE_COMMAND );
 }
 
 
@@ -1297,7 +1282,7 @@ CL_CGameRendering
 =====================
 */
 void CL_CGameRendering( stereoFrame_t stereo ) {
-	VM_Call( cgvm, CG_DRAW_ACTIVE_FRAME, cl.serverTime, stereo, clc.demoplaying );
+	VM_Call( cgvm, 3, CG_DRAW_ACTIVE_FRAME, cl.serverTime, stereo, clc.demoplaying );
 	VM_Debug( 0 );
 }
 
@@ -1596,7 +1581,7 @@ qboolean CL_GetTag( int clientNum, char *tagname, orientation_t *or ) {
 		return qfalse;
 	}
 
-	return VM_Call( cgvm, CG_GET_TAG, clientNum, tagname, or );
+	return VM_Call( cgvm, 3, CG_GET_TAG, clientNum, tagname, or );
 }
 
 qboolean CL_CgameRunning( void ) {

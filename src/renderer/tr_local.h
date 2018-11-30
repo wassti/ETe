@@ -2188,8 +2188,9 @@ typedef enum {
 #define MAX_POLYINDICIES 8192
 
 // ydnar: max decal projectors per frame, each can generate lots of polys
-#define MAX_DECAL_PROJECTORS    128     ///< includes decal projectors that will be culled out, hard limited to 32 active projectors because of bitmasks.
-#define MAX_DECALS              1024
+#define MAX_DECAL_PROJECTORS      128     ///< includes decal projectors that will be culled out, hard limited to 32 active projectors because of bitmasks.
+#define MAX_USED_DECAL_PROJECTORS 32
+#define MAX_DECALS                1024
 
 // all of the information needed by the back end must be
 // contained in a backEndData_t

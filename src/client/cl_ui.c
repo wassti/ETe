@@ -833,7 +833,7 @@ static qboolean UI_GetValue( char* value, int valueSize, const char* key ) {
 		return qtrue;
 	}
 
-	if ( !Q_stricmp( key, "trap_R_AddLinearLightToScene" ) && re.AddLinearLightToScene ) {
+	if ( !Q_stricmp( key, "trap_R_AddLinearLightToScene_ETE" ) && re.AddLinearLightToScene ) {
 		Com_sprintf( value, valueSize, "%i", UI_R_ADDLINEARLIGHTTOSCENE );
 		return qtrue;
 	}
@@ -1339,22 +1339,6 @@ static intptr_t QDECL UI_DllSyscall( intptr_t arg, ... ) {
 #endif
 }
 
-static const int ui_vmMainArgs[ UI_EXPORT_LAST ] = {
-	1, // UI_GETAPIVERSION = 0
-	1, // UI_INIT, void	UI_Init( void );
-	1, // UI_SHUTDOWN, void	UI_Shutdown( void );
-	3, // UI_KEY_EVENT, void	UI_KeyEvent( int key, int down );
-	3, // UI_MOUSE_EVENT, void	UI_MouseEvent( int dx, int dy );
-	2, // UI_REFRESH, void	UI_Refresh( int time );
-	1, // UI_IS_FULLSCREEN, qboolean UI_IsFullscreen( void );
-	2, // UI_SET_ACTIVE_MENU, void UI_SetActiveMenu( uiMenuCommand_t menu );
-	1, // UI_GET_ACTIVE_MENU, void UI_GetActiveMenu( void );
-	2, // UI_CONSOLE_COMMAND, qboolean UI_ConsoleCommand( int realTime );
-	2, // UI_DRAW_CONNECT_SCREEN, void UI_DrawConnectScreen( qboolean overlay );
-	1, // UI_HASUNIQUECDKEY
-	2, // UI_CHECKEXECKEY, qboolean UI_CheckExecKey( int key );
-	1, // UI_WANTSBINDKEYS, qboolean UI_WantsBindKeys( void );
-};
 
 /*
 ====================
@@ -1367,7 +1351,7 @@ void CL_ShutdownUI( void ) {
 	if ( !uivm ) {
 		return;
 	}
-	VM_Call( uivm, UI_SHUTDOWN );
+	VM_Call( uivm, 0, UI_SHUTDOWN );
 	VM_Free( uivm );
 	uivm = NULL;
 	FS_VM_CloseFiles( H_Q3UI );
@@ -1383,7 +1367,7 @@ CL_InitUI
 void CL_InitUI( void ) {
 	int v;
 
-	uivm = VM_Create( VM_UI, CL_UISystemCalls, UI_DllSyscall, ui_vmMainArgs, VMI_NATIVE );
+	uivm = VM_Create( VM_UI, CL_UISystemCalls, UI_DllSyscall, VMI_NATIVE );
 	if ( !uivm ) {
 		if ( cl_connectedToPureServer && CL_GameSwitch() ) {
 			// server-side modificaton may require and reference only single custom ui.qvm
@@ -1392,7 +1376,7 @@ void CL_InitUI( void ) {
 			// which will correct filesystem permissions
 			fs_reordered = qfalse;
 			FS_PureServerSetLoadedPaks( "", "" );
-			uivm = VM_Create( VM_UI, CL_UISystemCalls, UI_DllSyscall, ui_vmMainArgs, VMI_NATIVE );
+			uivm = VM_Create( VM_UI, CL_UISystemCalls, UI_DllSyscall, VMI_NATIVE );
 			if ( !uivm ) {
 				Com_Error( ERR_DROP, "VM_Create on UI failed" );
 			}
@@ -1402,7 +1386,7 @@ void CL_InitUI( void ) {
 	}
 
 	// sanity check
-	v = VM_Call( uivm, UI_GETAPIVERSION );
+	v = VM_Call( uivm, 0, UI_GETAPIVERSION );
 	if ( v != UI_API_VERSION ) {
 		// Free uivm now, so UI_SHUTDOWN doesn't get called later.
 		cls.uiStarted = qfalse;
@@ -1413,13 +1397,13 @@ void CL_InitUI( void ) {
 	}
 
 	// init for this gamestate
-	VM_Call( uivm, UI_INIT, ( cls.state >= CA_AUTHORIZING && cls.state < CA_ACTIVE ) );
+	VM_Call( uivm, 1, UI_INIT, ( cls.state >= CA_AUTHORIZING && cls.state < CA_ACTIVE ) );
 }
 
 
 qboolean UI_usesUniqueCDKey() {
 	if ( uivm ) {
-		return ( VM_Call( uivm, UI_HASUNIQUECDKEY ) == qtrue );
+		return ( VM_Call( uivm, 0, UI_HASUNIQUECDKEY ) == qtrue );
 	} else {
 		return qfalse;
 	}
@@ -1427,7 +1411,7 @@ qboolean UI_usesUniqueCDKey() {
 
 qboolean UI_checkKeyExec( int key ) {
 	if ( uivm ) {
-		return VM_Call( uivm, UI_CHECKEXECKEY, key );
+		return VM_Call( uivm, 1, UI_CHECKEXECKEY, key );
 	} else {
 		return qfalse;
 	}
@@ -1445,5 +1429,5 @@ qboolean UI_GameCommand( void ) {
 		return qfalse;
 	}
 
-	return VM_Call( uivm, UI_CONSOLE_COMMAND, cls.realtime );
+	return VM_Call( uivm, 1, UI_CONSOLE_COMMAND, cls.realtime );
 }

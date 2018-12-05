@@ -449,15 +449,15 @@ SV_SetExpectedHunkUsage
   Sets com_expectedhunkusage, so the client knows how to draw the percentage bar
 ====================
 */
+#define HUNKUSAGE_FILENAME "hunkusage.dat"
 static void SV_SetExpectedHunkUsage( const char *mapname ) {
 	int handle;
-	char *memlistfile = "hunkusage.dat";
 	char *buf;
 	char *buftrav;
 	char *token;
 	int len;
 
-	len = FS_FOpenFileByMode( memlistfile, &handle, FS_READ );
+	len = FS_FOpenFileByMode( HUNKUSAGE_FILENAME, &handle, FS_READ );
 	if ( len >= 0 ) { // the file exists, so read it in, strip out the current entry for this map, and save it out, so we can append the new value
 
 		buf = (char *)Z_Malloc( len + 1 );

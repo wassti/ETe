@@ -412,15 +412,15 @@ CL_SetExpectedHunkUsage
   Sets com_expectedhunkusage, so the client knows how to draw the percentage bar
 ====================
 */
+#define HUNKUSAGE_FILENAME "hunkusage.dat"
 static void CL_SetExpectedHunkUsage( const char *mapname ) {
 	int handle;
-	char *memlistfile = "hunkusage.dat";
 	char *buf;
 	char *buftrav;
 	char *token;
 	int len;
 
-	len = FS_FOpenFileByMode( memlistfile, &handle, FS_READ );
+	len = FS_FOpenFileByMode( HUNKUSAGE_FILENAME, &handle, FS_READ );
 	if ( len >= 0 ) { // the file exists, so read it in, strip out the current entry for this map, and save it out, so we can append the new value
 
 		buf = (char *)Z_Malloc( len + 1 );
@@ -1123,7 +1123,6 @@ CL_UpdateLevelHunkUsage
 */
 void CL_UpdateLevelHunkUsage( void ) {
 	int handle;
-	char *memlistfile = "hunkusage.dat";
 	char *buf, *outbuf;
 	char *buftrav, *outbuftrav;
 	char *token;
@@ -1132,7 +1131,7 @@ void CL_UpdateLevelHunkUsage( void ) {
 
 	memusage = Cvar_VariableIntegerValue( "com_hunkused" ) + Cvar_VariableIntegerValue( "hunk_soundadjust" );
 
-	len = FS_FOpenFileByMode( memlistfile, &handle, FS_READ );
+	len = FS_FOpenFileByMode( HUNKUSAGE_FILENAME, &handle, FS_READ );
 	if ( len >= 0 ) { // the file exists, so read it in, strip out the current entry for this map, and save it out, so we can append the new value
 
 		buf = (char *)Z_Malloc( len + 1 );
@@ -1171,14 +1170,14 @@ void CL_UpdateLevelHunkUsage( void ) {
 			}
 		}
 
-		handle = FS_FOpenFileWrite( memlistfile );
+		handle = FS_FOpenFileWrite( HUNKUSAGE_FILENAME );
 		if ( handle < 0 ) {
-			Com_Error( ERR_DROP, "cannot create %s\n", memlistfile );
+			Com_Error( ERR_DROP, "cannot create %s\n", HUNKUSAGE_FILENAME );
 		}
 		// input file is parsed, now output to the new file
 		len = strlen( outbuf );
 		if ( FS_Write( (void *)outbuf, len, handle ) != len ) {
-			Com_Error( ERR_DROP, "cannot write to %s\n", memlistfile );
+			Com_Error( ERR_DROP, "cannot write to %s\n", HUNKUSAGE_FILENAME );
 		}
 		FS_FCloseFile( handle );
 
@@ -1186,7 +1185,7 @@ void CL_UpdateLevelHunkUsage( void ) {
 		Z_Free( outbuf );
 	}
 	// now append the current map to the current file
-	FS_FOpenFileByMode( memlistfile, &handle, FS_APPEND );
+	FS_FOpenFileByMode( HUNKUSAGE_FILENAME, &handle, FS_APPEND );
 	if ( handle < 0 ) {
 		Com_Error( ERR_DROP, "cannot write to hunkusage.dat, check disk full\n" );
 	}
@@ -1195,7 +1194,7 @@ void CL_UpdateLevelHunkUsage( void ) {
 	FS_FCloseFile( handle );
 
 	// now just open it and close it, so it gets copied to the pak dir
-	len = FS_FOpenFileByMode( memlistfile, &handle, FS_READ );
+	len = FS_FOpenFileByMode( HUNKUSAGE_FILENAME, &handle, FS_READ );
 	if ( len >= 0 ) {
 		FS_FCloseFile( handle );
 	}

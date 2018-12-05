@@ -34,18 +34,14 @@ If you have questions concerning this license or the applicable additional terms
 #include "snd_local.h" // fretn
 
 cvar_t  *cl_wavefilerecord;
-cvar_t  *cl_nodelta;
-cvar_t  *cl_debugMove;
-
 cvar_t  *cl_noprint;
+cvar_t  *cl_debugMove;
 cvar_t  *cl_motd;
 
 cvar_t  *rcon_client_password;
 cvar_t  *rconAddress;
 
 cvar_t  *cl_timeout;
-cvar_t  *cl_maxpackets;
-cvar_t  *cl_packetdup;
 cvar_t	*cl_autoNudge;
 cvar_t  *cl_timeNudge;
 cvar_t  *cl_showTimeDelta;
@@ -53,7 +49,6 @@ cvar_t  *cl_showTimeDelta;
 cvar_t  *cl_shownet = NULL;     // NERVE - SMF - This is referenced in msg.c and we need to make sure it is NULL
 cvar_t  *cl_shownuments;        // DHM - Nerve
 cvar_t  *cl_visibleClients;     // DHM - Nerve
-cvar_t  *cl_showSend;
 cvar_t  *cl_showServerCommands; // NERVE - SMF
 cvar_t  *cl_timedemo;
 cvar_t	*cl_autoRecordDemo;
@@ -62,20 +57,6 @@ cvar_t	*cl_aviFrameRate;
 cvar_t	*cl_aviMotionJpeg;
 cvar_t	*cl_forceavidemo;
 cvar_t	*cl_aviPipeFormat;
-
-cvar_t	*cl_freelook;
-cvar_t	*cl_sensitivity;
-
-cvar_t	*cl_mouseAccel;
-cvar_t	*cl_mouseAccelOffset;
-cvar_t	*cl_mouseAccelStyle;
-cvar_t	*cl_showMouseRate;
-
-cvar_t	*m_pitch;
-cvar_t	*m_yaw;
-cvar_t	*m_forward;
-cvar_t	*m_side;
-cvar_t	*m_filter;
 
 cvar_t	*cl_activeAction;
 
@@ -4274,7 +4255,6 @@ void CL_Init( void ) {
 	cl_shownuments = Cvar_Get( "cl_shownuments", "0", CVAR_TEMP );
 	cl_visibleClients = Cvar_Get( "cl_visibleClients", "0", CVAR_TEMP );
 	cl_showServerCommands = Cvar_Get( "cl_showServerCommands", "0", 0 );
-	cl_showSend = Cvar_Get( "cl_showSend", "0", CVAR_TEMP );
 	cl_showTimeDelta = Cvar_Get( "cl_showTimeDelta", "0", CVAR_TEMP );
 	rcon_client_password = Cvar_Get( "rconPassword", "", CVAR_TEMP );
 	Cvar_SetDescription( rcon_client_password, "Password for remote console access" );
@@ -4295,30 +4275,6 @@ void CL_Init( void ) {
 
 	rconAddress = Cvar_Get( "rconAddress", "", 0 );
 	Cvar_SetDescription( rconAddress, "Alternate server address to remotely access via rcon protocol" );
-
-	cl_yawspeed = Cvar_Get ("cl_yawspeed", "140", CVAR_ARCHIVE_ND );
-	cl_pitchspeed = Cvar_Get ("cl_pitchspeed", "140", CVAR_ARCHIVE_ND );
-	cl_anglespeedkey = Cvar_Get ("cl_anglespeedkey", "1.5", 0);
-
-	cl_maxpackets = Cvar_Get ("cl_maxpackets", "60", CVAR_ARCHIVE );
-	Cvar_CheckRange( cl_maxpackets, "15", "125", CV_INTEGER );
-	cl_packetdup = Cvar_Get( "cl_packetdup", "1", CVAR_ARCHIVE_ND );
-	Cvar_CheckRange( cl_packetdup, "0", "5", CV_INTEGER );
-
-	cl_run = Cvar_Get( "cl_run", "1", CVAR_ARCHIVE_ND );
-	cl_sensitivity = Cvar_Get ("sensitivity", "5", CVAR_ARCHIVE);
-	cl_mouseAccel = Cvar_Get( "cl_mouseAccel", "0", CVAR_ARCHIVE_ND );
-	cl_freelook = Cvar_Get( "cl_freelook", "1", CVAR_ARCHIVE_ND );
-
-	// 0: legacy mouse acceleration
-	// 1: new implementation
-	cl_mouseAccelStyle = Cvar_Get( "cl_mouseAccelStyle", "0", CVAR_ARCHIVE_ND );
-	// offset for the power function (for style 1, ignored otherwise)
-	// this should be set to the max rate value
-	cl_mouseAccelOffset = Cvar_Get( "cl_mouseAccelOffset", "5", CVAR_ARCHIVE_ND );
-	Cvar_CheckRange( cl_mouseAccelOffset, "0.001", "50000", CV_FLOAT );
-
-	cl_showMouseRate = Cvar_Get ("cl_showmouserate", "0", 0);
 
 	cl_allowDownload = Cvar_Get( "cl_allowDownload", "1", CVAR_ARCHIVE_ND );
 #ifdef USE_CURL
@@ -4346,20 +4302,6 @@ void CL_Init( void ) {
 	cl_inGameVideo = Cvar_Get( "r_inGameVideo", "1", CVAR_ARCHIVE_ND );
 
 	cl_serverStatusResendTime = Cvar_Get( "cl_serverStatusResendTime", "750", 0 );
-
-	// RF
-	cl_recoilPitch = Cvar_Get( "cg_recoilPitch", "0", CVAR_ROM );
-
-	cl_bypassMouseInput = Cvar_Get( "cl_bypassMouseInput", "0", 0 ); //CVAR_ROM );			// NERVE - SMF
-
-	cl_doubletapdelay = Cvar_Get( "cl_doubletapdelay", "350", CVAR_ARCHIVE_ND ); // Arnout: double tap
-
-	m_pitch = Cvar_Get( "m_pitch", "0.022", CVAR_ARCHIVE_ND );
-	m_yaw = Cvar_Get( "m_yaw", "0.022", CVAR_ARCHIVE_ND );
-	m_forward = Cvar_Get( "m_forward", "0.25", CVAR_ARCHIVE_ND );
-	m_side = Cvar_Get( "m_side", "0.25", CVAR_ARCHIVE_ND );
-	// ENSI TODO osx fix from q3e?
-	m_filter = Cvar_Get( "m_filter", "0", CVAR_ARCHIVE_ND );
 
 	cl_motdString = Cvar_Get( "cl_motdString", "", CVAR_ROM );
 

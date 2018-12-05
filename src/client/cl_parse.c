@@ -174,7 +174,7 @@ Parses deltas from the given base and adds the resulting entity
 to the current frame
 ==================
 */
-static void CL_DeltaEntity( msg_t *msg, clSnapshot_t *frame, int newnum, entityState_t *old, 
+static void CL_DeltaEntity( msg_t *msg, clSnapshot_t *frame, int newnum, const entityState_t *old,
 					 qboolean unchanged) {
 	entityState_t	*state;
 
@@ -218,10 +218,10 @@ static void CL_DeltaEntity( msg_t *msg, clSnapshot_t *frame, int newnum, entityS
 CL_ParsePacketEntities
 ==================
 */
-static void CL_ParsePacketEntities( msg_t *msg, clSnapshot_t *oldframe, clSnapshot_t *newframe) {
-	int			newnum;
-	entityState_t	*oldstate;
-	int			oldindex, oldnum;
+static void CL_ParsePacketEntities( msg_t *msg, const clSnapshot_t *oldframe, clSnapshot_t *newframe ) {
+	const entityState_t	*oldstate;
+	int	newnum;
+	int	oldindex, oldnum;
 
 	newframe->parseEntitiesNum = cl.parseEntitiesNum;
 	newframe->numEntities = 0;
@@ -229,11 +229,11 @@ static void CL_ParsePacketEntities( msg_t *msg, clSnapshot_t *oldframe, clSnapsh
 	// delta from the entities present in oldframe
 	oldindex = 0;
 	oldstate = NULL;
-	if (!oldframe) {
-		oldnum = 99999;
+	if ( !oldframe ) {
+		oldnum = MAX_GENTITIES+1;
 	} else {
 		if ( oldindex >= oldframe->numEntities ) {
-			oldnum = 99999;
+			oldnum = MAX_GENTITIES+1;
 		} else {
 			oldstate = &cl.parseEntities[
 				(oldframe->parseEntitiesNum + oldindex) & (MAX_PARSE_ENTITIES-1)];
@@ -263,7 +263,7 @@ static void CL_ParsePacketEntities( msg_t *msg, clSnapshot_t *oldframe, clSnapsh
 			oldindex++;
 
 			if ( oldindex >= oldframe->numEntities ) {
-				oldnum = 99999;
+				oldnum = MAX_GENTITIES+1;
 			} else {
 				oldstate = &cl.parseEntities[
 					(oldframe->parseEntitiesNum + oldindex) & (MAX_PARSE_ENTITIES-1)];
@@ -280,7 +280,7 @@ static void CL_ParsePacketEntities( msg_t *msg, clSnapshot_t *oldframe, clSnapsh
 			oldindex++;
 
 			if ( oldindex >= oldframe->numEntities ) {
-				oldnum = 99999;
+				oldnum = MAX_GENTITIES+1;
 			} else {
 				oldstate = &cl.parseEntities[
 					(oldframe->parseEntitiesNum + oldindex) & (MAX_PARSE_ENTITIES-1)];
@@ -301,7 +301,7 @@ static void CL_ParsePacketEntities( msg_t *msg, clSnapshot_t *oldframe, clSnapsh
 	}
 
 	// any remaining entities in the old frame are copied over
-	while ( oldnum != 99999 ) {
+	while ( oldnum != MAX_GENTITIES+1 ) {
 		// one or more entities from the old packet are unchanged
 		if ( cl_shownet->integer == 3 ) {
 			Com_Printf ("%3i:  unchanged: %i\n", msg->readcount, oldnum);
@@ -311,7 +311,7 @@ static void CL_ParsePacketEntities( msg_t *msg, clSnapshot_t *oldframe, clSnapsh
 		oldindex++;
 
 		if ( oldindex >= oldframe->numEntities ) {
-			oldnum = 99999;
+			oldnum = MAX_GENTITIES+1;
 		} else {
 			oldstate = &cl.parseEntities[
 				(oldframe->parseEntitiesNum + oldindex) & (MAX_PARSE_ENTITIES-1)];
@@ -335,7 +335,7 @@ for any reason, no changes to the state will be made at all.
 ================
 */
 static void CL_ParseSnapshot( msg_t *msg ) {
-	clSnapshot_t	*old;
+	const clSnapshot_t *old;
 	clSnapshot_t	newSnap;
 	int			deltaNum;
 	int			oldMessageNum;
@@ -670,11 +670,19 @@ static void CL_ParseGamestate( msg_t *msg ) {
 	// wipe local client state
 	CL_ClearState();
 
+	// all configstring updates received before new gamestate must be discarded
+	for ( i = 0; i < MAX_RELIABLE_COMMANDS; i++ ) {
+		s = clc.serverCommands[ i ];
+		if ( !strncmp( s, "cs ", 3 ) || !strncmp( s, "bcs0 ", 5 ) || !strncmp( s, "bcs1 ", 5 ) || !strncmp( s, "bcs2 ", 5 ) ) {
+			clc.serverCommandsIgnore[ i ] = qtrue;
+		}
+	}
+
 	// a gamestate always marks a server command sequence
 	clc.serverCommandSequence = MSG_ReadLong( msg );
 
 	// parse all the configstrings and baselines
-	cl.gameState.dataCount = 1; // leave a 0 at the beginning for uninitialized configstrings
+	cl.gameState.dataCount = 1;	// leave a 0 at the beginning for uninitialized configstrings
 	while ( 1 ) {
 		cmd = MSG_ReadByte( msg );
 
@@ -988,6 +996,7 @@ static void CL_ParseCommandString( msg_t *msg ) {
 
 	index = seq & (MAX_RELIABLE_COMMANDS-1);
 	Q_strncpyz( clc.serverCommands[ index ], s, sizeof( clc.serverCommands[ index ] ) );
+	clc.serverCommandsIgnore[ index ] = qfalse;
 
 #ifdef USE_CURL
 	if ( !clc.cURLUsed )

@@ -233,9 +233,10 @@ typedef struct {
 	int serverMessageSequence;
 
 	// reliable messages received from server
-	int serverCommandSequence;
-	int lastExecutedServerCommand;              // last server command grabbed or executed with CL_GetServerCommand
-	char serverCommands[MAX_RELIABLE_COMMANDS][MAX_STRING_CHARS];
+	int			serverCommandSequence;
+	int			lastExecutedServerCommand;		// last server command grabbed or executed with CL_GetServerCommand
+	char		serverCommands[MAX_RELIABLE_COMMANDS][MAX_STRING_CHARS];
+	qboolean	serverCommandsIgnore[MAX_RELIABLE_COMMANDS];
 
 	// file transfer from server
 	fileHandle_t download;
@@ -445,45 +446,18 @@ extern	refexport_t		re;		// interface to refresh .dll
 //
 // cvars
 //
-extern cvar_t  *cl_nodelta;
-extern cvar_t  *cl_debugMove;
 extern cvar_t  *cl_noprint;
+extern cvar_t  *cl_debugMove;
 extern cvar_t  *cl_timegraph;
-extern cvar_t  *cl_maxpackets;
-extern cvar_t  *cl_packetdup;
 extern cvar_t  *cl_shownet;
 extern cvar_t  *cl_shownuments;             // DHM - Nerve
 extern cvar_t  *cl_visibleClients;          // DHM - Nerve
-extern cvar_t  *cl_showSend;
 extern cvar_t  *cl_showServerCommands;      // NERVE - SMF
 extern	cvar_t	*cl_autoNudge;
 extern	cvar_t	*cl_timeNudge;
 extern	cvar_t	*cl_showTimeDelta;
 
-extern	cvar_t	*cl_yawspeed;
-extern	cvar_t	*cl_pitchspeed;
-extern	cvar_t	*cl_run;
-extern	cvar_t	*cl_anglespeedkey;
-
-extern cvar_t  *cl_recoilPitch;     // RF
-
 extern cvar_t  *cl_bypassMouseInput;    // NERVE - SMF
-
-extern cvar_t  *cl_doubletapdelay;
-
-extern cvar_t  *cl_sensitivity;
-extern cvar_t  *cl_freelook;
-
-extern	cvar_t	*cl_mouseAccel;
-extern	cvar_t	*cl_mouseAccelOffset;
-extern	cvar_t	*cl_mouseAccelStyle;
-extern	cvar_t	*cl_showMouseRate;
-
-extern	cvar_t	*m_pitch;
-extern	cvar_t	*m_yaw;
-extern	cvar_t	*m_forward;
-extern	cvar_t	*m_side;
-extern	cvar_t	*m_filter;
 
 extern	cvar_t	*cl_timedemo;
 extern	cvar_t	*cl_aviFrameRate;
@@ -553,6 +527,8 @@ void CL_GetPingInfo( int n, char *buf, int buflen );
 void CL_ClearPing( int n );
 int CL_GetPingQueueCount( void );
 
+void CL_ClearState( void );
+
 int CL_ServerStatus( const char *serverAddress, char *serverStatusString, int maxLen );
 
 void CL_AddToLimboChat( const char *str );                  // NERVE - SMF
@@ -577,13 +553,6 @@ qboolean CL_GetModeInfo( int *width, int *height, float *windowAspect, int mode,
 //
 // cl_input
 //
-typedef struct {
-	int down[2];                // key nums holding it down
-	unsigned downtime;          // msec timestamp
-	unsigned msec;              // msec down this frame if both a down and up happened
-	qboolean active;            // current state
-	qboolean wasPressed;        // set when down, not cleared when up
-} kbutton_t;
 
 typedef enum {
 	KB_LEFT,
@@ -619,17 +588,12 @@ typedef enum {
 } kbuttons_t;
 
 
-void CL_ClearKeys( void );
-
-void CL_InitInput (void);
-void CL_ShutdownInput(void);
-void CL_SendCmd (void);
-void CL_ClearState (void);
+void CL_InitInput( void );
+void CL_ShutdownInput( void );
+void CL_SendCmd( void );
 
 void CL_WritePacket( void );
 //void IN_CenterView (void);
-void IN_Notebook( void );
-void IN_Help( void );
 
 //
 // cl_keys.c
@@ -642,7 +606,6 @@ extern	qboolean	chat_buddy;
 void Field_Draw( field_t *edit, int x, int y, int width, qboolean showCursor, qboolean noColorEscape );
 void Field_BigDraw( field_t *edit, int x, int y, int width, qboolean showCursor, qboolean noColorEscape );
 
-float CL_KeyState( kbutton_t *key );
 const char *Key_KeynumToString( int keynum, qboolean bTranslate );
 
 //

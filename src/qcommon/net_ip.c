@@ -54,6 +54,7 @@ typedef unsigned short sa_family_t;
 #	endif
 
 #ifdef _MSC_VER
+#pragma warning(push)
 #pragma warning(disable : 4005)
 #endif
 
@@ -65,7 +66,7 @@ typedef u_long	ioctlarg_t;
 #	define socketError		WSAGetLastError( )
 
 #ifdef _MSC_VER
-#pragma warning(default : 4005)
+#pragma warning(pop)
 #endif
 
 static WSADATA	winsockdata;

@@ -1,13 +1,16 @@
 version: ETe-{branch}-{build}
 image: Visual Studio 2017
 configuration: Release
-enviroment:
-  CONFIGURATION: Release
 
+#enviroment variable version
+enviroment:
+  BUILD_CONFIGURATION: Release
+
+# custom build script to specify projects and xp mode
 build_script:
   - ps: |
       cd src
-      msbuild wolf.sln /m /p:PlatformToolset=v141_xp;Configuration=$env:CONFIGURATION /t:botlib;libjpeg;renderer;Splines;wolf;wolfded
+      msbuild wolf.sln /m /p:PlatformToolset=v141_xp;Configuration=$env:BUILD_CONFIGURATION /t:botlib;libjpeg;renderer;Splines;wolf;wolfded
 
       if (! $?) {
         throw "Build failed."

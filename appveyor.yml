@@ -2,8 +2,8 @@ version: ETe-{branch}-{build}
 image: Visual Studio 2017
 configuration: Release
 
-#enviroment variable version
-enviroment:
+#environment variable version
+environment:
   BUILD_CONFIGURATION: Release
 
 # custom build script to specify projects and xp mode

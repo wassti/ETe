@@ -1367,9 +1367,6 @@ qboolean CL_Disconnect( qboolean showMainMenu ) {
 
 	cl_disconnecting = qtrue;
 
-	// shutting down the client so enter full screen ui mode
-	Cvar_Set( "r_uiFullScreen", "1" );
-
 	// Stop demo recording
 	if ( clc.demorecording ) {
 		CL_StopRecord_f();
@@ -1681,8 +1678,6 @@ static void CL_Connect_f( void ) {
 
 	S_StopAllSounds();      // NERVE - SMF
 
-	// starting to load a map so we get out of full screen ui mode
-	Cvar_Set( "r_uiFullScreen", "0" );
 	Cvar_Set( "ui_connecting", "1" );
 
 	// fire a message off to the motd server
@@ -2206,9 +2201,6 @@ static void CL_DownloadsComplete( void ) {
 	if ( cls.state != CA_LOADING ) {
 		return;
 	}
-
-	// starting to load a map so we get out of full screen ui mode
-	Cvar_Set( "r_uiFullScreen", "0" );
 
 	// flush client memory and start loading stuff
 	// this will also (re)load the UI

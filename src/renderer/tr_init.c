@@ -135,7 +135,6 @@ cvar_t	*r_ext_supersample;
 
 cvar_t	*r_drawBuffer;
 cvar_t	*r_lightmap;
-cvar_t	*r_uiFullScreen;
 cvar_t	*r_shadows;
 cvar_t	*r_portalsky;   //----(SA)	added
 cvar_t	*r_flares;
@@ -1397,7 +1396,6 @@ static void R_Register( void )
 	ri.Cvar_CheckRange( r_overBrightBits, "0", "1", CV_INTEGER );                                   // ydnar: limit to overbrightbits 1 (sorry 1337 players)
 	r_ignorehwgamma = ri.Cvar_Get( "r_ignorehwgamma", "0", CVAR_ARCHIVE_ND | CVAR_LATCH );        // ydnar: use hw gamma by default
 	r_simpleMipMaps = ri.Cvar_Get( "r_simpleMipMaps", "1", CVAR_ARCHIVE_ND | CVAR_LATCH );
-	r_uiFullScreen = ri.Cvar_Get( "r_uifullscreen", "0", 0 );
 	r_subdivisions = ri.Cvar_Get( "r_subdivisions", "4", CVAR_ARCHIVE_ND | CVAR_LATCH );
 	r_ignoreFastPath = ri.Cvar_Get( "r_ignoreFastPath", "0", CVAR_ARCHIVE_ND | CVAR_LATCH ); // ydnar: use fast path by default
 	r_greyscale = ri.Cvar_Get( "r_greyscale", "0", CVAR_ARCHIVE_ND );

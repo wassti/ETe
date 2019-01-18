@@ -3839,8 +3839,6 @@ void Com_Init( char *commandLine ) {
 	}
 
 #ifndef DEDICATED
-	// start in full screen ui mode
-	Cvar_Set( "r_uiFullScreen", "1" );
 	CL_StartHunkUsers();
 #endif
 

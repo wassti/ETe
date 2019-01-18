@@ -4193,8 +4193,8 @@ static void CL_InitGLimp_Cvars( void )
 
 	r_fullscreen = Cvar_Get( "r_fullscreen", "1", CVAR_ARCHIVE | CVAR_LATCH );
 	r_customaspect = Cvar_Get( "r_customaspect", "1", CVAR_ARCHIVE_ND | CVAR_LATCH );
-	r_customwidth = Cvar_Get( "r_customWidth", "1600", CVAR_ARCHIVE | CVAR_LATCH );
-	r_customheight = Cvar_Get( "r_customHeight", "1024", CVAR_ARCHIVE | CVAR_LATCH );
+	r_customwidth = Cvar_Get( "r_customWidth", "1280", CVAR_ARCHIVE | CVAR_LATCH );
+	r_customheight = Cvar_Get( "r_customHeight", "720", CVAR_ARCHIVE | CVAR_LATCH );
 	Cvar_CheckRange( r_customwidth, "4", NULL, CV_INTEGER );
 	Cvar_CheckRange( r_customheight, "4", NULL, CV_INTEGER );
 	Cvar_SetDescription( r_customwidth, "Custom width to use with \\r_mode -1" );

@@ -54,7 +54,7 @@ static soundInterface_t si;
 S_ValidateInterface
 =================
 */
-static qboolean S_ValidSoundInterface( soundInterface_t *_si )
+static qboolean S_ValidSoundInterface( const soundInterface_t *_si )
 {
 	if( !_si->Shutdown ) return qfalse;
 	if( !_si->Reload ) return qfalse;
@@ -96,6 +96,7 @@ static qboolean S_ValidSoundInterface( soundInterface_t *_si )
 
 	return qtrue;
 }
+
 
 /*
 =================

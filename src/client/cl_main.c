@@ -4293,6 +4293,8 @@ void CL_Init( void ) {
 	cl_conColor = Cvar_Get( "cl_conColor", "", 0 );
 	cl_inGameVideo = Cvar_Get( "r_inGameVideo", "1", CVAR_ARCHIVE_ND );
 
+	Cvar_SetDescription( cl_inGameVideo, "Controls whether in game video should be draw" );
+
 	cl_serverStatusResendTime = Cvar_Get( "cl_serverStatusResendTime", "750", 0 );
 
 	cl_motdString = Cvar_Get( "cl_motdString", "", CVAR_ROM );

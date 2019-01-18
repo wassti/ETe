@@ -5756,7 +5756,7 @@ void FS_VM_CloseFiles( handleOwner_t owner )
 	{
 		if ( fsh[i].owner != owner )
 			continue;
-		Com_Printf( S_COLOR_YELLOW"%s:%i:%s leaked filehandle\n", 
+		Com_Printf( S_COLOR_YELLOW "%s:%i:%s leaked filehandle\n", 
 			FS_OwnerName( owner ), i, fsh[i].name );
 		FS_FCloseFile( i );
 	}

@@ -1322,7 +1322,7 @@ void R_AddWorldSurfaces( void ) {
 
 	// render sky or world?
 	if ( tr.refdef.rdflags & RDF_SKYBOXPORTAL && tr.world->numSkyNodes > 0 ) {
-		int i;
+		//int i;
 		mnode_t **node;
 
 		for ( i = 0, node = tr.world->skyNodes; i < tr.world->numSkyNodes; i++, node++ )

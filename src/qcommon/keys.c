@@ -35,10 +35,51 @@ typedef struct {
 // names not in this list can either be lowercase ascii, or '0xnn' hex sequences
 static const keyname_t keynames[] =
 {
+	{"a", K_A},
+	{"b", K_B},
+	{"c", K_C},
+	{"d", K_D},
+	{"e", K_E},
+	{"f", K_F},
+	{"g", K_G},
+	{"h", K_H},
+	{"i", K_I},
+	{"j", K_J},
+	{"k", K_K},
+	{"l", K_L},
+	{"m", K_M},
+	{"n", K_N},
+	{"o", K_O},
+	{"p", K_P},
+	{"q", K_Q},
+	{"r", K_R},
+	{"s", K_S},
+	{"t", K_T},
+	{"u", K_U},
+	{"v", K_V},
+	{"w", K_W},
+	{"x", K_X},
+	{"y", K_Y},
+	{"z", K_Z},
+
 	{"TAB", K_TAB},
 	{"ENTER", K_ENTER},
 	{"ESCAPE", K_ESCAPE},
 	{"SPACE", K_SPACE},
+
+	{"'", K_QUOTE},
+	{"+", K_PLUS},
+	{",", K_COMMA},
+	{"-", K_MINUS},
+	{".", K_DOT}, 
+	{"/", K_SLASH},
+	{"SEMICOLON", K_SEMICOLON},	// because a raw semicolon separates commands
+	{"=", K_EQUAL},
+	{"\\",K_BACKSLASH},
+	{"_", K_UNDERSCORE},
+	{"[", K_BRACKET_OPEN},
+	{"]", K_BRACKET_CLOSE},
+
 	{"BACKSPACE", K_BACKSPACE},
 	{"UPARROW", K_UPARROW},
 	{"DOWNARROW", K_DOWNARROW},
@@ -52,7 +93,6 @@ static const keyname_t keynames[] =
 	{"COMMAND", K_COMMAND},
 
 	{"CAPSLOCK", K_CAPSLOCK},
-
 	
 	{"F1", K_F1},
 	{"F2", K_F2},
@@ -861,10 +901,10 @@ to be configured even if they don't have defined names.
 static int Key_StringToKeynum( const char *str ) {
 	const keyname_t	*kn;
 	
-	if ( !str || !str[0] ) {
+	if ( !str || str[0] == '\0' ) {
 		return -1;
 	}
-	if ( !str[1] ) {
+	if ( str[1] == '\0' ) {
 		return tolower(str[0]);
 	}
 
@@ -878,8 +918,8 @@ static int Key_StringToKeynum( const char *str ) {
 	}
 
 	// scan for a text match
-	for ( kn=keynames ; kn->name ; kn++ ) {
-		if ( !Q_stricmp( str,kn->name ) )
+	for ( kn = keynames ; kn->name ; kn++ ) {
+		if ( !Q_stricmp( str, kn->name ) )
 			return kn->keynum;
 	}
 
@@ -910,7 +950,7 @@ const char *Key_KeynumToString( int keynum, qboolean bTranslate ) {
 
 	// check for printable ascii (don't use quote)
 	//if ( keynum > 32 && keynum < 127 && keynum != '"' && keynum != ';' ) {
-	if ( keynum > 32 && keynum < 127 && keynum != '"' ) {
+	if ( keynum > ' ' && keynum < '~' && keynum != '"' ) {
 		tinystr[0] = keynum;
 		tinystr[1] = 0;
 		if ( keynum == ';' && !bTranslate ) {
@@ -939,7 +979,7 @@ const char *Key_KeynumToString( int keynum, qboolean bTranslate ) {
 
 	// check for a key string
 	for ( ; kn->name ; kn++ ) {
-		if (keynum == kn->keynum) {
+		if ( keynum == kn->keynum ) {
 			return kn->name;
 		}
 	}
@@ -1041,7 +1081,7 @@ int Key_GetKey( const char *binding ) {
 Key_Unbind_f
 ===================
 */
-void Key_Unbind_f (void)
+static void Key_Unbind_f( void )
 {
 	int		b;
 
@@ -1067,7 +1107,7 @@ void Key_Unbind_f (void)
 Key_Unbindall_f
 ===================
 */
-void Key_Unbindall_f (void)
+static void Key_Unbindall_f( void )
 {
 	int		i;
 	
@@ -1086,7 +1126,7 @@ void Key_Unbindall_f (void)
 Key_Bind_f
 ===================
 */
-void Key_Bind_f( void )
+static void Key_Bind_f( void )
 {
 	int c, b;
 	
@@ -1142,10 +1182,9 @@ void Key_WriteBindings( fileHandle_t f ) {
 /*
 ============
 Key_Bindlist_f
-
 ============
 */
-void Key_Bindlist_f( void ) {
+static void Key_Bindlist_f( void ) {
 	int		i;
 
 	for ( i = 0 ; i < MAX_KEYS ; i++ ) {
@@ -1155,6 +1194,7 @@ void Key_Bindlist_f( void ) {
 	}
 }
 
+
 /*
 ============
 Key_KeynameCompletion
@@ -1162,7 +1202,7 @@ Key_KeynameCompletion
 */
 // ENSI TODO, use language specific arrays
 void Key_KeynameCompletion( void(*callback)(const char *s) ) {
-	int		i;
+	int	i;
 
 	for( i = 0; keynames[ i ].name != NULL; i++ )
 		callback( keynames[ i ].name );
@@ -1183,16 +1223,19 @@ static void Key_CompleteBind( char *args, int argNum )
 		// Skip "bind "
 		p = Com_SkipTokens( args, 1, " " );
 
-		if( p > args )
-			Field_CompleteKeyname( );
+		if ( p > args )
+			Field_CompleteKeyname();
 	}
 	else if ( argNum >= 3 )
 	{
+		int key;
 		// Skip "bind <key> "
 		p = Com_SkipTokens( args, 2, " " );
-
-		if ( p > args )
+		if ( *p == '\0' && ( key = Key_StringToKeynum( Cmd_Argv( 1 ) ) ) >= 0 ) {
+			Field_CompleteKeyBind( key );
+		} else if ( p > args ) {
 			Field_CompleteCommand( p, qtrue, qtrue );
+		}
 	}
 }
 

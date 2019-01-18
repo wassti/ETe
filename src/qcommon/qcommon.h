@@ -520,8 +520,7 @@ void	Cmd_RemoveCommandSafe( const char *cmd_name );
 void	Cmd_CommandCompletion( void(*callback)(const char *s) );
 // callback with each valid string
 void	Cmd_SetCommandCompletionFunc( const char *command, completionFunc_t complete );
-void	Cmd_CompleteArgument( const char *command, char *args, int argNum );
-//void	Cmd_CompleteCfgName( char *args, int argNum );
+qboolean Cmd_CompleteArgument( const char *command, char *args, int argNum );
 void	Cmd_CompleteWriteCfgName( char *args, int argNum );
 
 int		Cmd_Argc( void );
@@ -935,7 +934,7 @@ Edit fields and command line history/completion
 ==============================================================
 */
 
-#define	MAX_EDIT_LINE	256
+#define	MAX_EDIT_LINE 512
 #if MAX_EDIT_LINE > MAX_CMD_LINE
 #error "MAX_EDIT_LINE > MAX_CMD_LINE"
 #endif
@@ -949,6 +948,7 @@ typedef struct {
 void Field_Clear( field_t *edit );
 void Field_AutoComplete( field_t *edit );
 void Field_CompleteKeyname( void );
+void Field_CompleteKeyBind( int key );
 void Field_CompleteFilename( const char *dir, const char *ext, qboolean stripExt, int flags );
 void Field_CompleteCommand( char *cmd, qboolean doCommands, qboolean doCvars );
 

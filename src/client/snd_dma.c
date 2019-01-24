@@ -63,8 +63,6 @@ static byte		buffer2[ 0x10000 ]; // for muted painting
 
 // only begin attenuating sound volumes when outside the FULLVOLUME range
 #define		SOUND_FULLVOLUME	80
-
-#define		SOUND_ATTENUATE		0.0008f
 #define     SOUND_RANGE_DEFAULT 1250
 
 channel_t   s_channels[MAX_CHANNELS];
@@ -688,6 +686,7 @@ static void S_Base_MainStartSoundEx( vec3_t origin, int entityNum, int entchanne
 	channel_t	*ch;
 	sfx_t		*sfx;
 	int		i, time;
+	int		inplay, allowed;
 	qboolean	fullVolume;
 
 	if ( !s_soundStarted || s_soundMuted ) {
@@ -715,8 +714,36 @@ static void S_Base_MainStartSoundEx( vec3_t origin, int entityNum, int entchanne
 
 	time = Com_Milliseconds();
 
+	// borrowed from cnq3
+	// a UNIQUE entity starting the same sound twice in a frame is either a bug,
+	// a timedemo, or a shitmap (eg q3ctf4) giving multiple items on spawn.
+	// even if you can create a case where it IS "valid", it's still pointless
+	// because you implicitly can't DISTINGUISH between the sounds:
+	// all that happens is the sound plays at double volume, which is just annoying
+
+	if ( entityNum != ENTITYNUM_WORLD ) {
+		ch = s_channels;
+		for ( i = 0; i < MAX_CHANNELS; i++, ch++ ) {
+			if ( ch->entnum != entityNum )
+				continue;
+			if ( ch->allocTime != time )
+				continue;
+			if ( ch->thesfx != sfx )
+				continue;
+			sfx->lastTimeUsed = time;
+			//Com_Printf( S_COLOR_YELLOW "double sound start: %d %s\n", entityNum, sfx->soundName);
+			return;
+		}
+	}
+
 //	Com_Printf("playing %s\n", sfx->soundName);
 	// pick a channel to play on
+
+	// try to limit sound duplication
+	if ( entityNum == listener_number )
+		allowed = 16;
+	else
+		allowed = 8;
 
 	fullVolume = qfalse;
 	if (localSound || S_Base_HearingThroughEntity(entityNum, origin)) {
@@ -724,6 +751,7 @@ static void S_Base_MainStartSoundEx( vec3_t origin, int entityNum, int entchanne
 	}
 
 	ch   = s_channels;
+	inplay = 0;
 
 	for (i = 0; i < MAX_CHANNELS ; i++, ch++)
 	{
@@ -737,7 +765,16 @@ static void S_Base_MainStartSoundEx( vec3_t origin, int entityNum, int entchanne
 			{
 				S_ChannelFree(ch);
 			}
+			else
+			{
+				inplay++;
+			}
 		}
+	}
+
+	// too much duplicated sounds, ignore
+	if ( inplay > allowed ) {
+		return;
 	}
 
 	sfx->lastTimeUsed = time;
@@ -1060,6 +1097,7 @@ void S_Base_AddLoopingSound( const vec3_t origin, const vec3_t velocity, const i
 		vec3_t	out;
 		float	lena, lenb;
 
+		// don't do the doppler effect when trumpets of train and station are at the same position
 		if (!VectorCompare(entityPositions[listener_number], entityPositions[numLoopSounds])) {
 			loopSounds[numLoopSounds].doppler = qtrue;
 		} else {

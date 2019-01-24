@@ -624,6 +624,10 @@ Also see S_AL_HearingThroughEntity
 */
 static qboolean S_Base_HearingThroughEntity( int entityNum, vec3_t origin )
 {
+	if ( entityNum == listener_number )
+		return qtrue;
+	return qfalse;
+#if 0
 	float	distanceSq;
 	vec3_t	sorigin;
 
@@ -651,6 +655,7 @@ static qboolean S_Base_HearingThroughEntity( int entityNum, vec3_t origin )
 	}
 	else
 		return qfalse; //not the player
+#endif
 }
 
 /*

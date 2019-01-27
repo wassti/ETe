@@ -10,7 +10,12 @@ environment:
 build_script:
   - ps: |
       cd src
-      msbuild wolf.sln /m /p:PlatformToolset=v141_xp;Configuration=$env:BUILD_CONFIGURATION /t:botlib;libjpeg;renderer;Splines;wolf;wolfded
+      msbuild /m /p:PlatformToolset="v141_xp" /p:Configuration="$env:BUILD_CONFIGURATION" .\botlib\botlib.vcxproj
+      msbuild /m /p:PlatformToolset="v141_xp" /p:Configuration="$env:BUILD_CONFIGURATION" .\jpec-8c\libjpeg.vcxproj
+      msbuild /m /p:PlatformToolset="v141_xp" /p:Configuration="$env:BUILD_CONFIGURATION" .\splines\Splines.vcxproj
+      msbuild /m /p:PlatformToolset="v141_xp" /p:Configuration="$env:BUILD_CONFIGURATION" .\renderer\renderer.vcxproj
+      msbuild /m /p:PlatformToolset="v141_xp" /p:Configuration="$env:BUILD_CONFIGURATION" wolf.vcxproj
+      msbuild /m /p:PlatformToolset="v141_xp" /p:Configuration="$env:BUILD_CONFIGURATION" wolfded.vcxproj
 
       if (! $?) {
         throw "Build failed."

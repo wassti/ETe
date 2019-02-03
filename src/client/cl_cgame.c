@@ -561,7 +561,7 @@ static void *VM_ArgPtr( intptr_t intValue ) {
 
 static qboolean CL_GetValue( char* value, int valueSize, const char* key ) {
 
-	if ( !Q_stricmp( key, "trap_R_AddRefEntityToScene2_ETE" ) ) {
+	if ( !Q_stricmp( key, "trap_R_AddRefEntityToScene2" ) ) {
 		Com_sprintf( value, valueSize, "%i", CG_R_ADDREFENTITYTOSCENE2 );
 		return qtrue;
 	}
@@ -571,7 +571,7 @@ static qboolean CL_GetValue( char* value, int valueSize, const char* key ) {
 		return qtrue;
 	}
 
-	if ( !Q_stricmp( key, "trap_R_AddLinearLightToScene" ) && re.AddLinearLightToScene ) {
+	if ( !Q_stricmp( key, "trap_R_AddLinearLightToScene_ETE" ) && re.AddLinearLightToScene ) {
 		Com_sprintf( value, valueSize, "%i", CG_R_ADDLINEARLIGHTTOSCENE );
 		return qtrue;
 	}
@@ -1094,13 +1094,13 @@ static intptr_t QDECL CL_DllSyscall( intptr_t arg, ... ) {
 	intptr_t	args[10]; // max.count for cgame
 	va_list	ap;
 	int i;
-  
+
 	args[0] = arg;
 	va_start( ap, arg );
 	for (i = 1; i < ARRAY_LEN( args ); i++ )
 		args[ i ] = va_arg( ap, intptr_t );
 	va_end( ap );
-  
+
 	return CL_CgameSystemCalls( args );
 #else
 	return CL_CgameSystemCalls( &arg );
@@ -1575,7 +1575,6 @@ void CL_SetCGameTime( void ) {
 			return; // end of demo
 		}
 	}
-
 }
 
 /*

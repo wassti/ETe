@@ -678,7 +678,7 @@ static void CL_Record_f( void ) {
 	}
 
 	clc.demorecording = qtrue;
-	
+
 	Com_TruncateLongString( clc.recordNameShort, clc.recordName );
 	Cvar_Set( "cl_demofilename", clc.recordNameShort ); // bani
 	Cvar_Set( "cl_demooffset", "0" ); // bani
@@ -780,7 +780,7 @@ void CL_ReadDemoMessage( void ) {
 	// get the length
 	r = FS_Read( &buf.cursize, 4, clc.demofile );
 	if ( r != 4 ) {
-		CL_DemoCompleted ();
+		CL_DemoCompleted();
 		return;
 	}
 	buf.cursize = LittleLong( buf.cursize );
@@ -3926,14 +3926,14 @@ void CL_SaveTranslations_f( void ) {
 }
 
 void CL_SaveNewTranslations_f( void ) {
-	char fileName[512];
+	char fileName[MAX_QPATH];
 
 	if ( Cmd_Argc() != 2 ) {
 		Com_Printf( "usage: SaveNewTranslations <filename>\n" );
 		return;
 	}
 
-	strcpy( fileName, va( "translations/%s.cfg", Cmd_Argv( 1 ) ) );
+	Com_sprintf( fileName, sizeof(fileName), "translations/%s.cfg", Cmd_Argv( 1 ) );
 
 	CL_SaveTransTable( fileName, qtrue );
 }
@@ -5749,12 +5749,12 @@ CL_CheckTranslationString
 NERVE - SMF - compare formatting characters
 =======================
 */
-qboolean CL_CheckTranslationString( char *original, char *translated ) {
+static qboolean CL_CheckTranslationString( const char *original, const char *translated ) {
 	char format_org[128], format_trans[128];
 	int len, i;
 
-	memset( format_org, 0, 128 );
-	memset( format_trans, 0, 128 );
+	memset( format_org, 0, sizeof(format_org) );
+	memset( format_trans, 0, sizeof(format_trans) );
 
 	// generate formatting string for original
 	len = strlen( original );

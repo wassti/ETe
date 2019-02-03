@@ -952,7 +952,7 @@ const char *Key_KeynumToString( int keynum, qboolean bTranslate ) {
 	//if ( keynum > 32 && keynum < 127 && keynum != '"' && keynum != ';' ) {
 	if ( keynum > ' ' && keynum < '~' && keynum != '"' ) {
 		tinystr[0] = keynum;
-		tinystr[1] = 0;
+		tinystr[1] = '\0';
 		if ( keynum == ';' && !bTranslate ) {
 			//fall through and use keyname table
 		} else {

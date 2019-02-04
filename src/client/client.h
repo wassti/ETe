@@ -542,6 +542,8 @@ void CL_TranslateString( const char *string, char *dest_buffer );
 const char* CL_TranslateStringBuf( const char *string ); // TTimo
 // -NERVE - SMF
 
+void CL_TrackCvarChanges( void );
+
 void CL_OpenURL( const char *url ); // TTimo
 
 qboolean CL_CheckPaused( void );

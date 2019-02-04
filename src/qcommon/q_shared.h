@@ -1112,7 +1112,9 @@ typedef enum {
 typedef enum {
 	CVG_NONE = 0,
 	CVG_RENDERER,
+	CVG_CLIENT,
 	CVG_SERVER,
+	CVG_LANGUAGE,
 	CVG_MAX,
 } cvarGroup_t;
 

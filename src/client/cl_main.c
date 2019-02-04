@@ -123,6 +123,9 @@ cvar_t *r_stencilbits;
 cvar_t *r_depthbits;
 cvar_t *r_drawBuffer;
 
+// this is shared with the OS sys files
+cvar_t *in_forceCharset;
+
 clientActive_t		cl;
 clientConnection_t	clc;
 clientStatic_t		cls;
@@ -3350,6 +3353,9 @@ void CL_Frame( int msec ) {
 	float fps;
 	float frameDuration;
 
+	if ( Cvar_CheckGroup( CVG_LANGUAGE ) )
+		CL_TrackCvarChanges();
+
 #ifdef USE_CURL	
 	if ( download.cURL ) 
 	{
@@ -4384,6 +4390,8 @@ void CL_Init( void ) {
 	cl_debugTranslation = Cvar_Get( "cl_debugTranslation", "0", 0 );
 	// -NERVE - SMF
 
+	in_forceCharset = Cvar_Get( "in_forceCharset", "1", CVAR_ARCHIVE_ND );
+
 	//
 	// register client commands
 	//
@@ -4479,6 +4487,11 @@ void CL_Init( void ) {
 #ifndef __MACOS__  //DAJ USA
 	CL_InitTranslation();       // NERVE - SMF - localization
 #endif
+
+	Cvar_SetGroup( cl_language, CVG_LANGUAGE );
+	Cvar_SetGroup( in_forceCharset, CVG_LANGUAGE );
+
+	CL_TrackCvarChanges();
 
 	Com_Printf( "----- Client Initialization Complete -----\n" );
 }
@@ -6150,6 +6163,17 @@ const char* CL_TranslateStringBuf( const char *string ) {
 		}
 	}
 	return buf;
+}
+
+
+void CL_TrackCvarChanges( void ) {
+	if ( cl_language->integer > 0 && in_forceCharset->integer > 0 ) {
+		Com_Printf( "WARNING: in_forceCharset incompatible with non-English languages!\n"
+					"Setting in_forceCharset to 0.\n");
+		Cvar_Set( "in_forceCharset", "0" );
+	}
+
+	Cvar_ResetGroup( CVG_LANGUAGE, qfalse );
 }
 
 /*

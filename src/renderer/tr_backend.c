@@ -705,7 +705,6 @@ static void RB_RenderDrawSurfList( drawSurf_t *drawSurfs, int numDrawSurfs ) {
 
 				// set up the transformation matrix
 				R_RotateForEntity( backEnd.currentEntity, &backEnd.viewParms, &backEnd.orientation );
-
 				// set up the dynamic lighting if needed
 #ifdef USE_LEGACY_DLIGHTS
 #ifdef USE_PMLIGHT
@@ -1033,6 +1032,9 @@ static void RB_RenderLitSurfList( dlight_t* dl ) {
 	}
 
 	// go back to the world modelview matrix
+	backEnd.currentEntity	= &tr.worldEntity;
+	backEnd.refdef.floatTime = originalTime;
+	backEnd.orientation = backEnd.viewParms.world;
 	qglLoadMatrixf( backEnd.viewParms.world.modelMatrix );
 	if ( depthRange ) {
 		qglDepthRange (0, 1);

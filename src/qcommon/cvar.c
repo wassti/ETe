@@ -120,6 +120,7 @@ static cvar_t *Cvar_FindVar( const char *var_name ) {
 	return NULL;
 }
 
+
 /*
 ============
 Cvar_VariableValue
@@ -661,7 +662,7 @@ Cvar_Print
 Prints the value, default, and latched string of the given variable
 ============
 */
-void Cvar_Print( const cvar_t *v ) {
+static void Cvar_Print( const cvar_t *v ) {
 
 	Com_Printf ("\"%s\" is:\"%s" S_COLOR_WHITE "\"",
 		v->name, v->string );
@@ -1054,7 +1055,7 @@ Prints the contents of a cvar
 (preferred over Cvar_Command where cvar names and commands conflict)
 ============
 */
-void Cvar_Print_f(void)
+static void Cvar_Print_f( void )
 {
 	char *name;
 	cvar_t *cv;
@@ -1075,6 +1076,7 @@ void Cvar_Print_f(void)
 		Com_Printf ("Cvar %s does not exist.\n", name);
 }
 
+
 /*
 ============
 Cvar_Toggle_f
@@ -1083,7 +1085,7 @@ Toggles a cvar for easy single key binding, optionally through a list of
 given values
 ============
 */
-void Cvar_Toggle_f( void ) {
+static void Cvar_Toggle_f( void ) {
 	int		i, c;
 	const char	*curval;
 
@@ -1127,7 +1129,7 @@ Cvar_Cycle_f - ydnar
 Cycles a cvar for easy single key binding
 ============
 */
-void Cvar_Cycle_f( void ) {
+static void Cvar_Cycle_f( void ) {
 	int start, end, step, oldvalue, value;
 
 
@@ -1174,7 +1176,7 @@ Allows setting and defining of arbitrary cvars from console, even if they
 weren't declared in C code.
 ============
 */
-void Cvar_Set_f( void ) {
+static void Cvar_Set_f( void ) {
 	int		c;
 	char	*cmd;
 	cvar_t	*v;
@@ -1413,7 +1415,7 @@ static void Cvar_Rand( int *ival, float *fval )
 }
 
 
-void Cvar_Func_f( void ) {
+static void Cvar_Func_f( void ) {
 
 	funcType_t	ftype;
 	const char	*cvar_name;
@@ -1530,7 +1532,7 @@ void Cvar_WriteVariables( fileHandle_t f )
 Cvar_List_f
 ============
 */
-void Cvar_List_f( void ) {
+static void Cvar_List_f( void ) {
 	cvar_t	*var;
 	int		i;
 	char	*match;
@@ -1611,7 +1613,7 @@ void Cvar_List_f( void ) {
 Cvar_ListModified_f
 ============
 */
-void Cvar_ListModified_f( void ) {
+static void Cvar_ListModified_f( void ) {
 	cvar_t	*var;
 	int		totalModified;
 	const char *value;

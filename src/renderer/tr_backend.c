@@ -698,11 +698,6 @@ static void RB_RenderDrawSurfList( drawSurf_t *drawSurfs, int numDrawSurfs ) {
 				else
 					backEnd.refdef.floatTime = originalTime - (double)backEnd.currentEntity->e.shaderTime.f;
 
-				// we have to reset the shaderTime as well otherwise image animations start
-				// from the wrong frame
-				// ENSI Disabled in ET??? WTF?
-				tess.shaderTime = backEnd.refdef.floatTime - tess.shader->timeOffset;
-
 				// set up the transformation matrix
 				R_RotateForEntity( backEnd.currentEntity, &backEnd.viewParms, &backEnd.orientation );
 				// set up the dynamic lighting if needed
@@ -725,11 +720,6 @@ static void RB_RenderDrawSurfList( drawSurf_t *drawSurfs, int numDrawSurfs ) {
 				backEnd.currentEntity = &tr.worldEntity;
 				backEnd.refdef.floatTime = originalTime;
 				backEnd.orientation = backEnd.viewParms.world;
-
-				// we have to reset the shaderTime as well otherwise image animations on
-				// the world (like water) continue with the wrong frame
-				// ENSI Disabled in ET??? WTF?
-				tess.shaderTime = backEnd.refdef.floatTime - tess.shader->timeOffset;
 #ifdef USE_LEGACY_DLIGHTS
 #ifdef USE_PMLIGHT
 				if ( !r_dlightMode->integer )
@@ -737,6 +727,10 @@ static void RB_RenderDrawSurfList( drawSurf_t *drawSurfs, int numDrawSurfs ) {
 				R_TransformDlights( backEnd.refdef.num_dlights, backEnd.refdef.dlights, &backEnd.orientation );
 #endif // USE_LEGACY_DLIGHTS
 			}
+
+			// we have to reset the shaderTime as well otherwise image animations on
+			// the world (like water) continue with the wrong frame
+			tess.shaderTime = backEnd.refdef.floatTime - tess.shader->timeOffset;
 
 			qglLoadMatrixf( backEnd.orientation.modelMatrix );
 
@@ -796,8 +790,6 @@ static void RB_RenderDrawSurfList( drawSurf_t *drawSurfs, int numDrawSurfs ) {
 		// add the triangles for this surface
 		rb_surfaceTable[ *drawSurf->surface ]( drawSurf->surface );
 	}
-
-	backEnd.refdef.floatTime = originalTime;
 
 	// draw the contents of the last shader batch
 	if ( oldShader != NULL ) {
@@ -937,10 +929,6 @@ static void RB_RenderLitSurfList( dlight_t* dl ) {
 				else
 					backEnd.refdef.floatTime = originalTime - (double)backEnd.currentEntity->e.shaderTime.f;
 
-				// we have to reset the shaderTime as well otherwise image animations start
-				// from the wrong frame
-				tess.shaderTime = backEnd.refdef.floatTime - tess.shader->timeOffset;
-
 				// set up the transformation matrix
 				R_RotateForEntity( backEnd.currentEntity, &backEnd.viewParms, &backEnd.orientation );
 
@@ -955,11 +943,12 @@ static void RB_RenderLitSurfList( dlight_t* dl ) {
 				backEnd.currentEntity = &tr.worldEntity;
 				backEnd.refdef.floatTime = originalTime;
 				backEnd.orientation = backEnd.viewParms.world;
-				// we have to reset the shaderTime as well otherwise image animations on
-				// the world (like water) continue with the wrong frame
-				tess.shaderTime = backEnd.refdef.floatTime - tess.shader->timeOffset;
 			}
-		
+
+			// we have to reset the shaderTime as well otherwise image animations on
+			// the world (like water) continue with the wrong frame
+			tess.shaderTime = backEnd.refdef.floatTime - tess.shader->timeOffset;
+
 			// set up the dynamic lighting
 			R_TransformDlights( 1, dl, &backEnd.orientation );
 			ARB_SetupLightParams();
@@ -1023,8 +1012,6 @@ static void RB_RenderLitSurfList( dlight_t* dl ) {
 		// add the triangles for this surface
 		rb_surfaceTable[ *litSurf->surface ]( litSurf->surface );
 	}
-
-	backEnd.refdef.floatTime = originalTime;
 
 	// draw the contents of the last shader batch
 	if ( oldShader != NULL ) {

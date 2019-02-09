@@ -134,7 +134,6 @@ If you have questions concerning this license or the applicable additional terms
 	GLE( void, glBufferDataARB, GLenum target, GLsizeiptrARB size, const GLvoid *data, GLenum usage )
 
 #define QGL_FBO_PROCS \
-	GLE( GLboolean, glIsRenderbuffer, GLuint renderbuffer ) \
 	GLE( void, glBindRenderbuffer, GLenum target, GLuint renderbuffer ) \
 	GLE( void, glDeleteFramebuffers, GLsizei n, const GLuint *framebuffers ) \
 	GLE( void, glDeleteRenderbuffers, GLsizei n, const GLuint *renderbuffers ) \

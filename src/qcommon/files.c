@@ -1847,7 +1847,8 @@ static qboolean FS_AllowDeletion( const char *filename ) {
 	// for safety, only allow deletion from the save, profiles and demo directory
 	if ( Q_strncmp( filename, "save/", 5 ) != 0 &&
 		 Q_strncmp( filename, "profiles/", 9 ) != 0 &&
-		 Q_strncmp( filename, "demos/", 6 ) != 0 ) {
+		 Q_strncmp( filename, "demos/", 6 ) != 0 &&
+		!strstr(filename, ".pid") ) {
 		return qfalse;
 	}
 

@@ -3944,7 +3944,7 @@ static void Com_WriteConfig_f( void ) {
 	}
 
 	if ( !FS_FilenameCompare( filename, "default.cfg" ) ) {
-		Com_Printf( "%s: Invalid filename 'default.cfg'. Filename is reserved.\n", __func__ );
+		Com_Printf( "%s: Not allowed to manipulate 'default.cfg' due to reserved name.\n", __func__ );
 		return;
 	}
 

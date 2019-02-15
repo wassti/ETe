@@ -301,10 +301,6 @@ static void Cmd_Exec_f( void ) {
 		filter = FS_EXCLUDE_DIR;
 	else
 #endif
-	// only load generated config from directory
-	// only load autoexec config from directory
-	if ( strstr( filename, Q3CONFIG_CFG ) || !FS_FilenameCompare( filename, "autoexec.cfg" ) )
-		filter = FS_EXCLUDE_PK3;
 
 	if ( filter != 0 ) FS_SetFilterFlag( filter );
 	FS_ReadFile( filename, &f.v );

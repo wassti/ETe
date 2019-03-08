@@ -411,9 +411,9 @@ static void CL_KeyMove( usercmd_t *cmd ) {
 	// fretn - moved this to bg_pmove.c
 	//if (!(cl.snap.ps.persistant[PERS_HWEAPON_USE]))
 	//{
-	cmd->forwardmove = ClampChar( forward );
-	cmd->rightmove = ClampChar( side );
-	cmd->upmove = ClampChar( up );
+	cmd->forwardmove = ClampCharMove( forward );
+	cmd->rightmove = ClampCharMove( side );
+	cmd->upmove = ClampCharMove( up );
 	//}
 
 	// Arnout: double tap
@@ -513,21 +513,21 @@ static void CL_JoystickMove( usercmd_t *cmd ) {
 	}
 
 #ifdef __MACOS__
-	cmd->rightmove = ClampChar( cmd->rightmove + cl.joystickAxis[AXIS_SIDE] );
+	cmd->rightmove = ClampCharMove( cmd->rightmove + cl.joystickAxis[AXIS_SIDE] );
 #else
 	if ( !kb[KB_STRAFE].active ) {
 		cl.viewangles[YAW] += anglespeed * cl_yawspeed->value * cl.joystickAxis[AXIS_SIDE];
 	} else {
-		cmd->rightmove = ClampChar( cmd->rightmove + cl.joystickAxis[AXIS_SIDE] );
+		cmd->rightmove = ClampCharMove( cmd->rightmove + cl.joystickAxis[AXIS_SIDE] );
 	}
 #endif
 	if ( kb[KB_MLOOK].active ) {
 		cl.viewangles[PITCH] += anglespeed * cl_pitchspeed->value * cl.joystickAxis[AXIS_FORWARD];
 	} else {
-		cmd->forwardmove = ClampChar( cmd->forwardmove + cl.joystickAxis[AXIS_FORWARD] );
+		cmd->forwardmove = ClampCharMove( cmd->forwardmove + cl.joystickAxis[AXIS_FORWARD] );
 	}
 
-	cmd->upmove = ClampChar( cmd->upmove + cl.joystickAxis[AXIS_UP] );
+	cmd->upmove = ClampCharMove( cmd->upmove + cl.joystickAxis[AXIS_UP] );
 }
 
 
@@ -628,14 +628,14 @@ static void CL_MouseMove( usercmd_t *cmd )
 
 	// add mouse X/Y movement to cmd
 	if(kb[KB_STRAFE].active)
-		cmd->rightmove = ClampChar( cmd->rightmove + m_side->value * mx );
+		cmd->rightmove = ClampCharMove( cmd->rightmove + m_side->value * mx );
 	else
 		cl.viewangles[YAW] -= m_yaw->value * mx;
 
 	if ((kb[KB_MLOOK].active || cl_freelook->integer) && !kb[KB_STRAFE].active) 
 		cl.viewangles[PITCH] += m_pitch->value * my;
 	else
-		cmd->forwardmove = ClampChar( cmd->forwardmove - m_forward->value * my );
+		cmd->forwardmove = ClampCharMove( cmd->forwardmove - m_forward->value * my );
 }
 
 

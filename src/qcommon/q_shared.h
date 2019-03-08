@@ -597,6 +597,7 @@ extern long int lrintf( float x );
 #endif
 
 signed char ClampChar( int i );
+signed char ClampCharMove( int i );
 signed short ClampShort( int i );
 
 // this isn't a real cheap function to call!

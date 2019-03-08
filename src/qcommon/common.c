@@ -3751,7 +3751,7 @@ void Com_Init( char *commandLine ) {
 	com_recommendedSet = Cvar_Get( "com_recommendedSet", "0", CVAR_ARCHIVE );
 #endif
 
-	com_hunkused = Cvar_Get( "com_hunkused", "0", 0 );
+	com_hunkused = Cvar_Get( "com_hunkused", "0", CVAR_ROM|CVAR_PROTECTED|CVAR_PRIVATE );
 	com_hunkusedvalue = 0;
 
 	if ( com_dedicated->integer ) {

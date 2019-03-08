@@ -4566,8 +4566,8 @@ qboolean FS_ComparePaks( char *neededpaks, int len, qboolean dlstring ) {
 		}
 
 		// Make sure the server cannot make us write to non-quake3 directories.
-		if(FS_CheckDirTraversal(fs_serverReferencedPakNames[i])) {
-			Com_Printf("WARNING: Invalid download name %s\n", fs_serverReferencedPakNames[i]);
+		if ( FS_CheckDirTraversal( fs_serverReferencedPakNames[i] ) ) {
+			Com_Printf( "WARNING: Invalid download name %s\n", fs_serverReferencedPakNames[i] );
 			continue;
 		}
 
@@ -5266,10 +5266,10 @@ The server will send this to the clients so they can check which files should be
 */
 const char *FS_ReferencedPakNames( void ) {
 	static char	info[BIG_INFO_STRING];
-	searchpath_t	*search;
+	const searchpath_t *search;
 	size_t	len;
 
-	info[0] = 0;
+	info[0] = '\0';
 	len = strlen( fs_basegame->string );
 
 	// we want to return ALL pk3's from the fs_game path

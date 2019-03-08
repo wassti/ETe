@@ -30,7 +30,9 @@ If you have questions concerning this license or the applicable additional terms
 #include "tr_local.h"
 
 glconfig_t	glConfig;
-                
+qboolean	nonPowerOfTwoTextures;
+int			gl_version;
+
 glstate_t	glState;
 
 static void GfxInfo_f( void );
@@ -348,6 +350,7 @@ static const char *TruncateGLExtensionsString( const char *extensionsString, int
 */
 static void R_InitExtensions( void )
 {
+	float version;
 	size_t len;
 	const char *err;
 
@@ -367,6 +370,26 @@ static void R_InitExtensions( void )
 	gl_extensions = (const char *)qglGetString( GL_EXTENSIONS );
 	Q_strncpyz( glConfig.extensions_string, TruncateGLExtensionsString( gl_extensions, 128 ), sizeof( glConfig.extensions_string ) );
 
+	version = atof( (const char *)qglGetString( GL_VERSION ) );
+	gl_version = (int)(version * 10.001);
+
+	glConfig.textureCompression = TC_NONE;
+
+	glConfig.textureEnvAddAvailable = qfalse;
+
+	glConfig.anisotropicAvailable = qfalse;
+	glConfig.maxAnisotropy = 0;
+
+	nonPowerOfTwoTextures = qfalse;
+
+	qglLockArraysEXT = NULL;
+	qglUnlockArraysEXT = NULL;
+
+	glConfig.maxActiveTextures = 1; // ENSI note Q3e just changed the default here to 1 from 0
+	qglMultiTexCoord2fARB = NULL;
+	qglActiveTextureARB = NULL;
+	qglClientActiveTextureARB = NULL;
+
 	if ( !r_allowExtensions->integer )
 	{
 		ri.Printf( PRINT_ALL, "*** IGNORING OPENGL EXTENSIONS ***\n" );
@@ -376,7 +399,6 @@ static void R_InitExtensions( void )
 	ri.Printf( PRINT_ALL, "Initializing OpenGL extensions\n" );
 
 	// GL_EXT_texture_compression_s3tc
-	glConfig.textureCompression = TC_NONE;
 	if ( R_HaveExtension( "GL_ARB_texture_compression" ) &&
 		 R_HaveExtension( "GL_EXT_texture_compression_s3tc" ) )
 	{
@@ -406,7 +428,6 @@ static void R_InitExtensions( void )
 	}
 
 	// GL_EXT_texture_env_add
-	glConfig.textureEnvAddAvailable = qfalse;
 	if ( R_HaveExtension( "GL_EXT_texture_env_add" ) ) {
 		if ( r_ext_texture_env_add->integer ) {
 			glConfig.textureEnvAddAvailable = qtrue;
@@ -420,10 +441,6 @@ static void R_InitExtensions( void )
 	}
 
 	// GL_ARB_multitexture
-	glConfig.maxActiveTextures = 0;
-	qglMultiTexCoord2fARB = NULL;
-	qglActiveTextureARB = NULL;
-	qglClientActiveTextureARB = NULL;
 	if ( R_HaveExtension( "GL_ARB_multitexture" ) )
 	{
 		if ( r_ext_multitexture->integer )
@@ -460,8 +477,6 @@ static void R_InitExtensions( void )
 	}
 
 	// GL_EXT_compiled_vertex_array
-	qglLockArraysEXT = NULL;
-	qglUnlockArraysEXT = NULL;
 	if ( R_HaveExtension( "GL_EXT_compiled_vertex_array" ) )
 	{
 		if ( r_ext_compiled_vertex_array->integer )
@@ -483,8 +498,7 @@ static void R_InitExtensions( void )
 		ri.Printf( PRINT_ALL, "...GL_EXT_compiled_vertex_array not found\n" );
 	}
 
-	glConfig.anisotropicAvailable = qfalse;
-	if ( R_HaveExtension("GL_EXT_texture_filter_anisotropic") )
+	if ( R_HaveExtension( "GL_EXT_texture_filter_anisotropic" ) )
 	{
 		if ( r_ext_texture_filter_anisotropic->integer ) {
 			int _maxAnisotropy = 0;
@@ -509,7 +523,16 @@ static void R_InitExtensions( void )
 	{
 		ri.Printf( PRINT_ALL, "...GL_EXT_texture_filter_anisotropic not found\n" );
 	}
-
+#if 0
+	if ( R_HaveExtension( "GL_ARB_texture_non_power_of_two" ) )
+	{
+		if ( gl_version >= 30 )	// old hardware might work slower with npot-textures
+		{
+			nonPowerOfTwoTextures = qtrue;
+			ri.Printf( PRINT_ALL, "...using non-power-of-two textures\n" );
+		}
+	}
+#endif
 	if ( R_HaveExtension( "GL_ARB_vertex_program" ) && R_HaveExtension( "GL_ARB_fragment_program" ) )
 	{
 		err = R_ResolveSymbols( arb_procs, ARRAY_LEN( arb_procs ) );

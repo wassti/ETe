@@ -696,17 +696,35 @@ static void Upload32( unsigned *data, int x, int y, int width, int height, image
 		scaled_width = width;
 		scaled_height = height;
 	} else {
-		//
-		// convert to exact power of 2 sizes
-		//
-		for (scaled_width = 1 ; scaled_width < width ; scaled_width<<=1)
-			;
-		for (scaled_height = 1 ; scaled_height < height ; scaled_height<<=1)
-			;
-		if ( r_roundImagesDown->integer && scaled_width > width )
-			scaled_width >>= 1;
-		if ( r_roundImagesDown->integer && scaled_height > height )
-			scaled_height >>= 1;
+#if 0
+		if ( nonPowerOfTwoTextures ) {
+			if ( r_roundImagesDown->integer ) {
+				// round down to next power of 2
+				for (scaled_width = 1 ; scaled_width <= width ; scaled_width<<= 1)
+					;
+				scaled_width >>= 1;
+				for (scaled_height = 1 ; scaled_height <= height ; scaled_height<<= 1)
+					;
+				scaled_height >>= 1;
+			} else {
+				scaled_width = width;
+				scaled_height = height;
+			}
+		} else
+#endif
+		{
+			//
+			// convert to exact power of 2 sizes
+			//
+			for (scaled_width = 1 ; scaled_width < width ; scaled_width<<=1)
+				;
+			for (scaled_height = 1 ; scaled_height < height ; scaled_height<<=1)
+				;
+			if ( r_roundImagesDown->integer && scaled_width > width )
+				scaled_width >>= 1;
+			if ( r_roundImagesDown->integer && scaled_height > height )
+				scaled_height >>= 1;
+		}
 
 		if ( scaled_width != width || scaled_height != height ) {
 			if ( data ) {
@@ -1176,8 +1194,8 @@ image_t	*R_FindImageFile( const char *name, imgType_t type, imgFlags_t flags )
 //#endif // _DEBUG
 
 #ifdef CHECKPOWEROF2
-	if ( !r_allowNonPo2->integer && (( ( width - 1 ) & width ) || ( ( height - 1 ) & height )) ) {
-		Com_Printf( "^1Image not power of 2 scaled: %s\n", name );
+	if ( ( /*!nonPowerOfTwoTextures ||*/ !r_allowNonPo2->integer) && (( ( width - 1 ) & width ) || ( ( height - 1 ) & height )) ) {
+		Com_Printf( S_COLOR_RED "Image not power of 2 scaled: \"%s\"\n", name );
 		return NULL;
 	}
 #endif // CHECKPOWEROF2

@@ -22,7 +22,6 @@ static GLuint current_fp;
 
 static int programCompiled = 0;
 static int programEnabled	= 0;
-static int gl_version = 0;
 
 qboolean fboEnabled = qfalse;
 qboolean fboBloomInited = qfalse;
@@ -2105,15 +2104,6 @@ void FBO_PostProcess( void )
 }
 
 
-static void QGL_InitPrograms( void )
-{
-	float version;
-
-	version = atof( (const char *)qglGetString( GL_VERSION ) );
-
-	gl_version = (int)(version * 10.001);
-}
-
 
 static void QGL_EarlyInitFBO( void )
 {
@@ -2298,7 +2288,6 @@ void QGL_InitFBO( void )
 
 void QGL_InitARB( void )
 {
-	QGL_InitPrograms();
 	ARB_UpdatePrograms();
 	QGL_EarlyInitFBO();
 	QGL_InitFBO();

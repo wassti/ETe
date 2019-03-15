@@ -90,7 +90,6 @@ extern int       gl_version;
 //
 extern cvar_t *r_stencilbits;			// number of desired stencil bits
 extern cvar_t *r_texturebits;			// number of desired texture bits
-extern cvar_t *r_ext_multisample;
 										// 0 = use framebuffer depth
 										// 16 = use 16-bit textures
 										// 32 = use 32-bit textures

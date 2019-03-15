@@ -25,7 +25,6 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-
 // cl.input.c  -- builds an intended movement command to send to the server
 
 #include "client.h"
@@ -103,18 +102,15 @@ static cvar_t *m_side;
 static cvar_t *m_filter;
 
 static cvar_t *cl_recoilPitch;
-
 cvar_t *cl_bypassMouseInput;       // NERVE - SMF
-
 static cvar_t *cl_doubletapdelay;
 
-
-
-void IN_MLookDown( void ) {
+static void IN_MLookDown( void ) {
 	kb[KB_MLOOK].active = qtrue;
 }
 
-void IN_MLookUp( void ) {
+
+static void IN_MLookUp( void ) {
 	kb[KB_MLOOK].active = qfalse;
 	if ( !cl_freelook->integer ) {
 //		IN_CenterView ();
@@ -322,7 +318,7 @@ static void IN_Notebook( void ) {
 }
 
 static void IN_Help( void ) {
-	if ( cls.state == CA_ACTIVE && !clc.demoplaying ) {
+	if ( uivm && cls.state == CA_ACTIVE && !clc.demoplaying ) {
 		VM_Call( uivm, 1, UI_SET_ACTIVE_MENU, UIMENU_HELP );        // startup help system
 	}
 }
@@ -354,6 +350,7 @@ static void CL_AdjustAngles( void ) {
 	cl.viewangles[PITCH] -= speed * cl_pitchspeed->value * CL_KeyState( &kb[KB_LOOKUP] );
 	cl.viewangles[PITCH] += speed * cl_pitchspeed->value * CL_KeyState( &kb[KB_LOOKDOWN] );
 }
+
 
 /*
 ================
@@ -496,13 +493,13 @@ CL_JoystickMove
 =================
 */
 static void CL_JoystickMove( usercmd_t *cmd ) {
-	int movespeed;
-	float anglespeed;
+	//int		movespeed;
+	float	anglespeed;
 
 	if ( kb[KB_SPEED].active ^ cl_run->integer ) {
-		movespeed = 2;
+		//movespeed = 2;
 	} else {
-		movespeed = 1;
+		//movespeed = 1;
 		cmd->buttons |= BUTTON_WALKING;
 	}
 

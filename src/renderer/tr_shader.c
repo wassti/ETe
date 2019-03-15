@@ -1523,7 +1523,7 @@ void ParseSort( const char **text ) {
 		shader.sort = SS_ENVIRONMENT;
 	} else if ( !Q_stricmp( token, "opaque" ) ) {
 		shader.sort = SS_OPAQUE;
-	} else if ( !Q_stricmp( token, "decal" ) )   {
+	} else if ( !Q_stricmp( token, "decal" ) ) {
 		shader.sort = SS_DECAL;
 	} else if ( !Q_stricmp( token, "seeThrough" ) ) {
 		shader.sort = SS_SEE_THROUGH;
@@ -1544,7 +1544,7 @@ void ParseSort( const char **text ) {
 // this table is also present in q3map
 
 typedef struct {
-	const char    *name;
+	const char *name;
 	int clearSolid, surfaceFlags, contents;
 } infoParm_t;
 
@@ -2801,7 +2801,7 @@ pass, trying to guess which is the correct one to best aproximate
 what it is supposed to look like.
 =================
 */
-static void VertexLightingCollapse( void ) {
+/*static void VertexLightingCollapse( void ) {
 	int		stage;
 	shaderStage_t	*bestStage;
 	int		bestImageRank;
@@ -2879,7 +2879,7 @@ static void VertexLightingCollapse( void ) {
 
 		memset( pStage, 0, sizeof( *pStage ) );
 	}
-}
+}*/
 
 
 /*
@@ -3042,8 +3042,6 @@ static void SetImplicitShaderStages( image_t *image ) {
 }
 
 
-
-
 /*
 =========================
 FinishShader
@@ -3199,11 +3197,11 @@ static shader_t *FinishShader( void ) {
 	// if we are using permedia hw,	 never use a lightmap texture
 	//
 	// NERVE - SMF - temp fix, terrain is having problems with lighting collapse
-	if ( 0 && ( stage > 1 && ( glConfig.hardwareType == GLHW_PERMEDIA2 ) ) ) {
+	/*if ( 0 && ( stage > 1 && ( glConfig.hardwareType == GLHW_PERMEDIA2 ) ) ) {
 		VertexLightingCollapse();
 		stage = 1;
 		hasLightmapStage = qfalse;
-	}
+	}*/
 
 	//
 	// look for multitexture potential
@@ -3547,8 +3545,6 @@ void R_FindLightmap( int *lightmapIndex ) {
 	}
 	tr.lightmaps[ *lightmapIndex ] = image;
 }
-
-
 
 /*
 ===============

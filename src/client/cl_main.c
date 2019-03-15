@@ -2534,8 +2534,6 @@ to the client so it doesn't have to wait for the full timeout period.
 ===================
 */
 void CL_DisconnectPacket( const netadr_t *from ) {
-	const char* message;
-
 	if ( cls.state < CA_AUTHORIZING ) {
 		return;
 	}
@@ -2558,9 +2556,8 @@ void CL_DisconnectPacket( const netadr_t *from ) {
 	// if we are doing a disconnected download, leave the 'connecting' screen on with the progress information
 	if ( !cls.bWWWDlDisconnected ) {
 		// drop the connection
-		message = "Server disconnected for unknown reason";
-		Com_Printf( message );
-		Cvar_Set( "com_errorMessage", message );
+		Com_Printf( "Server disconnected for unknown reason\n" );
+		Cvar_Set( "com_errorMessage", "Server disconnected for unknown reason" );
 		CL_Disconnect( qtrue );
 	} else {
 		CL_Disconnect( qfalse );

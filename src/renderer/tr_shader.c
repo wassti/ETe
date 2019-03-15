@@ -2894,6 +2894,11 @@ static void InitShader( const char *name, int lightmapIndex ) {
 	Com_Memset( &shader, 0, sizeof( shader ) );
 	Com_Memset( &stages, 0, sizeof( stages ) );
 
+	// we need to know original (unmodified) lightmap index
+	// because shader search functions expects this
+	// otherwise they will fail and cause massive duplication
+	shader.lightmapSearchIndex = lightmapIndex;
+
 	if (lightmapIndex >= MAX_LIGHTMAPS)
 		lightmapIndex = LIGHTMAP_BY_VERTEX;
 
@@ -3576,7 +3581,7 @@ most world construction surfaces.
 shader_t *R_FindShader( const char *name, int lightmapIndex, qboolean mipRawImage ) {
 	char		strippedName[MAX_QPATH];
 	char		fileName[MAX_QPATH];
-	int			hash;
+	unsigned long hash;
 	const char	*shaderText;
 	image_t		*image;
 	shader_t	*sh;
@@ -3601,7 +3606,7 @@ shader_t *R_FindShader( const char *name, int lightmapIndex, qboolean mipRawImag
 		// index by name
 
 		// ydnar: the original way was correct
-		if ( sh->lightmapIndex == lightmapIndex &&
+		if ( sh->lightmapSearchIndex == lightmapIndex &&
 			 !Q_stricmp( sh->name, strippedName ) ) {
 			// match found
 			return sh;
@@ -3609,7 +3614,7 @@ shader_t *R_FindShader( const char *name, int lightmapIndex, qboolean mipRawImag
 
 		// Ridah, modified this so we don't keep trying to load an invalid lightmap shader
 		#if 0
-		if ( ( ( sh->lightmapIndex == lightmapIndex ) || ( sh->lightmapIndex < 0 && lightmapIndex >= 0 ) ) &&
+		if ( ( ( sh->lightmapSearchIndex == lightmapIndex ) || ( sh->lightmapIndex < 0 && lightmapIndex >= 0 ) ) &&
 			 !Q_stricmp( sh->name, strippedName ) ) {
 			// match found
 			return sh;
@@ -3622,7 +3627,7 @@ shader_t *R_FindShader( const char *name, int lightmapIndex, qboolean mipRawImag
 		// then a default shader is created with lightmapIndex == LIGHTMAP_NONE, so we
 		// have to check all default shaders otherwise for every call to R_FindShader
 		// with that same strippedName a new default shader is created.
-		if ( ( sh->lightmapIndex == lightmapIndex || sh->defaultShader ) &&
+		if ( ( sh->lightmapSearchIndex == lightmapIndex || sh->defaultShader ) &&
 			 !Q_stricmp( sh->name, strippedName ) ) {
 			// match found
 			return sh;
@@ -3748,7 +3753,7 @@ qhandle_t RE_RegisterShaderFromImage( const char *name, int lightmapIndex, image
 		// then a default shader is created with lightmapIndex == LIGHTMAP_NONE, so we
 		// have to check all default shaders otherwise for every call to R_FindShader
 		// with that same strippedName a new default shader is created.
-		if ( ( sh->lightmapIndex == lightmapIndex || sh->defaultShader ) &&
+		if ( ( sh->lightmapSearchIndex == lightmapIndex || sh->defaultShader ) &&
 			 // index by name
 			 !Q_stricmp( sh->name, name ) ) {
 			// match found

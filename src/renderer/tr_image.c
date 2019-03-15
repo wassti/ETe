@@ -191,11 +191,11 @@ void R_ImageList_f( void ) {
 	int i;
 	int estTotalSize = 0;
 
-	ri.Printf(PRINT_ALL, "\n      -w-- -h-- type  -size- --name-------\n");
+	ri.Printf( PRINT_ALL, "\n --w-- --h-- type  -size- --name-------\n" );
 
 	for ( i = 0 ; i < tr.numImages ; i++ )
 	{
-		image_t *image = tr.images[i];
+		const image_t *image = tr.images[i];
 		const char *format = "???? ";
 		const char *sizeSuffix;
 		int estSize;
@@ -318,13 +318,13 @@ void R_ImageList_f( void ) {
 			sizeSuffix = "Gb";
 		}
 
-		ri.Printf( PRINT_ALL, "%4i: %4ix%4i %s %4i%s %s\n", i, image->uploadWidth, image->uploadHeight, format, displaySize, sizeSuffix, image->imgName );
+		ri.Printf( PRINT_ALL, " %5i %5i %s %4i%s %s\n", image->uploadWidth, image->uploadHeight, format, displaySize, sizeSuffix, image->imgName );
 		estTotalSize += estSize;
 	}
 
-	ri.Printf (PRINT_ALL, " ---------\n");
-	ri.Printf (PRINT_ALL, " approx %i kbytes\n", (estTotalSize + 1023) / 1024 );
-	ri.Printf (PRINT_ALL, " %i total images\n\n", tr.numImages );
+	ri.Printf( PRINT_ALL, " -----------------------\n" );
+	ri.Printf( PRINT_ALL, " approx %i kbytes\n", (estTotalSize + 1023) / 1024 );
+	ri.Printf( PRINT_ALL, " %i total images\n\n", tr.numImages );
 }
 
 //=======================================================================
@@ -869,8 +869,10 @@ image_t *R_CreateImage( const char *name, byte *pic, int width, int height,
 	image_t		*image;
 	long		hash;
 	GLint		glWrapClampMode;
+	size_t		namelen;
 
-	if ( strlen( name ) >= sizeof( image->imgName ) ) {
+	namelen = strlen( name );
+	if ( namelen >= MAX_QPATH ) {
 		ri.Error( ERR_DROP, "R_CreateImage: \"%s\" is too long", name );
 	}
 	//if ( flags & IMGFLAG_LIGHTMAP && !(flags & IMGFLAG_NO_COMPRESSION) ) {
@@ -912,7 +914,8 @@ image_t *R_CreateImage( const char *name, byte *pic, int width, int height,
 	}
 
 	// Ridah
-	image = tr.images[tr.numImages] = R_CacheImageAlloc( sizeof( image_t ) );
+	image = tr.images[tr.numImages] = R_CacheImageAlloc( sizeof( *image ) + namelen + 1 );
+	tr.numImages++;
 
 	// ydnar: not exactly sure why this mechanism is here at all, but it's generating
 	// bad texture names (not that the rest of the code is a saint, but hey...)
@@ -926,11 +929,11 @@ image_t *R_CreateImage( const char *name, byte *pic, int width, int height,
 
 	// ydnar: ok, let's try the recommended way
 	qglGenTextures( 1, &image->texnum );
-	tr.numImages++;
 
 	image->type = type;
 	image->flags = flags;
 
+	image->imgName = (char *)( image + 1 );
 	strcpy( image->imgName, name );
 
 	image->width = width;
@@ -1671,6 +1674,7 @@ void R_DeleteTextures( void ) {
 	}
 }
 
+
 /*
 ============================================================================
 
@@ -2257,7 +2261,7 @@ R_TouchImage
 qboolean R_TouchImage( image_t *inImage ) {
 	image_t *bImage, *bImagePrev;
 	int hash;
-	char *name;
+	//char *name;
 
 	if ( inImage == tr.dlightImage ||
 		 inImage == tr.whiteImage ||
@@ -2267,7 +2271,7 @@ qboolean R_TouchImage( image_t *inImage ) {
 	}
 
 	hash = inImage->hash;
-	name = inImage->imgName;
+	//name = inImage->imgName;
 
 	bImage = backupHashTable[hash];
 	bImagePrev = NULL;

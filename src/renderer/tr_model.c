@@ -2314,27 +2314,27 @@ void R_ModelBounds( qhandle_t handle, vec3_t mins, vec3_t maxs ) {
 // use it when we actually need it. This will make sure the swap file grows
 // at startup if needed, rather than each allocation we make.
 byte    *membase = NULL;
-int hunkmaxsize;
-int cursize;
+//size_t hunkmaxsize;
+size_t cursize;
 
 #define R_HUNK_MEGS     24
 #define R_HUNK_SIZE     ( R_HUNK_MEGS*1024*1024 )
 
 void *R_Hunk_Begin( void ) {
-	int maxsize = R_HUNK_SIZE;
+	//int maxsize = R_HUNK_SIZE;
 
 	//Com_Printf("R_Hunk_Begin\n");
 
 	// reserve a huge chunk of memory, but don't commit any yet
 	cursize = 0;
-	hunkmaxsize = maxsize;
+	//hunkmaxsize = maxsize;
 
 	if ( !membase ) {
 #ifdef _WIN32
 		// this will "reserve" a chunk of memory for use by this application
 		// it will not be "committed" just yet, but the swap file will grow
 		// now if needed
-		membase = VirtualAlloc( NULL, maxsize, MEM_RESERVE, PAGE_NOACCESS );
+		membase = VirtualAlloc( NULL, R_HUNK_SIZE, MEM_RESERVE, PAGE_NOACCESS );
 #else
 		// show_bug.cgi?id=440
 		// if not win32, then just allocate it now
@@ -2355,7 +2355,7 @@ void *R_Hunk_Begin( void ) {
 	return (void *)membase;
 }
 
-void *R_Hunk_Alloc( int size ) {
+void *R_Hunk_Alloc( size_t size ) {
 #ifdef _WIN32
 	void    *buf;
 #endif
@@ -2364,6 +2364,10 @@ void *R_Hunk_Alloc( int size ) {
 
 	// round to cacheline
 	size = PAD( size, 32 );
+
+	if ( cursize+size > R_HUNK_SIZE ) {
+		ri.Error( ERR_DROP, "R_Hunk_Alloc overflow (%u bytes > %u bytes)", (unsigned int)cursize+size, R_HUNK_SIZE );
+	}
 
 #ifdef _WIN32
 
@@ -2378,9 +2382,9 @@ void *R_Hunk_Alloc( int size ) {
 #endif
 
 	cursize += size;
-	if ( cursize > hunkmaxsize ) {
+	/*if ( cursize > R_HUNK_SIZE ) {
 		ri.Error( ERR_DROP, "R_Hunk_Alloc overflow" );
-	}
+	}*/
 
 	return ( void * )( membase + cursize - size );
 }

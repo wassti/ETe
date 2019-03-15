@@ -2937,8 +2937,13 @@ static void SetImplicitShaderStages( image_t *image ) {
 		stages[ 0 ].stateBits = GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA;
 		break;
 
-		// fullbright is disabled per atvi request
+		// fullbright level
 	case LIGHTMAP_WHITEIMAGE:
+		stages[0].active = qtrue;
+		stages[0].bundle[0].image[0] = image;
+		stages[0].rgbGen = CGEN_IDENTITY_LIGHTING;
+		stages[0].stateBits = GLS_DEFAULT;
+		break;
 
 		// explicit colors at vertexes
 	case LIGHTMAP_BY_VERTEX:

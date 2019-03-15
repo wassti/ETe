@@ -2895,8 +2895,8 @@ static void InitShader( const char *name, int lightmapIndex ) {
 	Com_Memset( &stages, 0, sizeof( stages ) );
 
 	if (lightmapIndex >= MAX_LIGHTMAPS)
-		lightmapIndex = LIGHTMAP_NONE;
-	
+		lightmapIndex = LIGHTMAP_BY_VERTEX;
+
 	Q_strncpyz( shader.name, name, sizeof( shader.name ) );
 	shader.lightmapIndex = lightmapIndex;
 

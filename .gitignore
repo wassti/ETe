@@ -182,6 +182,8 @@ src/scons.signatures.dblite
 site.conf
 src/et.x86
 src/etded.x86
+src/ete.x86
+src/eteded.x86
 src/curl-7.58.0/config.log
 src/curl-7.58.0/docs/curl.1
 src/curl-7.58.0/lib/.libs/

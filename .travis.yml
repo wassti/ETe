@@ -20,7 +20,7 @@ deploy:
   draft: true
   prerelease: true
   api_key:
-    secure: ""
+    secure: "n5NzbUHEvac0eXKCMoFxb/AUftv/Y2RD6cOwLvq8opBhw809ekbiCS2rUh3WYHzYsa0DKgWUrOtJWT9mWv1ySaoEPuo0Dl+YHriH/nupBzVbNUCF64Bz51hLl9LOANlP/uuCeRih3r6a2QvKG1oSf/OtLp2rhkWLS6zhyj3tnbnyPdONaxCwyY4QOWJY1nBJa7YPQ20yIWs0L1bKFXpJC+IDqz6R65a1s3tgLmnQrmIOlPgfRZtiXBrO47LZlGhe3NEZOgXtr1ar8kK4SwK6w23ykSJIen9Jh48jj96ZUSdQvEuMVTUYzfyPvnDaIzkA7ChhKn6BKb8/dHQ+JD7s81Wz2wBU0RuE63nLszQVS8LFK5NgRtyWr9YpuY+IHlPjZPP1n4OukJ9FNkANf0Z+wZVhk847xVcjkjMu3ZahpKxn+2L5lyIOOF1L1NGt/WqGLPVmZ4rw8EwP44+zb9SXowe3KmTQcMi6ShD/6RKiubpxeuHvwNlIhP8X/se90sqttBb4fUohf57U5/Fu1nzBwYGolDON4V19JH0Uvqq5nr0Es8J96ckHXI5dwIMrrNkjlGgvCnQ+03eKcY3wtFMC/aVfLh+mZl5EUA3YwzYJu39GYZ6KmOi4Cjq9j23wmp+QLdTr+0jXUrVgQumJyb/zV8P87WbTvYvvQviyc+cHHA0="
   file: "ete*.7z"
   on:
     tags: true

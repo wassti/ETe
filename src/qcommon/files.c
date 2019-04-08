@@ -1445,6 +1445,8 @@ int FS_FOpenFileRead( const char *filename, fileHandle_t *file, qboolean uniqueF
 	FILE			*temp;
 	int				length;
 	fileHandleData_t *f;
+	qboolean		deniedPureFile;
+	qboolean		checked;
 
 	if ( !fs_searchpaths ) {
 		Com_Error( ERR_FATAL, "Filesystem call made without initialization" );
@@ -1458,6 +1460,16 @@ int FS_FOpenFileRead( const char *filename, fileHandle_t *file, qboolean uniqueF
 	if ( filename[0] == '/' || filename[0] == '\\' ) {
 		filename++;
 	}
+
+	// make absolutely sure that it can't back up the path.
+	// The searchpaths do guarantee that something will always
+	// be prepended, so we don't need to worry about "c:" or "//limbo"
+	if ( FS_CheckDirTraversal( filename ) ) {
+		*file = FS_INVALID_HANDLE;
+		return -1;
+	}
+
+	checked = deniedPureFile = qfalse;
 	
 	// we will calculate full hash only once then just mask it by current pack->hashSize
 	// we can do that as long as we know properties of our hash function
@@ -1487,6 +1499,15 @@ int FS_FOpenFileRead( const char *filename, fileHandle_t *file, qboolean uniqueF
 			} else if ( search->dir && search->policy != DIR_DENY ) {
 				if ( fs_filter_flag & FS_EXCLUDE_DIR )
 					continue;
+				if ( fs_numServerPaks ) {
+					if ( !checked ) {
+						checked = qtrue;
+						deniedPureFile = FS_DeniedPureFile( filename );
+					}
+					if ( deniedPureFile ) {
+						continue;
+					}
+				}
 				dir = search->dir;
 				netpath = FS_BuildOSPath( dir->path, dir->gamedir, filename );
 				temp = Sys_FOpen( netpath, "rb" );
@@ -1497,14 +1518,6 @@ int FS_FOpenFileRead( const char *filename, fileHandle_t *file, qboolean uniqueF
 				}
 			}
 		}
-		return -1;
-	}
-
-	// make absolutely sure that it can't back up the path.
-	// The searchpaths do guarantee that something will always
-	// be prepended, so we don't need to worry about "c:" or "//limbo" 
-	if ( FS_CheckDirTraversal( filename ) ) {
-		*file = FS_INVALID_HANDLE;
 		return -1;
 	}
 
@@ -1568,9 +1581,9 @@ int FS_FOpenFileRead( const char *filename, fileHandle_t *file, qboolean uniqueF
 					if ( !pak->handle ) {
 						pak->handle = unzOpen( pak->pakFilename );
 						if ( !pak->handle ) {
-							Com_Printf( S_COLOR_YELLOW "Error opening %s\n", pak->pakBasename );
-							pakFile = pakFile->next;
-							continue;
+							Com_Printf( S_COLOR_RED "Error opening %s@%s\n", pak->pakBasename, filename );
+							*file = FS_INVALID_HANDLE;
+							return -1;
 						}
 					}
 
@@ -1631,7 +1644,11 @@ int FS_FOpenFileRead( const char *filename, fileHandle_t *file, qboolean uniqueF
 			// I had the problem on https://zerowing.idsoftware.com/bugzilla/show_bug.cgi?id=8
 			// turned out I used FS_FileExists instead
 			if ( fs_numServerPaks ) {
-				if ( FS_DeniedPureFile( filename ) ) {
+				if ( !checked ) {
+					checked = qtrue;
+					deniedPureFile = FS_DeniedPureFile( filename );
+				}
+				if ( deniedPureFile ) {
 					continue;
 				}
 			}

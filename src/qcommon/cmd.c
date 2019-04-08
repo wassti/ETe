@@ -288,7 +288,7 @@ static void Cmd_Exec_f( void ) {
 
 	if (Cmd_Argc () != 2) {
 		Com_Printf ("exec%s <filename> : execute a script file%s\n",
-		            quiet ? "q" : "", quiet ? " without notification" : "");
+			quiet ? "q" : "", quiet ? " without notification" : "");
 		return;
 	}
 
@@ -303,7 +303,9 @@ static void Cmd_Exec_f( void ) {
 #endif
 
 	if ( filter != 0 ) FS_SetFilterFlag( filter );
+	FS_BypassPure();
 	FS_ReadFile( filename, &f.v );
+	FS_RestorePure();
 	if ( filter != 0 ) FS_SetFilterFlag( 0 );
 	if ( f.v == NULL ) {
 		Com_Printf( "couldn't exec %s\n", filename );
@@ -956,7 +958,7 @@ Cmd_CompleteCfgName
 */
 static void Cmd_CompleteCfgName( char *args, int argNum ) {
 	if( argNum == 2 ) {
-		Field_CompleteFilename( "", "cfg", qfalse, FS_MATCH_ANY );
+		Field_CompleteFilename( "", "cfg", qfalse, FS_MATCH_ANY | FS_MATCH_STICK );
 	}
 }
 

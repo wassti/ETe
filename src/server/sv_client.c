@@ -201,7 +201,7 @@ A "connect" OOB command has been received
 ==================
 */
 void SV_DirectConnect( const netadr_t *from ) {
-	static		leakyBucket_t bucket;
+	static		rateLimit_t bucket;
 	char		userinfo[MAX_INFO_STRING];
 	int			i, n;
 	client_t	*cl, *newcl;
@@ -1748,6 +1748,21 @@ static const ucmd_t ucmds[] = {
 	{NULL, NULL}
 };
 
+
+/*
+================
+SV_FloodProtect
+================
+*/
+static qboolean SV_FloodProtect( client_t *cl ) {
+	if ( sv_floodProtect->integer ) {
+		return SVC_RateLimit( &cl->cmd_rate, 8, 500 );
+	} else {
+		return qfalse;
+	}
+}
+
+
 /*
 ==================
 SV_ExecuteClientCommand
@@ -1755,28 +1770,57 @@ SV_ExecuteClientCommand
 Also called by bot code
 ==================
 */
-void SV_ExecuteClientCommand( client_t *cl, const char *s, qboolean clientOK, qboolean premaprestart ) {
-	const ucmd_t *u;
-	qboolean bProcessed = qfalse;
+qboolean SV_ExecuteClientCommand( client_t *cl, const char *s, qboolean premaprestart ) {
+	const ucmd_t *ucmd;
+	qboolean bFloodProtect;
 
 	Cmd_TokenizeString( s );
 
+	// malicious users may try using too many string commands
+	// to lag other players.  If we decide that we want to stall
+	// the command, we will stop processing the rest of the packet,
+	// including the usercmd.  This causes flooders to lag themselves
+	// but not other people
+
+	// We don't do this when the client hasn't been active yet since it's
+	// normal to spam a lot of commands when downloading
+	bFloodProtect = cl->netchan.remoteAddress.type != NA_BOT && cl->state >= CS_ACTIVE;
+
 	// see if it is a server level command
-	for ( u = ucmds ; u->name ; u++ ) {
-		if ( !strcmp( Cmd_Argv( 0 ), u->name ) ) {
-			if ( premaprestart && !u->allowedpostmapchange ) {
+	for ( ucmd = ucmds; ucmd->name; ucmd++ ) {
+		if ( !strcmp( Cmd_Argv(0), ucmd->name ) ) {
+			if ( !strcmp( "userinfo", ucmd->name ) && bFloodProtect ) {
+				if ( SVC_RateLimit( &cl->info_rate, 5, 1000 ) ) {
+					return qfalse; // lag flooder
+				}
+			}
+			if ( premaprestart && !ucmd->allowedpostmapchange ) {
 				continue;
 			}
 
-			u->func( cl );
-			bProcessed = qtrue;
+			ucmd->func( cl );
+			bFloodProtect = qfalse;
 			break;
 		}
 	}
 
-	if (clientOK) {
+	// Gordon: AHA! Need to steal this for some other stuff BOOKMARK
+	// NERVE - SMF - some server game-only commands we cannot have flood protect
+	if ( bFloodProtect && ( !Q_strncmp( "team", s, 4 ) || !Q_strncmp( "setspawnpt", s, 10 ) || !Q_strncmp( "score", s, 5 ) || !Q_stricmp( "forcetapout", s ) ) ) {
+//		Com_DPrintf( "Skipping flood protection for: %s\n", s );
+		bFloodProtect = qfalse;
+	}
+
+#ifndef DEDICATED
+	if ( !com_cl_running->integer && bFloodProtect && SV_FloodProtect( cl ) ) {
+#else
+	if ( bFloodProtect && SV_FloodProtect( cl ) ) {
+#endif
+		// ignore any other text messages from this client but let them keep playing
+		Com_DPrintf( "client text ignored for %s: %s\n", cl->name, Cmd_Argv(0) );
+	} else {
 		// pass unknown strings to the game
-		if (!u->name && sv.state == SS_GAME && cl->state >= CS_PRIMED ) {
+		if ( !ucmd->name && sv.state == SS_GAME && cl->state >= CS_PRIMED ) {
 			if ( sv_filterCommands->integer > 0 ) {
 				if ( sv_filterCommands->integer >= 2 )
 					Cmd_Args_Sanitize( "\n\r;", qtrue );
@@ -1786,42 +1830,8 @@ void SV_ExecuteClientCommand( client_t *cl, const char *s, qboolean clientOK, qb
 			VM_Call( gvm, 1, GAME_CLIENT_COMMAND, cl - svs.clients );
 		}
 	}
-	else if (!bProcessed)
-		Com_DPrintf( "client text ignored for %s: %s\n", cl->name, Cmd_Argv(0) );
-}
 
-
-/*
-================
-SV_FloodProtect
-================
-*/
-static qboolean SV_FloodProtect( client_t *cl ) {
-	if ( sv_floodProtect->integer ) {
-		const int now = svs.time;
-		const int burst = 8;
-		const int period = 500;
-
-		int interval = now - cl->cmd_time;
-		int expired = interval / period;
-		int expiredRemainder = interval % period;
-
-		if ( expired > cl->cmd_burst || interval < 0 ) {
-			cl->cmd_burst = 0;
-			cl->cmd_time = now;
-		} else {
-			cl->cmd_burst -= expired;
-			cl->cmd_time = now - expiredRemainder;
-		}
-
-		if ( cl->cmd_burst < burst ) {
-			cl->cmd_burst++;
-			return qfalse;
-		}
-		return qtrue;
-	} else {
-		return qfalse;
-	}
+	return qtrue;
 }
 
 
@@ -1833,8 +1843,6 @@ SV_ClientCommand
 static qboolean SV_ClientCommand( client_t *cl, msg_t *msg, qboolean premaprestart ) {
 	int		seq;
 	const char	*s;
-	qboolean clientOk = qtrue;
-	qboolean floodprotect = qtrue;
 
 	seq = MSG_ReadLong( msg );
 	s = MSG_ReadString( msg );
@@ -1854,33 +1862,9 @@ static qboolean SV_ClientCommand( client_t *cl, msg_t *msg, qboolean premapresta
 		return qfalse;
 	}
 
-
-	// Gordon: AHA! Need to steal this for some other stuff BOOKMARK
-	// NERVE - SMF - some server game-only commands we cannot have flood protect
-	if ( !Q_strncmp( "team", s, 4 ) || !Q_strncmp( "setspawnpt", s, 10 ) || !Q_strncmp( "score", s, 5 ) || !Q_stricmp( "forcetapout", s ) ) {
-//		Com_DPrintf( "Skipping flood protection for: %s\n", s );
-		floodprotect = qfalse;
+	if ( !SV_ExecuteClientCommand( cl, s, premaprestart ) ) {
+		return qfalse;
 	}
-
-	// malicious users may try using too many string commands
-	// to lag other players.  If we decide that we want to stall
-	// the command, we will stop processing the rest of the packet,
-	// including the usercmd.  This causes flooders to lag themselves
-	// but not other people
-	// We don't do this when the client hasn't been active yet since it's
-	// normal to spam a lot of commands when downloading
-#ifndef DEDICATED
-	if ( !com_cl_running->integer && cl->state >= CS_ACTIVE && SV_FloodProtect( cl ) && floodprotect ) {
-#else
-	// (SA) this was commented out in Wolf.  Did we do that?
-	if ( cl->state >= CS_ACTIVE && SV_FloodProtect( cl ) && floodprotect ) {
-#endif
-		// ignore any other text messages from this client but let them keep playing
-		// TTimo - moved the ignored verbose to the actual processing in SV_ExecuteClientCommand, only printing if the core doesn't intercept
-		clientOk = qfalse;
-	}
-
-	SV_ExecuteClientCommand( cl, s, clientOk, premaprestart );
 
 	cl->lastClientCommand = seq;
 	Q_strncpyz( cl->lastClientCommandString, s, sizeof( cl->lastClientCommandString ) );

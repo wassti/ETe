@@ -535,7 +535,7 @@ SV_BotClientCommand
 ==================
 */
 static void BotClientCommand( int client, const char *command ) {
-	SV_ExecuteClientCommand( &svs.clients[client], command, qtrue, qfalse );
+	SV_ExecuteClientCommand( &svs.clients[client], command, qfalse );
 }
 
 /*

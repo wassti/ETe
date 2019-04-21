@@ -686,7 +686,7 @@ static void S_Base_MainStartSoundEx( vec3_t origin, int entityNum, int entchanne
 	channel_t	*ch;
 	sfx_t		*sfx;
 	int		i, time;
-	int		inplay, allowed;
+	//int		inplay, allowed;
 	qboolean	fullVolume;
 
 	if ( !s_soundStarted || s_soundMuted ) {
@@ -740,10 +740,10 @@ static void S_Base_MainStartSoundEx( vec3_t origin, int entityNum, int entchanne
 	// pick a channel to play on
 
 	// try to limit sound duplication
-	if ( entityNum == listener_number )
+	/*if ( entityNum == listener_number )
 		allowed = 16;
 	else
-		allowed = 8;
+		allowed = 8;*/
 
 	fullVolume = qfalse;
 	if (localSound || S_Base_HearingThroughEntity(entityNum, origin)) {
@@ -751,7 +751,7 @@ static void S_Base_MainStartSoundEx( vec3_t origin, int entityNum, int entchanne
 	}
 
 	ch   = s_channels;
-	inplay = 0;
+	//inplay = 0;
 
 	for (i = 0; i < MAX_CHANNELS ; i++, ch++)
 	{
@@ -765,17 +765,17 @@ static void S_Base_MainStartSoundEx( vec3_t origin, int entityNum, int entchanne
 			{
 				S_ChannelFree(ch);
 			}
-			else
+			/*else
 			{
 				inplay++;
-			}
+			}*/
 		}
 	}
 
 	// too much duplicated sounds, ignore
-	if ( inplay > allowed ) {
+	/*if ( inplay > allowed ) {
 		return;
-	}
+	}*/
 
 	sfx->lastTimeUsed = time;
 

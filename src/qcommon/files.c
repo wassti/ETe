@@ -1371,6 +1371,8 @@ static qboolean FS_DeniedPureFile( const char *filename )
 		"menu",		// menu files
 		"game",		// menu files
 		"h",		// menu files
+		DEMOEXT "84", // 2.60b demo files
+		DEMOEXT "85", // new protocol demo files
 		"botents"	// bot files
 	};
 

@@ -1346,7 +1346,7 @@ static void SV_ConTell_f( void ) {
 		return;
 	}
 
-	strcpy( text, "console_tell: " );
+	strcpy( text, S_COLOR_MAGENTA "console: " );
 	p = Cmd_ArgsFrom( 2 );
 
 	if ( strlen( p ) > 1000 ) {

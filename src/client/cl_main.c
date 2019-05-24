@@ -4478,6 +4478,8 @@ void CL_Init( void ) {
 
 	Cmd_AddCommand( "modelist", CL_ModeList_f );
 
+	Cmd_AddCommand( "locations", NULL );
+
 	CL_InitRef();
 
 	SCR_Init();
@@ -4493,6 +4495,7 @@ void CL_Init( void ) {
 #ifndef __MACOS__  //DAJ USA
 	CL_InitTranslation();       // NERVE - SMF - localization
 #endif
+
 
 	Cvar_SetGroup( cl_language, CVG_LANGUAGE );
 	Cvar_SetGroup( in_forceCharset, CVG_LANGUAGE );
@@ -4590,6 +4593,8 @@ void CL_Shutdown( const char *finalmsg, qboolean quit ) {
 	Cmd_RemoveCommand( "download" );
 	Cmd_RemoveCommand( "dlmap" );
 #endif
+
+	Cmd_RemoveCommand( "locations" );
 
 	CL_ShutdownInput();
 	Con_Shutdown();

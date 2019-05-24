@@ -875,6 +875,9 @@ void SV_Init( void )
 	Cvar_CheckRange( sv_maxclientsPerIP, "1", NULL, CV_INTEGER );
 	Cvar_SetDescription( sv_maxclientsPerIP, "Limits number of simultaneous connections from the same IP address." );
 
+	sv_clientTLD = Cvar_Get( "sv_clientTLD", "0", CVAR_ARCHIVE_ND );
+	Cvar_CheckRange( sv_clientTLD, NULL, NULL, CV_INTEGER );
+
 	sv_minRate = Cvar_Get ("sv_minRate", "0", CVAR_ARCHIVE_ND | CVAR_SERVERINFO );
 	sv_maxRate = Cvar_Get( "sv_maxRate", "0", CVAR_ARCHIVE_ND | CVAR_SERVERINFO );
 	sv_floodProtect = Cvar_Get( "sv_floodProtect", "1", CVAR_ARCHIVE | CVAR_SERVERINFO );
@@ -1078,6 +1081,8 @@ void SV_Shutdown( const char *finalmsg ) {
 
 	// free current level
 	SV_ClearServer();
+
+	SV_FreeIP4DB();
 
 	// free server static data
 	if ( svs.clients ) {

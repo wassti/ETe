@@ -779,6 +779,8 @@ int FS_FOpenFileRead_Filtered( const char *qpath, fileHandle_t *file, qboolean u
 
 void FS_SetFilterFlag( int flag );
 
+int FS_TouchFileInPak( const char *filename );
+
 void FS_BypassPure( void );
 void FS_RestorePure( void );
 
@@ -842,6 +844,7 @@ const char *FS_LoadedPakChecksums( qboolean *overflowed );
 // Returns a space separated string containing the checksums of all loaded pk3 files.
 // Servers with sv_pure set will get this string and pass it to clients.
 
+qboolean FS_ExcludeReference( void );
 const char *FS_ReferencedPakNames( void );
 const char *FS_ReferencedPakChecksums( void );
 const char *FS_ReferencedPakPureChecksums( int maxlen );

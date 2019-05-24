@@ -521,16 +521,15 @@ SV_TouchCGameDLL
 const char* Sys_GetDLLName( const char *name );
 
 static void SV_TouchDLLFile( const char *module ) {
-	fileHandle_t f;
-	const char *filename;
+	int ref;
+	const char* filename;
 
 	filename = Sys_GetDLLName( module );
-	FS_FOpenFileRead_Filtered( filename, &f, qfalse, FS_EXCLUDE_DIR );
-	if ( f != FS_INVALID_HANDLE ) {
-		FS_FCloseFile( f );
-	} else if ( sv_pure->integer ) { // ydnar: so we can work the damn game
+	ref = FS_TouchFileInPak( filename );
+
+	// ydnar: so we can work the damn game
+	if ( ref <= FS_GENERAL_REF && sv_pure->integer )
 		Com_Error( ERR_DROP, "Failed to locate %s DLL for pure server mode", module );
-	}
 }
 
 
@@ -659,6 +658,9 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 	Cvar_Set( "cl_paused", "0" );
 #endif
 
+	// get latched value
+	Cvar_Get( "sv_pure", "1", 0 );
+
 	// get a new checksum feed and restart the file system
 	srand( Com_Milliseconds() );
 	Com_RandomBytes( (byte*)&sv.checksumFeed, sizeof( sv.checksumFeed ) );
@@ -697,6 +699,7 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 	// don't allow a map_restart if game is modified
 	// Arnout: there isn't any check done against this, obsolete
 //	sv_gametype->modified = qfalse;
+	sv_pure->modified = qfalse;
 
 	// run a few frames to allow everything to settle
 	for ( i = 0 ; i < GAME_INIT_FRAMES ; i++ )
@@ -709,10 +712,10 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 	// create a baseline for more efficient communications
 	SV_CreateBaseline();
 
-	for (i=0 ; i<sv_maxclients->integer ; i++) {
+	for ( i = 0; i < sv_maxclients->integer; i++ ) {
 		// send the new gamestate to all connected clients
-		if (svs.clients[i].state >= CS_CONNECTED) {
-			char	*denied;
+		if ( svs.clients[i].state >= CS_CONNECTED ) {
+			const char *denied;
 
 			if ( svs.clients[i].netchan.remoteAddress.type == NA_BOT ) {
 				if ( killBots || SV_GameIsSinglePlayer() || SV_GameIsCoop() ) {
@@ -768,10 +771,18 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 
 	// the server sends these to the clients so they can figure
 	// out which pk3s should be auto-downloaded
+	p = FS_ReferencedPakNames();
+	if ( FS_ExcludeReference() ) {
+		// \fs_excludeReference may mask our current ui/cgame binaries
+		SV_TouchDLLFile( "cgame" );
+		SV_TouchDLLFile( "ui" );
+		// rebuild referenced paks list
+		p = FS_ReferencedPakNames();
+	}
+	Cvar_Set( "sv_referencedPakNames", p );
+
 	p = FS_ReferencedPakChecksums();
 	Cvar_Set( "sv_referencedPaks", p );
-	p = FS_ReferencedPakNames();
-	Cvar_Set( "sv_referencedPakNames", p );
 
 	Cvar_Set( "sv_paks", "" );
 	Cvar_Set( "sv_pakNames", "" ); // not used on client-side
@@ -889,7 +900,7 @@ void SV_Init( void )
 	//bani - added cvar_t for sv_cheats so server engine can reference it
 	sv_cheats = Cvar_Get( "sv_cheats", "1", CVAR_SYSTEMINFO | CVAR_ROM );
 	sv_serverid = Cvar_Get( "sv_serverid", "0", CVAR_SYSTEMINFO | CVAR_ROM );
-	sv_pure = Cvar_Get( "sv_pure", "1", CVAR_SYSTEMINFO );
+	sv_pure = Cvar_Get( "sv_pure", "1", CVAR_SYSTEMINFO | CVAR_LATCH );
 	Cvar_Get( "sv_paks", "", CVAR_SYSTEMINFO | CVAR_ROM );
 	Cvar_Get( "sv_pakNames", "", CVAR_SYSTEMINFO | CVAR_ROM );
 	Cvar_Get( "sv_referencedPaks", "", CVAR_SYSTEMINFO | CVAR_ROM );

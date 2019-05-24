@@ -239,6 +239,7 @@ typedef struct pack_s {
 	int				pure_checksum;				// checksum for pure
 	int				numfiles;					// number of files in pk3
 	int				referenced;					// referenced file flags
+	qboolean		exclude;					// found in \fs_excludeReference list
 	int				hashSize;					// hash table size (power of 2)
 	fileInPack_t*	*hashTable;					// hash table
 	fileInPack_t*	buildBuffer;				// buffer with the filenames etc.
@@ -286,6 +287,7 @@ static	cvar_t      *fs_basepath;
 		cvar_t		*fs_basegame;
 		cvar_t		*fs_gamedirvar;
 static	cvar_t		*fs_locked;
+static	cvar_t		*fs_excludeReference;
 
 static	searchpath_t	*fs_searchpaths;
 static	int			fs_readCount;			// total bytes read
@@ -1447,8 +1449,10 @@ int FS_FOpenFileRead( const char *filename, fileHandle_t *file, qboolean uniqueF
 	FILE			*temp;
 	int				length;
 	fileHandleData_t *f;
+#ifndef DEDICATED
 	qboolean		deniedPureFile;
 	qboolean		checked;
+#endif
 
 	if ( !fs_searchpaths ) {
 		Com_Error( ERR_FATAL, "Filesystem call made without initialization" );
@@ -1471,7 +1475,9 @@ int FS_FOpenFileRead( const char *filename, fileHandle_t *file, qboolean uniqueF
 		return -1;
 	}
 
+#ifndef DEDICATED
 	checked = deniedPureFile = qfalse;
+#endif
 	
 	// we will calculate full hash only once then just mask it by current pack->hashSize
 	// we can do that as long as we know properties of our hash function
@@ -1501,6 +1507,7 @@ int FS_FOpenFileRead( const char *filename, fileHandle_t *file, qboolean uniqueF
 			} else if ( search->dir && search->policy != DIR_DENY ) {
 				if ( fs_filter_flag & FS_EXCLUDE_DIR )
 					continue;
+#ifndef DEDICATED
 				if ( fs_numServerPaks ) {
 					if ( !checked ) {
 						checked = qtrue;
@@ -1510,6 +1517,7 @@ int FS_FOpenFileRead( const char *filename, fileHandle_t *file, qboolean uniqueF
 						continue;
 					}
 				}
+#endif
 				dir = search->dir;
 				netpath = FS_BuildOSPath( dir->path, dir->gamedir, filename );
 				temp = Sys_FOpen( netpath, "rb" );
@@ -1645,6 +1653,7 @@ int FS_FOpenFileRead( const char *filename, fileHandle_t *file, qboolean uniqueF
 			//   this test can make the search fail although the file is in the directory
 			// I had the problem on https://zerowing.idsoftware.com/bugzilla/show_bug.cgi?id=8
 			// turned out I used FS_FileExists instead
+#ifndef DEDICATED
 			if ( fs_numServerPaks ) {
 				if ( !checked ) {
 					checked = qtrue;
@@ -1654,7 +1663,7 @@ int FS_FOpenFileRead( const char *filename, fileHandle_t *file, qboolean uniqueF
 					continue;
 				}
 			}
-
+#endif
 			dir = search->dir;
 			
 			netpath = FS_BuildOSPath( dir->path, dir->gamedir, filename );
@@ -1685,6 +1694,7 @@ int FS_FOpenFileRead( const char *filename, fileHandle_t *file, qboolean uniqueF
 	return -1;
 }
 
+
 int FS_FOpenFileRead_Filtered( const char *qpath, fileHandle_t *file, qboolean uniqueFILE, int filter_flag ) {
 	int ret;
 
@@ -1694,6 +1704,55 @@ int FS_FOpenFileRead_Filtered( const char *qpath, fileHandle_t *file, qboolean u
 
 	return ret;
 }
+
+
+/*
+===========
+FS_TouchFileInPak
+===========
+*/
+int FS_TouchFileInPak( const char *filename ) {
+	const searchpath_t *search;
+	long			fullHash, hash;
+	pack_t			*pak;
+	fileInPack_t	*pakFile;
+
+	fullHash = FS_HashFileName( filename, 0U );
+
+	for ( search = fs_searchpaths ; search ; search = search->next ) {
+		
+		// is the element a pak file?
+		if ( !search->pack )
+			continue;
+		
+		if ( search->pack->exclude ) // skip paks in \fs_excludeReference list
+			continue;
+
+		if ( search->pack->hashTable[ (hash = fullHash & (search->pack->hashSize-1)) ] ) {
+			pak = search->pack;
+			pakFile = pak->hashTable[hash];
+			do {
+				// case and separator insensitive comparisons
+				if ( !FS_FilenameCompare( pakFile->name, filename ) ) {
+					// found it!
+					if ( !( pak->referenced & FS_GENERAL_REF ) && FS_GeneralRef( filename, pak->pakFilename ) ) {
+						pak->referenced |= FS_GENERAL_REF;
+					}
+					if ( !( pak->referenced & FS_CGAME_REF ) && !FS_FilenameCompare( filename, SYS_DLLNAME_CGAME ) ) {
+						pak->referenced |= FS_CGAME_REF;
+					}
+					if ( !( pak->referenced & FS_UI_REF ) && !FS_FilenameCompare( filename, SYS_DLLNAME_UI ) ) {
+						pak->referenced |= FS_UI_REF;
+					}
+					return pak->referenced;
+				}
+				pakFile = pakFile->next;
+			} while ( pakFile != NULL );
+		}
+	}
+	return 0;
+}
+
 
 /*
 ===========
@@ -2278,6 +2337,10 @@ qboolean FS_FileIsInPAK( const char *filename, int *pChecksum, char *pakName ) {
 			//if ( !FS_PakIsPure( search->pack ) ) {
 			//	continue;
 			//}
+			//
+			if ( search->pack->exclude ) {
+				continue;
+			}
 
 			// look through all the pak file elements
 			pak = search->pack;
@@ -3202,11 +3265,12 @@ static pack_t *FS_LoadZipFile( const char *zipfile )
 	fileNameLen = (int) strlen( zipfile ) + 1;
 	baseNameLen = (int) strlen( basename ) + 1;
 
-	uf = unzOpen(zipfile);
-	err = unzGetGlobalInfo (uf,&gi);
+	uf = unzOpen( zipfile );
+	err = unzGetGlobalInfo( uf, &gi );
 
-	if (err != UNZ_OK)
+	if ( err != UNZ_OK ) {
 		return NULL;
+	}
 
 	namelen = 0;
 	filecount = 0;
@@ -3960,8 +4024,12 @@ static int FS_GetModList( char *listbuf, int bufsize ) {
 				}
 			}
 		}
-		// we also drop "baseq3" "." and ".."
-		if ( bDrop || /*Q_stricmp( name, fs_basegame->string ) == 0 ||*/ Q_stricmpn(name, ".", 1) == 0 ) {
+
+		// we also drop BASEGAME "." and ".."
+		if ( bDrop /*|| Q_stricmp( name, fs_basegame->string ) == 0 ||*/ ) {
+			continue;
+		}
+		if ( strcmp( name, "." ) == 0 || strcmp( name, ".." ) == 0 ) {
 			continue;
 		}
 
@@ -4441,6 +4509,7 @@ static void FS_AddGameDirectory( const char *path, const char *dir ) {
 
 			pak->index = fs_packCount;
 			pak->referenced = 0;
+			pak->exclude = qfalse;
 
 			fs_packFiles += pak->numfiles;
 			fs_packCount++;
@@ -4898,6 +4967,8 @@ static void FS_Startup( void ) {
 		Cvar_ForceReset( "fs_game" );
 	}
 
+	fs_excludeReference = Cvar_Get( "fs_excludeReference", "", CVAR_ARCHIVE_ND | CVAR_LATCH );
+
 	start = Sys_Milliseconds();
 
 #ifdef USE_PK3_CACHE
@@ -5200,15 +5271,16 @@ The server will send this to the clients so they can check which files should be
 const char *FS_ReferencedPakChecksums( void ) {
 	static char	info[BIG_INFO_STRING];
 	searchpath_t *search;
-	size_t len;
 
 	info[0] = '\0';
-	len = strlen( fs_basegame->string );
 
 	for ( search = fs_searchpaths ; search ; search = search->next ) {
 		// is the element a pak file?
 		if ( search->pack ) {
-			if ( search->pack->referenced || Q_stricmpn( search->pack->pakGamename, fs_basegame->string, len ) ) {
+			if ( search->pack->exclude ) {
+				continue;
+			}
+			if ( search->pack->referenced || Q_stricmp( search->pack->pakGamename, fs_basegame->string ) ) {
 				Q_strcat( info, sizeof( info ), va( "%i ", search->pack->checksum ) );
 			}
 		}
@@ -5277,6 +5349,44 @@ const char *FS_ReferencedPakPureChecksums( int maxlen ) {
 
 /*
 =====================
+FS_ExcludeReference
+=====================
+*/
+qboolean FS_ExcludeReference( void ) {
+	const searchpath_t *search;
+	const char *pakName;
+	int i, nargs;
+	qboolean x;
+
+	if ( fs_excludeReference->string[0] == '\0' )
+		return qfalse;
+
+	Cmd_TokenizeStringIgnoreQuotes( fs_excludeReference->string );
+	nargs = Cmd_Argc();
+	x = qfalse;
+
+	for ( search = fs_searchpaths ; search ; search = search->next ) {
+		if ( search->pack ) {
+			if ( !search->pack->referenced ) {
+				continue;
+			}
+			pakName = va( "%s/%s", search->pack->pakGamename, search->pack->pakBasename );
+			for ( i = 0; i < nargs; i++ ) {
+				if ( Q_stricmp( Cmd_Argv( i ), pakName ) == 0 ) {
+					search->pack->exclude = qtrue;
+					x = qtrue;
+					break;
+				}
+			}
+		}
+	}
+
+	return x;
+}
+
+
+/*
+=====================
 FS_ReferencedPakNames
 
 Returns a space separated string containing the names of all referenced pk3 files.
@@ -5286,23 +5396,23 @@ The server will send this to the clients so they can check which files should be
 const char *FS_ReferencedPakNames( void ) {
 	static char	info[BIG_INFO_STRING];
 	const searchpath_t *search;
-	size_t	len;
-
+	const char *pakName;
 	info[0] = '\0';
-	len = strlen( fs_basegame->string );
 
 	// we want to return ALL pk3's from the fs_game path
 	// and referenced one's from baseq3
 	for ( search = fs_searchpaths ; search ; search = search->next ) {
 		// is the element a pak file?
 		if ( search->pack ) {
-			if ( search->pack->referenced || Q_stricmpn( search->pack->pakGamename, fs_basegame->string, len ) ) {
-				if ( *info ) {
+			if ( search->pack->exclude ) {
+				continue;
+			}
+			if ( search->pack->referenced || Q_stricmp( search->pack->pakGamename, fs_basegame->string ) ) {
+				pakName = va( "%s/%s", search->pack->pakGamename, search->pack->pakBasename );
+				if ( *info != '\0' ) {
 					Q_strcat( info, sizeof( info ), " " );
 				}
-				Q_strcat( info, sizeof( info ), search->pack->pakGamename );
-				Q_strcat( info, sizeof( info ), "/" );
-				Q_strcat( info, sizeof( info ), search->pack->pakBasename );
+				Q_strcat( info, sizeof( info ), pakName );
 			}
 		}
 	}

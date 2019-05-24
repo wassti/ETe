@@ -356,10 +356,10 @@ static void SV_MapRestart_f( void ) {
 
 	// check for changes in variables that can't just be restarted
 	// check for maxclients change
-	if ( sv_maxclients->modified ) {
+	if ( sv_maxclients->modified || sv_pure->modified ) {
 		char mapname[MAX_QPATH];
 
-		Com_Printf( "sv_maxclients variable change -- restarting.\n" );
+		Com_Printf( "variable change -- restarting.\n" );
 		// restart the map the slow way
 		Q_strncpyz( mapname, Cvar_VariableString( "mapname" ), sizeof( mapname ) );
 

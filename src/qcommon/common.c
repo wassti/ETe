@@ -250,28 +250,34 @@ int QDECL Com_VPrintf( const char *fmt, va_list argptr ) {
 
 	// logfile
 	if ( com_logfile && com_logfile->integer ) {
-    // TTimo: only open the qconsole.log if the filesystem is in an initialized state
-    //   also, avoid recursing in the qconsole.log opening (i.e. if fs_debug is on)
+		// TTimo: only open the qconsole.log if the filesystem is in an initialized state
+		//   also, avoid recursing in the qconsole.log opening (i.e. if fs_debug is on)
 		if ( logfile == FS_INVALID_HANDLE && FS_Initialized() && !opening_qconsole ) {
 			struct tm *newtime;
 			time_t aclock;
+			int mode;
 
 			opening_qconsole = qtrue;
 
 			time( &aclock );
 			newtime = localtime( &aclock );
 
-			logfile = FS_FOpenFileWrite( "etconsole.log" );
+			mode = com_logfile->integer - 1;
 
+			if ( mode & 2 )
+				logfile = FS_FOpenFileAppend( "etconsole.log" );
+			else
+				logfile = FS_FOpenFileWrite( "etconsole.log" );
+			
 			if ( logfile != FS_INVALID_HANDLE )
 			{
 				Com_Printf( "logfile opened on %s\n", asctime( newtime ) );
-		
-				if ( com_logfile->integer > 1 )
+
+				if ( mode & 1 )
 				{
 					// force it to not buffer so we get valid
 					// data even if we are crashing
-					FS_ForceFlush(logfile);
+					FS_ForceFlush( logfile );
 				}
 			}
 			else
@@ -3714,7 +3720,14 @@ void Com_Init( char *commandLine ) {
 	com_affinityMask->modified = qfalse;
 #endif
 
-	com_logfile = Cvar_Get ("logfile", "0", CVAR_TEMP );
+	com_logfile = Cvar_Get( "logfile", "0", CVAR_TEMP );
+	Cvar_CheckRange( com_logfile, "0", "4", CV_INTEGER );
+	Cvar_SetDescription( com_logfile, "System console logging:\n"
+		" 0 - disabled\n"
+		" 1 - overwrite mode, buffered\n"
+		" 2 - overwrite mode, synced\n"
+		" 3 - append mode, buffered\n"
+		" 4 - append mode, synced\n" );
 
 	com_timescale = Cvar_Get( "timescale", "1", CVAR_CHEAT | CVAR_SYSTEMINFO );
 	Cvar_CheckRange( com_timescale, "0", NULL, CV_FLOAT );

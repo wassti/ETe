@@ -1373,6 +1373,9 @@ static qboolean FS_DeniedPureFile( const char *filename )
 		"menu",		// menu files
 		"game",		// menu files
 		"h",		// menu files
+#if PROTOCOL_VERSION != 84 || NEW_PROTOCOL_VERSION != 85
+#erro	please, update demo extension list
+#endif
 		DEMOEXT "84", // 2.60b demo files
 		DEMOEXT "85", // new protocol demo files
 		"botents"	// bot files
@@ -5197,6 +5200,9 @@ const char *FS_LoadedPakChecksums( qboolean *overflowed ) {
 		if ( !search->pack )
 			continue;
 
+		if ( search->pack->exclude )
+			continue;
+
 		if ( info[0] )
 			len = sprintf( buf, " %i", search->pack->checksum );
 		else
@@ -5236,6 +5242,9 @@ const char *FS_LoadedPakNames( void ) {
 	for ( search = fs_searchpaths ; search ; search = search->next ) {
 		// is the element a pak file?
 		if ( !search->pack )
+			continue;
+
+		if ( search->pack->exclude )
 			continue;
 
 		// Arnout: changed to have the full path

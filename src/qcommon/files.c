@@ -1374,7 +1374,7 @@ static qboolean FS_DeniedPureFile( const char *filename )
 		"game",		// menu files
 		"h",		// menu files
 #if PROTOCOL_VERSION != 84 || NEW_PROTOCOL_VERSION != 85
-#erro	please, update demo extension list
+#error	please, update demo extension list
 #endif
 		DEMOEXT "84", // 2.60b demo files
 		DEMOEXT "85", // new protocol demo files

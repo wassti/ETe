@@ -546,8 +546,9 @@ void CL_SystemInfoChanged( qboolean onlyGame ) {
 
 	if ( com_sv_running->integer ) {
 		// no filesystem restrictions for localhost
-		FS_PureServerSetLoadedPaks( "", "" );
-		FS_PureServerSetReferencedPaks( "", "" );
+		FS_ClearPureServerPaks();
+		//FS_PureServerSetLoadedPaks( "", "" );
+		//FS_PureServerSetReferencedPaks( "", "" );
 	} else {
 		// check pure server string
 		s = Info_ValueForKey( systemInfo, "sv_paks" );

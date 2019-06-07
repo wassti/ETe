@@ -295,7 +295,7 @@ void CON_SigTStp( int signum )
 
 #define MAX_CMD 1024
 static char exit_cmdline[MAX_CMD] = "";
-void Sys_DoStartProcess( char *cmdline );
+void Sys_DoStartProcess( const char *cmdline );
 
 // single exit point (regular exit or in case of signal fault)
 void Sys_Exit( int code ) __attribute((noreturn));
@@ -1159,7 +1159,7 @@ UGLY HACK:
   The clean solution would be Sys_StartProcess and Sys_StartProcess_Args..
 ==================
 */
-void Sys_DoStartProcess( char *cmdline ) {
+void Sys_DoStartProcess( const char *cmdline ) {
 	switch ( fork() )
 	{
 	case - 1:
@@ -1205,9 +1205,7 @@ Sys_OpenURL
 =================
 */
 void Sys_OpenURL( const char *url, qboolean doexit ) {
-	char *basepath, *homepath, *pwdpath;
-	char fname[20];
-	char fn[MAX_OSPATH];
+#ifndef DEDICATED
 	char cmdline[MAX_CMD];
 
 	static qboolean doexit_spamguard = qfalse;
@@ -1221,44 +1219,14 @@ void Sys_OpenURL( const char *url, qboolean doexit ) {
 	// opening an URL on *nix can mean a lot of things ..
 	// just spawn a script instead of deciding for the user :-)
 
-	// do the setup before we fork
-	// search for an openurl.sh script
-	// search procedure taken from Sys_LoadDll
-	Q_strncpyz( fname, "openurl.sh", 20 );
+	Com_sprintf( cmdline, sizeof(cmdline), "xdg-open '%s' &", url );
 
-	pwdpath = Sys_Pwd();
-	Com_sprintf( fn, MAX_OSPATH, "%s/%s", pwdpath, fname );
-	if ( access( fn, X_OK ) == -1 ) {
-		Com_DPrintf( "%s not found\n", fn );
-		// try in home path
-		homepath = Cvar_VariableString( "fs_homepath" );
-		Com_sprintf( fn, MAX_OSPATH, "%s/%s", homepath, fname );
-		if ( access( fn, X_OK ) == -1 ) {
-			Com_DPrintf( "%s not found\n", fn );
-			// basepath, last resort
-			basepath = Cvar_VariableString( "fs_basepath" );
-			Com_sprintf( fn, MAX_OSPATH, "%s/%s", basepath, fname );
-			if ( access( fn, X_OK ) == -1 ) {
-				Com_DPrintf( "%s not found\n", fn );
-				Com_Printf( "Can't find script '%s' to open requested URL (use +set developer 1 for more verbosity)\n", fname );
-				// we won't quit
-				return;
-			}
-		}
-	}
-
-	// show_bug.cgi?id=612
 	if ( doexit ) {
 		doexit_spamguard = qtrue;
 	}
 
-	Com_DPrintf( "URL script: %s\n", fn );
-
-	// build the command line
-	Com_sprintf( cmdline, MAX_CMD, "%s '%s' &", fn, url );
-
 	Sys_StartProcess( cmdline, doexit );
-
+#endif
 }
 
 

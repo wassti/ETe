@@ -822,6 +822,8 @@ qboolean CopyDLLForMod( char **p_fn, const char* gamedir, const char *pwdpath, c
 const char* Sys_GetDLLName( const char *name ) {
 #if defined __i386__
 	return va( "%s.mp.i386.so", name );
+#elif defined __x86_64__
+	return va( "%s.mp.x86_64.so", name );
 #elif defined __ppc__
 	return va( "%s.mp.ppc.so", name );
 #elif defined __axp__

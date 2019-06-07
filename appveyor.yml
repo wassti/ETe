@@ -13,10 +13,10 @@ build_script:
 artifacts:
   - path: ETe*.7z
 deploy:
- description: 'release description'
+ description: ''
  provider: GitHub
  auth_token:
-   secure: 'vRDRwIAOZhl6vY0rF1iR5vR36hYorxMHfSBvlVtm9hP6w4CVLUfh/jgRMwhWnWg8'
+   secure: 'ocTqqbL+j4fZepSEpb1U76avHU0R/58qH9m2pTtgFGPHbIop7Pu6GLifZSnQm0Ym'
  draft: true
  prerelease: true
  on:

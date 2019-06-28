@@ -858,14 +858,15 @@ game complete. Useful for tracking global player stats.
 =================
 */
 void SVC_GameCompleteStatus( const netadr_t *from ) {
-	char player[MAX_NAME_LENGTH + 32]; // score + ping + name
-	char status[MAX_PACKETLEN];
-	int i;
-	client_t    *cl;
-	playerState_t   *ps;
-	int statusLength;
-	int playerLength;
-	char infostring[MAX_INFO_STRING+160]; // add some space for challenge string
+	char	player[MAX_NAME_LENGTH + 32]; // score + ping + name
+	char	status[MAX_PACKETLEN];
+	char	*s;
+	int		i;
+	client_t	*cl;
+	playerState_t	*ps;
+	int		statusLength;
+	int		playerLength;
+	char	infostring[MAX_INFO_STRING+160]; // add some space for challenge string
 
 	// ignore if we are in single player
 	if ( SV_GameIsSinglePlayer() ) {
@@ -903,20 +904,21 @@ void SVC_GameCompleteStatus( const netadr_t *from ) {
 	// to prevent timed spoofed reply packets that add ghost servers
 	Info_SetValueForKey( infostring, "challenge", Cmd_Argv( 1 ) );
 
-	status[0] = 0;
-	statusLength = 0;
+	s = status;
+	status[0] = '\0';
+	statusLength = strlen( infostring ) + 20; // strlen( "gameCompleteStatus\n\n" )
 
 	for ( i = 0 ; i < sv_maxclients->integer ; i++ ) {
 		cl = &svs.clients[i];
 		if ( cl->state >= CS_CONNECTED ) {
 			ps = SV_GameClientNum( i );
-			Com_sprintf( player, sizeof( player ), "%i %i \"%s\"\n",
-						 ps->persistant[PERS_SCORE], cl->ping, cl->name );
-			playerLength = strlen( player );
-			if ( statusLength + playerLength >= sizeof( status ) ) {
-				break;      // can't hold any more
-			}
-			strcpy( status + statusLength, player );
+			playerLength = Com_sprintf( player, sizeof( player ), "%i %i \"%s\"\n",
+				ps->persistant[PERS_SCORE], cl->ping, cl->name );
+
+			if ( statusLength + playerLength >= MAX_PACKETLEN-4 )
+				break; // can't hold any more
+
+			s = Q_stradd( s, player );
 			statusLength += playerLength;
 		}
 	}

@@ -18,6 +18,6 @@ deploy:
  auth_token:
    secure: 'ocTqqbL+j4fZepSEpb1U76avHU0R/58qH9m2pTtgFGPHbIop7Pu6GLifZSnQm0Ym'
  draft: true
- prerelease: true
+ prerelease: false
  on:
   appveyor_repo_tag: true

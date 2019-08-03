@@ -1967,13 +1967,25 @@ static qboolean ParseShader( const char **text )
 		// fogParms
 		else if ( !Q_stricmp( token, "fogParms" ) ) 
 		{
+			vec3_t fogColor;
+
 			if ( !ParseVector( text, 3, shader.fogParms.color ) ) {
 				return qfalse;
 			}
 
-			shader.fogParms.colorInt = ColorBytes4( shader.fogParms.color[0] * tr.identityLight,
-													shader.fogParms.color[1] * tr.identityLight,
-													shader.fogParms.color[2] * tr.identityLight, 1.0 );
+			VectorCopy( shader.fogParms.color, fogColor );
+
+			if ( r_mapGreyScale->value > 0 ) {
+				float luminance;
+				luminance = LUMA( fogColor[0], fogColor[1], fogColor[2] );
+				fogColor[0] = LERP( fogColor[0], luminance, r_mapGreyScale->value );
+				fogColor[1] = LERP( fogColor[1], luminance, r_mapGreyScale->value );
+				fogColor[2] = LERP( fogColor[2], luminance, r_mapGreyScale->value );
+			}
+
+			shader.fogParms.colorInt = ColorBytes4( fogColor[0] * tr.identityLight,
+													fogColor[1] * tr.identityLight,
+													fogColor[2] * tr.identityLight, 1.0 );
 
 			shader.fogParms.color[3] = 1.0;
 

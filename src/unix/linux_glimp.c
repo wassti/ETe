@@ -1029,6 +1029,8 @@ void GLimp_Shutdown( qboolean unloadDLL )
 {
 	IN_DeactivateMouse();
 
+	Cvar_ForceReset("r_currentResolution");
+
 	if ( dpy )
 	{
 		if ( glw_state.randr_gamma && glw_state.gammaSet )
@@ -1117,10 +1119,12 @@ static qboolean GLW_StartDriverAndSetMode( const char *drivername, int mode, con
 	{
 	case RSERR_INVALID_FULLSCREEN:
 		Com_Printf( "...WARNING: fullscreen unavailable in this mode\n" );
+		Cvar_ForceReset("r_currentResolution");
 		return qfalse;
 
 	case RSERR_INVALID_MODE:
 		Com_Printf( "...WARNING: could not set the given mode (%d)\n", mode );
+		Cvar_ForceReset("r_currentResolution");
 		return qfalse;
 
 	default:
@@ -1128,6 +1132,7 @@ static qboolean GLW_StartDriverAndSetMode( const char *drivername, int mode, con
 	}
 
 	glw_state.config->isFullscreen = fullscreen;
+	Cvar_Set("r_currentResolution", va("%dx%d", glw_state.config->vidWidth, glw_state.config->vidHeight));
 
 	return qtrue;
 }

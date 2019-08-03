@@ -122,6 +122,7 @@ cvar_t *r_colorbits;
 cvar_t *r_stencilbits;
 cvar_t *r_depthbits;
 cvar_t *r_drawBuffer;
+cvar_t *r_currentResolution;
 
 // this is shared with the OS sys files
 cvar_t *in_forceCharset;
@@ -4202,6 +4203,9 @@ static void CL_InitGLimp_Cvars( void )
 	Cvar_CheckRange( r_mode, "-2", va( "%i", s_numVidModes-1 ), CV_INTEGER );
 	Cvar_SetDescription( r_mode, "Set video mode:\n -2 - use current desktop resolution\n -1 - use \\r_customWidth and \\r_customHeight\n  0..N - enter \\modelist for details" );
 	Cvar_SetDescription( r_modeFullscreen, "Dedicated fullscreen mode, set to \"\" to use \\r_mode in all cases" );
+
+	r_currentResolution = Cvar_Get("r_currentResolution", "", CVAR_ROM | CVAR_PROTECTED);
+	Cvar_SetDescription(r_currentResolution, "Current game window resolution depending on fullscreen state");
 
 	r_fullscreen = Cvar_Get( "r_fullscreen", "1", CVAR_ARCHIVE | CVAR_LATCH );
 	r_customaspect = Cvar_Get( "r_customaspect", "1", CVAR_ARCHIVE_ND | CVAR_LATCH );

@@ -509,6 +509,7 @@ extern	cvar_t	*r_colorbits;
 extern	cvar_t	*r_stencilbits;
 extern	cvar_t	*r_depthbits;
 extern	cvar_t	*r_drawBuffer;
+extern	cvar_t	*r_currentResolution;
 
 //=================================================
 

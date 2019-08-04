@@ -20,7 +20,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
 
-#include "tr_common.h"
+#include "../qcommon/q_shared.h"
+#include "../renderercommon/tr_public.h"
 
 /*
 ========================================================================
@@ -40,11 +41,11 @@ typedef struct _TargaHeader {
 
 void R_LoadTGA ( const char *name, byte **pic, int *width, int *height)
 {
-	unsigned	columns, rows, numPixels;
-	byte	*pixbuf;
-	int		row, column;
-	byte	*buf_p;
-	byte	*end;
+	uint32_t	columns, rows, numPixels;
+	byte		*pixbuf;
+	uint32_t	row, column;
+	byte		*buf_p;
+	byte		*end;
 	union {
 		byte *b;
 		void *v;
@@ -145,7 +146,7 @@ void R_LoadTGA ( const char *name, byte **pic, int *width, int *height)
 		}
 
 		// Uncompressed RGB or gray scale image
-		for(row=rows-1; row>=0; row--) 
+		for(row=rows-1; row!=UINT_MAX; row--) 
 		{
 			pixbuf = targa_rgba + row*columns*4;
 			for(column=0; column<columns; column++) 
@@ -193,7 +194,7 @@ void R_LoadTGA ( const char *name, byte **pic, int *width, int *height)
 	else if (targa_header.image_type==10) {   // Runlength encoded RGB images
 		unsigned char red,green,blue,alphabyte,packetHeader,packetSize,j;
 
-		for(row=rows-1; row>=0; row--) {
+		for(row=rows-1; row!=UINT_MAX; row--) {
 			pixbuf = targa_rgba + row*columns*4;
 			for(column=0; column<columns; ) {
 				if(buf_p + 1 > end)

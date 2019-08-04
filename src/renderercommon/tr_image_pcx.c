@@ -21,7 +21,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
 
-#include "tr_common.h"
+#include "../qcommon/q_shared.h"
+#include "../renderercommon/tr_public.h"
 
 /*
 ========================================================================
@@ -32,20 +33,20 @@ PCX files are used for 8 bit images
 */
 
 typedef struct {
-	char	manufacturer;
-	char	version;
-	char	encoding;
-	char	bits_per_pixel;
-	unsigned short	xmin,ymin,xmax,ymax;
-	unsigned short	hres,vres;
-	unsigned char	palette[48];
-	char	reserved;
-	char	color_planes;
-	unsigned short	bytes_per_line;
-	unsigned short	palette_type;
-	unsigned short	hscreensize, vscreensize;
-	char	filler[54];
-	unsigned char	data[];
+	int8_t		manufacturer;
+	int8_t		version;
+	int8_t		encoding;
+	int8_t		bits_per_pixel;
+	uint16_t	xmin,ymin,xmax,ymax;
+	uint16_t	hres,vres;
+	byte		palette[48];
+	int8_t		reserved;
+	int8_t		color_planes;
+	uint16_t	bytes_per_line;
+	uint16_t	palette_type;
+	uint16_t	hscreensize, vscreensize;
+	int8_t		filler[54];
+	byte		data[];
 } pcx_t;
 
 void R_LoadPCX ( const char *filename, byte **pic, int *width, int *height)
@@ -57,9 +58,9 @@ void R_LoadPCX ( const char *filename, byte **pic, int *width, int *height)
 	byte	*end;
 	pcx_t	*pcx;
 	int		len;
-	unsigned char	dataByte = 0, runLength = 0;
+	byte dataByte = 0, runLength = 0;
 	byte	*out, *pix;
-	unsigned short w, h;
+	uint16_t w, h;
 	byte	*pic8;
 	byte	*palette;
 	int	i;

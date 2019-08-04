@@ -230,6 +230,9 @@
     <ClCompile Include="win32\win_qgl.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="win32\win_qvk.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="win32\win_dpi.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -298,7 +301,7 @@
     <ClInclude Include="game\surfaceflags.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="renderer\tr_public.h">
+    <ClInclude Include="renderercommon\tr_public.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ui\ui_public.h">

@@ -325,9 +325,8 @@ static void R_LoadMergedLightmaps( const lump_t *l )
 
 		tr.lightmaps[i] = R_CreateImage( va( "*lightmap%d", i ), image,
 			LIGHTMAP_SIZE * lightmapWidth, 
-			LIGHTMAP_SIZE * lightmapHeight,
-			IMGTYPE_COLORALPHA, 
-			lightmapFlags, 0 );
+			LIGHTMAP_SIZE * lightmapHeight, 
+			lightmapFlags );
 		ri.Printf( PRINT_DEVELOPER, "lightmaps[%i]=%i\n", i, tr.lightmaps[i]->texnum );
 	}
 
@@ -397,7 +396,7 @@ static void R_LoadLightmaps( const lump_t *l ) {
 		}
 
 		tr.lightmaps[i] = R_CreateImage( va( "*lightmap%d",i ), image,
-										 LIGHTMAP_SIZE, LIGHTMAP_SIZE, IMGTYPE_COLORALPHA, lightmapFlags, 0 );
+										 LIGHTMAP_SIZE, LIGHTMAP_SIZE, lightmapFlags );
 	}
 
 	if ( r_lightmap->integer > 1 ) {
@@ -2494,14 +2493,14 @@ static void R_LoadEntities( const lump_t *l ) {
 
 		// check for remapping of shaders
 		s = "remapshader";
-		if (!Q_strncmp(keyname, s, strlen(s)) ) {
+		if (!Q_strncmp(keyname, s, (int)strlen(s)) ) {
 			s = strchr(value, ';');
 			if (!s) {
 				ri.Printf( PRINT_WARNING, "WARNING: no semi colon in shaderremap '%s'\n", value );
 				break;
 			}
-			*s++ = 0;
-			R_RemapShader(value, s, "0");
+			*s++ = '\0';
+			RE_RemapShader(value, s, "0");
 			continue;
 		}
 		// check for a different grid size
@@ -2519,10 +2518,10 @@ static void R_LoadEntities( const lump_t *l ) {
 
 /*
 =================
-R_GetEntityToken
+RE_GetEntityToken
 =================
 */
-qboolean R_GetEntityToken( char *buffer, int size ) {
+qboolean RE_GetEntityToken( char *buffer, int size ) {
 	const char	*s;
 
 	s = COM_Parse( &s_worldData.entityParsePoint );

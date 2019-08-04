@@ -39,9 +39,13 @@ void IN_Shutdown (void);
 void IN_JoyMove( void );
 void IN_StartupJoystick( void );
 
-// GL subsystem
+// OpenGL subsystem
 qboolean QGL_Init( const char *dllname );
 void QGL_Shutdown( qboolean unloadDLL );
+
+// Vulkan subsystem
+qboolean QVK_Init( const char *dllname );
+void QVK_Shutdown( qboolean unloadDLL );
 
 char *strlwr (char *s);
 

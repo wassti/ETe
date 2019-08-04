@@ -20,9 +20,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
 
+#include "../qcommon/q_shared.h"
+#include "../renderercommon/tr_public.h"
 #include <setjmp.h>
-
-#include "tr_common.h"
 
 /*
  * Include file for users of JPEG library.
@@ -78,7 +78,7 @@ static void R_JPGOutputMessage(j_common_ptr cinfo)
   ri.Printf(PRINT_ALL, "%s\n", buffer);
 }
 
-void R_LoadJPG(const char *filename, unsigned char **pic, int *width, int *height)
+void R_LoadJPG(const char *filename, byte **pic, int *width, int *height)
 {
   /* This struct contains the JPEG decompression parameters and pointers to
    * working space (which is allocated as needed by the JPEG library).

@@ -25,8 +25,9 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-// tr_noise.c
-#include "tr_common.h"
+
+#include "../qcommon/q_shared.h"
+#include "../renderercommon/tr_public.h"
 
 #define NOISE_SIZE 256
 #define NOISE_MASK ( NOISE_SIZE - 1 )
@@ -48,7 +49,7 @@ void R_NoiseInit( void )
 {
 	int i;
 
-	srand( 1001 );
+	srand( 1001 ); // exists in vq3 and vet, removed in q3e at unknown time
 
 	for ( i = 0; i < NOISE_SIZE; i++ )
 	{

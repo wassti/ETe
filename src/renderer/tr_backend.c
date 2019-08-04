@@ -885,6 +885,8 @@ static void RB_RenderLitSurfList( dlight_t* dl ) {
 	oldSort = MAX_UINT;
 	depthRange = qfalse;
 
+	tess.dlightUpdateParams = qtrue;
+
 	for ( litSurf = dl->head; litSurf; litSurf = litSurf->next ) {
 		//if ( litSurf->sort == sort ) {
 		if ( litSurf->sort == oldSort ) {
@@ -1616,8 +1618,8 @@ void RB_ShowImages( void ) {
 
 	start = ri.Milliseconds();
 
-	for ( i=0 ; i<tr.numImages ; i++ ) {
-		image = tr.images[i];
+	for ( i = 0; i < tr.numImages; i++ ) {
+		image = tr.images[ i ];
 
 		w = glConfig.vidWidth / 40;
 		h = glConfig.vidHeight / 30;

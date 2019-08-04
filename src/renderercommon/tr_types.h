@@ -35,18 +35,6 @@ If you have questions concerning this license or the applicable additional terms
 #define MAX_DLIGHTS     32          // can't be increased, because bit flags are used on surfaces
 #define MAX_ENTITIES    1023        // can't be increased without changing drawsurf bit packing
 
-#ifdef USE_RENDERER2
-#define	REFENTITYNUM_BITS	11	// can't be increased without changing drawsurf bit packing
-#else
-#define	REFENTITYNUM_BITS	12	// as we actually using only 1 bit for dlight mask in opengl1 renderer
-#endif
-
-#define	REFENTITYNUM_MASK	((1<<REFENTITYNUM_BITS) - 1)
-// the last N-bit number (2^REFENTITYNUM_BITS - 1) is reserved for the special world refentity,
-//  and this is reflected by the value of MAX_REFENTITIES (which therefore is not a power-of-2)
-#define	MAX_REFENTITIES		((1<<REFENTITYNUM_BITS) - 1)
-#define	REFENTITYNUM_WORLD	((1<<REFENTITYNUM_BITS) - 1)
-
 // renderfx flags
 #define RF_MINLIGHT         0x000001        // allways have some light (viewmodel, some items)
 #define RF_THIRD_PERSON     0x000002        // don't draw through eyes, only mirrors (player bodies, chat sprites)

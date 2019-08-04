@@ -61,7 +61,7 @@ return a hash value for the filename
 
 #define generateHashValue Com_GenerateHashValue
 
-void R_RemapShader(const char *shaderName, const char *newShaderName, const char *timeOffset) {
+void RE_RemapShader(const char *shaderName, const char *newShaderName, const char *timeOffset) {
 	char		strippedName[MAX_QPATH];
 	int			hash;
 	shader_t	*sh, *sh2;
@@ -73,7 +73,7 @@ void R_RemapShader(const char *shaderName, const char *newShaderName, const char
 		sh = R_GetShaderByHandle(h);
 	}
 	if (sh == NULL || sh == tr.defaultShader) {
-		ri.Printf( PRINT_WARNING, "WARNING: R_RemapShader: shader %s not found\n", shaderName );
+		ri.Printf( PRINT_WARNING, "WARNING: RE_RemapShader: shader %s not found\n", shaderName );
 		return;
 	}
 
@@ -84,7 +84,7 @@ void R_RemapShader(const char *shaderName, const char *newShaderName, const char
 	}
 
 	if (sh2 == NULL || sh2 == tr.defaultShader) {
-		ri.Printf( PRINT_WARNING, "WARNING: R_RemapShader: new shader %s not found\n", newShaderName );
+		ri.Printf( PRINT_WARNING, "WARNING: RE_RemapShader: new shader %s not found\n", newShaderName );
 		return;
 	}
 
@@ -694,7 +694,6 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 			}
 			else
 			{
-				imgType_t type = IMGTYPE_COLORALPHA;
 				imgFlags_t flags = IMGFLAG_NONE;
 
 				if (!shader.noMipMaps)
@@ -706,7 +705,7 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 				if (shader.noLightScale)
 					flags |= IMGFLAG_NOLIGHTSCALE;
 
-				stage->bundle[0].image[0] = R_FindImageFile( token, type, flags );
+				stage->bundle[0].image[0] = R_FindImageFile( token, flags );
 
 				if ( !stage->bundle[0].image[0] )
 				{
@@ -720,7 +719,6 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 		//
 		else if ( !Q_stricmp( token, "clampmap" ) || !Q_stricmp( token, "screenMap" ) )
 		{
-			imgType_t type = IMGTYPE_COLORALPHA;
 			imgFlags_t flags;
 
 			if ( !Q_stricmp( token, "screenMap" ) ) {
@@ -751,7 +749,7 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 			if (shader.noLightScale)
 				flags |= IMGFLAG_NOLIGHTSCALE;
 
-			stage->bundle[0].image[0] = R_FindImageFile( token, type, flags );
+			stage->bundle[0].image[0] = R_FindImageFile( token, flags );
 			if ( !stage->bundle[0].image[0] )
 			{
 				ri.Printf( PRINT_WARNING, "WARNING: R_FindImageFile could not find '%s' in shader '%s'\n", token, shader.name );
@@ -789,7 +787,7 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 				}
 				continue;
 			} else {
-				stage->bundle[0].image[0] = R_FindImageFile( token, IMGTYPE_COLORALPHA,
+				stage->bundle[0].image[0] = R_FindImageFile( token,
 						IMGFLAG_LIGHTMAP | IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE );
 				if ( !stage->bundle[0].image[0] ) {
 					ri.Printf( PRINT_WARNING, "WARNING: R_FindImageFile could not find '%s' in shader '%s'\n", token, shader.name );
@@ -834,7 +832,7 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 					if (shader.noLightScale)
 						flags |= IMGFLAG_NOLIGHTSCALE;
 
-					stage->bundle[0].image[num] = R_FindImageFile( token, IMGTYPE_COLORALPHA, flags );
+					stage->bundle[0].image[num] = R_FindImageFile( token, flags );
 					if ( !stage->bundle[0].image[num] )
 					{
 						ri.Printf( PRINT_WARNING, "WARNING: R_FindImageFile could not find '%s' in shader '%s'\n", token, shader.name );
@@ -862,6 +860,8 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 			if (stage->bundle[0].videoMapHandle != -1) {
 				stage->bundle[0].isVideoMap = qtrue;
 				stage->bundle[0].image[0] = tr.scratchImage[stage->bundle[0].videoMapHandle];
+			} else {
+				ri.Printf( PRINT_WARNING, "WARNING: could not load '%s' for 'videoMap' keyword in shader '%s'\n", token, shader.name );
 			}
 		}
 		//
@@ -1461,7 +1461,7 @@ static void ParseSkyParms( const char **text ) {
 	if ( strcmp( token, "-" ) ) {
 		for (i=0 ; i<6 ; i++) {
 			Com_sprintf( pathname, sizeof(pathname), "%s_%s.tga", token, suf[i] );
-			shader.sky.outerbox[i] = R_FindImageFile( ( char * ) pathname, IMGTYPE_COLORALPHA, imgFlags | IMGFLAG_CLAMPTOEDGE );
+			shader.sky.outerbox[i] = R_FindImageFile( pathname, imgFlags | IMGFLAG_CLAMPTOEDGE );
 
 			if ( !shader.sky.outerbox[i] ) {
 				shader.sky.outerbox[i] = tr.defaultImage;
@@ -1492,7 +1492,7 @@ static void ParseSkyParms( const char **text ) {
 		for (i=0 ; i<6 ; i++) {
 			Com_sprintf( pathname, sizeof(pathname), "%s_%s.tga"
 				, token, suf[i] );
-			shader.sky.innerbox[i] = R_FindImageFile( ( char * ) pathname, IMGTYPE_COLORALPHA, imgFlags );
+			shader.sky.innerbox[i] = R_FindImageFile( pathname, imgFlags );
 			if ( !shader.sky.innerbox[i] ) {
 				shader.sky.innerbox[i] = tr.defaultImage;
 			}
@@ -3545,7 +3545,7 @@ void R_FindLightmap( int *lightmapIndex ) {
 
 	// attempt to load an external lightmap
 	Com_sprintf( fileName, sizeof (fileName), "%s/" EXTERNAL_LIGHTMAP, tr.worldRawName, *lightmapIndex );
-	image = R_FindImageFile( fileName, IMGTYPE_COLORALPHA, IMGFLAG_LIGHTMAP | IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE );
+	image = R_FindImageFile( fileName, IMGFLAG_LIGHTMAP | IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE );
 	if ( image == NULL ) {
 		*lightmapIndex = LIGHTMAP_BY_VERTEX;
 		return;
@@ -3731,7 +3731,7 @@ shader_t *R_FindShader( const char *name, int lightmapIndex, qboolean mipRawImag
 		if ( !shader_allowCompress )
 			flags |= IMGFLAG_NO_COMPRESSION;
 
-		image = R_FindImageFile( fileName, IMGTYPE_COLORALPHA, flags );
+		image = R_FindImageFile( fileName, flags );
 		if ( !image ) {
 			//ri.Printf( PRINT_DEVELOPER, "Couldn't find image for shader %s\n", name );
 			ri.Printf( PRINT_WARNING, "Couldn't find image file for shader %s\n", name );

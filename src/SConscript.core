@@ -184,6 +184,7 @@ linux_sources = [
 linux_full_sources = [
 'unix/linux_glimp.c',
 'unix/linux_qgl.c',
+'unix/linux_qvk.c',
 'unix/linux_snd.c',
 'qcommon/puff.c',
 'unix/x11_dga.c',

@@ -516,7 +516,7 @@ void R_TransformClipToWindow( const vec4_t clip, const viewParms_t *view, vec4_t
 myGlMultMatrix
 ==========================
 */
-static void myGlMultMatrix( const float *a, const float *b, float *out ) {
+void myGlMultMatrix( const float *a, const float *b, float *out ) {
 	int		i, j;
 
 	for ( i = 0 ; i < 4 ; i++ ) {
@@ -1276,6 +1276,10 @@ static qboolean IsMirror( const drawSurf_t *drawSurf, int entityNum )
 		// translate the original plane
 		originalPlane.dist = originalPlane.dist + DotProduct( originalPlane.normal, tr.orientation.origin );
 	}
+	else
+	{
+		plane = originalPlane;
+	}
 
 	// locate the portal entity closest to this plane.
 	// origin will be the origin of the portal, origin2 will be
@@ -1357,6 +1361,7 @@ static qboolean SurfIsOffscreen( const drawSurf_t *drawSurf, qboolean *isMirror 
 	// trivially reject
 	if ( pointAnd )
 	{
+		tess.numIndexes = 0;
 		return qtrue;
 	}
 
@@ -1385,6 +1390,7 @@ static qboolean SurfIsOffscreen( const drawSurf_t *drawSurf, qboolean *isMirror 
 			numTriangles--;
 		}
 	}
+	tess.numIndexes = 0;
 	if ( !numTriangles )
 	{
 		return qtrue;

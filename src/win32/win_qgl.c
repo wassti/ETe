@@ -38,7 +38,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "../qcommon/q_shared.h"
 #include "../qcommon/qcommon.h"
 #include "../renderer/qgl.h"
-#include "../renderer/tr_types.h"
+#include "../renderercommon/tr_types.h"
 #include "glw_win.h"
 #include "win_local.h"
 

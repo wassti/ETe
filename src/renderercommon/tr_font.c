@@ -77,7 +77,7 @@ If you have questions concerning this license or the applicable additional terms
 // uncheck the exclude from build check box in the FreeType2 area of the Renderer project.
 
 
-#include "tr_common.h"
+#include "../renderer/tr_common.h"
 #include "../qcommon/qcommon.h"
 
 //#define BUILD_FREETYPE
@@ -490,7 +490,7 @@ void RE_RegisterFont(const char *fontName, int pointSize, fontInfo_t *font) {
 			}
 
 			//Com_sprintf (name, sizeof(name), "fonts/fontImage_%i_%i", imageNumber++, pointSize);
-			image = R_CreateImage(name, imageBuff, 256, 256, IMGTYPE_COLORALPHA, IMGFLAG_CLAMPTOEDGE, 0 );
+			image = R_CreateImage(name, imageBuff, 256, 256, IMGFLAG_CLAMPTOEDGE );
 			h = RE_RegisterShaderFromImage( name, LIGHTMAP_2D, image, qfalse );
 			for ( j = lastStart; j < i; j++ ) {
 				font->glyphs[j].glyph = h;

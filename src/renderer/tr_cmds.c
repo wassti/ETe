@@ -720,6 +720,12 @@ void RE_RenderToTexture( int textureid, int x, int y, int w, int h ) {
 
 //	ri.Printf( PRINT_ALL, "RE_RenderToTexture\n" );
 
+	// Can't do GL_GENERATE_MIPMAP_SGIS without GL 1.4
+	if (gl_version <= 14) {
+		ri.Printf( PRINT_ALL, "WARNING: RE_RenderToTexture requires OpenGL 1.4 or newer!\n" );
+		return;
+	}
+
 	if ( textureid > tr.numImages || textureid < 0 ) {
 		ri.Printf( PRINT_ALL, "Warning: trap_R_RenderToTexture textureid %d out of range.\n", textureid );
 		return;

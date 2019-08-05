@@ -3852,7 +3852,7 @@ static void CL_InitRef( void ) {
 	rimp.CM_DrawDebugSurface = CM_DrawDebugSurface;
 
 	rimp.FS_ReadFile = FS_ReadFile;
-	rmpi.FS_FreeFile = FS_FreeFile;
+	rimp.FS_FreeFile = FS_FreeFile;
 	rimp.FS_WriteFile = FS_WriteFile;
 	rimp.FS_FreeFileList = FS_FreeFileList;
 	rimp.FS_ListFiles = FS_ListFiles;

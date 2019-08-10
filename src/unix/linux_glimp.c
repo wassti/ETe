@@ -1044,6 +1044,9 @@ void GLimp_Shutdown( qboolean unloadDLL )
 
 	if ( dpy )
 	{
+		XFlush( dpy );
+		XSync( dpy, True );
+
 		if ( glw_state.randr_gamma && glw_state.gammaSet )
 		{
 			RandR_RestoreGamma();
@@ -1066,6 +1069,9 @@ void GLimp_Shutdown( qboolean unloadDLL )
 
 		if ( glw_state.vidmode_active )
 			VidMode_RestoreMode();
+
+		XFlush( dpy );
+		XSync( dpy, True );
 
 		// NOTE TTimo opening/closing the display should be necessary only once per run
 		// but it seems QGL_Shutdown gets called in a lot of occasion

@@ -724,7 +724,7 @@ void print_state( snd_pcm_state_t state )
 	case(SND_PCM_STATE_PAUSED):   Com_Printf("SND_PCM_STATE_PAUSED\n");   break;
 	case(SND_PCM_STATE_SUSPENDED):Com_Printf("SND_PCM_STATE_SUSPENDED\n");break;
 	case(SND_PCM_STATE_DISCONNECTED):Com_Printf("SND_PCM_STATE_DISCONNECTED\n");break;
-	case(SND_PCM_STATE_PRIVATE1):Com_Printf("SND_PCM_STATE_PRIVATE1\n");break;
+	default:Com_Printf("Sound PCM state: %d\n", state);break;
 	};
 }
 

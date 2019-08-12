@@ -4,7 +4,7 @@ set -o verbose
 
 sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
 sudo apt-get -qq update
-sudo apt-get -y install gcc-7 g++-7 gcc-7-multilib g++-7-multilib
+sudo apt-get -y install gcc-8 g++-8 gcc-8-multilib g++-8-multilib
 sudo apt-get install mesa-common-dev:i386 libxxf86dga-dev:i386 libasound2-dev:i386 libxrandr-dev:i386 libxxf86vm-dev:i386 libbsd-dev:i386
 sudo apt-get install p7zip-full
 
@@ -12,8 +12,8 @@ sudo apt-get install p7zip-full
 
 #export BUILD_CONFIGURATION="Debug"
 export BUILD_CONFIGURATION="Release"
-export CC="gcc-7 -m32"
-export CXX="g++-7 -m32"
+export CC="gcc-8 -m32"
+export CXX="g++-8 -m32"
 
 cd src
 if [[ "$BUILD_CONFIGURATION" == "Release" ]] ; then

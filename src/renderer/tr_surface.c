@@ -365,17 +365,17 @@ static void RB_SurfaceTriangles( srfTriangles_t *srf ) {
 	qboolean	needsNormal;
 
 #ifdef USE_LEGACY_DLIGHTS
-	if (tess.allowVBO && srf->vboItemIndex && !srf->dlightBits) {
+	if ( tess.allowVBO && srf->vboItemIndex && !srf->dlightBits ) {
 #else
-	if (tess.allowVBO && srf->vboItemIndex) {
+	if ( tess.allowVBO && srf->vboItemIndex ) {
 #endif
 		// transition to vbo render list
-		if (!tess.vboIndex) {
+		if ( !tess.vboIndex ) {
 			RB_EndSurface();
 			RB_BeginSurface( tess.shader, tess.fogNum );
 			// set some dummy parameters for RB_EndSurface
-			tess.numIndexes = 6;
-			tess.numVertexes = 4;
+			tess.numIndexes = 1;
+			tess.numVertexes = 0;
 			VBO_ClearQueue();
 		}
 		tess.surfType = SF_TRIANGLES;
@@ -1499,8 +1499,8 @@ static void RB_SurfaceGrid( srfGridMesh_t *cv ) {
 			RB_EndSurface();
 			RB_BeginSurface( tess.shader, tess.fogNum );
 			// set some dummy parameters for RB_EndSurface
-			tess.numIndexes = 6;
-			tess.numVertexes = 4;
+			tess.numIndexes = 1;
+			tess.numVertexes = 0;
 			VBO_ClearQueue();
 		}
 		tess.surfType = SF_GRID;

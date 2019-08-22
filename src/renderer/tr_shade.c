@@ -977,20 +977,16 @@ void R_ComputeColors( const shaderStage_t *pStage )
 	case AGEN_SKIP:
 		break;
 	case AGEN_IDENTITY:
-		if ( pStage->rgbGen != CGEN_IDENTITY ) {
-			if ( ( pStage->rgbGen == CGEN_VERTEX && tr.identityLight != 1 ) ||
-				 pStage->rgbGen != CGEN_VERTEX ) {
-				for ( i = 0; i < tess.numVertexes; i++ ) {
-					tess.svars.colors[i][3] = 0xff;
-				}
+		if ( ( pStage->rgbGen == CGEN_VERTEX && tr.identityLight != 1 ) ||
+			 pStage->rgbGen != CGEN_VERTEX ) {
+			for ( i = 0; i < tess.numVertexes; i++ ) {
+				tess.svars.colors[i][3] = 0xff;
 			}
 		}
 		break;
 	case AGEN_CONST:
-		if ( pStage->rgbGen != CGEN_CONST ) {
-			for ( i = 0; i < tess.numVertexes; i++ ) {
-				tess.svars.colors[i][3] = pStage->constantColor[3];
-			}
+		for ( i = 0; i < tess.numVertexes; i++ ) {
+			tess.svars.colors[i][3] = pStage->constantColor[3];
 		}
 		break;
 	case AGEN_WAVEFORM:
@@ -1011,10 +1007,8 @@ void R_ComputeColors( const shaderStage_t *pStage )
 		break;
 		// done.
 	case AGEN_VERTEX:
-		if ( pStage->rgbGen != CGEN_VERTEX ) {
-			for ( i = 0; i < tess.numVertexes; i++ ) {
-				tess.svars.colors[i][3] = tess.vertexColors[i][3];
-			}
+		for ( i = 0; i < tess.numVertexes; i++ ) {
+			tess.svars.colors[i][3] = tess.vertexColors[i][3];
 		}
 		break;
 	case AGEN_ONE_MINUS_VERTEX:

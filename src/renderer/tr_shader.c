@@ -3205,6 +3205,19 @@ static shader_t *FinishShader( void ) {
 		shader.sort = SS_OPAQUE;
 	}
 
+	// fix alphaGen flags to avoid redundant comparisons in R_ComputeColors()
+	for ( i = 0; i < MAX_SHADER_STAGES; i++ ) {
+		shaderStage_t *pStage = &stages[ i ];
+		if ( !pStage->active )
+			break;
+		if ( pStage->rgbGen == CGEN_IDENTITY && pStage->alphaGen == AGEN_IDENTITY )
+			pStage->alphaGen = AGEN_SKIP;
+		else if ( pStage->rgbGen == CGEN_CONST && pStage->alphaGen == AGEN_CONST )
+			pStage->alphaGen = AGEN_SKIP;
+		else if ( pStage->rgbGen == CGEN_VERTEX && pStage->alphaGen == AGEN_VERTEX )
+			pStage->alphaGen = AGEN_SKIP;
+	}
+
 	//
 	// if we are using permedia hw,	 never use a lightmap texture
 	//

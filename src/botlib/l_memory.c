@@ -344,7 +344,7 @@ void *GetMemory( unsigned long size )
 	}
 	memid = (unsigned long int *) ptr;
 	*memid = MEM_ID;
-	return (unsigned long int *) ( (char *) ptr + sizeof( unsigned long int ) );
+	return (char *) ptr + sizeof( unsigned long int );
 } //end of the function GetMemory
 //===========================================================================
 //
@@ -388,7 +388,7 @@ void *GetHunkMemory( unsigned long size )
 	}
 	memid = (unsigned long int *) ptr;
 	*memid = HUNK_ID;
-	return (unsigned long int *) ( (char *) ptr + sizeof( unsigned long int ) );
+	return (char *) ptr + sizeof( unsigned long int );
 } //end of the function GetHunkMemory
 //===========================================================================
 //

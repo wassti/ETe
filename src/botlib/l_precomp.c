@@ -740,7 +740,7 @@ int PC_ExpandBuiltinDefine( source_t *source, token_t *deftoken, define_t *defin
 	{
 		strcpy( token->string, source->scriptstack->filename );
 		token->type = TT_NAME;
-		token->subtype = strlen( token->string );
+		token->subtype = (int)strlen( token->string );
 		*firsttoken = token;
 		*lasttoken = token;
 		break;
@@ -1319,7 +1319,7 @@ define_t *PC_DefineFromString(const char *string)
 
 	PC_InitTokenHeap();
 
-	script = LoadScriptMemory( string, strlen( string ), "*extern" );
+	script = LoadScriptMemory( string, (int)strlen( string ), "*extern" );
 	//create a new source
 	Com_Memset(&src, 0, sizeof(source_t));
 	Q_strncpyz( src.filename, "*extern", sizeof( src.filename ) );
@@ -1448,6 +1448,8 @@ void PC_RemoveAllGlobalDefines( void ) {
 define_t *PC_CopyDefine( source_t *source, define_t *define ) {
 	define_t *newdefine;
 	token_t *token, *newtoken, *lasttoken;
+
+	(void)source;
 
 	newdefine = (define_t *) GetMemory( sizeof( define_t ) + strlen( define->name ) + 1 );
 	//copy the define name
@@ -1603,8 +1605,8 @@ typedef struct operator_s
 
 typedef struct value_s
 {
-	signed long int intvalue;
-	double floatvalue;
+	int intvalue;
+	float floatvalue;
 	int parentheses;
 	struct value_s *prev, *next;
 } value_t;
@@ -1670,8 +1672,8 @@ int PC_OperatorPriority( int op ) {
 		op = &operator_heap[numoperators++];}
 #define FreeOperator( op )
 
-int PC_EvaluateTokens( source_t *source, token_t *tokens, signed long int *intvalue,
-					   double *floatvalue, int integer ) {
+int PC_EvaluateTokens( source_t *source, token_t *tokens, int *intvalue,
+					   float *floatvalue, int integer ) {
 	operator_t *o, *firstoperator, *lastoperator;
 	value_t *v, *firstvalue, *lastvalue, *v1, *v2;
 	token_t *t;
@@ -1681,7 +1683,7 @@ int PC_EvaluateTokens( source_t *source, token_t *tokens, signed long int *intva
 	int lastwasvalue = 0;
 	int negativevalue = 0;
 	int questmarkintvalue = 0;
-	double questmarkfloatvalue = 0;
+	float questmarkfloatvalue = 0;
 	int gotquestmarkvalue = qfalse;
 	int lastoperatortype = 0;
 	//
@@ -1725,7 +1727,7 @@ int PC_EvaluateTokens( source_t *source, token_t *tokens, signed long int *intva
 				break;
 			}     //end if
 				  //v = (value_t *) GetClearedMemory(sizeof(value_t));
-			AllocValue( v );
+			AllocValue( v )
 #if DEFINEHASHING
 			if ( PC_FindHashedDefine( source->definehash, t->string ) )
 #else
@@ -1768,9 +1770,9 @@ int PC_EvaluateTokens( source_t *source, token_t *tokens, signed long int *intva
 				break;
 			}     //end if
 				  //v = (value_t *) GetClearedMemory(sizeof(value_t));
-			AllocValue( v );
+			AllocValue( v )
 			if ( negativevalue ) {
-				v->intvalue = -(signed int) t->intvalue;
+				v->intvalue = -t->intvalue;
 				v->floatvalue = -t->floatvalue;
 			}     //end if
 			else
@@ -1888,7 +1890,7 @@ int PC_EvaluateTokens( source_t *source, token_t *tokens, signed long int *intva
 			}     //end switch
 			if ( !error && !negativevalue ) {
 				//o = (operator_t *) GetClearedMemory(sizeof(operator_t));
-				AllocOperator( o );
+				AllocOperator( o )
 				o->operator = t->subtype;
 				o->priority = PC_OperatorPriority( t->subtype );
 				o->parentheses = parentheses;
@@ -2012,9 +2014,9 @@ int PC_EvaluateTokens( source_t *source, token_t *tokens, signed long int *intva
 		case P_LOGIC_LEQ:       v1->intvalue = v1->intvalue <= v2->intvalue;
 			v1->floatvalue = v1->floatvalue <= v2->floatvalue; break;
 		case P_LOGIC_EQ:        v1->intvalue = v1->intvalue == v2->intvalue;
-			v1->floatvalue = v1->floatvalue == v2->floatvalue; break;
+			v1->floatvalue = fabsf(v1->floatvalue - v2->floatvalue) < 0.0001f; break;
 		case P_LOGIC_UNEQ:      v1->intvalue = v1->intvalue != v2->intvalue;
-			v1->floatvalue = v1->floatvalue != v2->floatvalue; break;
+			v1->floatvalue = fabsf(v1->floatvalue - v2->floatvalue) > 0.0001f; break;
 		case P_LOGIC_GREATER:   v1->intvalue = v1->intvalue > v2->intvalue;
 			v1->floatvalue = v1->floatvalue > v2->floatvalue; break;
 		case P_LOGIC_LESS:      v1->intvalue = v1->intvalue < v2->intvalue;
@@ -2043,7 +2045,7 @@ int PC_EvaluateTokens( source_t *source, token_t *tokens, signed long int *intva
 			}     //end if
 			else
 			{
-				if ( !questmarkfloatvalue ) {
+				if ( questmarkfloatvalue == 0.0f ) {
 					v1->floatvalue = v2->floatvalue;
 				}
 			}     //end else
@@ -2136,8 +2138,8 @@ int PC_EvaluateTokens( source_t *source, token_t *tokens, signed long int *intva
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-int PC_Evaluate( source_t *source, signed long int *intvalue,
-				 double *floatvalue, int integer ) {
+int PC_Evaluate( source_t *source, int *intvalue,
+				 float *floatvalue, int integer ) {
 	token_t token, *firsttoken, *lasttoken;
 	token_t *t, *nexttoken;
 	define_t *define;
@@ -2240,8 +2242,8 @@ int PC_Evaluate( source_t *source, signed long int *intvalue,
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-int PC_DollarEvaluate( source_t *source, signed long int *intvalue,
-					   double *floatvalue, int integer ) {
+int PC_DollarEvaluate( source_t *source, int *intvalue,
+					   float *floatvalue, int integer ) {
 	int indent, defined = qfalse;
 	token_t token, *firsttoken, *lasttoken;
 	token_t *t, *nexttoken;
@@ -2358,7 +2360,7 @@ int PC_DollarEvaluate( source_t *source, signed long int *intvalue,
 // Changes Globals:		-
 //============================================================================
 int PC_Directive_elif( source_t *source ) {
-	signed long int value;
+	int value;
 	int type, skip;
 
 	PC_PopIndent( source, &type, &skip );
@@ -2380,7 +2382,7 @@ int PC_Directive_elif( source_t *source ) {
 // Changes Globals:		-
 //============================================================================
 int PC_Directive_if( source_t *source ) {
-	signed long int value;
+	int value;
 	int skip;
 
 	if ( !PC_Evaluate( source, &value, NULL, qtrue ) ) {
@@ -2452,7 +2454,7 @@ void UnreadSignToken( source_t *source ) {
 // Changes Globals:		-
 //============================================================================
 int PC_Directive_eval( source_t *source ) {
-	signed long int value;
+	int value;
 	token_t token;
 
 	if ( !PC_Evaluate( source, &value, NULL, qtrue ) ) {
@@ -2479,7 +2481,7 @@ int PC_Directive_eval( source_t *source ) {
 // Changes Globals:		-
 //============================================================================
 int PC_Directive_evalfloat( source_t *source ) {
-	double value;
+	float value;
 	token_t token;
 
 	if ( !PC_Evaluate( source, NULL, &value, qfalse ) ) {
@@ -2558,7 +2560,7 @@ int PC_ReadDirective( source_t *source ) {
 // Changes Globals:		-
 //============================================================================
 int PC_DollarDirective_evalint( source_t *source ) {
-	signed long int value;
+	int value;
 	token_t token;
 
 	if ( !PC_DollarEvaluate( source, &value, NULL, qtrue ) ) {
@@ -2589,7 +2591,7 @@ int PC_DollarDirective_evalint( source_t *source ) {
 // Changes Globals:		-
 //============================================================================
 int PC_DollarDirective_evalfloat( source_t *source ) {
-	double value;
+	float value;
 	token_t token;
 
 	if ( !PC_DollarEvaluate( source, NULL, &value, qfalse ) ) {
@@ -2603,7 +2605,7 @@ int PC_DollarDirective_evalfloat( source_t *source ) {
 	token.type = TT_NUMBER;
 	token.subtype = TT_FLOAT | TT_LONG | TT_DECIMAL;
 #ifdef NUMBERVALUE
-	token.intvalue = (unsigned long) value;
+	token.intvalue = (int) value;
 	token.floatvalue = value;
 #endif //NUMBERVALUE
 	PC_UnreadSourceToken( source, &token );

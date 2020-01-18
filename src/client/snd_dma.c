@@ -45,7 +45,7 @@ id Software LLC, c/o ZeniMax Media Inc., Suite 120, Rockville, Maryland 20850 US
 #include "snd_codec.h"
 #include "client.h"
 
-void S_Update_( void );
+static void S_Update_( void );
 void S_Base_StopAllSounds(void);
 void S_StopStreamingSound(int stream);
 void S_FreeStreamingSound(int stream);
@@ -56,6 +56,8 @@ static vec3_t entityPositions[MAX_GENTITIES];
 
 
 static byte		buffer2[ 0x10000 ]; // for muted painting
+
+byte			*dma_buffer2;
 
 // =======================================================================
 // Internal sound data & structures
@@ -147,10 +149,14 @@ static void S_Base_SoundInfo( void )
 
 		Com_Printf("%5d channels\n", dma.channels);
 		Com_Printf("%5d samples\n", dma.samples);
-		Com_Printf("%5d samplebits\n", dma.samplebits);
+		Com_Printf("%5d samplebits (%s)\n", dma.samplebits, dma.isfloat ? "float" : "int");
 		Com_Printf("%5d submission_chunk\n", dma.submission_chunk);
 		Com_Printf("%5d speed\n", dma.speed);
 		Com_Printf("%p dma buffer\n", dma.buffer);
+		if ( dma.driver )
+		{
+			Com_Printf( "Using %s subsystem\n", dma.driver );
+		}
 		if (streamingSounds[0].stream)
 		{
 			Com_Printf("Background file: %s\n", streamingSounds[0].loopStream);
@@ -559,7 +565,7 @@ static void S_SpatializeOrigin (vec3_t origin, int master_vol, int *left_vol, in
 		vec3_t vec;
 		float  dist_fullvol = range * 0.064f;
 
-		// calculate stereo seperation and distance attenuation
+		// calculate stereo separation and distance attenuation
 		VectorSubtract(origin, listener_origin, source_vec);
 
 		dist  = VectorNormalize(source_vec);
@@ -753,6 +759,7 @@ static void S_Base_MainStartSoundEx( vec3_t origin, int entityNum, int entchanne
 	ch   = s_channels;
 	//inplay = 0;
 
+	// shut off other sounds on this channel if necessary
 	for (i = 0; i < MAX_CHANNELS ; i++, ch++)
 	{
 		if (ch->entnum == entityNum && ch->thesfx)
@@ -761,10 +768,29 @@ static void S_Base_MainStartSoundEx( vec3_t origin, int entityNum, int entchanne
 			{
 				return;
 			}
-			else if (ch->entchannel == entchannel && (flags & SND_CUTOFF_ALL)) // cut the sounds that are flagged to be cut
+			else if (ch->entchannel == entchannel)
 			{
-				S_ChannelFree(ch);
+				if ((flags & SND_CUTOFF_ALL)) // cut the sounds that are flagged to be cut
+				{
+					S_ChannelFree(ch);
+				}
+				else if (ch->flags & SND_NOCUT) // don't cutoff
+				{
+					continue;
+				}
+				else if (ch->flags & SND_OKTOCUT) // cutoff sounds that expect to be overwritten
+				{
+					S_ChannelFree(ch);
+				}
+				else if ((ch->flags & SND_REQUESTCUT) && (flags & SND_CUTOFF)) // cutoff 'weak' sounds on channel
+				{
+					S_ChannelFree(ch);
+				}
 			}
+			//else if (ch->entchannel == entchannel && (flags & SND_CUTOFF_ALL)) // cut the sounds that are flagged to be cut
+			//{
+			//	S_ChannelFree(ch);
+			//}
 			/*else
 			{
 				inplay++;
@@ -1617,12 +1643,9 @@ static void S_GetSoundtime( void )
 	int		samplepos;
 	static	int		buffers;
 	static	int		oldsamplepos;
-	int		fullsamples;
 	float	fps;
 	float	frameDuration;
 	int		msec;
-	
-	fullsamples = dma.samples / dma.channels;
 
 	if( CL_VideoRecording( ) )
 	{
@@ -1645,13 +1668,13 @@ static void S_GetSoundtime( void )
 		if (s_paintedtime > 0x40000000)
 		{	// time to chop things off to avoid 32 bit limits
 			buffers = 0;
-			s_paintedtime = fullsamples;
+			s_paintedtime = dma.fullsamples;
 			S_Base_StopAllSounds ();
 		}
 	}
 	oldsamplepos = samplepos;
 
-	s_soundtime = buffers*fullsamples + samplepos/dma.channels;
+	s_soundtime = buffers * dma.fullsamples + samplepos/dma.channels;
 
 #if 0
 // check to make sure that we haven't overshot
@@ -1670,9 +1693,8 @@ static void S_GetSoundtime( void )
 }
 
 
-void S_Update_( void ) {
+static void S_Update_( void ) {
 	unsigned		endtime;
-	int				samps;
 	static float	lastTime = 0.0f;
 	float			ma, op;
 	float			thisTime, sane;
@@ -1716,9 +1738,8 @@ void S_Update_( void ) {
 		& ~(dma.submission_chunk-1);
 
 	// never mix more than the complete buffer
-	samps = dma.samples >> (dma.channels-1);
-	if (endtime - s_soundtime > samps)
-		endtime = s_soundtime + samps;
+	if (endtime - s_soundtime > dma.fullsamples)
+		endtime = s_soundtime + dma.fullsamples;
 
 	// global volume fading
 
@@ -2344,13 +2365,10 @@ int S_Base_GetCurrentSoundTime( void ) {
 // =======================================================================
 
 void S_Base_Shutdown( void ) {
-	byte *p;
 
 	if ( !s_soundStarted ) {
 		return;
 	}
-
-	p = dma.buffer2;
 
 	SNDDMA_Shutdown();
 
@@ -2362,11 +2380,11 @@ void S_Base_Shutdown( void ) {
 	s_soundStarted = qfalse;
 
 	s_numSfx = 0; // clean up sound cache -EC-
-	
-	if ( p && p != buffer2 )
-		free( p );
-	dma.buffer2 = NULL;
-	
+
+	if ( dma_buffer2 != buffer2 )
+		free( dma_buffer2 );
+	dma_buffer2 = NULL;
+
 	Cmd_RemoveCommand( "s_info" );
 }
 
@@ -2421,10 +2439,10 @@ qboolean S_Base_Init( soundInterface_t *si ) {
 
 		// setup(likely) or allocate (unlikely) buffer for muted painting
 		if ( dma.samples * dma.samplebits/8 <= sizeof( buffer2 ) ) {
-			dma.buffer2 = buffer2;
+			dma_buffer2 = buffer2;
 		} else {
-			dma.buffer2 = malloc( dma.samples * dma.samplebits/8 );
-			memset( dma.buffer2, 0, dma.samples * dma.samplebits/8 );
+			dma_buffer2 = malloc( dma.samples * dma.samplebits/8 );
+			memset( dma_buffer2, 0, dma.samples * dma.samplebits/8 );
 		}
 	} else {
 		return qfalse;

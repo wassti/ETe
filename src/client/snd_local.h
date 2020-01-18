@@ -66,12 +66,16 @@ typedef struct sfx_s {
 typedef struct {
 	int			channels;
 	int			samples;				// mono samples in buffer
+	int			fullsamples;			// samples with all channels in buffer (samples divided by channels)
 	int			submission_chunk;		// don't mix less than this #
 	int			samplebits;
+	int			isfloat;
 	int			speed;
 	byte		*buffer;
-	byte		*buffer2;
+	const char	*driver;
 } dma_t;
+
+extern byte *dma_buffer2;
 
 #define START_SAMPLE_IMMEDIATE	0x7fffffff
 
@@ -116,8 +120,8 @@ typedef struct
 } channel_t;
 
 
-#define	WAV_FORMAT_PCM		1
-
+#define WAV_FORMAT_PCM			0x0001
+#define WAVE_FORMAT_IEEE_FLOAT	0x0003
 
 typedef struct {
 	int			format;

@@ -1069,13 +1069,12 @@ void CL_ShutdownAll( void ) {
 	// shutdown VMs
 	CL_ShutdownVMs();
 
-	// shutdown sound system before renderer -EC-
-	S_Shutdown();
-	cls.soundStarted = qfalse;
-
 	// shutdown the renderer
 	if ( re.Shutdown ) {
 		if ( CL_GameSwitch() ) {
+			// shutdown sound system before renderer
+			S_Shutdown();
+			cls.soundStarted = qfalse;
 			CL_ShutdownRef( qfalse ); // shutdown renderer & GLimp
 		} else {
 			re.Shutdown( 0 ); // don't destroy window or context

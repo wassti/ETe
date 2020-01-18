@@ -27,7 +27,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 static portable_samplepair_t paintbuffer[PAINTBUFFER_SIZE];
 static int snd_vol;
 
-int*     snd_p;  
+int*     snd_p;
 int      snd_linear_count;
 short*   snd_out;
 
@@ -305,9 +305,6 @@ void S_TransferStereo16( unsigned long *pbuf, int endtime )
 #endif
 		snd_p += snd_linear_count;
 		ls_paintedtime += (snd_linear_count>>1);
-
-		if ( CL_VideoRecording() )
-			CL_WriteAVIAudioFrame( (byte *)snd_out, snd_linear_count << 1 );
 	}
 }
 
@@ -321,7 +318,7 @@ S_TransferPaintBuffer
 static void S_TransferPaintBuffer( int endtime, byte *buffer )
 {
 	int 	out_idx;
-	int 	count;
+	int 	i, count;
 	int 	out_mask;
 	int 	*p;
 	int 	step;
@@ -331,14 +328,11 @@ static void S_TransferPaintBuffer( int endtime, byte *buffer )
 	pbuf = (unsigned long *)buffer;
 
 	if ( s_testsound->integer ) {
-		int		i;
-
 		// write a fixed sine wave
 		count = (endtime - s_paintedtime);
 		for (i=0 ; i<count ; i++)
 			paintbuffer[i].left = paintbuffer[i].right = sin((s_paintedtime+i)*0.1)*20000*256;
 	}
-
 
 	if ( dma.samplebits == 16 && dma.channels == 2 )
 	{	// optimized case
@@ -352,13 +346,28 @@ static void S_TransferPaintBuffer( int endtime, byte *buffer )
 		out_idx = s_paintedtime * dma.channels & out_mask;
 		step = 3 - dma.channels;
 
-		if (dma.samplebits == 16)
+		if ( dma.samplebits == 32 && dma.isfloat )
 		{
-			short *out = (short *) pbuf;
-			while (count--)
+			float *out = (float *) pbuf;
+			while ( count-- > 0 )
 			{
 				val = *p >> 8;
-				p+= step;
+				p += step;
+				if (val > 0x7fff)
+					val = 0x7fff;
+				else if (val < -32767)  /* clamp to one less than max to make division max out at -1.0f. */
+					val = -32767;
+				out[out_idx] = ((float) val) / 32767.0f;
+				out_idx = (out_idx + 1) & out_mask;
+			}
+		}
+		else if (dma.samplebits == 16)
+		{
+			short *out = (short *) pbuf;
+			while ( count-- > 0 )
+			{
+				val = *p >> 8;
+				p += step;
 				if (val > 0x7fff)
 					val = 0x7fff;
 				else if (val < -32768)
@@ -370,10 +379,10 @@ static void S_TransferPaintBuffer( int endtime, byte *buffer )
 		else if (dma.samplebits == 8)
 		{
 			unsigned char *out = (unsigned char *) pbuf;
-			while (count--)
+			while ( count-- > 0 )
 			{
 				val = *p >> 8;
-				p+= step;
+				p += step;
 				if (val > 0x7fff)
 					val = 0x7fff;
 				else if (val < -32768)
@@ -381,6 +390,19 @@ static void S_TransferPaintBuffer( int endtime, byte *buffer )
 				out[out_idx] = (val>>8) + 128;
 				out_idx = (out_idx + 1) & out_mask;
 			}
+		}
+	}
+
+	if ( CL_VideoRecording() ) {
+		count = (endtime - s_paintedtime) * dma.channels;
+		out_idx = s_paintedtime * dma.channels % dma.samples;
+		while ( count > 0 ) {
+			int n = count;
+			if ( n + out_idx > dma.samples )
+				n = dma.samples - out_idx;
+			CL_WriteAVIAudioFrame( buffer + out_idx * dma.samplebits / 8, n * dma.samplebits / 8 );
+			out_idx = (out_idx + n) % dma.samples;
+			count -= n;
 		}
 	}
 }
@@ -660,7 +682,7 @@ void S_PaintChannels( int endtime ) {
 	snd_vol = s_volume->value * 255;
 
 	if ( (!gw_active && !gw_minimized && s_muteWhenUnfocused->integer) || (gw_minimized && s_muteWhenMinimized->integer) ) {
-		buffer = dma.buffer2;
+		buffer = dma_buffer2;
 		if ( !muted ) {
 			// switching to muted, clear hardware buffer
 			Com_Memset( dma.buffer, 0, dma.samples * dma.samplebits/8 );
@@ -671,7 +693,7 @@ void S_PaintChannels( int endtime ) {
 		// switching to unmuted, clear both buffers
 		if ( muted ) {
 			Com_Memset( dma.buffer, 0, dma.samples * dma.samplebits/8 );
-			Com_Memset( dma.buffer2, 0, dma.samples * dma.samplebits/8 );
+			Com_Memset( dma_buffer2, 0, dma.samples * dma.samplebits/8 );
 		}
 		muted = qfalse;
 	}

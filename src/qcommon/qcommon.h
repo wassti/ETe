@@ -1046,6 +1046,7 @@ void        Com_SetRecommended();
 // only a set with the exact name.  Only used during startup.
 
 void		Com_WriteConfiguration( void );
+int			Com_HexStrToInt( const char *str );
 
 
 static ID_INLINE unsigned int log2pad( unsigned int v, int roundup )

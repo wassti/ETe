@@ -846,45 +846,6 @@ qboolean Key_IsDown( int keynum )
 }
 
 
-/*
-===================
-Com_HexStrToInt
-===================
-*/
-static int CL_HexStrToInt( const char *str )
-{
-	if ( !str || !str[ 0 ] )
-		return -1;
-
-	// check for hex code
-	if( str[ 0 ] == '0' && str[ 1 ] == 'x' )
-	{
-		int i, n = 0, len = strlen( str );
-
-		for( i = 2; i < len; i++ )
-		{
-			char digit;
-
-			n *= 16;
-
-			digit = tolower( str[ i ] );
-
-			if( digit >= '0' && digit <= '9' )
-				digit -= '0';
-			else if( digit >= 'a' && digit <= 'f' )
-				digit = digit - 'a' + 10;
-			else
-				return -1;
-
-			n += digit;
-		}
-
-		return n;
-	}
-
-	return -1;
-}
-
 
 /*
 ===================
@@ -911,7 +872,7 @@ static int Key_StringToKeynum( const char *str ) {
 
 	// check for hex code
 	if ( strlen( str ) == 4 ) {
-		int n = CL_HexStrToInt( str );
+		int n = Com_HexStrToInt( str );
 		
 		if ( n >= 0 ) {
 			return n;

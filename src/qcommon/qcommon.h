@@ -1047,6 +1047,24 @@ void        Com_SetRecommended();
 
 void		Com_WriteConfiguration( void );
 
+
+static ID_INLINE unsigned int log2pad( unsigned int v, int roundup )
+{
+	unsigned int x = 1;
+
+	while ( x < v ) x <<= 1;
+
+	if ( roundup == 0 ) {
+		if ( x > v ) {
+			x >>= 1;
+		}
+	}
+
+	return x;
+}
+
+
+
 //bani - profile functions
 void Com_TrackProfile( const char *profile_path );
 qboolean Com_CheckProfile( const char *profile_path );

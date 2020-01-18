@@ -95,7 +95,7 @@ cvar_t	*com_maxfpsUnfocused;
 cvar_t	*com_yieldCPU;
 cvar_t	*com_timedemo;
 #endif
-#if !defined(__FreeBSD__)
+#if !defined(__FreeBSD__) && !defined(__OpenBSD__)
 cvar_t	*com_affinityMask;
 #endif
 cvar_t	*com_logfile;		// 1 = buffer log, 2 = flush after each print
@@ -134,6 +134,7 @@ int		time_game;
 int		time_frontend;		// renderer frontend time
 int		time_backend;		// renderer backend time
 
+static int	lastTime;
 int			com_frameTime;
 int			com_frameMsec;
 int			com_frameNumber;
@@ -223,7 +224,7 @@ int QDECL Com_VPrintf( const char *fmt, va_list argptr ) {
 	}
 
 	if ( rd_buffer && !rd_flushing ) {
-		if ( len + strlen( rd_buffer ) > ( rd_buffersize - 1 ) ) {
+		if ( len + (int)strlen( rd_buffer ) > ( rd_buffersize - 1 ) ) {
 			rd_flushing = qtrue;
 			rd_flush( rd_buffer );
 			rd_flushing = qfalse;
@@ -1459,21 +1460,21 @@ void Z_Free( void *ptr ) {
 Z_FreeTags
 ================
 */
-void Z_FreeTags( memtag_t tag ) {
-	//int			count;
+int Z_FreeTags( memtag_t tag ) {
+	int			count;
 	memzone_t	*zone;
 	memblock_t	*block, *freed;
 
 	if ( tag == TAG_STATIC ) {
 		Com_Error( ERR_FATAL, "Z_FreeTags( TAG_STATIC )" );
-		return;
+		return 0;
 	} else if ( tag == TAG_SMALL ) {
 		zone = smallzone;
 	} else {
 		zone = mainzone;
 	}
 
-	//count = 0;
+	count = 0;
 	for ( block = zone->blocklist.next ; ; ) {
 		if ( block->tag == tag && block->id == ZONEID ) {
 			if ( block->prev->tag == TAG_FREE )
@@ -1482,13 +1483,15 @@ void Z_FreeTags( memtag_t tag ) {
 				freed = block; // will leave in place
 			Z_Free( (void*)( block + 1 ) );
 			block = freed;
-			//count++;
+			count++;
 		}
 		if ( block->next == &zone->blocklist ) {
 			break;	// all blocks have been hit
 		}
 		block = block->next;
 	}
+
+	return count;
 }
 
 
@@ -3021,20 +3024,20 @@ error recovery
 =============
 */
 static void Com_Freeze_f( void ) {
-	float	s;
+	int		s;
 	int		start, now;
 
 	if ( Cmd_Argc() != 2 ) {
 		Com_Printf( "freeze <seconds>\n" );
 		return;
 	}
-	s = atof( Cmd_Argv(1) );
+	s = atoi( Cmd_Argv(1) ) * 1000;
 
 	start = Com_Milliseconds();
 
 	while ( 1 ) {
 		now = Com_Milliseconds();
-		if ( ( now - start ) * 0.001 > s ) {
+		if ( now - start > s ) {
 			break;
 		}
 	}
@@ -3463,13 +3466,20 @@ int Sys_GetProcessorId( char *vendor )
 		CPU_Flags |= CPU_SSE2;
 
 	// bit 0 of ECX denotes SSE3 existence
-	if ( regs[2] & ( 1 << 0 ) )
-		CPU_Flags |= CPU_SSE3;
+	//if ( regs[2] & ( 1 << 0 ) )
+	//	CPU_Flags |= CPU_SSE3;
+
+	// bit 19 of ECX denotes SSE41 existence
+	if ( regs[ 2 ] & ( 1 << 19 ) )
+		CPU_Flags |= CPU_SSE41;
 
 	if ( vendor ) {
+		int print_flags = CPU_Flags;
 #if idx64
 		strcpy( vendor, "64-bit " );
 		vendor += strlen( vendor );
+		// do not print default 64-bit features in 32-bit mode
+		print_flags &= ~(CPU_FCOM | CPU_MMX | CPU_SSE | CPU_SSE2);
 #else
 		vendor[0] = '\0';
 #endif
@@ -3479,21 +3489,22 @@ int Sys_GetProcessorId( char *vendor )
 		memcpy( vendor+4, (char*) &regs[3], 4 );
 		memcpy( vendor+8, (char*) &regs[2], 4 );
 		vendor[12] = '\0'; vendor += 12;
-		if ( CPU_Flags ) {
+
+		if ( print_flags ) {
 			// print features
-#if !idx64	// do not print default 64-bit features in 32-bit mode
 			strcat( vendor, " w/" );
-			if ( CPU_Flags & CPU_FCOM )
+			if ( print_flags & CPU_FCOM )
 				strcat( vendor, " CMOV" );
-			if ( CPU_Flags & CPU_MMX )
+			if ( print_flags & CPU_MMX )
 				strcat( vendor, " MMX" );
-			if ( CPU_Flags & CPU_SSE )
+			if ( print_flags & CPU_SSE )
 				strcat( vendor, " SSE" );
-			if ( CPU_Flags & CPU_SSE2 )
+			if ( print_flags & CPU_SSE2 )
 				strcat( vendor, " SSE2" );
-#endif
 			//if ( CPU_Flags & CPU_SSE3 )
 			//	strcat( vendor, " SSE3" );
+			if ( print_flags & CPU_SSE41 )
+				strcat( vendor, " SSE4.1" );
 		}
 	}
 	return 1;
@@ -3712,10 +3723,10 @@ void Com_Init( char *commandLine ) {
 	com_maxfpsUnfocused = Cvar_Get( "com_maxfpsUnfocused", "60", CVAR_ARCHIVE_ND );
 	Cvar_CheckRange( com_maxfps, "0", "1000", CV_INTEGER );
 	Cvar_CheckRange( com_maxfpsUnfocused, "0", "1000", CV_INTEGER );
-	com_yieldCPU = Cvar_Get( "com_yieldCPU", "2", CVAR_ARCHIVE_ND );
-	Cvar_CheckRange( com_yieldCPU, "0", "4", CV_INTEGER );
+	com_yieldCPU = Cvar_Get( "com_yieldCPU", "1", CVAR_ARCHIVE_ND );
+	Cvar_CheckRange( com_yieldCPU, "0", "16", CV_INTEGER );
 #endif
-#if !defined(__FreeBSD__)
+#if !defined(__FreeBSD__) && !defined(__OpenBSD__)
 	com_affinityMask = Cvar_Get( "com_affinityMask", "0", CVAR_ARCHIVE_ND );
 	com_affinityMask->modified = qfalse;
 #endif
@@ -3776,10 +3787,10 @@ void Com_Init( char *commandLine ) {
 		gw_minimized = qfalse;
 	}
 
-	if ( com_developer && com_developer->integer ) {
-		Cmd_AddCommand ("error", Com_Error_f);
-		Cmd_AddCommand ("crash", Com_Crash_f );
-		Cmd_AddCommand ("freeze", Com_Freeze_f);
+	if ( com_developer->integer ) {
+		Cmd_AddCommand( "error", Com_Error_f );
+		Cmd_AddCommand( "crash", Com_Crash_f );
+		Cmd_AddCommand( "freeze", Com_Freeze_f );
 	}
 
 	Cmd_AddCommand( "quit", Com_Quit_f );
@@ -3808,7 +3819,7 @@ void Com_Init( char *commandLine ) {
 	}
 	Com_Printf( "%s\n", Cvar_VariableString( "sys_cpustring" ) );
 #endif
-#if !defined(__FreeBSD__)
+#if !defined(__FreeBSD__) && !defined(__OpenBSD__)
 	if ( com_affinityMask->integer )
 		Sys_SetAffinityMask( com_affinityMask->integer );
 #endif
@@ -3827,11 +3838,6 @@ void Com_Init( char *commandLine ) {
 		// Sys_ShowConsole( com_viewlog->integer, qfalse ); // moved down
 	}
 #endif
-
-	// set com_frameTime so that if a map is started on the
-	// command line it will still be able to count on com_frameTime
-	// being random enough for a serverid
-	com_frameTime = Com_Milliseconds();
 
 	// add + commands from command line
 	if ( !Com_AddStartupCommands() ) {
@@ -3852,6 +3858,11 @@ void Com_Init( char *commandLine ) {
 #ifndef DEDICATED
 	CL_StartHunkUsers();
 #endif
+
+	// set com_frameTime so that if a map is started on the
+	// command line it will still be able to count on com_frameTime
+	// being random enough for a serverid
+	lastTime = com_frameTime = Com_Milliseconds();
 
 	if ( !com_errorEntered )
 		Sys_ShowConsole( com_viewlog->integer, qfalse );
@@ -4041,7 +4052,6 @@ Com_Frame
 */
 void Com_Frame( qboolean noDelay ) {
 
-	static int lastTime = 0;
 #ifndef DEDICATED
 	static int bias = 0;
 #endif
@@ -4085,7 +4095,7 @@ void Com_Frame( qboolean noDelay ) {
 		}
 		com_viewlog->modified = qfalse;
 	}
-#if !defined(__FreeBSD__)
+#if !defined(__FreeBSD__) && !defined(__OpenBSD__)
 	if ( com_affinityMask->modified ) {
 		Cvar_Get( "com_affinityMask", "0", CVAR_ARCHIVE );
 		com_affinityMask->modified = qfalse;
@@ -4122,8 +4132,8 @@ void Com_Frame( qboolean noDelay ) {
 			timeVal = com_frameTime - lastTime;
 			bias += timeVal - minMsec;
 			
-			if ( bias > minMsec / 2 )
-				bias = minMsec / 2;
+			if ( bias > minMsec )
+				bias = minMsec;
 
 			// Adjust minMsec if previous frame took too long to render so
 			// that framerate is stable at the requested value.
@@ -4150,12 +4160,11 @@ void Com_Frame( qboolean noDelay ) {
 		if ( timeVal > sleepMsec )
 			Com_EventLoop();
 #endif
-		NET_Sleep( sleepMsec, -500 );
+		NET_Sleep( sleepMsec * 1000 - 500 );
 	} while( Com_TimeVal( minMsec ) );
-	
+
 	lastTime = com_frameTime;
 	com_frameTime = Com_EventLoop();
-	
 	msec = com_frameTime - lastTime;
 
 	Cbuf_Execute();

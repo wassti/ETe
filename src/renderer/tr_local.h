@@ -408,7 +408,6 @@ typedef struct shader_s {
 
 #ifdef USE_PMLIGHT
 	int			lightingStage;
-	int			lightingBundle;
 #endif
 	qboolean	isStaticShader;
 	short		vboVPindex;
@@ -1302,6 +1301,7 @@ typedef struct {
 	videoFrameCommand_t	vcmd;	// avi capture
 	
 	qboolean throttle;
+	qboolean drawConsole;
 
 } backEndState_t;
 
@@ -2424,10 +2424,6 @@ typedef enum {
 
 	DLIGHT_FRAGMENT,
 	DLIGHT_FRAGMENT_FOG,
-
-	DLIGHT_LINEAR_VERTEX,
-	DLIGHT_LINEAR_VERTEX_FOG,
-	DLIGHT_LINEAR_VERTEX_FOG_LEVEL,
 
 	DLIGHT_LINEAR_FRAGMENT,
 	DLIGHT_LINEAR_FRAGMENT_FOG,

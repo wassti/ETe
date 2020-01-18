@@ -2473,7 +2473,7 @@ static qboolean CollapseMultitexture( shaderStage_t *st0, shaderStage_t *st1, in
 	}
 
 	// nothing found
-	if ( i == numCollapse ) {
+	if ( i == (int)numCollapse ) {
 		return qfalse;
 	}
 
@@ -2508,8 +2508,8 @@ static qboolean CollapseMultitexture( shaderStage_t *st0, shaderStage_t *st1, in
 		}
 	}
 
-	// make sure that lightmaps are in bundle 1 for 3dfx
-	if ( st0->bundle[0].isLightmap )
+	// make sure that lightmaps are in bundle 1
+	if ( st0->bundle[0].isLightmap || ( st0->bundle[0].tcGen == TCGEN_LIGHTMAP && st1->bundle[0].tcGen != TCGEN_LIGHTMAP ) )
 	{
 		tmpBundle = st0->bundle[0];
 		st0->bundle[0] = st1->bundle[0];
@@ -2764,7 +2764,7 @@ void FindLightingStages( shader_t *sh )
 	if ( !qglGenProgramsARB )
 		return;
 
-	if ( sh->isSky || ( sh->surfaceFlags & (SURF_NODLIGHT | SURF_SKY) ) || sh->sort > SS_OPAQUE )
+	if ( sh->isSky || ( sh->surfaceFlags & (SURF_NODLIGHT | SURF_SKY) ) || sh->sort == SS_ENVIRONMENT )
 		return;
 
 	for ( i = 0; i < sh->numUnfoggedPasses; i++ ) {
@@ -2785,19 +2785,6 @@ void FindLightingStages( shader_t *sh )
 			sh->lightingStage = i;
 		}
 	}
-
-	// check for collapsed multitexture with lightmap in first bundle
-	if ( sh->lightingStage == -1 && i == 1 /*&& sh->multitextureEnv == GL_MODULATE*/ ) {
-		st = sh->stages[ 0 ];
-		if ( st->mtEnv == GL_MODULATE ) {
-			if ( !st->bundle[0].isLightmap && st->bundle[1].image[0] && st->rgbGen == CGEN_IDENTITY ) {
-				if ( st->bundle[0].tcGen == TCGEN_LIGHTMAP && st->bundle[1].tcGen == TCGEN_TEXTURE ) {
-					sh->lightingStage = 0;
-					sh->lightingBundle = 1; // select second bundle for lighting pass
-				}
-			}
-		}
-	}
 }
 
 #undef GLS_BLEND_BITS
@@ -2809,7 +2796,7 @@ void FindLightingStages( shader_t *sh )
 VertexLightingCollapse
 
 If vertex lighting is enabled, only render a single
-pass, trying to guess which is the correct one to best aproximate
+pass, trying to guess which is the correct one to best approximate
 what it is supposed to look like.
 =================
 */
@@ -3065,8 +3052,12 @@ from the current global working shader
 static shader_t *FinishShader( void ) {
 	int			stage, i;
 	qboolean	hasLightmapStage;
+	qboolean	colorBlend;
+	qboolean	depthMask;
 
 	hasLightmapStage = qfalse;
+	colorBlend = qfalse;
+	depthMask = qfalse;
 
 	//
 	// set sky stuff appropriate
@@ -3146,10 +3137,12 @@ static shader_t *FinishShader( void ) {
 		//  vertexLightmap = qtrue;
 		//}
 
-
+		if ( pStage->stateBits & GLS_DEPTHMASK_TRUE ) {
+			depthMask = qtrue;
+		}
 
 		//
-		// determine sort order and fog color adjustment
+		// determine fog color adjustment
 		//
 		if ( ( pStage->stateBits & ( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) ) &&
 			 ( stages[0].stateBits & ( GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) ) ) {
@@ -3185,15 +3178,7 @@ static shader_t *FinishShader( void ) {
 				// we can't adjust this one correctly, so it won't be exactly correct in fog
 			}
 
-			// don't screw with sort order if this is a portal or environment
-			if ( shader.sort == SS_BAD ) {
-				// see through item, like a grill or grate
-				if ( pStage->stateBits & GLS_DEPTHMASK_TRUE ) {
-					shader.sort = SS_SEE_THROUGH;
-				} else {
-					shader.sort = SS_BLEND0;
-				}
-			}
+			colorBlend = qtrue;
 		}
 		
 		stage++;
@@ -3202,7 +3187,16 @@ static shader_t *FinishShader( void ) {
 	// there are times when you will need to manually apply a sort to
 	// opaque alpha tested shaders that have later blend passes
 	if ( shader.sort == SS_BAD ) {
-		shader.sort = SS_OPAQUE;
+		if ( colorBlend ) {
+			// see through item, like a grill or grate
+			if ( depthMask ) {
+				shader.sort = SS_SEE_THROUGH;
+			} else {
+				shader.sort = SS_BLEND0;
+			}
+		} else {
+			shader.sort = SS_OPAQUE;
+		}
 	}
 
 	// fix alphaGen flags to avoid redundant comparisons in R_ComputeColors()

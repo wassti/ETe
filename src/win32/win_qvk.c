@@ -100,45 +100,48 @@ qboolean VK_CreateSurface( VkInstance instance, VkSurfaceKHR *pSurface )
 ** operating systems we need to do the right thing, whatever that
 ** might be.
 */
-qboolean QVK_Init( const char *dllname )
+qboolean QVK_Init( void )
 {
+	const char *dllname = "vulkan-1.dll";
 	char libName[1024];
-#if 0
-	char systemDir[1024];
-
 #ifdef UNICODE
 	TCHAR buffer[1024];
-	GetSystemDirectory( buffer, ARRAYSIZE( buffer ) );
-	strcpy( systemDir, WtoA( buffer ) );
-#else
-	GetSystemDirectory( systemDir, sizeof( systemDir ) );
-#endif
 #endif
 
 	Com_Printf( "...initializing QVK\n" );
 
 	if ( glw_state.VulkanLib == NULL )
 	{
-		// NOTE: this assumes that 'dllname' is lower case (and it should be)!
-		Q_strncpyz( libName, dllname, sizeof( libName ) );
-		Q_strcat( libName, sizeof( libName ), ".dll" );
-		glw_state.VulkanLib = Sys_LoadLibrary( libName );
+		glw_state.VulkanLib = Sys_LoadLibrary( dllname );
 		if ( glw_state.VulkanLib == NULL )
 		{
-			Com_Printf( "...loading '%s' : " S_COLOR_YELLOW "failed\n", libName );
-			return qfalse;
+#if idx64
+			glw_state.VulkanLib = Sys_LoadLibrary( "amdvlk64.dll" );
+#else
+			glw_state.VulkanLib = Sys_LoadLibrary( "amdvlk32.dll" );
+#endif
+			if ( glw_state.VulkanLib == NULL )
+			{
+				Com_Printf( "...loading '%s' : " S_COLOR_YELLOW "failed\n", dllname );
+				return qfalse;
+			}
 		}
 
 		// get exact loaded module name
-		GetModuleFileNameA( glw_state.VulkanLib, libName, sizeof( libName ) );
+#ifdef UNICODE
+		GetModuleFileName( glw_state.VulkanLib, buffer, ARRAY_LEN( buffer ) );
+		buffer[ ARRAY_LEN( buffer ) - 1 ] = '\0';
+		Q_strncpyz( libName, WtoA( buffer ), sizeof( libName ) );
+#else
+		GetModuleFileName( glw_state.VulkanLib, libName, sizeof( libName ) );
+		libName[ sizeof( libName ) - 1 ] = '\0';
+#endif
 		Com_Printf( "...loading '%s' : succeeded\n", libName );
-
 	}
 
 	qvkGetInstanceProcAddr = /*(PFN_vkGetInstanceProcAddr)*/ Sys_LoadFunction( glw_state.VulkanLib, "vkGetInstanceProcAddr" );
 	if ( qvkGetInstanceProcAddr == NULL )
 	{
-
 		Sys_UnloadLibrary( glw_state.VulkanLib );
 		glw_state.VulkanLib = NULL;
 

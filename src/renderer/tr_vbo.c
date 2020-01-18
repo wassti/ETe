@@ -370,7 +370,7 @@ static qboolean isStaticShader( shader_t *shader )
 	if ( shader->isStaticShader )
 		return qtrue;
 
-	if ( shader->isSky )
+	if ( shader->isSky || shader->remappedShader )
 		return qfalse;
 
 	if ( shader->numDeforms || shader->numUnfoggedPasses > MAX_VBO_STAGES )
@@ -1124,8 +1124,12 @@ static void VBO_RenderIndexQueue( qboolean mtx )
 
 	VBO_RenderBuffers();
 
-	if ( r_showtris->integer ) 
+	if ( r_showtris->integer )
 	{
+
+		if ( (r_showtris->integer == 1 && backEnd.doneSurfaces) || (r_showtris->integer == 2 && backEnd.drawConsole) )
+			return;
+
 		if ( mtx )
 		{
 			qglDisableClientState( GL_TEXTURE_COORD_ARRAY );

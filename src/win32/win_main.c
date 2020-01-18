@@ -34,13 +34,8 @@ If you have questions concerning this license or the applicable additional terms
 #include "resource.h"
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <errno.h>
-#include <float.h>
-#include <fcntl.h>
-#include <stdio.h>
 #include <direct.h>
 #include <io.h>
-#include <conio.h>
 
 #define MEM_THRESHOLD (96*1024*1024)
 
@@ -259,10 +254,10 @@ const char *Sys_Pwd( void )
 	if ( pwd[0] )
 		return pwd;
 
-	GetModuleFileName( NULL, buffer, ARRAY_LEN( buffer ) -1 );
+	GetModuleFileName( NULL, buffer, ARRAY_LEN( buffer ) );
 	buffer[ ARRAY_LEN( buffer ) - 1 ] = '\0';
 
-	strcpy( pwd, WtoA( buffer ) );
+	Q_strncpyz( pwd, WtoA( buffer ), sizeof( pwd ) );
 
 	s = strrchr( pwd, PATH_SEP );
 	if ( s ) 
@@ -357,7 +352,7 @@ void Sys_Sleep( int msec ) {
 		msec = 300;
 		do {
 			dwResult = MsgWaitForMultipleObjects( 0, NULL, FALSE, msec, QS_ALLEVENTS );
-		} while ( dwResult == WAIT_TIMEOUT && NET_Sleep( 10, 0 ) );
+		} while ( dwResult == WAIT_TIMEOUT && NET_Sleep( 10 * 1000 ) );
 		//WaitMessage();
 		return;
 	}
@@ -527,64 +522,6 @@ qboolean Sys_GetFileStats( const char *filename, fileOffset_t *size, fileTime_t 
 
 //========================================================
 
-
-/*
-================
-Sys_GetClipboardData
-================
-*/
-char *Sys_GetClipboardData( void ) {
-	char *data = NULL;
-	char *cliptext;
-
-	if ( OpenClipboard( NULL ) ) {
-		HANDLE hClipboardData;
-		DWORD size;
-
-		// GetClipboardData performs implicit CF_UNICODETEXT => CF_TEXT conversion
-		if ( ( hClipboardData = GetClipboardData( CF_TEXT ) ) != 0 ) {
-			if ( ( cliptext = GlobalLock( hClipboardData ) ) != 0 ) {
-				size = GlobalSize( hClipboardData ) + 1;
-				data = Z_Malloc( size );
-				Q_strncpyz( data, cliptext, size );
-				GlobalUnlock( hClipboardData );
-				
-				strtok( data, "\n\r\b" );
-			}
-		}
-		CloseClipboard();
-	}
-	return data;
-}
-
-
-/*
-================
-Sys_SetClipboardBitmap
-================
-*/
-void Sys_SetClipboardBitmap( const byte *bitmap, int length )
-{
-	HGLOBAL hMem;
-	byte *ptr;
-
-	if ( !g_wv.hWnd || !OpenClipboard( g_wv.hWnd ) )
-		return;
-
-	EmptyClipboard();
-	hMem = GlobalAlloc( GMEM_MOVEABLE | GMEM_DDESHARE, length );
-	if ( hMem != NULL ) {
-		ptr = ( byte* )GlobalLock( hMem );
-		if ( ptr != NULL ) {
-			memcpy( ptr, bitmap, length ); 
-		}
-		GlobalUnlock( hMem );
-		SetClipboardData( CF_DIB, hMem );
-	}
-	CloseClipboard();
-}
-
-
 /*
 ========================================================================
 
@@ -600,7 +537,7 @@ static int dll_err_count = 0;
 Sys_LoadLibrary
 =================
 */
-void *Sys_LoadLibrary( const char *name ) 
+void *Sys_LoadLibrary( const char *name )
 {
 	const char *ext;
 
@@ -621,7 +558,7 @@ void *Sys_LoadLibrary( const char *name )
 Sys_LoadFunction
 =================
 */
-void *Sys_LoadFunction( void *handle, const char *name ) 
+void *Sys_LoadFunction( void *handle, const char *name )
 {
 	void *symbol;
 
@@ -644,7 +581,7 @@ void *Sys_LoadFunction( void *handle, const char *name )
 Sys_LoadFunctionErrors
 =================
 */
-int Sys_LoadFunctionErrors( void ) 
+int Sys_LoadFunctionErrors( void )
 {
 	int result = dll_err_count;
 	dll_err_count = 0;
@@ -657,9 +594,9 @@ int Sys_LoadFunctionErrors( void )
 Sys_UnloadLibrary
 =================
 */
-void Sys_UnloadLibrary( void *handle ) 
+void Sys_UnloadLibrary( void *handle )
 {
-	if ( handle ) 
+	if ( handle )
 		FreeLibrary( handle );
 }
 
@@ -885,44 +822,18 @@ Sys_SendKeyEvents
 Platform-dependent event handling
 =================
 */
-void Sys_SendKeyEvents( void ) 
+void Sys_SendKeyEvents( void )
 {
-	MSG msg;
-
-	// pump the message loop
-	while ( PeekMessage( &msg, NULL, 0, 0, PM_NOREMOVE ) ) {
-		if ( GetMessage( &msg, NULL, 0, 0 ) <= 0 ) {
-			Cmd_Clear();
-			Com_Quit_f();
-		}
-
-		// save the msg time, because wndprocs don't have access to the timestamp
-		//g_wv.sysMsgTime = msg.time;
-		g_wv.sysMsgTime = Sys_Milliseconds();
-
-		TranslateMessage( &msg );
-		DispatchMessage( &msg );
-	}
+#ifndef DEDICATED
+	if ( !com_dedicated->integer )
+		HandleEvents();
+	else
+#endif
+	HandleConsoleEvents();
 }
 
 
 //================================================================
-
-/*
-=================
-Sys_In_Restart_f
-
-Restart the input subsystem
-=================
-*/
-#ifndef DEDICATED
-
-void Sys_In_Restart_f( void ) {
-	IN_Shutdown();
-	IN_Init();
-}
-
-#endif
 
 
 /*
@@ -974,18 +885,9 @@ void Sys_Init( void ) {
 
 	SetTimerResolution();
 
-#ifndef DEDICATED
-	Cmd_AddCommand( "in_restart", Sys_In_Restart_f );
-#endif
 	Cmd_AddCommand( "clearviewlog", Sys_ClearViewlog_f );
 
 	Cvar_Set( "arch", "winnt" );
-
-#ifndef DEDICATED
-	glw_state.wndproc = MainWndProc;
-
-	IN_Init();
-#endif
 }
 
 
@@ -1026,10 +928,19 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 	char con_title[ MAX_CVAR_VALUE_STRING ];
 	int xpos, ypos;
 	qboolean useXYpos;
+	HANDLE hProcess;
+	DWORD dwPriority;
 
 	// should never get a previous instance in Win32
 	if ( hPrevInstance ) {
 		return 0;
+	}
+
+	// slightly boost process priority if it set to default
+	hProcess = GetCurrentProcess();
+	dwPriority = GetPriorityClass( hProcess );
+	if ( dwPriority == NORMAL_PRIORITY_CLASS || dwPriority == ABOVE_NORMAL_PRIORITY_CLASS ) {
+		SetPriorityClass( hProcess, HIGH_PRIORITY_CLASS );
 	}
 
 	SetupDPIAwareness();

@@ -42,7 +42,7 @@ static unsigned short s_oldHardwareGamma[3][256];
 */
 void GLimp_InitGamma( glconfig_t *config )
 {
-	HDC			hDC;
+	HDC		hDC;
 
 	config->deviceSupportsGamma = qfalse;
 
@@ -50,12 +50,27 @@ void GLimp_InitGamma( glconfig_t *config )
 	{
 		hDC = CreateDC( TEXT( "DISPLAY" ), glw_state.displayName, NULL, NULL );
 		config->deviceSupportsGamma = ( GetDeviceGammaRamp( hDC, s_oldHardwareGamma ) == FALSE ) ? qfalse : qtrue;
+		if ( config->deviceSupportsGamma )
+		{
+			// do test setup
+			if ( SetDeviceGammaRamp( hDC, s_oldHardwareGamma ) == FALSE )
+			{
+				config->deviceSupportsGamma = qfalse;
+			}
+		}
 		DeleteDC( hDC );
 	}
 	else
 	{
 		hDC = GetDC( GetDesktopWindow() );
 		config->deviceSupportsGamma = ( GetDeviceGammaRamp( hDC, s_oldHardwareGamma ) == FALSE ) ? qfalse : qtrue;
+		if ( config->deviceSupportsGamma )
+		{
+			if ( SetDeviceGammaRamp( hDC, s_oldHardwareGamma ) == FALSE )
+			{
+				config->deviceSupportsGamma = qfalse;
+			}
+		}
 		ReleaseDC( GetDesktopWindow(), hDC );
 	}
 
@@ -90,6 +105,8 @@ void GLimp_InitGamma( glconfig_t *config )
 			}
 		}
 	} // if ( config->deviceSupportsGamma )
+
+	glw_state.deviceSupportsGamma = config->deviceSupportsGamma;
 }
 
 
@@ -170,7 +187,9 @@ void GLimp_SetGamma( unsigned char red[256], unsigned char green[256], unsigned 
 		ret = SetDeviceGammaRamp( hDC, table );
 		DeleteDC( hDC );
 	} else {
-		ret = SetDeviceGammaRamp( glw_state.hDC, table );
+		hDC = GetDC( GetDesktopWindow() );
+		ret = SetDeviceGammaRamp( hDC, table );
+		ReleaseDC( GetDesktopWindow(), hDC );
 	}
 
 	if ( !ret ) {
@@ -188,6 +207,11 @@ void GLW_RestoreGamma( void )
 {
 	HDC hDC;
 	BOOL ret;
+
+	if ( !glw_state.deviceSupportsGamma ) {
+		return;
+	}	
+
 	if ( glw_state.displayName[0] ) {
 		hDC = CreateDC( TEXT( "DISPLAY" ), glw_state.displayName, NULL, NULL );
 		ret = SetDeviceGammaRamp( hDC, s_oldHardwareGamma );
@@ -197,6 +221,8 @@ void GLW_RestoreGamma( void )
 		ret = SetDeviceGammaRamp( hDC, s_oldHardwareGamma );
 		ReleaseDC( GetDesktopWindow(), hDC );
 	}
-	if ( ret )
+
+	if ( ret ) {
 		glw_state.gammaSet = qfalse;
+	}
 }

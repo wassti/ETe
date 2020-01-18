@@ -192,9 +192,9 @@ qhandle_t R_RegisterMDC(const char *name, model_t *mod)
 		return mod->index;
 	}
 
-#ifdef _DEBUG
-	ri.Printf(PRINT_WARNING,"R_RegisterMDC: couldn't load %s\n", name);
-#endif
+//#ifdef _DEBUG
+//	ri.Printf(PRINT_WARNING,"R_RegisterMDC: couldn't load %s\n", name);
+//#endif
 
 	mod->type = MOD_BAD;
 	return 0;

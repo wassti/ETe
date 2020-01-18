@@ -248,7 +248,7 @@ typedef struct pack_s {
 
 	// caching subsystem
 #ifdef USE_PK3_CACHE
-	int				namehash;
+	unsigned int	namehash;
 	fileOffset_t	size;
 	fileTime_t		mtime;
 	fileTime_t		ctime;
@@ -283,7 +283,7 @@ typedef struct searchpath_s {
 char				fs_gamedir[MAX_OSPATH];        // this will be a single file name with no separators
 static	cvar_t		*fs_debug;
 static	cvar_t		*fs_homepath;
-static	cvar_t      *fs_basepath;
+static	cvar_t		*fs_basepath;
 		cvar_t		*fs_basegame;
 		cvar_t		*fs_gamedirvar;
 static	cvar_t		*fs_locked;
@@ -588,7 +588,7 @@ Creates any directories needed to store the given filename
 */
 qboolean FS_CreatePath( const char *OSPath ) {
 	char	path[MAX_OSPATH*2+1];
-	char    *ofs;
+	char	*ofs;
 
 	// make absolutely sure that it can't back up the path
 	// FIXME: is c: allowed???
@@ -2571,7 +2571,7 @@ typedef struct pk3cacheFileItem_s {
 
 static int FS_HashPK3( const char *name )
 {
-	int c, hash = 0;
+	unsigned int c, hash = 0;
 	while ( (c = *name++) != '\0' )
 	{
 		hash = hash * 101 + c;
@@ -2584,7 +2584,7 @@ static int FS_HashPK3( const char *name )
 static pack_t *FS_FindInCache( const char *zipfile )
 {
 	pack_t *pack;
-	int hash;
+	unsigned int hash;
 
 	hash = FS_HashPK3( zipfile );
 	pack = pakHashTable[ hash ];

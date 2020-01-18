@@ -367,7 +367,7 @@ static LRESULT WINAPI ConWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lP
 #ifdef DEDICATED
 			Com_Frame( qfalse );
 #else
-			Com_Frame( CL_NoDelay() );
+			//Com_Frame( CL_NoDelay() );
 #endif
 		}
 		break;
@@ -418,7 +418,7 @@ static LRESULT WINAPI BufferWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM
 #ifdef DEDICATED
 			Com_Frame( qfalse );
 #else
-			Com_Frame( CL_NoDelay() );
+			//Com_Frame( CL_NoDelay() );
 #endif
 		}
 		if ( wParam == TEX_TIMER_ID && texTimerID != 0 ) {
@@ -738,18 +738,18 @@ void Sys_CreateConsole( const char *title, int xPos, int yPos, qboolean useXYpos
 		0,
 		0,
 		FW_DONTCARE,
-		0,
-		0,
-		0,
+		FALSE,
+		FALSE,
+		FALSE,
 		DEFAULT_CHARSET,
-		OUT_RASTER_PRECIS,
+		OUT_DEFAULT_PRECIS,
 		CLIP_DEFAULT_PRECIS,
-		NONANTIALIASED_QUALITY,
-		FIXED_PITCH | FF_MODERN,
+		DEFAULT_QUALITY,
+		MONO_FONT,
 		T("Terminal") );
 
 	s_wcd.hfStatusFont = CreateFont( statusFontHeight, 0,
-		0, 0, FW_NORMAL, 0, 0, 0,
+		0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
 		DEFAULT_CHARSET,
 		OUT_DEFAULT_PRECIS,
 		CLIP_DEFAULT_PRECIS,
@@ -1097,6 +1097,23 @@ void Sys_SetErrorText( const char *buf )
 
 	Sys_SetStatus( "Fatal error occured" );
 }
+
+
+void HandleConsoleEvents( void ) {
+	MSG msg;
+
+	// pump the message loop
+	while ( PeekMessage( &msg, NULL, 0, 0, PM_NOREMOVE ) ) {
+		if ( GetMessage( &msg, NULL, 0, 0 ) <= 0 ) {
+			Cmd_Clear();
+			Com_Quit_f();
+		}
+
+		TranslateMessage( &msg );
+		DispatchMessage( &msg );
+	}
+}
+
 
 /*
 ** Sys_ClearViewlog_f

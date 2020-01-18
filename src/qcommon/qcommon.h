@@ -212,7 +212,7 @@ int         NET_StringToAdr( const char *s, netadr_t *a, netadrtype_t family );
 qboolean	NET_GetLoopPacket( netsrc_t sock, netadr_t *net_from, msg_t *net_message );
 void		NET_JoinMulticast6( void );
 void		NET_LeaveMulticast6( void );
-qboolean	NET_Sleep( int msec, int usec_bias );
+qboolean	NET_Sleep( int timeout );
 
 #define	MAX_PACKETLEN	1400	// max size of a network packet
 
@@ -976,6 +976,7 @@ extern	int	CPU_Flags;
 #define CPU_SSE    0x04
 #define CPU_SSE2   0x08
 #define CPU_SSE3   0x10
+#define CPU_SSE41  0x20
 
 typedef struct gameInfo_s {
 	qboolean spEnabled;
@@ -1161,7 +1162,7 @@ void *Z_Malloc( int size );			// returns 0 filled memory
 void *S_Malloc( int size );			// NOT 0 filled memory only for small allocations
 #endif
 void Z_Free( void *ptr );
-void Z_FreeTags( memtag_t tag );
+int Z_FreeTags( memtag_t tag );
 int Z_AvailableMemory( void );
 void Z_LogHeap( void );
 
@@ -1372,13 +1373,13 @@ const char *Sys_DefaultBasePath( void );
 const char *Sys_DefaultHomePath( void );
 const char *Sys_SteamPath( void );
 
-char	**Sys_ListFiles( const char *directory, const char *extension, const char *filter, int *numfiles, qboolean wantsubs );
-void	Sys_FreeFileList( char **list );
+char **Sys_ListFiles( const char *directory, const char *extension, const char *filter, int *numfiles, qboolean wantsubs );
+void Sys_FreeFileList( char **list );
 
 qboolean Sys_GetFileStats( const char *filename, fileOffset_t *size, fileTime_t *mtime, fileTime_t *ctime );
 
-void	Sys_BeginProfiling( void );
-void	Sys_EndProfiling( void );
+void Sys_BeginProfiling( void );
+void Sys_EndProfiling( void );
 
 qboolean Sys_LowPhysicalMemory( void );
 
@@ -1408,14 +1409,14 @@ void Sys_Chmod( char *file, int mode );
 #endif
 
 // adaptive huffman functions
-void	Huff_Compress( msg_t *buf, int offset );
-void	Huff_Decompress( msg_t *buf, int offset );
+void Huff_Compress( msg_t *buf, int offset );
+void Huff_Decompress( msg_t *buf, int offset );
 
 // static huffman functions
 void HuffmanPutBit( byte* fout, int32_t bitIndex, int bit );
 int HuffmanPutSymbol( byte* fout, uint32_t offset, int symbol );
 int HuffmanGetBit( const byte* buffer, int bitIndex );
-int HuffmanGetSymbol( int* symbol, const byte* buffer, int bitIndex );
+int HuffmanGetSymbol( unsigned int* symbol, const byte* buffer, int bitIndex );
 
 #define	SV_ENCODE_START		4
 #define	SV_DECODE_START		12

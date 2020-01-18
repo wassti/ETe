@@ -33,7 +33,7 @@ If you have questions concerning this license or the applicable additional terms
 
 extern botlib_export_t *botlib_export;
 
-vm_t *uivm;
+vm_t *uivm = NULL;
 
 
 // ydnar: can we put this in a header, pls?

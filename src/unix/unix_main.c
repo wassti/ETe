@@ -640,7 +640,7 @@ Platform-dependent event handling
 void Sys_SendKeyEvents( void )
 {
 #ifndef DEDICATED
-	HandleX11Events();
+	HandleEvents();
 #endif
 }
 
@@ -701,7 +701,7 @@ void Sys_Sleep( int msec ) {
 				timeout.tv_sec = msec / 1000;
 				timeout.tv_usec = (msec % 1000) * 1000;
 				res = select( STDIN_FILENO + 1, &fdset, NULL, NULL, &timeout );
-			} while ( res == 0 && NET_Sleep( 10, 0 ) );
+			} while ( res == 0 && NET_Sleep( 10 * 1000 ) );
 		} else {
 			// can happen only if no map loaded
 			// which means we totally stuck as stdin is also disabled :P

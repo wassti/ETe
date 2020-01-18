@@ -276,7 +276,7 @@ static void DrawTris( shaderCommands_t *input ) {
 	GLbitfield stateBits = 0;
 	GLboolean didDepth = GL_FALSE, polygonState = GL_FALSE;
 
-	if ( backEnd.projection2D )
+	if ( (r_showtris->integer == 1 && backEnd.doneSurfaces) || (r_showtris->integer == 2 && backEnd.drawConsole) )
 		return;
 
 	GL_ProgramDisable();
@@ -317,10 +317,20 @@ static void DrawTris( shaderCommands_t *input ) {
 		stateBits |= ( GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA );
 	}
 
+#ifdef USE_PMLIGHT
+	if ( tess.dlightPass )
+		qglColor3f( 1.0f, 0.33f, 0.2f );
+	else
+#endif
 	qglColor4fv( trisColor );
+	
+	stateBits |= ( GLS_POLYMODE_LINE | GLS_DEPTHMASK_TRUE );
+	GL_State( stateBits );
+	qglDepthRange( 0, 0 );
+	didDepth = GL_TRUE;
 
 	// ydnar r_showtris 2
-	if ( r_showtris->integer == 2 ) {
+	/*if ( r_showtris->integer == 2 ) {
 		stateBits |= ( GLS_POLYMODE_LINE | GLS_DEPTHMASK_TRUE );
 		GL_State( stateBits );
 		qglDepthRange( 0, 0 );
@@ -343,7 +353,7 @@ static void DrawTris( shaderCommands_t *input ) {
 		qglEnable( GL_POLYGON_OFFSET_LINE );
 		polygonState = GL_TRUE;
 		qglPolygonOffset( r_offsetFactor->value, r_offsetUnits->value );
-	}
+	}*/
 
 	qglDisableClientState( GL_COLOR_ARRAY );
 	qglDisableClientState( GL_TEXTURE_COORD_ARRAY );
@@ -444,7 +454,22 @@ to overflow.
 */
 void RB_BeginSurface( shader_t *shader, int fogNum ) {
 
-	shader_t *state = ( shader->remappedShader ) ? shader->remappedShader : shader;
+	shader_t *state;
+	
+#ifdef USE_PMLIGHT
+	if ( !tess.dlightPass && shader->isStaticShader && !shader->remappedShader )
+#else
+	if ( shader->isStaticShader )
+#endif
+		tess.allowVBO = qtrue;
+	else
+		tess.allowVBO = qfalse;
+
+	if ( shader->remappedShader ) {
+		state = shader->remappedShader;
+	} else {
+		state = shader;
+	}
 
 #ifdef USE_PMLIGHT
 	if ( tess.fogNum != fogNum ) {
@@ -457,15 +482,6 @@ void RB_BeginSurface( shader_t *shader, int fogNum ) {
 	tess.shader = state;
 	tess.fogNum = fogNum;
 
-#ifdef USE_PMLIGHT
-	if ( !tess.dlightPass && state->isStaticShader )
-#else
-	if ( state->isStaticShader )
-#endif
-		tess.allowVBO = qtrue;
-	else
-		tess.allowVBO = qfalse;
-	
 #ifdef USE_LEGACY_DLIGHTS
 	tess.dlightBits = 0;		// will be OR'd in by surface functions
 #endif

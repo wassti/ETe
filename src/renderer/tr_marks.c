@@ -738,7 +738,7 @@ int R_MarkFragments( int orientation, const vec3_t *points, const vec3_t project
 		} else if ( *surfaces[i] == SF_FACE )     {
 			extern float VectorDistance( vec3_t v1, vec3_t v2 );
 			vec3_t axis[3];
-			float texCoordScale, dot;
+			float /*texCoordScale,*/ dot;
 			vec3_t originalPoints[4];
 			vec3_t newCenter, delta;
 			int oldNumPoints;
@@ -793,7 +793,7 @@ int R_MarkFragments( int orientation, const vec3_t *points, const vec3_t project
 				RotatePointAroundVector( axis[2], axis[0], axis[1], (float)orientation );
 				CrossProduct( axis[0], axis[2], axis[1] );
 
-				texCoordScale = 0.5 * 1.0 / radius;
+				//texCoordScale = 0.5 * 1.0 / radius;
 
 				// create the full polygon
 				for ( j = 0 ; j < 3 ; j++ ) {

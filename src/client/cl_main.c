@@ -38,6 +38,10 @@ cvar_t  *cl_noprint;
 cvar_t  *cl_debugMove;
 cvar_t  *cl_motd;
 
+#ifdef USE_RENDERER_DLOPEN
+cvar_t	*cl_renderer;
+#endif
+
 cvar_t  *rcon_client_password;
 cvar_t  *rconAddress;
 
@@ -105,7 +109,11 @@ cvar_t	*cl_dlURL;
 cvar_t	*cl_dlDirectory;
 
 // common cvars for GLimp modules
-cvar_t *r_allowSoftwareGL;		// don't abort out if the pixelformat claims software
+cvar_t	*vid_xpos;			// X coordinate of window position
+cvar_t	*vid_ypos;			// Y coordinate of window position
+cvar_t	*r_noborder;
+
+cvar_t *r_allowSoftwareGL;	// don't abort out if the pixelformat claims software
 cvar_t *r_swapInterval;
 cvar_t *r_glDriver;
 cvar_t *r_displayRefresh;
@@ -130,7 +138,7 @@ cvar_t *in_forceCharset;
 clientActive_t		cl;
 clientConnection_t	clc;
 clientStatic_t		cls;
-vm_t				*cgvm;
+vm_t				*cgvm = NULL;
 
 netadr_t			rcon_address;
 
@@ -145,6 +153,9 @@ download_t			download;
 
 // Structure containing functions exported from refresh DLL
 refexport_t	re;
+#ifdef USE_RENDERER_DLOPEN
+static void	*rendererLib;
+#endif
 
 ping_t	cl_pinglist[MAX_PINGREQUESTS];
 
@@ -3665,12 +3676,26 @@ CL_ShutdownRef
 ============
 */
 static void CL_ShutdownRef( qboolean unloadDLL ) {
+
+#ifdef USE_RENDERER_DLOPEN
+	if ( cl_renderer->modified ) {
+		unloadDLL = qtrue;
+	}
+#endif
+	
 	if ( re.Shutdown ) {
 		if ( unloadDLL )
 			re.Shutdown( 2 );
 		else
 			re.Shutdown( 1 );
 	}
+
+#ifdef USE_RENDERER_DLOPEN
+	if ( rendererLib ) {
+		Sys_UnloadLibrary( rendererLib );
+		rendererLib = NULL;
+	}
+#endif
 
 	Com_Memset( &re, 0, sizeof( re ) );
 }
@@ -3822,10 +3847,38 @@ CL_InitRef
 static void CL_InitRef( void ) {
 	refimport_t	rimp;
 	refexport_t	*ret;
+#ifdef USE_RENDERER_DLOPEN
+	GetRefAPI_t		GetRefAPI;
+	char			dllName[ MAX_OSPATH ];
+#endif
 
 	CL_InitGLimp_Cvars();
 
 	Com_Printf( "----- Initializing Renderer ----\n" );
+
+#ifdef USE_RENDERER_DLOPEN
+	Com_sprintf( dllName, sizeof( dllName ), RENDERER_PREFIX "_%s_" ARCH_STRING DLL_EXT, cl_renderer->string );
+	rendererLib = FS_LoadLibrary( dllName );
+	if ( !rendererLib )
+	{
+		Cvar_ForceReset( "cl_renderer" );
+		Com_sprintf( dllName, sizeof( dllName ), RENDERER_PREFIX "_%s_" ARCH_STRING DLL_EXT, cl_renderer->string );
+		rendererLib = FS_LoadLibrary( dllName );
+		if ( !rendererLib )
+		{
+			Com_Error( ERR_FATAL, "Failed to load renderer %s", dllName );
+		}
+	}
+
+	GetRefAPI = Sys_LoadFunction( rendererLib, "GetRefAPI" );
+	if( !GetRefAPI )
+	{
+		Com_Error( ERR_FATAL, "Can't load symbol GetRefAPI" );
+		return;
+	}
+
+	cl_renderer->modified = qfalse;
+#endif
 
 	rimp.Cmd_AddCommand = Cmd_AddCommand;
 	rimp.Cmd_RemoveCommand = Cmd_RemoveCommand;
@@ -3835,6 +3888,7 @@ static void CL_InitRef( void ) {
 	rimp.Printf = CL_RefPrintf;
 	rimp.Error = Com_Error;
 	rimp.Milliseconds = CL_ScaledMilliseconds;
+	rimp.Microseconds = Sys_Microseconds;
 	rimp.Malloc = CL_RefMalloc;
 	rimp.Free = Z_Free;
 	rimp.Tag_Free = CL_RefTagFree;
@@ -4201,6 +4255,18 @@ static void CL_ModeList_f( void )
 }
 
 
+#ifdef USE_RENDERER_DLOPEN
+static qboolean isValidRenderer( const char *s ) {
+	while ( *s ) {
+		if ( !((*s >= 'a' && *s <= 'z') || (*s >= 'A' && *s <= 'Z') ))
+			return qfalse;
+		++s;
+	}
+	return qtrue;
+}
+#endif
+
+
 static void CL_InitGLimp_Cvars( void )
 {
 	// shared with GLimp
@@ -4210,6 +4276,14 @@ static void CL_InitGLimp_Cvars( void )
 	
 	r_displayRefresh = Cvar_Get( "r_displayRefresh", "0", CVAR_LATCH | CVAR_UNSAFE );
 	Cvar_CheckRange( r_displayRefresh, "0", "250", CV_INTEGER );
+
+	vid_xpos = Cvar_Get( "vid_xpos", "3", CVAR_ARCHIVE );
+	vid_ypos = Cvar_Get( "vid_ypos", "22", CVAR_ARCHIVE );
+	Cvar_CheckRange( vid_xpos, NULL, NULL, CV_INTEGER );
+	Cvar_CheckRange( vid_ypos, NULL, NULL, CV_INTEGER );
+
+	r_noborder = Cvar_Get( "r_noborder", "0", CVAR_ARCHIVE_ND | CVAR_LATCH );
+	Cvar_CheckRange( r_noborder, "0", "1", CV_INTEGER );
 
 	r_mode = Cvar_Get( "r_mode", "-2", CVAR_ARCHIVE | CVAR_LATCH );
 	r_modeFullscreen = Cvar_Get( "r_modeFullscreen", "-2", CVAR_ARCHIVE | CVAR_LATCH );
@@ -4231,10 +4305,22 @@ static void CL_InitGLimp_Cvars( void )
 	Cvar_SetDescription( r_customheight, "Custom height to use with \\r_mode -1" );
 
 	r_colorbits = Cvar_Get( "r_colorbits", "0", CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE );
+	Cvar_CheckRange( r_colorbits, "0", "32", CV_INTEGER );
+
 	// shared with renderer:
 	r_stencilbits = Cvar_Get( "r_stencilbits", "8", CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE );
+	Cvar_CheckRange( r_stencilbits, "0", "8", CV_INTEGER );
 	r_depthbits = Cvar_Get( "r_depthbits", "0", CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE );
+	Cvar_CheckRange( r_depthbits, "0", "32", CV_INTEGER );
+
 	r_drawBuffer = Cvar_Get( "r_drawBuffer", "GL_BACK", CVAR_CHEAT );
+
+#ifdef USE_RENDERER_DLOPEN
+	cl_renderer = Cvar_Get( "cl_renderer", "opengl", CVAR_ARCHIVE | CVAR_LATCH );
+	if ( !isValidRenderer( cl_renderer->string ) ) {
+		Cvar_ForceReset( "cl_renderer" );
+	}
+#endif
 }
 
 

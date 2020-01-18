@@ -27,7 +27,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 // linux_local.h: Linux-specific Quake3 header file
 
-void HandleX11Events( void );
+void HandleEvents( void );
 
 // Input subsystem
 

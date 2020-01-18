@@ -48,8 +48,8 @@ If you have questions concerning this license or the applicable additional terms
 #include "../renderer/qgl.h"
 
 // Enable High Performance Graphics while using Integrated Graphics.
-Q_EXPORT DWORD NvOptimusEnablement = 0x00000001;		// Nvidia
-Q_EXPORT int AmdPowerXpressRequestHighPerformance = 1;	// AMD
+__declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;		// Nvidia
+__declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;	// AMD
 
 typedef enum {
 	RSERR_OK,
@@ -82,7 +82,7 @@ static qboolean s_classRegistered = qfalse;
 qboolean QGL_Init( const char *dllname );
 void     QGL_Shutdown( qboolean unloadDLL );
 
-qboolean QVK_Init( const char *dllname );
+qboolean QVK_Init( void );
 void     QVK_Shutdown( qboolean unloadDLL );
 
 //
@@ -94,7 +94,6 @@ glwstate_t glw_state;
 static cvar_t *r_maskMinidriver;		// allow a different dll name to be treated as if it were opengl32.dll
 static cvar_t *r_stereoEnabled;
 static cvar_t *r_verbose;				// used for verbose debug spew
-static cvar_t *r_noborder;
 
 int gl_NormalFontBase = 0;
 static qboolean fontbase_init = qfalse;
@@ -132,7 +131,7 @@ static qboolean GLW_StartDriverAndSetMode( int mode, const char *modeFS, int col
 **
 ** Helper function that replaces ChoosePixelFormat.
 */
-#define MAX_PFDS 256
+#define MAX_PFDS 384
 
 static int GLW_ChoosePFD( HDC hDC, PIXELFORMATDESCRIPTOR *pPFD )
 {
@@ -632,7 +631,7 @@ static qboolean GLW_CreateWindow( int width, int height, int colorbits, qboolean
 		memset( &wc, 0, sizeof( wc ) );
 
 		wc.style         = 0;
-		wc.lpfnWndProc   = (WNDPROC) glw_state.wndproc;
+		wc.lpfnWndProc   = (WNDPROC) MainWndProc;
 		wc.cbClsExtra    = 0;
 		wc.cbWndExtra    = 0;
 		wc.hInstance     = g_wv.hInstance;
@@ -823,6 +822,9 @@ static LONG ApplyDisplaySettings( DEVMODE *dm )
 	LONG lResult;
 	BOOL bResult;
 
+	Com_Memset( &curr, 0, sizeof( curr ) );
+	curr.dmSize = sizeof( DEVMODE );
+
 	// Get current display mode on current monitor
 	if ( glw_state.displayName[0] )
 		bResult = EnumDisplaySettings( glw_state.displayName, ENUM_CURRENT_SETTINGS, &curr );
@@ -832,6 +834,7 @@ static LONG ApplyDisplaySettings( DEVMODE *dm )
 	if ( !bResult )
 		return DISP_CHANGE_FAILED;
 
+#ifdef FAST_MODE_SWITCH
 	// Check if current resolution is the same as we want to set
 	if ( curr.dmDisplayFrequency &&
 		curr.dmPelsWidth == dm->dmPelsWidth &&
@@ -842,6 +845,7 @@ static LONG ApplyDisplaySettings( DEVMODE *dm )
 		memcpy( &dm_current, &curr, sizeof( dm_current ) );
 		return DISP_CHANGE_SUCCESSFUL; // simulate success
 	}
+#endif
 
 	// Uninitialized?
 	if ( dm->dmDisplayFrequency == 0 && dm->dmPelsWidth == 0 && 
@@ -953,6 +957,9 @@ void UpdateMonitorInfo( const RECT *target )
 					re.SetColorMappings();
 				}
 		}
+
+		glw_state.workArea = mInfo.rcWork;
+
 	} else {
 		// no information about current monitor, get desktop settings
 		HDC hDC = GetDC( GetDesktopWindow() );
@@ -961,7 +968,10 @@ void UpdateMonitorInfo( const RECT *target )
 		glw_state.desktopWidth = GetDeviceCaps( hDC, HORZRES );
 		glw_state.desktopHeight = GetDeviceCaps( hDC, VERTRES );
 		ReleaseDC( GetDesktopWindow(), hDC );
+
 		glw_state.displayName[0] = '\0';
+
+		SystemParametersInfo( SPI_GETWORKAREA, 0, &glw_state.workArea, 0 );
 	}
 }
 
@@ -977,9 +987,6 @@ static rserr_t GLW_SetMode( int mode, const char *modeFS, int colorbits, qboolea
 	glconfig_t *config = glw_state.config;
 	int		cdsRet;
 	DEVMODE dm;
-
-	vid_xpos = Cvar_Get( "vid_xpos", "3", CVAR_ARCHIVE );
-	vid_ypos = Cvar_Get( "vid_ypos", "22", CVAR_ARCHIVE );
 
 	r.left = vid_xpos->integer;
 	r.top = vid_ypos->integer;
@@ -1119,10 +1126,15 @@ static rserr_t GLW_SetMode( int mode, const char *modeFS, int colorbits, qboolea
 				// we could do a better matching job here...
 				for ( modeNum = 0 ; ; modeNum++ ) {
 					BOOL bResult;
+
+					Com_Memset( &devmode, 0, sizeof( devmode ) );
+					devmode.dmSize = sizeof( DEVMODE );
+
 					if ( glw_state.displayName[0] )
 						bResult = EnumDisplaySettings( glw_state.displayName, modeNum, &devmode );
 					else
 						bResult = EnumDisplaySettings( NULL, modeNum, &devmode );
+
 					if ( !bResult ) {
 						modeNum = -1;
 						break;
@@ -1321,16 +1333,12 @@ fail:
 }
 
 
-static qboolean GLW_LoadVulkan( const char *drivername )
+static qboolean GLW_LoadVulkan( void )
 {
-	glconfig_t *config = glw_state.config;
-
-	config->driverType = GLDRV_ICD;
-
 	//
 	// load the driver and bind our function pointers to it
 	// 
-	if ( QVK_Init( drivername ) )
+	if ( QVK_Init() )
 	{
 		qboolean cdsFullscreen = (r_fullscreen->integer != 0);
 		// create the window and set up the context
@@ -1414,7 +1422,7 @@ static qboolean GLW_StartVulkan( void )
 	//
 	// load and initialize Vulkan driver
 	//
-	if ( !GLW_LoadVulkan( "vulkan-1" ) ) {
+	if ( !GLW_LoadVulkan() ) {
 		Com_Error( ERR_FATAL, "GLW_StartVulkan() - could not load Vulkan subsystem\n" );
 		return qfalse;
 	}
@@ -1457,8 +1465,6 @@ void GLimp_Init( glconfig_t *config )
 	r_maskMinidriver = Cvar_Get( "r_maskMinidriver", "0", CVAR_LATCH );
 	r_stereoEnabled = Cvar_Get( "r_stereoEnabled", "0", CVAR_ARCHIVE_ND | CVAR_LATCH );
 	r_verbose = Cvar_Get( "r_verbose", "0", 0 );
-	r_noborder = Cvar_Get( "r_noborder", "0", CVAR_ARCHIVE_ND | CVAR_LATCH );
-	Cvar_CheckRange( r_noborder, "0", "1", CV_INTEGER );
 
 	// feedback to renderer configuration
 	glw_state.config = config;
@@ -1509,9 +1515,6 @@ void GLimp_Init( glconfig_t *config )
 void VKimp_Init( glconfig_t *config )
 {
 	Com_Printf( "Initializing Vulkan subsystem\n" );
-
-	r_noborder = Cvar_Get( "r_noborder", "0", CVAR_ARCHIVE_ND | CVAR_LATCH );
-	Cvar_CheckRange( r_noborder, "0", "1", CV_INTEGER );
 
 	// feedback to renderer configuration
 	glw_state.config = config;
@@ -1619,6 +1622,13 @@ void VKimp_Shutdown( qboolean unloadDLL )
 	Com_Printf( "Shutting down Vulkan subsystem\n" );
 
 	Cvar_ForceReset("r_currentResolution");
+
+	// restore gamma
+	if ( glw_state.gammaSet )
+	{
+		GLW_RestoreGamma();
+		glw_state.gammaSet = qfalse;
+	}
 
 	// destroy window
 	if ( g_wv.hWnd )

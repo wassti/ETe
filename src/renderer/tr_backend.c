@@ -885,8 +885,6 @@ static void RB_RenderLitSurfList( dlight_t* dl ) {
 	oldSort = MAX_UINT;
 	depthRange = qfalse;
 
-	tess.dlightUpdateParams = qtrue;
-
 	for ( litSurf = dl->head; litSurf; litSurf = litSurf->next ) {
 		//if ( litSurf->sort == sort ) {
 		if ( litSurf->sort == oldSort ) {
@@ -953,7 +951,7 @@ static void RB_RenderLitSurfList( dlight_t* dl ) {
 
 			// set up the dynamic lighting
 			R_TransformDlights( 1, dl, &backEnd.orientation );
-			ARB_SetupLightParams();
+			tess.dlightUpdateParams = qtrue;
 
 			qglLoadMatrixf( backEnd.orientation.modelMatrix );
 
@@ -1699,6 +1697,8 @@ static const void *RB_FinishBloom( const void *data )
 {
 	const finishBloomCommand_t *cmd = data;
 
+	RB_EndSurface();
+
 	if ( fboEnabled )
 	{
 		// let's always render console with the same quality
@@ -1721,6 +1721,8 @@ static const void *RB_FinishBloom( const void *data )
 		}
 	}
 
+	backEnd.drawConsole = qtrue;
+
 	return (const void *)(cmd + 1);
 }
 
@@ -1730,10 +1732,7 @@ static const void *RB_SwapBuffers( const void *data ) {
 	const swapBuffersCommand_t	*cmd;
 
 	// finish any 2D drawing if needed
-	if ( tess.numIndexes ) {
-		RB_EndSurface();
-	}
-
+	RB_EndSurface();
 	VBO_UnBind();
 
 	// texture swapping test
@@ -1750,6 +1749,9 @@ static const void *RB_SwapBuffers( const void *data ) {
 	if ( fboEnabled ) {
 		FBO_PostProcess();
 	}
+
+	// buffer swap may take undefined time to complete, we can't measure it in a reliable way
+	backEnd.pc.msec = ri.Milliseconds() - backEnd.pc.msec;
 
 	if ( backEnd.screenshotMask && tr.frameCount > 1 ) {
 
@@ -1790,6 +1792,7 @@ static const void *RB_SwapBuffers( const void *data ) {
 	backEnd.projection2D = qfalse;
 	backEnd.doneBloom = qfalse;
 	backEnd.doneSurfaces = qfalse;
+	backEnd.drawConsole = qfalse;
 
 	return (const void *)(cmd + 1);
 }
@@ -1898,9 +1901,8 @@ RB_ExecuteRenderCommands
 ====================
 */
 void RB_ExecuteRenderCommands( const void *data ) {
-	int		t1, t2;
 
-	t1 = ri.Milliseconds ();
+	backEnd.pc.msec = ri.Milliseconds();
 
 	while ( 1 ) {
 		data = PADP(data, sizeof(void *));
@@ -1953,8 +1955,6 @@ void RB_ExecuteRenderCommands( const void *data ) {
 		case RC_END_OF_LIST:
 		default:
 			// stop rendering
-			t2 = ri.Milliseconds();
-			backEnd.pc.msec = t2 - t1;
 			return;
 		}
 	}

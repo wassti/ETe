@@ -149,6 +149,8 @@ typedef struct {
 
 	const glconfig_t *(*GetConfig)( void );
 
+	void	(*SyncRender)( void );
+
 	void* (*GetImageBuffer)(int size, bufferMemType_t bufferType);
 
 
@@ -167,6 +169,8 @@ typedef struct {
 	// milliseconds should only be used for profiling, never
 	// for anything game related.  Get time from the refdef
 	int		(*Milliseconds)( void );
+
+	int64_t	(*Microseconds)( void );
 
 	// stack based memory allocation for per-level things that
 	// won't be freed

@@ -40,8 +40,6 @@ typedef struct
 
 typedef struct
 {
-	WNDPROC		wndproc;
-
 	HDC     hDC;			// handle to device context
 	HGLRC   hGLRC;			// handle to GL rendering context
 
@@ -55,8 +53,12 @@ typedef struct
 	int			desktopHeight;
 	int			desktopX;		// can be negative
 	int			desktopY;		// can be negative
+
+	RECT		workArea;
+
 	HMONITOR	hMonitor;		// current monitor
 	TCHAR		displayName[CCHDEVICENAME];
+	qboolean	deviceSupportsGamma;
 	qboolean	gammaSet;
 
 	qboolean	cdsFullscreen;
@@ -72,9 +74,8 @@ typedef struct
 
 extern glwstate_t glw_state;
 
-extern void GLW_RestoreGamma( void );
+void GLW_RestoreGamma( void );
 
-extern cvar_t *vid_xpos;
-extern cvar_t *vid_ypos;
+void HandleEvents( void );
 
 #endif

@@ -108,7 +108,7 @@ void *GL_GetProcAddress( const char *symbol )
 	return sym;
 }
 
-char *do_dlerror( void );
+//char *do_dlerror( void );
 
 
 /*
@@ -158,7 +158,7 @@ qboolean QGL_Init( const char *dllname )
 #endif
 			{
 				Com_Printf( "failed\n" );
-				Com_Printf( "QGL_Init: Can't load %s from /etc/ld.so.conf: %s\n", dllname, do_dlerror() );
+				//Com_Printf( "QGL_Init: Can't load %s from /etc/ld.so.conf: %s\n", dllname, do_dlerror() );
 				return qfalse;
 			}
 		}

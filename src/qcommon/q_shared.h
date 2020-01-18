@@ -449,6 +449,16 @@ typedef	int	fixed16_t;
 #define M_LN2      0.693147180559945309417
 #endif
 
+#ifdef __linux__
+#if idx64
+// force version for better runtime compatibility
+__asm__(".symver logf,logf@GLIBC_2.2.5");
+__asm__(".symver powf,powf@GLIBC_2.2.5");
+__asm__(".symver expf,expf@GLIBC_2.2.5");
+__asm__(".symver memcpy,memcpy@GLIBC_2.2.5");
+#endif
+#endif
+
 #define NUMVERTEXNORMALS	162
 extern	vec3_t	bytedirs[NUMVERTEXNORMALS];
 
@@ -682,7 +692,7 @@ static ID_INLINE int VectorCompare( const vec3_t v1, const vec3_t v2 ) {
 }
 
 static ID_INLINE vec_t VectorLength( const vec3_t v ) {
-	return (vec_t)sqrt (v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
+	return (vec_t)sqrtf (v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
 }
 
 static ID_INLINE vec_t VectorLengthSquared( const vec3_t v ) {

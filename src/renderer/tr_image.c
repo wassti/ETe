@@ -1181,7 +1181,7 @@ void R_InitFogTable( void ) {
 	exp = 0.5;
 
 	for ( i = 0 ; i < FOG_TABLE_SIZE ; i++ ) {
-		d = pow ( (float)i/(FOG_TABLE_SIZE-1), exp );
+		d = powf( (float)i/(FOG_TABLE_SIZE-1), exp );
 
 		// ydnar: changed to linear fog
 		tr.fogTable[ i ] = d;
@@ -1293,7 +1293,7 @@ static void R_CreateFogImage( void ) {
 	// standard openGL clamping doesn't really do what we want -- it includes
 	// the border color at the edges.  OpenGL 1.2 has clamp-to-edge, which does
 	// what we want.
-	tr.fogImage = R_CreateImage("*fog", (byte *)data, FOG_S, FOG_T, IMGFLAG_CLAMPTOEDGE );
+	tr.fogImage = R_CreateImage( "*fog", data, FOG_S, FOG_T, IMGFLAG_CLAMPTOEDGE );
 	ri.Hunk_FreeTempMemory( data );
 
 	// ydnar: the following lines are unecessary for new GL_CLAMP_TO_EDGE fog
@@ -1520,7 +1520,7 @@ void R_SetColorMappings( void ) {
 		if ( g == 1.0f ) {
 			inf = i;
 		} else {
-			inf = 255 * pow ( i/255.0f, 1.0f / g ) + 0.5f;
+			inf = 255 * powf( i/255.0f, 1.0f / g ) + 0.5f;
 		}
 		inf <<= shift;
 		if (inf < 0) {

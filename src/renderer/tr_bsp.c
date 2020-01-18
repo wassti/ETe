@@ -358,6 +358,12 @@ static void R_LoadLightmaps( const lump_t *l ) {
 
 	//lightmapWidth = lightmapHeight = 1;
 
+	// permedia doesn't support lightmaps
+	if ( glConfig.hardwareType == GLHW_PERMEDIA2 ) {
+		return;
+	}
+
+
 	/*if ( r_mergeLightmaps->integer ) {
 		R_LoadMergedLightmaps( l );
 		return;
@@ -375,11 +381,6 @@ static void R_LoadLightmaps( const lump_t *l ) {
 		//FIXME: HACK: maps with only one lightmap turn up fullbright for some reason.
 		//this avoids this, but isn't the correct solution.
 		tr.numLightmaps++;
-	}
-
-	// permedia doesn't support lightmaps
-	if ( glConfig.hardwareType == GLHW_PERMEDIA2 ) {
-		return;
 	}
 
 	// we are about to upload textures

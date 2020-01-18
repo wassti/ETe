@@ -364,27 +364,27 @@ R_SubdividePatchToGrid
 =================
 */
 srfGridMesh_t *R_SubdividePatchToGrid( int width, int height,
-									   drawVert_t points[MAX_PATCH_SIZE*MAX_PATCH_SIZE] ) {
-	int i, j, k, l;
+								drawVert_t points[MAX_PATCH_SIZE*MAX_PATCH_SIZE] ) {
+	int			i, j, k, l;
 	drawVert_t_cleared( prev );
 	drawVert_t_cleared( next );
 	drawVert_t_cleared( mid );
-	float len, maxLen;
-	int dir;
-	int t;
-	drawVert_t ctrl[MAX_GRID_SIZE][MAX_GRID_SIZE];
-	float errorTable[2][MAX_GRID_SIZE];
+	float		len, maxLen;
+	int			n;
+	int			t;
+	drawVert_t	ctrl[MAX_GRID_SIZE][MAX_GRID_SIZE];
+	float		errorTable[2][MAX_GRID_SIZE];
 
 	for ( i = 0 ; i < width ; i++ ) {
 		for ( j = 0 ; j < height ; j++ ) {
-			ctrl[j][i] = points[j * width + i];
+			ctrl[j][i] = points[j*width+i];
 		}
 	}
 
-	for ( dir = 0 ; dir < 2 ; dir++ ) {
+	for ( n = 0 ; n < 2 ; n++ ) {
 
 		for ( j = 0 ; j < MAX_GRID_SIZE ; j++ ) {
-			errorTable[dir][j] = 0;
+			errorTable[n][j] = 0;
 		}
 
 		// horizontal subdivisions
@@ -396,15 +396,16 @@ srfGridMesh_t *R_SubdividePatchToGrid( int width, int height,
 
 			maxLen = 0;
 			for ( i = 0 ; i < height ; i++ ) {
-				vec3_t midxyz;
-				vec3_t dir;
-				vec3_t projected;
-				float d;
+				vec3_t		midxyz;
+				vec3_t		midxyz2;
+				vec3_t		dir;
+				vec3_t		projected;
+				float		d;
 
 				// calculate the point on the curve
 				for ( l = 0 ; l < 3 ; l++ ) {
-					midxyz[l] = ( ctrl[i][j].xyz[l] + ctrl[i][j + 1].xyz[l] * 2
-								  + ctrl[i][j + 2].xyz[l] ) * 0.25f;
+					midxyz[l] = (ctrl[i][j].xyz[l] + ctrl[i][j+1].xyz[l] * 2
+							+ ctrl[i][j+2].xyz[l] ) * 0.25f;
 				}
 
 				// see how far off the line it is
@@ -412,48 +413,48 @@ srfGridMesh_t *R_SubdividePatchToGrid( int width, int height,
 				// texture warping, but it gives a lot less polygons than
 				// dist-from-midpoint
 				VectorSubtract( midxyz, ctrl[i][j].xyz, midxyz );
-				VectorSubtract( ctrl[i][j + 2].xyz, ctrl[i][j].xyz, dir );
+				VectorSubtract( ctrl[i][j+2].xyz, ctrl[i][j].xyz, dir );
 				VectorNormalize( dir );
 
 				d = DotProduct( midxyz, dir );
 				VectorScale( dir, d, projected );
-				VectorSubtract( midxyz, projected, midxyz );
-				len = VectorLengthSquared( midxyz );            // we will do the sqrt later
-
+				VectorSubtract( midxyz, projected, midxyz2);
+				len = VectorLengthSquared( midxyz2 );			// we will do the sqrt later
 				if ( len > maxLen ) {
 					maxLen = len;
 				}
 			}
 
-			maxLen = sqrt( maxLen );
+			maxLen = sqrt(maxLen);
+
 			// if all the points are on the lines, remove the entire columns
 			if ( maxLen < 0.1f ) {
-				errorTable[dir][j + 1] = 999;
+				errorTable[n][j+1] = 999;
 				continue;
 			}
 
 			// see if we want to insert subdivided columns
 			if ( width + 2 > MAX_GRID_SIZE ) {
-				errorTable[dir][j + 1] = 1.0f / maxLen;
-				continue;   // can't subdivide any more
+				errorTable[n][j+1] = 1.0f/maxLen;
+				continue;	// can't subdivide any more
 			}
 
 			if ( maxLen <= r_subdivisions->value ) {
-				errorTable[dir][j + 1] = 1.0f / maxLen;
-				continue;   // didn't need subdivision
+				errorTable[n][j+1] = 1.0f/maxLen;
+				continue;	// didn't need subdivision
 			}
 
-			errorTable[dir][j + 2] = 1.0f / maxLen;
+			errorTable[n][j+2] = 1.0f/maxLen;
 
 			// insert two columns and replace the peak
 			width += 2;
 			for ( i = 0 ; i < height ; i++ ) {
-				LerpDrawVert( &ctrl[i][j], &ctrl[i][j + 1], &prev );
-				LerpDrawVert( &ctrl[i][j + 1], &ctrl[i][j + 2], &next );
+				LerpDrawVert( &ctrl[i][j], &ctrl[i][j+1], &prev );
+				LerpDrawVert( &ctrl[i][j+1], &ctrl[i][j+2], &next );
 				LerpDrawVert( &prev, &next, &mid );
 
 				for ( k = width - 1 ; k > j + 3 ; k-- ) {
-					ctrl[i][k] = ctrl[i][k - 2];
+					ctrl[i][k] = ctrl[i][k-2];
 				}
 				ctrl[i][j + 1] = prev;
 				ctrl[i][j + 2] = mid;
@@ -476,28 +477,28 @@ srfGridMesh_t *R_SubdividePatchToGrid( int width, int height,
 	PutPointsOnCurve( ctrl, width, height );
 
 	// cull out any rows or columns that are colinear
-	for ( i = 1 ; i < width - 1 ; i++ ) {
+	for ( i = 1 ; i < width-1 ; i++ ) {
 		if ( errorTable[0][i] != 999 ) {
 			continue;
 		}
-		for ( j = i + 1 ; j < width ; j++ ) {
+		for ( j = i+1 ; j < width ; j++ ) {
 			for ( k = 0 ; k < height ; k++ ) {
-				ctrl[k][j - 1] = ctrl[k][j];
+				ctrl[k][j-1] = ctrl[k][j];
 			}
-			errorTable[0][j - 1] = errorTable[0][j];
+			errorTable[0][j-1] = errorTable[0][j];
 		}
 		width--;
 	}
 
-	for ( i = 1 ; i < height - 1 ; i++ ) {
+	for ( i = 1 ; i < height-1 ; i++ ) {
 		if ( errorTable[1][i] != 999 ) {
 			continue;
 		}
-		for ( j = i + 1 ; j < height ; j++ ) {
+		for ( j = i+1 ; j < height ; j++ ) {
 			for ( k = 0 ; k < width ; k++ ) {
-				ctrl[j - 1][k] = ctrl[j][k];
+				ctrl[j-1][k] = ctrl[j][k];
 			}
-			errorTable[1][j - 1] = errorTable[1][j];
+			errorTable[1][j-1] = errorTable[1][j];
 		}
 		height--;
 	}

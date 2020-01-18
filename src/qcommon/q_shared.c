@@ -440,12 +440,11 @@ void CopyLongSwap(void *dest, void *src)
 
 short   ShortSwap (short l)
 {
-	byte    b1,b2;
+	unsigned short tmp = l;
+	unsigned short b1 = (tmp & 0x00ff) << 8;
+	unsigned short b2 = (tmp & 0xff00) >> 8;
 
-	b1 = l&255;
-	b2 = (l>>8)&255;
-
-	return (b1<<8) + b2;
+	return (b1 | b2);
 }
 
 short	ShortNoSwap (short l)
@@ -455,14 +454,14 @@ short	ShortNoSwap (short l)
 
 int    LongSwap (int l)
 {
-	byte    b1,b2,b3,b4;
+	/* is compiled to bswap on gcc/clang/msvc */
+	unsigned int tmp = l;
+	unsigned int b1 = (tmp & 0x000000ff) << 24;
+	unsigned int b2 = (tmp & 0x0000ff00) << 8;
+	unsigned int b3 = (tmp & 0x00ff0000) >> 8;
+	unsigned int b4 = (tmp & 0xff000000) >> 24;
 
-	b1 = l&255;
-	b2 = (l>>8)&255;
-	b3 = (l>>16)&255;
-	b4 = (l>>24)&255;
-
-	return ((int)b1<<24) + ((int)b2<<16) + ((int)b3<<8) + b4;
+	return (b1 | b2 | b3 | b4);
 }
 
 int	LongNoSwap (int l)
@@ -470,23 +469,22 @@ int	LongNoSwap (int l)
 	return l;
 }
 
-qint64 Long64Swap (qint64 ll)
+int64_t Long64Swap (int64_t ll)
 {
-	qint64	result;
+	uint64_t tmp = ll;
+	uint64_t b1 = (tmp & 0x00000000000000ffull) << 56;
+	uint64_t b2 = (tmp & 0x000000000000ff00ull) << 40;
+	uint64_t b3 = (tmp & 0x0000000000ff0000ull) << 24;
+	uint64_t b4 = (tmp & 0x00000000ff000000ull) << 8;
+	uint64_t b5 = (tmp & 0x000000ff00000000ull) >> 8;
+	uint64_t b6 = (tmp & 0x0000ff0000000000ull) >> 24;
+	uint64_t b7 = (tmp & 0x00ff000000000000ull) >> 40;
+	uint64_t b8 = (tmp & 0xff00000000000000ull) >> 56;
 
-	result.b0 = ll.b7;
-	result.b1 = ll.b6;
-	result.b2 = ll.b5;
-	result.b3 = ll.b4;
-	result.b4 = ll.b3;
-	result.b5 = ll.b2;
-	result.b6 = ll.b1;
-	result.b7 = ll.b0;
-
-	return result;
+	return (b1 | b2 | b3 | b4 | b5 | b6 | b7 | b8);
 }
 
-qint64 Long64NoSwap( qint64 ll )
+int Long64NoSwap( int64_t ll )
 {
 	return ll;
 }

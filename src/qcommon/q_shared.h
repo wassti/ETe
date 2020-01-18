@@ -214,6 +214,8 @@ float FloatSwap( const float *f );
 	#endif
 #endif
 
+int64_t Long64Swap(int64_t ll);
+
 typedef unsigned char byte;
 
 typedef enum { qfalse = 0, qtrue = 1 } qboolean;

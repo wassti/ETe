@@ -25,7 +25,6 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-
 // vm.c -- virtual machine
 
 /*
@@ -43,8 +42,9 @@ and one exported function: Perform
 #include "vm_local.h"
 
 
-vm_t    *lastVM    = NULL; // bk001212
-int vm_debugLevel;
+#ifdef DEBUG
+int		vm_debugLevel;
+#endif
 
 // used by Com_Error to get rid of running vm's before longjmp
 static int forced_unload;
@@ -57,13 +57,14 @@ static const char *vmName[ VM_COUNT ] = {
 	"ui"
 };
 
-void VM_VmInfo_f( void );
-void VM_VmProfile_f( void );
+static void VM_VmInfo_f( void );
+static void VM_VmProfile_f( void );
 
-
+#ifdef DEBUG
 void VM_Debug( int level ) {
 	vm_debugLevel = level;
 }
+#endif
 
 /*
 ==============
@@ -77,222 +78,6 @@ void VM_Init( void ) {
 	Com_Memset( vmTable, 0, sizeof( vmTable ) );
 }
 
-
-/*
-===============
-VM_ValueToSymbol
-
-Assumes a program counter value
-===============
-*/
-const char *VM_ValueToSymbol( vm_t *vm, int value ) {
-	vmSymbol_t  *sym;
-	static char text[MAX_TOKEN_CHARS];
-
-	sym = vm->symbols;
-	if ( !sym ) {
-		return "NO SYMBOLS";
-	}
-
-	// find the symbol
-	while ( sym->next && sym->next->symValue <= value ) {
-		sym = sym->next;
-	}
-
-	if ( value == sym->symValue ) {
-		return sym->symName;
-	}
-
-	Com_sprintf( text, sizeof( text ), "%s+%i", sym->symName, value - sym->symValue );
-
-	return text;
-}
-
-/*
-===============
-VM_ValueToFunctionSymbol
-
-For profiling, find the symbol behind this value
-===============
-*/
-vmSymbol_t *VM_ValueToFunctionSymbol( vm_t *vm, int value ) {
-	vmSymbol_t  *sym;
-	static vmSymbol_t nullSym;
-
-	sym = vm->symbols;
-	if ( !sym ) {
-		return &nullSym;
-	}
-
-	while ( sym->next && sym->next->symValue <= value ) {
-		sym = sym->next;
-	}
-
-	return sym;
-}
-
-
-/*
-===============
-VM_SymbolToValue
-===============
-*/
-int VM_SymbolToValue( vm_t *vm, const char *symbol ) {
-	vmSymbol_t  *sym;
-
-	for ( sym = vm->symbols ; sym ; sym = sym->next ) {
-		if ( !strcmp( symbol, sym->symName ) ) {
-			return sym->symValue;
-		}
-	}
-	return 0;
-}
-
-
-/*
-=====================
-VM_SymbolForCompiledPointer
-=====================
-*/
-#if 0 // 64bit!
-const char *VM_SymbolForCompiledPointer( vm_t *vm, void *code ) {
-	int			i;
-
-	if ( code < (void *)vm->codeBase.ptr ) {
-		return "Before code block";
-	}
-	if ( code >= (void *)(vm->codeBase.ptr + vm->codeLength) ) {
-		return "After code block";
-	}
-
-	// find which original instruction it is after
-	for ( i = 0 ; i < vm->codeLength ; i++ ) {
-		if ( (void *)vm->instructionPointers[i] > code ) {
-			break;
-		}
-	}
-	i--;
-
-	// now look up the bytecode instruction pointer
-	return VM_ValueToSymbol( vm, i );
-}
-#endif
-
-
-
-/*
-===============
-ParseHex
-===============
-*/
-int ParseHex( const char *text ) {
-	int value;
-	int c;
-
-	value = 0;
-	while ( ( c = *text++ ) != 0 ) {
-		if ( c >= '0' && c <= '9' ) {
-			value = value * 16 + c - '0';
-			continue;
-		}
-		if ( c >= 'a' && c <= 'f' ) {
-			value = value * 16 + 10 + c - 'a';
-			continue;
-		}
-		if ( c >= 'A' && c <= 'F' ) {
-			value = value * 16 + 10 + c - 'A';
-			continue;
-		}
-	}
-
-	return value;
-}
-
-/*
-===============
-VM_LoadSymbols
-===============
-*/
-void VM_LoadSymbols( vm_t *vm ) {
-	union {
-		char	*c;
-		void	*v;
-	} mapfile;
-	const char *text_p, *token;
-	char	name[MAX_QPATH];
-	char	symbols[MAX_QPATH];
-	vmSymbol_t	**prev, *sym;
-	int		count;
-	int		value;
-	int		chars;
-	int		segment;
-	int		numInstructions;
-
-	// don't load symbols if not developer
-	if ( !com_developer->integer ) {
-		return;
-	}
-
-	COM_StripExtension(vm->name, name, sizeof(name));
-	Com_sprintf( symbols, sizeof( symbols ), "vm/%s.map", name );
-	FS_ReadFile( symbols, &mapfile.v );
-	if ( !mapfile.c ) {
-		Com_Printf( "Couldn't load symbol file: %s\n", symbols );
-		return;
-	}
-
-	numInstructions = vm->instructionPointersLength >> 2;
-
-	// parse the symbols
-	text_p = mapfile.c;
-	prev = &vm->symbols;
-	count = 0;
-
-	while ( 1 ) {
-		token = COM_Parse( &text_p );
-		if ( !token[0] ) {
-			break;
-		}
-		segment = ParseHex( token );
-		if ( segment ) {
-			COM_Parse( &text_p );
-			COM_Parse( &text_p );
-			continue;       // only load code segment values
-		}
-
-		token = COM_Parse( &text_p );
-		if ( !token[0] ) {
-			Com_Printf( "WARNING: incomplete line at end of file\n" );
-			break;
-		}
-		value = ParseHex( token );
-
-		token = COM_Parse( &text_p );
-		if ( !token[0] ) {
-			Com_Printf( "WARNING: incomplete line at end of file\n" );
-			break;
-		}
-		chars = strlen( token );
-		sym = Hunk_Alloc( sizeof( *sym ) + chars, h_high );
-		*prev = sym;
-		prev = &sym->next;
-		sym->next = NULL;
-
-		// convert value from an instruction number to a code offset
-		if ( value >= 0 && value < numInstructions ) {
-			value = vm->instructionPointers[value];
-		}
-
-		sym->symValue = value;
-		Q_strncpyz( sym->symName, token, chars + 1 );
-
-		count++;
-	}
-
-	vm->numSymbols = count;
-	Com_Printf( "%i symbols parsed from %s\n", count, symbols );
-	FS_FreeFile( mapfile.v );
-}
 
 /*
 ============
@@ -363,12 +148,6 @@ This allows a server to do a map_restart without changing memory allocation
 =================
 */
 vm_t *VM_Restart( vm_t *vm ) {
-	vmHeader_t  *header;
-	int length;
-	int dataLength;
-	int i;
-	char filename[MAX_QPATH];
-
 	// DLL's can't be restarted in place
 	if ( vm->dllHandle ) {
 		syscall_t		systemCall;
@@ -385,53 +164,58 @@ vm_t *VM_Restart( vm_t *vm ) {
 		return vm;
 	}
 
-	// load the image
-	Com_Printf( "VM_Restart()\n" );
-	Com_sprintf( filename, sizeof( filename ), "vm/%s.qvm", vm->name );
-	Com_Printf( "Loading vm file %s.\n", filename );
-	length = FS_ReadFile( filename, (void **)&header );
-	if ( !header ) {
-		Com_Error( ERR_DROP, "VM_Restart failed.\n" );
-	}
-
-	// byte swap the header
-	for ( i = 0 ; i < sizeof( *header ) / 4 ; i++ ) {
-		( (int *)header )[i] = LittleLong( ( (int *)header )[i] );
-	}
-
-	// validate
-	if ( header->vmMagic != VM_MAGIC
-		 || header->bssLength < 0
-		 || header->dataLength < 0
-		 || header->litLength < 0
-		 || header->codeLength <= 0 ) {
-		VM_Free( vm );
-		Com_Error( ERR_FATAL, "%s has bad header", filename );
-	}
-
-	// round up to next power of 2 so all data operations can
-	// be mask protected
-	dataLength = header->dataLength + header->litLength + header->bssLength;
-	for ( i = 0 ; dataLength > ( 1 << i ) ; i++ ) {
-	}
-	dataLength = 1 << i;
-
-	// clear the data
-	Com_Memset( vm->dataBase, 0, dataLength );
-
-	// copy the intialized data
-	Com_Memcpy( vm->dataBase, (byte *)header + header->dataOffset, header->dataLength + header->litLength );
-
-	// byte swap the longs
-	for ( i = 0 ; i < header->dataLength ; i += 4 ) {
-		*( int * )( vm->dataBase + i ) = LittleLong( *( int * )( vm->dataBase + i ) );
-	}
-
-	// free the original file
-	FS_FreeFile( header );
-
-	return vm;
+	return NULL;
 }
+
+
+/*
+=================
+Sys_LoadDll
+
+Used to load a development dll instead of a virtual machine
+
+TTimo: added some verbosity in debug
+=================
+*/
+const char* Sys_GetDLLName(const char* name);
+
+static void * QDECL VM_LoadDll( const char *name, dllSyscall_t *entryPoint, dllSyscall_t systemcalls ) {
+
+	const char	*gamedir = Cvar_VariableString( "fs_game" );
+	char		filename[ MAX_QPATH ];
+	void		*libHandle;
+	dllEntry_t	dllEntry;
+	
+	if ( !*gamedir ) {
+		gamedir = Cvar_VariableString( "fs_basegame" );
+	}
+
+	Com_sprintf( filename, sizeof( filename ), "%s", Sys_GetDLLName( name ) );
+	//Com_sprintf( filename, sizeof( filename ), "%s%c%s", gamedir, PATH_SEP, Sys_GetDLLName( name ) );
+
+	libHandle = FS_LoadLibrary( filename );
+
+	if ( !libHandle ) {
+		Com_Printf( "VM_LoadDLL '%s' failed\n", filename );
+		return NULL;
+	}
+
+	Com_Printf( "VM_LoadDLL '%s' ok\n", filename );
+
+	dllEntry = /* ( dllEntry_t ) */ Sys_LoadFunction( libHandle, "dllEntry" ); 
+	*entryPoint = /* ( dllSyscall_t ) */ Sys_LoadFunction( libHandle, "vmMain" );
+	if ( !*entryPoint || !dllEntry ) {
+		Sys_UnloadLibrary( libHandle );
+		return NULL;
+	}
+
+	Com_Printf( "VM_LoadDll(%s) found **vmMain** at %p\n", name, *entryPoint );
+	dllEntry( systemcalls );
+	Com_Printf( "VM_LoadDll(%s) succeeded!\n", name );
+
+	return libHandle;
+}
+
 
 /*
 ================
@@ -489,82 +273,6 @@ vm_t *VM_Create( vmIndex_t index, syscall_t systemCalls, dllSyscall_t dllSyscall
 	}
 	
 	return NULL;
-	
-#if 0
-
-	// load the image
-	Com_sprintf( filename, sizeof( filename ), "vm/%s.qvm", vm->name );
-	Com_Printf( "Loading vm file %s.\n", filename );
-	length = FS_ReadFile( filename, (void **)&header );
-	if ( !header ) {
-		Com_Printf( "Failed.\n" );
-		VM_Free( vm );
-		return NULL;
-	}
-
-	// byte swap the header
-	for ( i = 0 ; i < sizeof( *header ) / 4 ; i++ ) {
-		( (int *)header )[i] = LittleLong( ( (int *)header )[i] );
-	}
-
-	// validate
-	if ( header->vmMagic != VM_MAGIC
-		 || header->bssLength < 0
-		 || header->dataLength < 0
-		 || header->litLength < 0
-		 || header->codeLength <= 0 ) {
-		VM_Free( vm );
-		Com_Error( ERR_FATAL, "%s has bad header", filename );
-	}
-
-	// round up to next power of 2 so all data operations can
-	// be mask protected
-	dataLength = header->dataLength + header->litLength + header->bssLength;
-	for ( i = 0 ; dataLength > ( 1 << i ) ; i++ ) {
-	}
-	dataLength = 1 << i;
-
-	// allocate zero filled space for initialized and uninitialized data
-	vm->dataBase = Hunk_Alloc( dataLength, h_high );
-	vm->dataMask = dataLength - 1;
-
-	// copy the intialized data
-	Com_Memcpy( vm->dataBase, (byte *)header + header->dataOffset, header->dataLength + header->litLength );
-
-	// byte swap the longs
-	for ( i = 0 ; i < header->dataLength ; i += 4 ) {
-		*( int * )( vm->dataBase + i ) = LittleLong( *( int * )( vm->dataBase + i ) );
-	}
-
-	// allocate space for the jump targets, which will be filled in by the compile/prep functions
-	vm->instructionPointersLength = header->instructionCount * 4;
-	vm->instructionPointers = Hunk_Alloc( vm->instructionPointersLength, h_high );
-
-	// copy or compile the instructions
-	vm->codeLength = header->codeLength;
-
-	if ( interpret >= VMI_COMPILED ) {
-		vm->compiled = qtrue;
-		VM_Compile( vm, header );
-	} else {
-		vm->compiled = qfalse;
-		VM_PrepareInterpreter( vm, header );
-	}
-
-	// free the original file
-	FS_FreeFile( header );
-
-	// load the map file
-	VM_LoadSymbols( vm );
-
-	// the stack is implicitly at the end of the image
-	vm->programStack = vm->dataMask + 1;
-	vm->stackBottom = vm->programStack - STACK_SIZE;
-
-	Com_Printf( "%s loaded in %d bytes on the hunk\n", module, remaining - Hunk_MemoryRemaining() );
-
-	return vm;
-#endif
 }
 
 
@@ -654,18 +362,18 @@ locals from sp
 intptr_t QDECL VM_Call( vm_t *vm, int nargs, int callnum, ... )
 {
 	//vm_t	*oldVM;
-	intptr_t r;
+	intptr_t r = 0;
 	int i;
 
 	if ( !vm ) {
 		Com_Error( ERR_FATAL, "VM_Call with NULL vm" );
 	}
 
+#ifdef DEBUG
 	if ( vm_debugLevel ) {
 	  Com_Printf( "VM_Call( %d )\n", callnum );
 	}
 
-#ifdef DEBUG
 	if ( nargs >= MAX_VMMAIN_CALL_ARGS ) {
 		Com_Error( ERR_DROP, "VM_Call: nargs >= MAX_VMMAIN_CALL_ARGS" );
 	}
@@ -686,32 +394,7 @@ intptr_t QDECL VM_Call( vm_t *vm, int nargs, int callnum, ... )
 
 		// add more agruments if you're changed MAX_VMMAIN_CALL_ARGS:
 		r = vm->entryPoint( callnum, args[0], args[1], args[2], args[3] );
-	}/* else {
-#if id386 && !defined __clang__ // calling convention doesn't need conversion in some cases
-#ifndef NO_VM_COMPILED
-		if ( vm->compiled )
-			r = VM_CallCompiled( vm, nargs, (int*)&callnum );
-		else
-#endif
-			r = VM_CallInterpreted2( vm, nargs, (int*)&callnum );
-#else
-		int args[MAX_VMMAIN_CALL_ARGS];
-		va_list ap;
-
-		args[0] = callnum;
-		va_start( ap, callnum );
-		for ( i = 1; i < nargs; i++ ) {
-			args[i] = va_arg( ap, int );
-		}
-		va_end(ap);
-#ifndef NO_VM_COMPILED
-		if ( vm->compiled )
-			r = VM_CallCompiled( vm, nargs, &args[0] );
-		else
-#endif
-			r = VM_CallInterpreted2( vm, nargs, &args[0] );
-#endif
-	}*/
+	}
 	--vm->callLevel;
 
 	return r;
@@ -741,7 +424,7 @@ static int QDECL VM_ProfileSort( const void *a, const void *b ) {
 VM_NameToVM
 ==============
 */
-vm_t *VM_NameToVM( const char *name ) 
+static vm_t *VM_NameToVM( const char *name ) 
 {
 	vmIndex_t index;
 
@@ -771,7 +454,7 @@ VM_VmProfile_f
 
 ==============
 */
-void VM_VmProfile_f( void ) {
+static void VM_VmProfile_f( void ) {
 	vm_t		*vm;
 	vmSymbol_t	**sorted, *sym;
 	int			i;
@@ -822,7 +505,7 @@ void VM_VmProfile_f( void ) {
 VM_VmInfo_f
 ==============
 */
-void VM_VmInfo_f( void ) {
+static void VM_VmInfo_f( void ) {
 	vm_t	*vm;
 	int		i;
 

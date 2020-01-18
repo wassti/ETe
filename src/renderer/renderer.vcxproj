@@ -237,7 +237,6 @@
     <ClInclude Include="..\qcommon\puff.h" />
     <ClInclude Include="..\qcommon\q_shared.h" />
     <ClInclude Include="..\game\surfaceflags.h" />
-    <ClInclude Include="..\jpeg-6\jchuff.h" />
     <ClInclude Include="..\qcommon\cm_public.h" />
     <ClInclude Include="..\qcommon\qcommon.h" />
     <ClInclude Include="..\qcommon\qfiles.h" />
@@ -246,12 +245,6 @@
     <ClInclude Include="tr_common.h" />
     <ClInclude Include="tr_local.h" />
     <ClInclude Include="..\renderercommon\tr_public.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\jpeg-8c\libjpeg.vcxproj">
-      <Project>{17867af4-12cb-4847-a13e-bf37d8bdf597}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

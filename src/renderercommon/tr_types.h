@@ -279,6 +279,14 @@ typedef enum {
 	GLHW_PERMEDIA2          // where you don't have src*dst
 } glHardwareType_t;
 
+typedef enum {
+	BUFFER_IMAGE,
+	BUFFER_SCALED,
+	BUFFER_RESAMPLED,
+	BUFFER_UPLOAD,
+	BUFFER_MAX_TYPES
+} bufferMemType_t;
+
 typedef struct {
 	char renderer_string[MAX_STRING_CHARS];
 	char vendor_string[MAX_STRING_CHARS];

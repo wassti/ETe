@@ -189,6 +189,7 @@ nmake /f Makefile.vc6 CFG=release
     <ClCompile Include="client\cl_console.c" />
     <ClCompile Include="client\cl_curl.c" />
     <ClCompile Include="client\cl_input.c" />
+    <ClCompile Include="client\cl_jpeg.c" />
     <ClCompile Include="client\cl_keys.c" />
     <ClCompile Include="client\cl_main.c" />
     <ClCompile Include="client\cl_net_chan.c" />
@@ -412,6 +413,10 @@ nmake /f Makefile.vc6 CFG=release
   <ItemGroup>
     <ProjectReference Include="botlib\botlib.vcxproj">
       <Project>{efa65954-05a8-43c4-b4fe-fafe8e678ab7}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="jpeg-8c\libjpeg.vcxproj">
+      <Project>{17867af4-12cb-4847-a13e-bf37d8bdf597}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
     <ProjectReference Include="renderer\renderer.vcxproj">

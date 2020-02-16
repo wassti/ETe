@@ -972,7 +972,8 @@ FS_SV_Rename
 ===========
 */
 void FS_SV_Rename( const char *from, const char *to ) {
-	char			*from_ospath, *to_ospath;
+	const char *from_ospath, *to_ospath;
+	FILE *f;
 
 	if ( !fs_searchpaths ) {
 		Com_Error( ERR_FATAL, "Filesystem call made without initialization" );
@@ -990,6 +991,12 @@ void FS_SV_Rename( const char *from, const char *to ) {
 		Com_Printf( "FS_SV_Rename: %s --> %s\n", from_ospath, to_ospath );
 	}
 
+	f = Sys_FOpen( from_ospath, "rb" );
+	if ( f ) {
+		fclose( f );
+		FS_Remove( to_ospath );
+	}
+
 	if ( rename( from_ospath, to_ospath ) ) {
 		// Failed, try copying it and deleting the original
 		FS_CopyFile( from_ospath, to_ospath );
@@ -1004,7 +1011,8 @@ FS_Rename
 ===========
 */
 void FS_Rename( const char *from, const char *to ) {
-	char			*from_ospath, *to_ospath;
+	const char *from_ospath, *to_ospath;
+	FILE *f;
 
 	if ( !fs_searchpaths ) {
 		Com_Error( ERR_FATAL, "Filesystem call made without initialization" );
@@ -1020,6 +1028,12 @@ void FS_Rename( const char *from, const char *to ) {
 
 	if ( fs_debug->integer ) {
 		Com_Printf( "FS_Rename: %s --> %s\n", from_ospath, to_ospath );
+	}
+
+	f = Sys_FOpen( from_ospath, "rb" );
+	if ( f ) {
+		fclose( f );
+		FS_Remove( to_ospath );
 	}
 
 	if ( rename( from_ospath, to_ospath ) ) {

@@ -1047,6 +1047,7 @@ void        Com_SetRecommended();
 
 void		Com_WriteConfiguration( void );
 int			Com_HexStrToInt( const char *str );
+qboolean	Com_GetHashColor( const char *str, byte *color );
 
 
 static ID_INLINE unsigned int log2pad( unsigned int v, int roundup )

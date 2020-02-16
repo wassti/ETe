@@ -284,7 +284,7 @@ int R_CullLocalBox( vec3_t bounds[2] ) {
 
 	// check against frustum planes
 	anyBack = 0;
-	for ( i = 0 ; i < 5 ; i++ ) {
+	for ( i = 0 ; i < 6 ; i++ ) {
 		frust = &tr.viewParms.frustum[i];
 
 		front = back = 0;
@@ -342,7 +342,7 @@ int R_CullPointAndRadius( const vec3_t pt, float radius )
 	}
 
 	// check against frustum planes
-	for ( i = 0 ; i < 5 ; i++ )
+	for ( i = 0 ; i < 6 ; i++ )
 	{
 		frust = &tr.viewParms.frustum[i];
 
@@ -383,7 +383,7 @@ int R_CullDlight( const dlight_t* dl )
 		return CULL_IN;
 
 	if ( dl->linear ) {
-		for ( i = 0 ; i < 5 ; i++ ) {
+		for ( i = 0 ; i < 6 ; i++ ) {
 			frust = &tr.viewParms.frustum[i];
 			dist = DotProduct( dl->transformed, frust->normal) - frust->dist;
 			dist2 = DotProduct( dl->transformed2, frust->normal) - frust->dist;
@@ -395,7 +395,7 @@ int R_CullDlight( const dlight_t* dl )
 	} 
 	else
 	// check against frustum planes
-	for ( i = 0 ; i < 5 ; i++ ) {
+	for ( i = 0 ; i < 6 ; i++ ) {
 		frust = &tr.viewParms.frustum[i];
 		dist = DotProduct( dl->transformed, frust->normal) - frust->dist;
 		if ( dist < -dl->radius )
@@ -647,9 +647,7 @@ static void R_RotateForViewer( void )
 	myGlMultMatrix( viewerMatrix, s_flipMatrix, tr.orientation.modelMatrix );
 
 	tr.viewParms.world = tr.orientation;
-
 }
-
 
 
 /*
@@ -943,6 +941,12 @@ static void R_SetupFrustum( viewParms_t *dest, float xmin, float xmax, float yma
 	dest->frustum[ 4 ].dist = DotProduct( dest->orientation.origin, dest->frustum[ 4 ].normal ) - dest->zFar;
 	dest->frustum[ 4 ].type = PLANE_NON_AXIAL;
 	SetPlaneSignbits( &dest->frustum[ 4 ] );
+
+	// near clipping plane
+	VectorCopy( dest->orientation.axis[ 0 ], dest->frustum[ 5 ].normal );
+	dest->frustum[5].type = PLANE_NON_AXIAL;
+	dest->frustum[5].dist = DotProduct( ofsorigin, dest->frustum[5].normal ) + r_znear->value;
+	SetPlaneSignbits( &dest->frustum[5] );
 }
 
 
@@ -1131,7 +1135,7 @@ Returns qtrue if it should be mirrored
 */
 static qboolean R_GetPortalOrientations( const drawSurf_t *drawSurf, int entityNum,
 							 orientation_t *surface, orientation_t *camera,
-							 vec3_t pvsOrigin, qboolean *mirror ) {
+							 vec3_t pvsOrigin, portalView_t *portalView ) {
 	int			i;
 	cplane_t	originalPlane, plane;
 	trRefEntity_t	*e;
@@ -1191,7 +1195,7 @@ static qboolean R_GetPortalOrientations( const drawSurf_t *drawSurf, int entityN
 			VectorCopy( surface->axis[1], camera->axis[1] );
 			VectorCopy( surface->axis[2], camera->axis[2] );
 
-			*mirror = qtrue;
+			*portalView = PV_MIRROR;
 			return qtrue;
 		}
 
@@ -1230,7 +1234,8 @@ static qboolean R_GetPortalOrientations( const drawSurf_t *drawSurf, int entityN
 			RotatePointAroundVector( camera->axis[1], camera->axis[0], transformed, d );
 			CrossProduct( camera->axis[0], camera->axis[1], camera->axis[2] );
 		}
-		*mirror = qfalse;
+
+		*portalView = PV_PORTAL;
 		return qtrue;
 	}
 
@@ -1324,7 +1329,6 @@ static qboolean SurfIsOffscreen( const drawSurf_t *drawSurf, qboolean *isMirror 
 	int dlighted;
 	vec4_t clip, eye;
 	int i;
-	unsigned int pointOr = 0;
 	unsigned int pointAnd = (unsigned int)~0;
 
 	*isMirror = qfalse;
@@ -1334,6 +1338,9 @@ static qboolean SurfIsOffscreen( const drawSurf_t *drawSurf, qboolean *isMirror 
 	R_DecomposeSort( drawSurf->sort, &entityNum, &shader, &fogNum, &dlighted );
 	RB_BeginSurface( shader, fogNum );
 	tess.allowVBO = qfalse;
+#ifdef USE_TESS_NEEDS_NORMAL
+	tess.needsNormal = qtrue;
+#endif
 	rb_surfaceTable[ *drawSurf->surface ]( drawSurf->surface );
 
 	for ( i = 0; i < tess.numVertexes; i++ )
@@ -1355,7 +1362,6 @@ static qboolean SurfIsOffscreen( const drawSurf_t *drawSurf, qboolean *isMirror 
 			}
 		}
 		pointAnd &= pointFlags;
-		pointOr |= pointFlags;
 	}
 
 	// trivially reject
@@ -1481,7 +1487,7 @@ static qboolean R_MirrorViewBySurface( const drawSurf_t *drawSurf, int entityNum
 	qboolean		isMirror;
 
 	// don't recursively mirror
-	if (tr.viewParms.isPortal) {
+	if ( tr.viewParms.portalView != PV_NONE ) {
 		ri.Printf( PRINT_DEVELOPER, "WARNING: recursive mirror/portal found\n" );
 		return qfalse;
 	}
@@ -1504,9 +1510,10 @@ static qboolean R_MirrorViewBySurface( const drawSurf_t *drawSurf, int entityNum
 	oldParms = tr.viewParms;
 
 	newParms = tr.viewParms;
-	newParms.isPortal = qtrue;
+	newParms.portalView = PV_NONE;
+
 	if ( !R_GetPortalOrientations( drawSurf, entityNum, &surface, &camera, 
-		newParms.pvsOrigin, &newParms.isMirror ) ) {
+		newParms.pvsOrigin, &newParms.portalView ) ) {
 		return qfalse;		// bad portal, no portalentity
 	}
 
@@ -1920,9 +1927,9 @@ void R_AddEntitySurfaces( void ) {
 		return;
 	}
 
-	for ( tr.currentEntityNum = 0; 
-	      tr.currentEntityNum < tr.refdef.num_entities; 
-		  tr.currentEntityNum++ ) {
+	for ( tr.currentEntityNum = 0;
+			tr.currentEntityNum < tr.refdef.num_entities;
+			tr.currentEntityNum++ ) {
 		ent = tr.currentEntity = &tr.refdef.entities[tr.currentEntityNum];
 #ifdef USE_LEGACY_DLIGHTS
 		ent->needDlights = qfalse;
@@ -1935,7 +1942,7 @@ void R_AddEntitySurfaces( void ) {
 		// we don't want the hacked weapon position showing in 
 		// mirrors, because the true body position will already be drawn
 		//
-		if ( (ent->e.renderfx & RF_FIRST_PERSON) && tr.viewParms.isPortal) {
+		if ( (ent->e.renderfx & RF_FIRST_PERSON) && (tr.viewParms.portalView != PV_NONE) ) {
 			continue;
 		}
 
@@ -1953,7 +1960,7 @@ void R_AddEntitySurfaces( void ) {
 			// self blood sprites, talk balloons, etc should not be drawn in the primary
 			// view.  We can't just do this check for all entities, because md3
 			// entities may still want to cast shadows from them
-			if ( (ent->e.renderfx & RF_THIRD_PERSON) && !tr.viewParms.isPortal) {
+			if ( (ent->e.renderfx & RF_THIRD_PERSON) && (tr.viewParms.portalView == PV_NONE) ) {
 				continue;
 			}
 			shader = R_GetShaderByHandle( ent->e.customShader );
@@ -1989,8 +1996,8 @@ void R_AddEntitySurfaces( void ) {
 				case MOD_BRUSH:
 					R_AddBrushModelSurfaces( ent );
 					break;
-				case MOD_BAD:       // null model axis
-					if ( ( ent->e.renderfx & RF_THIRD_PERSON ) && !tr.viewParms.isPortal ) {
+				case MOD_BAD:		// null model axis
+					if ( (ent->e.renderfx & RF_THIRD_PERSON) && (tr.viewParms.portalView == PV_NONE) ) {
 						break;
 					}
 					shader = R_GetShaderByHandle( ent->e.customShader );
@@ -2060,90 +2067,6 @@ void R_GenerateDrawSurfs( void ) {
 
 /*
 ================
-R_DebugPolygon
-================
-*/
-void R_DebugPolygon( int color, int numPoints, float *points ) {
-	int		i;
-
-	GL_State( GLS_DEPTHMASK_TRUE | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE );
-
-	// draw solid shade
-
-	qglColor3f( color&1, (color>>1)&1, (color>>2)&1 );
-	qglBegin( GL_POLYGON );
-	for ( i = 0 ; i < numPoints ; i++ ) {
-		qglVertex3fv( points + i * 3 );
-	}
-	qglEnd();
-
-	// draw wireframe outline
-	GL_State( GLS_POLYMODE_LINE | GLS_DEPTHMASK_TRUE | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE );
-	qglDepthRange( 0, 0 );
-	qglColor3f( 1, 1, 1 );
-	qglBegin( GL_POLYGON );
-	for ( i = 0 ; i < numPoints ; i++ ) {
-		qglVertex3fv( points + i * 3 );
-	}
-	qglEnd();
-	qglDepthRange( 0, 1 );
-}
-
-/*
-================
-R_DebugText
-================
-*/
-void R_DebugText( const vec3_t org, float r, float g, float b, const char *text, qboolean neverOcclude ) {
-
-	if ( neverOcclude ) {
-		qglDepthRange( 0, 0 );  // never occluded
-
-	}
-	qglColor3f( r, g, b );
-	qglRasterPos3fv( org );
-	qglPushAttrib( GL_LIST_BIT );
-	qglListBase( ri.GLimp_NormalFontBase() );
-	qglCallLists( strlen( text ), GL_UNSIGNED_BYTE, text );
-	qglListBase( 0 );
-	qglPopAttrib();
-
-	if ( neverOcclude ) {
-		qglDepthRange( 0, 1 );
-	}
-}
-
-/*
-====================
-R_DebugGraphics
-
-Visualization aid for movement clipping debugging
-====================
-*/
-void R_DebugGraphics( void ) {
-	if ( !r_debugSurface->integer ) {
-		return;
-	}
-
-	R_FogOff(); // moved this in here to keep from /always/ doing the fog state change
-
-	R_IssuePendingRenderCommands();
-
-	GL_Bind( tr.whiteImage );
-	GL_Cull( CT_FRONT_SIDED );
-	ri.CM_DrawDebugSurface( R_DebugPolygon );
-}
-
-void R_RenderOmnibot()
-{
-	renderOmnibot_t * cmd = R_GetCommandBuffer( sizeof( renderOmnibot_t ) );
-	if ( cmd != NULL ) {
-		cmd->commandId = RC_DRAW_OMNIBOT;	
-	}	
-}
-
-/*
-================
 R_RenderView
 
 A view may be either the actual camera view,
@@ -2203,8 +2126,8 @@ void R_RenderView( const viewParms_t *parms ) {
 	R_SortDrawSurfs( tr.refdef.drawSurfs + firstDrawSurf, numDrawSurfs - firstDrawSurf );
 
 	// draw main system development information (surface outlines, etc)
-	R_FogOff();
+	/*R_FogOff();
 	R_DebugGraphics();
-	R_FogOn();
+	R_FogOn();*/
 
 }

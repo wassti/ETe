@@ -82,7 +82,6 @@ static qboolean R_CullTriSurf( srfTriangles_t *cv ) {
 	return qfalse;
 }
 
-
 /*
 =================
 R_CullGrid
@@ -104,29 +103,36 @@ static qboolean R_CullGrid( srfGridMesh_t *cv ) {
 	} else {
 		sphereCull = R_CullPointAndRadius( cv->localOrigin, cv->meshRadius );
 	}
-	boxCull = CULL_OUT;
+	//boxCull = CULL_OUT;
 
 	// check for trivial reject
-	if ( sphereCull == CULL_OUT ) {
+	if ( sphereCull == CULL_OUT )
+	{
 		tr.pc.c_sphere_cull_patch_out++;
 		return qtrue;
 	}
 	// check bounding box if necessary
-	else if ( sphereCull == CULL_CLIP ) {
+	else if ( sphereCull == CULL_CLIP )
+	{
 		tr.pc.c_sphere_cull_patch_clip++;
 
 		boxCull = R_CullLocalBox( cv->meshBounds );
 
-		if ( boxCull == CULL_OUT ) {
+		if ( boxCull == CULL_OUT )
+		{
 			tr.pc.c_box_cull_patch_out++;
 			return qtrue;
-		} else if ( boxCull == CULL_IN )   {
+		}
+		else if ( boxCull == CULL_IN )
+		{
 			tr.pc.c_box_cull_patch_in++;
-		} else
+		}
+		else
 		{
 			tr.pc.c_box_cull_patch_clip++;
 		}
-	} else
+	}
+	else
 	{
 		tr.pc.c_sphere_cull_patch_in++;
 	}
@@ -194,7 +200,7 @@ static qboolean R_CullSurface( surfaceType_t *surface, shader_t *shader ) {
 				tr.pc.c_plane_cull_out++;
 				return qtrue;
 			}
-		} else if ( shader->cullType == CT_BACK_SIDED )    {
+		} else if ( shader->cullType == CT_BACK_SIDED ) {
 			if ( d > 8.0f ) {
 				tr.pc.c_plane_cull_out++;
 				return qtrue;
@@ -222,6 +228,7 @@ static qboolean R_CullSurface( surfaceType_t *surface, shader_t *shader ) {
 	// must be visible
 	return qfalse;
 }
+
 
 #ifdef USE_PMLIGHT
 qboolean R_LightCullBounds( const dlight_t* dl, const vec3_t mins, const vec3_t maxs )

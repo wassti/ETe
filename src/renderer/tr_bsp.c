@@ -232,7 +232,7 @@ static void R_LoadMergedLightmaps( const lump_t *l )
 	buf = fileBase + l->fileofs;
 
 	// we are about to upload textures
-	R_IssuePendingRenderCommands();
+	//R_IssuePendingRenderCommands();
 
 	// create all the lightmaps
 	tr.numLightmaps = len / (LIGHTMAP_SIZE * LIGHTMAP_SIZE * 3);
@@ -384,7 +384,7 @@ static void R_LoadLightmaps( const lump_t *l ) {
 	}
 
 	// we are about to upload textures
-	R_IssuePendingRenderCommands();
+	//R_IssuePendingRenderCommands();
 
 	for ( i = 0 ; i < tr.numLightmaps ; i++ ) {
 		// expand the 24 bit on-disk to 32 bit

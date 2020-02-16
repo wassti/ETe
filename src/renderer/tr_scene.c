@@ -695,7 +695,7 @@ void RE_RenderScene( const refdef_t *fd ) {
 	parms.scissorWidth = parms.viewportWidth;
 	parms.scissorHeight = parms.viewportHeight;
 
-	parms.isPortal = qfalse;
+	parms.portalView = PV_NONE;
 
 #ifdef USE_PMLIGHT
 	parms.dlights = tr.refdef.dlights;
@@ -717,7 +717,7 @@ void RE_RenderScene( const refdef_t *fd ) {
 	R_RenderView( &parms );
 
 	if ( fd->rdflags & RDF_RENDEROMNIBOT )
-		R_RenderOmnibot();
+		RE_RenderOmnibot();
 
 	// the next scene rendered in this frame will tack on after this one
 	r_firstSceneDrawSurf = tr.refdef.numDrawSurfs;

@@ -850,16 +850,21 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 		}
 		else if ( !Q_stricmp( token, "videoMap" ) )
 		{
+			int handle;
 			token = COM_ParseExt( text, qfalse );
 			if ( !token[0] )
 			{
 				ri.Printf( PRINT_WARNING, "WARNING: missing parameter for 'videoMap' keyword in shader '%s'\n", shader.name );
 				return qfalse;
 			}
-			stage->bundle[0].videoMapHandle = ri.CIN_PlayCinematic( token, 0, 0, 256, 256, (CIN_loop | CIN_silent | CIN_shader));
-			if (stage->bundle[0].videoMapHandle != -1) {
+			handle = ri.CIN_PlayCinematic( token, 0, 0, 256, 256, (CIN_loop | CIN_silent | CIN_shader) );
+			if ( handle != -1 ) {
+				if ( !tr.scratchImage[ handle ] ) {
+					tr.scratchImage[ handle ] = R_CreateImage( va( "*scratch%i", handle ), NULL, 256, 256, IMGFLAG_CLAMPTOEDGE | IMGFLAG_RGB | IMGFLAG_NOSCALE );
+				}
 				stage->bundle[0].isVideoMap = qtrue;
-				stage->bundle[0].image[0] = tr.scratchImage[stage->bundle[0].videoMapHandle];
+				stage->bundle[0].videoMapHandle = handle;
+				stage->bundle[0].image[0] = tr.scratchImage[ handle ];
 			} else {
 				ri.Printf( PRINT_WARNING, "WARNING: could not load '%s' for 'videoMap' keyword in shader '%s'\n", token, shader.name );
 			}
@@ -2318,67 +2323,17 @@ otherwise set to the generic stage function
 */
 static void ComputeStageIteratorFunc( void )
 {
-	shader.optimalStageIteratorFunc = RB_StageIteratorGeneric;
-
 	//
 	// see if this should go into the sky path
 	//
-	if ( shader.isSky ) {
+	if ( shader.isSky )
+	{
 		shader.optimalStageIteratorFunc = RB_StageIteratorSky;
-		goto done;
 	}
-
-	if ( r_ignoreFastPath->integer ) {
-		return;
+	else
+	{
+		shader.optimalStageIteratorFunc = RB_StageIteratorGeneric;
 	}
-
-	// ydnar: stages with tcMods can't be fast-pathed
-	if ( stages[ 0 ].bundle[ 0 ].numTexMods != 0 ||
-		 stages[ 0 ].bundle[ 1 ].numTexMods != 0 ) {
-		return;
-	}
-
-	//
-	// see if this can go into the vertex lit fast path
-	//
-	if ( shader.numUnfoggedPasses == 1 ) {
-		if ( stages[0].rgbGen == CGEN_LIGHTING_DIFFUSE ) {
-			if ( stages[0].alphaGen == AGEN_IDENTITY ) {
-				if ( stages[0].bundle[0].tcGen == TCGEN_TEXTURE ) {
-					if ( !shader.polygonOffset ) {
-						if ( !shader.multitextureEnv ) {
-							if ( !shader.numDeforms ) {
-								shader.optimalStageIteratorFunc = RB_StageIteratorVertexLitTexture;
-								goto done;
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	//
-	// see if this can go into an optimized LM, multitextured path
-	//
-	if ( shader.numUnfoggedPasses == 1 ) {
-		if ( ( stages[0].rgbGen == CGEN_IDENTITY ) && ( stages[0].alphaGen == AGEN_IDENTITY ) ) {
-			if ( stages[0].bundle[0].tcGen == TCGEN_TEXTURE &&
-				 stages[0].bundle[1].tcGen == TCGEN_LIGHTMAP ) {
-				if ( !shader.polygonOffset ) {
-					if ( !shader.numDeforms ) {
-						if ( shader.multitextureEnv ) {
-							shader.optimalStageIteratorFunc = RB_StageIteratorLightmappedMultitexture;
-							goto done;
-						}
-					}
-				}
-			}
-		}
-	}
-
-done:
-	return;
 }
 
 
@@ -2444,6 +2399,10 @@ static qboolean CollapseMultitexture( shaderStage_t *st0, shaderStage_t *st1, in
 		return qfalse;
 	}
 
+	if ( st0->depthFragment ) {
+		return qfalse;
+	}
+
 	// on voodoo2, don't combine different tmus
 	if ( glConfig.driverType == GLDRV_VOODOO ) {
 		if ( st0->bundle[0].image[0]->TMU ==
@@ -2456,13 +2415,13 @@ static qboolean CollapseMultitexture( shaderStage_t *st0, shaderStage_t *st1, in
 	bbits = st1->stateBits;
 
 	// make sure that both stages have identical state other than blend modes
-	if ( ( abits & ~( GLS_DSTBLEND_BITS | GLS_SRCBLEND_BITS | GLS_DEPTHMASK_TRUE ) ) !=
-		( bbits & ~( GLS_DSTBLEND_BITS | GLS_SRCBLEND_BITS | GLS_DEPTHMASK_TRUE ) ) ) {
+	if ( ( abits & ~( GLS_BLEND_BITS | GLS_DEPTHMASK_TRUE ) ) !=
+		( bbits & ~( GLS_BLEND_BITS | GLS_DEPTHMASK_TRUE ) ) ) {
 		return qfalse;
 	}
 
-	abits &= ( GLS_DSTBLEND_BITS | GLS_SRCBLEND_BITS );
-	bbits &= ( GLS_DSTBLEND_BITS | GLS_SRCBLEND_BITS );
+	abits &= GLS_BLEND_BITS;
+	bbits &= GLS_BLEND_BITS;
 
 	// search for a valid multitexture blend function
 	for ( i = 0; i < numCollapse ; i++ ) {
@@ -2539,6 +2498,48 @@ static qboolean CollapseMultitexture( shaderStage_t *st0, shaderStage_t *st1, in
 	return qtrue;
 }
 
+#ifdef USE_PMLIGHT
+/*
+====================
+FindLightingStages
+
+Find proper stage for dlight pass
+====================
+*/
+static void FindLightingStages( void )
+{
+	const shaderStage_t *st;
+	int i;
+
+	shader.lightingStage = -1;
+
+	if ( !qglGenProgramsARB )
+		return;
+
+	if ( shader.isSky || ( shader.surfaceFlags & (SURF_NODLIGHT | SURF_SKY) ) || shader.sort == SS_ENVIRONMENT )
+		return;
+
+	for ( i = 0; i < shader.numUnfoggedPasses; i++ ) {
+		st = &stages[ i ];
+		if ( !st->active )
+			break;
+		if ( !st->bundle[0].isLightmap ) {
+			if ( st->bundle[0].tcGen != TCGEN_TEXTURE )
+				continue;
+			if ( (st->stateBits & GLS_BLEND_BITS) == (GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE) )
+				continue;
+			 // fix for q3wcp17' textures/scanctf2/bounce_white and others
+			if ( st->rgbGen == CGEN_IDENTITY && (st->stateBits & GLS_BLEND_BITS) == (GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ZERO) ) {
+				if ( shader.lightingStage >= 0 ) {
+					continue;
+				}
+			}
+			shader.lightingStage = i;
+		}
+	}
+}
+#endif
+
 
 /*
 =============
@@ -2569,18 +2570,17 @@ static void FixRenderCommandList( int newShader ) {
 			case RC_STRETCH_PIC:
 			case RC_ROTATED_PIC:
 			case RC_STRETCH_PIC_GRADIENT:
-			{
+				{
 				const stretchPicCommand_t *sp_cmd = (const stretchPicCommand_t *)curCmd;
-				curCmd = (const void *)( sp_cmd + 1 );
+				curCmd = (const void *)(sp_cmd + 1);
 				break;
-			}
+				}
 			case RC_2DPOLYS:
-			{
+				{
 				const poly2dCommand_t *sp_cmd = (const poly2dCommand_t *)curCmd;
-				curCmd = (const void *)( sp_cmd + 1 );
+				curCmd = (const void *)(sp_cmd + 1);
 				break;
-			}
-			break;
+				}
 			case RC_DRAW_SURFS:
 				{
 				int i;
@@ -2630,6 +2630,12 @@ static void FixRenderCommandList( int newShader ) {
 			case RC_CLEARDEPTH:
 				{
 				const clearDepthCommand_t *db_cmd = (const clearDepthCommand_t *)curCmd;
+				curCmd = (const void *)(db_cmd + 1);
+				break;
+				}
+			case RC_CLEARCOLOR:
+				{
+				const clearColorCommand_t *db_cmd = (const clearColorCommand_t *)curCmd;
 				curCmd = (const void *)(db_cmd + 1);
 				break;
 				}
@@ -2731,10 +2737,6 @@ static shader_t *GeneratePermanentShader( void ) {
 		}
 	}
 
-#ifdef USE_PMLIGHT
-	FindLightingStages( newShader );
-#endif
-
 	SortNewShader();
 
 	hash = generateHashValue(newShader->name, FILE_HASH_SIZE);
@@ -2743,52 +2745,6 @@ static shader_t *GeneratePermanentShader( void ) {
 
 	return newShader;
 }
-
-
-#ifdef USE_PMLIGHT
-/*
-====================
-FindLightingStages
-
-Find proper stage for dlight pass
-====================
-*/
-#define GLS_BLEND_BITS (GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS)
-void FindLightingStages( shader_t *sh )
-{
-	shaderStage_t *st;
-	int i;
-
-	sh->lightingStage = -1;
-
-	if ( !qglGenProgramsARB )
-		return;
-
-	if ( sh->isSky || ( sh->surfaceFlags & (SURF_NODLIGHT | SURF_SKY) ) || sh->sort == SS_ENVIRONMENT )
-		return;
-
-	for ( i = 0; i < sh->numUnfoggedPasses; i++ ) {
-		st = sh->stages[ i ];
-		if ( !st )
-			break;
-		if ( !st->bundle[0].isLightmap ) {
-			if ( st->bundle[0].tcGen != TCGEN_TEXTURE )
-				continue;
-			if ( (st->stateBits & GLS_BLEND_BITS) == (GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE) )
-				continue;
-			 // fix for q3wcp17' textures/scanctf2/bounce_white and others
-			if ( st->rgbGen == CGEN_IDENTITY && (st->stateBits & GLS_BLEND_BITS) == (GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ZERO) ) {
-				if ( sh->lightingStage >= 0 ) {
-					continue;
-				}
-			}
-			sh->lightingStage = i;
-		}
-	}
-}
-
-#undef GLS_BLEND_BITS
-#endif // USE_PMLIGHT
 
 
 /*
@@ -3041,6 +2997,49 @@ static void SetImplicitShaderStages( image_t *image ) {
 }
 
 
+static void DetectNeeds( void )
+{
+	texCoordGen_t t1;
+	texCoordGen_t t2;
+	int i;
+
+	for ( i = 0; i < MAX_SHADER_STAGES; i++ )
+	{
+		if ( !stages[i].active )
+			break;
+
+		t1 = stages[i].bundle[0].tcGen;
+		t2 = stages[i].bundle[1].tcGen;
+
+		if ( t1 == TCGEN_LIGHTMAP || t2 == TCGEN_LIGHTMAP )
+		{
+			shader.needsST2 = qtrue;
+		}
+		if ( t1 == TCGEN_ENVIRONMENT_MAPPED || t1 == TCGEN_ENVIRONMENT_MAPPED_FP || t1 == TCGEN_FIRERISEENV_MAPPED )
+		{
+			shader.needsNormal = qtrue;
+		}
+		if ( t2 == TCGEN_ENVIRONMENT_MAPPED || t2 == TCGEN_ENVIRONMENT_MAPPED_FP || t2 == TCGEN_FIRERISEENV_MAPPED )
+		{
+			shader.needsNormal = qtrue;
+		}
+		if ( stages[i].alphaGen == AGEN_LIGHTING_SPECULAR || stages[i].alphaGen == AGEN_NORMALZFADE || stages[i].rgbGen == CGEN_LIGHTING_DIFFUSE )
+		{
+			shader.needsNormal = qtrue;
+		}
+	}
+	for ( i = 0; i < shader.numDeforms; i++ )
+	{
+		if ( shader.deforms[i].deformation == DEFORM_WAVE || shader.deforms[i].deformation == DEFORM_NORMALS || shader.deforms[i].deformation == DEFORM_BULGE ) {
+			shader.needsNormal = qtrue;
+		}
+		if ( shader.deforms[i].deformation >= DEFORM_TEXT0 && shader.deforms[i].deformation <= DEFORM_TEXT7 ) {
+			shader.needsNormal = qtrue;
+		}
+	}
+}
+
+
 /*
 =========================
 FinishShader
@@ -3199,6 +3198,8 @@ static shader_t *FinishShader( void ) {
 		}
 	}
 
+	DetectNeeds();
+
 	// fix alphaGen flags to avoid redundant comparisons in R_ComputeColors()
 	for ( i = 0; i < MAX_SHADER_STAGES; i++ ) {
 		shaderStage_t *pStage = &stages[ i ];
@@ -3252,6 +3253,10 @@ static shader_t *FinishShader( void ) {
 		shader.fogPass = FP_LE;
 	}
 
+#ifdef USE_PMLIGHT
+	FindLightingStages();
+#endif
+
 	// determine which stage iterator function is appropriate
 	ComputeStageIteratorFunc();
 
@@ -3280,17 +3285,16 @@ returns qtrue if request was successful, qfalse if the gods were angered
 ====================
 */
 qboolean RE_LoadDynamicShader( const char *shadername, const char *shadertext ) {
-	const char *func_err = "WARNING: RE_LoadDynamicShader";
 	dynamicshader_t *dptr, *lastdptr;
 	char *q, *token;
 
 	if ( !shadername && shadertext ) {
-		ri.Printf( PRINT_WARNING, "%s called with NULL shadername and non-NULL shadertext:\n%s\n", func_err, shadertext );
+		ri.Printf( PRINT_WARNING, "WARNING: %s: called with NULL shadername and non-NULL shadertext:\n%s\n", __func__, shadertext );
 		return qfalse;
 	}
 
 	if ( shadername && strlen( shadername ) >= MAX_QPATH ) {
-		ri.Printf( PRINT_WARNING, "%s shadername %s exceeds MAX_QPATH\n", func_err, shadername );
+		ri.Printf( PRINT_WARNING, "WARNING: %s: shadername %s exceeds MAX_QPATH\n", __func__, shadername );
 		return qfalse;
 	}
 
@@ -3327,7 +3331,7 @@ qboolean RE_LoadDynamicShader( const char *shadername, const char *shadertext ) 
 				Z_Free( dptr );
 				return qtrue;
 			}
-			ri.Printf( PRINT_WARNING, "%s shader %s already exists!\n", func_err, shadername );
+			ri.Printf( PRINT_WARNING, "WARNING: %s: shader %s already exists!\n", __func__, shadername );
 			return qfalse;
 		}
 		lastdptr = dptr;
@@ -3336,21 +3340,21 @@ qboolean RE_LoadDynamicShader( const char *shadername, const char *shadertext ) 
 
 	//cant add a new one with empty shadertext
 	if ( !shadertext || !strlen( shadertext ) ) {
-		ri.Printf( PRINT_WARNING, "%s new shader %s has NULL shadertext!\n", func_err, shadername );
+		ri.Printf( PRINT_WARNING, "WARNING: %s: new shader %s has NULL shadertext!\n", __func__, shadername );
 		return qfalse;
 	}
 
 	//create a new shader
 	dptr = (dynamicshader_t *)Z_Malloc( sizeof( *dptr ) );
 	if ( !dptr ) {
-		Com_Error( ERR_FATAL, "Couldn't allocate struct for dynamic shader %s\n", shadername );
+		Com_Error( ERR_FATAL, "%s: Couldn't allocate struct for dynamic shader %s\n", __func__, shadername );
 	}
 	if ( lastdptr ) {
 		lastdptr->next = dptr;
 	}
 	dptr->shadertext = Z_Malloc( strlen( shadertext ) + 1 );
 	if ( !dptr->shadertext ) {
-		Com_Error( ERR_FATAL, "Couldn't allocate buffer for dynamic shader %s\n", shadername );
+		Com_Error( ERR_FATAL, "%s: Couldn't allocate buffer for dynamic shader %s\n", __func__, shadername );
 	}
 	Q_strncpyz( dptr->shadertext, shadertext, strlen( shadertext ) + 1 );
 	dptr->next = NULL;
@@ -3439,6 +3443,7 @@ static const char *FindShaderInShaderText( const char *shadername ) {
 #endif // _DEBUG
 	return NULL;
 }
+
 
 /*
 ==================
@@ -3548,7 +3553,7 @@ void R_FindLightmap( int *lightmapIndex ) {
 		return;
 	}
 
-	R_IssuePendingRenderCommands();
+	//R_IssuePendingRenderCommands();
 
 	// attempt to load an external lightmap
 	Com_sprintf( fileName, sizeof (fileName), "%s/" EXTERNAL_LIGHTMAP, tr.worldRawName, *lightmapIndex );
@@ -3671,10 +3676,10 @@ shader_t *R_FindShader( const char *name, int lightmapIndex, qboolean mipRawImag
 	}
 
 	// FIXME: set these "need" values apropriately
-	shader.needsNormal = qtrue;
-	shader.needsST1 = qtrue;
-	shader.needsST2 = qtrue;
-	shader.needsColor = qtrue;
+	//shader.needsNormal = qtrue;
+	//shader.needsST1 = qtrue;
+	//shader.needsST2 = qtrue;
+	//shader.needsColor = qtrue;
 
 	// ydnar: default to no implicit mappings
 	implicitMap[ 0 ] = '\0';
@@ -3779,10 +3784,10 @@ qhandle_t RE_RegisterShaderFromImage( const char *name, int lightmapIndex, image
 	InitShader( name, lightmapIndex );
 
 	// FIXME: set these "need" values appropriately
-	shader.needsNormal = qtrue;
-	shader.needsST1 = qtrue;
-	shader.needsST2 = qtrue;
-	shader.needsColor = qtrue;
+	//shader.needsNormal = qtrue;
+	//shader.needsST1 = qtrue;
+	//shader.needsST2 = qtrue;
+	//shader.needsColor = qtrue;
 
 	// ydnar: set default stages (removing redundant code)
 	SetImplicitShaderStages( image );
@@ -3945,13 +3950,7 @@ void	R_ShaderList_f (void) {
 		} else {
 			ri.Printf (PRINT_ALL, "  ");
 		}
-		if ( sh->multitextureEnv == GL_ADD ) {
-			ri.Printf( PRINT_ALL, "MT(a) " );
-		} else if ( sh->multitextureEnv == GL_MODULATE ) {
-			ri.Printf( PRINT_ALL, "MT(m) " );
-		} else if ( sh->multitextureEnv == GL_DECAL ) {
-			ri.Printf( PRINT_ALL, "MT(d) " );
-		} else if ( sh->multitextureEnv ) {
+		if ( sh->multitextureEnv ) {
 			ri.Printf( PRINT_ALL, "MT(x) " ); // TODO: per-stage statistics?
 		} else {
 			ri.Printf( PRINT_ALL, "      " );
@@ -3966,10 +3965,6 @@ void	R_ShaderList_f (void) {
 			ri.Printf( PRINT_ALL, "gen " );
 		} else if ( sh->optimalStageIteratorFunc == RB_StageIteratorSky ) {
 			ri.Printf( PRINT_ALL, "sky " );
-		} else if ( sh->optimalStageIteratorFunc == RB_StageIteratorLightmappedMultitexture ) {
-			ri.Printf( PRINT_ALL, "lmmt" );
-		} else if ( sh->optimalStageIteratorFunc == RB_StageIteratorVertexLitTexture ) {
-			ri.Printf( PRINT_ALL, "vlt " );
 		} else {
 			ri.Printf( PRINT_ALL, "    " );
 		}
@@ -4237,9 +4232,19 @@ static void CreateInternalShaders( void ) {
 	tr.defaultShader = FinishShader();
 
 	// shadow shader is just a marker
-	Q_strncpyz( shader.name, "<stencil shadow>", sizeof( shader.name ) );
+	InitShader( "<stencil shadow>", LIGHTMAP_NONE );
+	stages[0].bundle[0].image[0] = tr.defaultImage;
+	stages[0].active = qtrue;
+	stages[0].stateBits = GLS_DEFAULT;
 	shader.sort = SS_STENCIL_SHADOW;
 	tr.shadowShader = FinishShader();
+
+	InitShader( "<cinematic>", LIGHTMAP_NONE );
+	stages[0].bundle[0].image[0] = tr.defaultImage; // will be updated by specific cinematic images
+	stages[0].active = qtrue;
+	stages[0].rgbGen = CGEN_IDENTITY_LIGHTING;
+	stages[0].stateBits = GLS_DEPTHTEST_DISABLE;
+	tr.cinematicShader = FinishShader();
 }
 
 
@@ -4387,13 +4392,15 @@ qboolean R_ShaderCanBeCached( shader_t *sh ) {
 	}
 
 	for ( i = 0; i < sh->numUnfoggedPasses; i++ ) {
-		if ( sh->stages[i] && sh->stages[i]->active ) {
+		shaderStage_t* st = sh->stages[i];
+		if ( st && st->active ) {
 			for ( b = 0 ; b < NUM_TEXTURE_BUNDLES ; b++ ) {
 				// rain - swapped order of for() comparisons so that
 				// image[16] (out of bounds) isn't dereferenced
 				//for (j=0; sh->stages[i]->bundle[b].image[j] && j < MAX_IMAGE_ANIMATIONS; j++) {
-				for ( j = 0; j < MAX_IMAGE_ANIMATIONS && sh->stages[i]->bundle[b].image[j]; j++ ) {
-					if ( sh->stages[i]->bundle[b].image[j]->imgName[0] == '*' ) {
+				for ( j = 0; j < MAX_IMAGE_ANIMATIONS && st->bundle[b].image[j]; j++ ) {
+					image_t *img = st->bundle[b].image[j];
+					if ( (img->flags & IMGFLAG_LIGHTMAP) || img->imgName[0] == '*' ) {
 						return qfalse;
 					}
 				}
@@ -4541,7 +4548,7 @@ shader_t *R_FindCachedShader( const char *name, int lightmapIndex, int hash ) {
 	sh = backupHashTable[hash];
 	shPrev = NULL;
 	while ( sh ) {
-		if ( sh->lightmapIndex == lightmapIndex && !Q_stricmp( sh->name, name ) ) {
+		if ( sh->lightmapSearchIndex == lightmapIndex && !Q_stricmp( sh->name, name ) ) {
 			if ( tr.numShaders == MAX_SHADERS ) {
 				ri.Printf( PRINT_WARNING, "WARNING: R_FindCachedShader - MAX_SHADERS hit\n" );
 				return NULL;

@@ -117,20 +117,20 @@ Handles all the complicated wrapping and degenerate cases
 =================
 */
 static void MakeMeshNormals( int width, int height, drawVert_t ctrl[MAX_GRID_SIZE][MAX_GRID_SIZE] ) {
-	int i, j, k, dist;
-	vec3_t normal;
-	vec3_t sum;
-	int		count = 0;
-	vec3_t base;
-	vec3_t delta;
-	int x, y;
-	drawVert_t  *dv;
-	vec3_t around[8], temp;
-	qboolean good[8];
-	qboolean wrapWidth, wrapHeight;
-	float len;
-	static int neighbors[8][2] = {
-		{0,1}, {1,1}, {1,0}, {1,-1}, {0,-1}, {-1,-1}, {-1,0}, {-1,1}
+	int		i, j, k, dist;
+	vec3_t	normal;
+	vec3_t	sum;
+	int		count;
+	vec3_t	base;
+	vec3_t	delta;
+	int		x, y;
+	drawVert_t	*dv;
+	vec3_t		around[8], temp;
+	qboolean	good[8];
+	qboolean	wrapWidth, wrapHeight;
+	float		len;
+static	int	neighbors[8][2] = {
+	{0,1}, {1,1}, {1,0}, {1,-1}, {0,-1}, {-1,-1}, {-1,0}, {-1,1}
 	};
 
 	wrapWidth = qfalse;
@@ -211,10 +211,9 @@ static void MakeMeshNormals( int width, int height, drawVert_t ctrl[MAX_GRID_SIZ
 				VectorAdd( normal, sum, sum );
 				count++;
 			}
-			if ( count == 0 ) {
-//printf("bad normal\n");
-				count = 1;
-			}
+			//if ( count == 0 ) {
+			//	printf("bad normal\n");
+			//}
 			VectorNormalize2( sum, dv->normal );
 		}
 	}

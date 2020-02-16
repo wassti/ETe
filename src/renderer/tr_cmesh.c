@@ -296,7 +296,7 @@ void R_AddMDCSurfaces( trRefEntity_t *ent ) {
 #endif
 
 	// don't add third_person objects if not in a portal
-	personalModel = ( ent->e.renderfx & RF_THIRD_PERSON ) && !tr.viewParms.isPortal;
+	personalModel = (ent->e.renderfx & RF_THIRD_PERSON) && (tr.viewParms.portalView == PV_NONE);
 
 	if ( ent->e.renderfx & RF_WRAP_FRAMES ) {
 		ent->e.frame %= tr.currentModel->model.mdc[0]->numFrames;
@@ -349,7 +349,7 @@ void R_AddMDCSurfaces( trRefEntity_t *ent ) {
 
 #ifdef USE_PMLIGHT
 	numDlights = 0;
-	if ( r_dlightMode->integer >= 2 && ( !personalModel || tr.viewParms.isPortal ) ) {
+	if ( r_dlightMode->integer >= 2 && ( !personalModel || tr.viewParms.portalView != PV_NONE ) ) {
 		R_TransformDlights( tr.viewParms.num_dlights, tr.viewParms.dlights, &tr.orientation );
 		for ( n = 0; n < tr.viewParms.num_dlights; n++ ) {
 			dl = &tr.viewParms.dlights[ n ];

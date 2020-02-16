@@ -69,7 +69,7 @@ typedef struct flare_s {
 
 	int addedFrame;
 
-	qboolean inPortal;                  // true if in a portal view of the scene
+	portalView_t portalView;
 	int frameSceneNum;
 	void        *surface;
 	int fogNum;
@@ -159,7 +159,7 @@ void RB_AddFlare( void *surface, int fogNum, vec3_t point, vec3_t color, float s
 //		if ( f->surface == surface && f->frameSceneNum == backEnd.viewParms.frameSceneNum && f->inPortal == backEnd.viewParms.isPortal ) {
 
 		// (SA) added back in more checks for different scenes
-		if ( f->id == id && f->frameSceneNum == backEnd.viewParms.frameSceneNum && f->inPortal == backEnd.viewParms.isPortal ) {
+		if ( f->id == id && f->frameSceneNum == backEnd.viewParms.frameSceneNum && f->portalView == backEnd.viewParms.portalView ) {
 			break;
 		}
 	}
@@ -177,7 +177,7 @@ void RB_AddFlare( void *surface, int fogNum, vec3_t point, vec3_t color, float s
 
 		f->surface = surface;
 		f->frameSceneNum = backEnd.viewParms.frameSceneNum;
-		f->inPortal = backEnd.viewParms.isPortal;
+		f->portalView = backEnd.viewParms.portalView;
 		f->addedFrame = -1;
 		f->id = id;
 	}
@@ -401,8 +401,8 @@ void RB_RenderFlare( flare_t *f ) {
 	// FIXME: use quadstamp?
 	tess.xyz[tess.numVertexes][0] = f->windowX - size;
 	tess.xyz[tess.numVertexes][1] = f->windowY - size;
-	tess.texCoords[tess.numVertexes][0][0] = 0;
-	tess.texCoords[tess.numVertexes][0][1] = 0;
+	tess.texCoords[0][tess.numVertexes][0] = 0;
+	tess.texCoords[0][tess.numVertexes][1] = 0;
 	tess.vertexColors[tess.numVertexes][0] = iColor[0];
 	tess.vertexColors[tess.numVertexes][1] = iColor[1];
 	tess.vertexColors[tess.numVertexes][2] = iColor[2];
@@ -412,8 +412,8 @@ void RB_RenderFlare( flare_t *f ) {
 
 	tess.xyz[tess.numVertexes][0] = f->windowX - size;
 	tess.xyz[tess.numVertexes][1] = f->windowY + size;
-	tess.texCoords[tess.numVertexes][0][0] = 0;
-	tess.texCoords[tess.numVertexes][0][1] = 1;
+	tess.texCoords[0][tess.numVertexes][0] = 0;
+	tess.texCoords[0][tess.numVertexes][1] = 1;
 	tess.vertexColors[tess.numVertexes][0] = iColor[0];
 	tess.vertexColors[tess.numVertexes][1] = iColor[1];
 	tess.vertexColors[tess.numVertexes][2] = iColor[2];
@@ -423,8 +423,8 @@ void RB_RenderFlare( flare_t *f ) {
 
 	tess.xyz[tess.numVertexes][0] = f->windowX + size;
 	tess.xyz[tess.numVertexes][1] = f->windowY + size;
-	tess.texCoords[tess.numVertexes][0][0] = 1;
-	tess.texCoords[tess.numVertexes][0][1] = 1;
+	tess.texCoords[0][tess.numVertexes][0] = 1;
+	tess.texCoords[0][tess.numVertexes][1] = 1;
 	tess.vertexColors[tess.numVertexes][0] = iColor[0];
 	tess.vertexColors[tess.numVertexes][1] = iColor[1];
 	tess.vertexColors[tess.numVertexes][2] = iColor[2];
@@ -434,8 +434,8 @@ void RB_RenderFlare( flare_t *f ) {
 
 	tess.xyz[tess.numVertexes][0] = f->windowX + size;
 	tess.xyz[tess.numVertexes][1] = f->windowY - size;
-	tess.texCoords[tess.numVertexes][0][0] = 1;
-	tess.texCoords[tess.numVertexes][0][1] = 0;
+	tess.texCoords[0][tess.numVertexes][0] = 1;
+	tess.texCoords[0][tess.numVertexes][1] = 0;
 	tess.vertexColors[tess.numVertexes][0] = iColor[0];
 	tess.vertexColors[tess.numVertexes][1] = iColor[1];
 	tess.vertexColors[tess.numVertexes][2] = iColor[2];
@@ -503,7 +503,7 @@ void RB_RenderFlares (void) {
 		// don't draw any here that aren't from this scene / portal
 		f->drawIntensity = 0;
 		if ( f->frameSceneNum == backEnd.viewParms.frameSceneNum
-			&& f->inPortal == backEnd.viewParms.isPortal ) {
+			&& f->portalView == backEnd.viewParms.portalView ) {
 			RB_TestFlare( f );
 			if ( f->drawIntensity ) {
 				draw = qtrue;
@@ -528,8 +528,8 @@ void RB_RenderFlares (void) {
 		return;		// none visible
 	}
 
-	if ( backEnd.viewParms.isPortal ) {
-		qglDisable (GL_CLIP_PLANE0);
+	if ( backEnd.viewParms.portalView != PV_NONE ) {
+		qglDisable( GL_CLIP_PLANE0 );
 	}
 
 	qglPushMatrix();
@@ -543,7 +543,7 @@ void RB_RenderFlares (void) {
 
 	for ( f = r_activeFlares ; f ; f = f->next ) {
 		if ( f->frameSceneNum == backEnd.viewParms.frameSceneNum
-			&& f->inPortal == backEnd.viewParms.isPortal
+			&& f->portalView == backEnd.viewParms.portalView
 			&& f->drawIntensity ) {
 			RB_RenderFlare( f );
 		}

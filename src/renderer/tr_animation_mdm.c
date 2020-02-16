@@ -333,7 +333,7 @@ void R_MDM_AddAnimSurfaces( trRefEntity_t *ent ) {
 #endif
 
 	// don't add third_person objects if not in a portal
-	personalModel = ( ent->e.renderfx & RF_THIRD_PERSON ) && !tr.viewParms.isPortal;
+	personalModel = (ent->e.renderfx & RF_THIRD_PERSON) && (tr.viewParms.portalView == PV_NONE);
 
 	header = tr.currentModel->model.mdm;
 
@@ -355,7 +355,7 @@ void R_MDM_AddAnimSurfaces( trRefEntity_t *ent ) {
 
 #ifdef USE_PMLIGHT
 	numDlights = 0;
-	if ( r_dlightMode->integer >= 2 && ( !personalModel || tr.viewParms.isPortal ) ) {
+	if ( r_dlightMode->integer >= 2 && ( !personalModel || tr.viewParms.portalView != PV_NONE ) ) {
 		R_TransformDlights( tr.viewParms.num_dlights, tr.viewParms.dlights, &tr.orientation );
 		for ( n = 0; n < tr.viewParms.num_dlights; n++ ) {
 			dl = &tr.viewParms.dlights[ n ];
@@ -1536,10 +1536,15 @@ void RB_MDM_SurfaceAnim( mdmSurface_t *surface ) {
 			LocalAddScaledMatrixTransformVectorTranslate( w->offset, w->boneWeight, bone->matrix, bone->translation, tempVert );
 		}
 
-		LocalMatrixTransformVector( modVerts->normal, bones[modVerts->weights[0].boneIndex].matrix, tempNormal );
+#ifdef USE_TESS_NEEDS_NORMAL
+		if( tess.needsNormal )
+#endif
+		{
+			LocalMatrixTransformVector( modVerts->normal, bones[modVerts->weights[0].boneIndex].matrix, tempNormal );
+		}
 
-		tess.texCoords[baseVertex + j][0][0] = modVerts->texCoords[0];
-		tess.texCoords[baseVertex + j][0][1] = modVerts->texCoords[1];
+		tess.texCoords[0][baseVertex + j][0] = modVerts->texCoords[0];
+		tess.texCoords[0][baseVertex + j][1] = modVerts->texCoords[1];
 
 		modVerts = (mdmVertex_t *)&modVerts->weights[modVerts->numWeights];
 	}
@@ -1610,7 +1615,7 @@ void RB_MDM_SurfaceAnim( mdmSurface_t *surface ) {
 					qglEnd();
 					qglDisable( GL_BLEND );
 
-					R_DebugText( vec, 1.f, 1.f, 1.f, mdxBoneInfo->name, qfalse );       // qfalse, as there is no reason to set depthrange again
+					RB_DebugText( vec, 1.f, 1.f, 1.f, mdxBoneInfo->name, qfalse );       // qfalse, as there is no reason to set depthrange again
 				}
 
 				qglDepthRange( 0, 1 );
@@ -1663,7 +1668,7 @@ void RB_MDM_SurfaceAnim( mdmSurface_t *surface ) {
 						qglEnd();
 						qglDisable( GL_BLEND );
 
-						R_DebugText( vec, 1.f, 1.f, 1.f, pTag->name, qfalse );  // qfalse, as there is no reason to set depthrange again
+						RB_DebugText( vec, 1.f, 1.f, 1.f, pTag->name, qfalse );  // qfalse, as there is no reason to set depthrange again
 
 						pTag = ( mdmTag_t * )( (byte *)pTag + pTag->ofsEnd );
 					}

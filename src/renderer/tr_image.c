@@ -118,7 +118,7 @@ GL_TextureMode
 */
 void GL_TextureMode( const char *string ) {
 	const textureMode_t *mode;
-	image_t	*glt;
+	image_t	*img;
 	int		i;
 	
 	mode = NULL;
@@ -146,11 +146,11 @@ void GL_TextureMode( const char *string ) {
 	}
 
 	// change all the existing mipmap texture objects
-	for ( i = 0 ; i < tr.numImages ; i++ ) {
-		glt = tr.images[ i ];
-		GL_Bind( glt );
+	for ( i = 0; i < tr.numImages; i++ ) {
+		img = tr.images[ i ];
+		GL_Bind( img );
 		// ydnar: for allowing lightmap debugging
-		if ( glt->flags & IMGFLAG_MIPMAP ) {
+		if ( img->flags & IMGFLAG_MIPMAP ) {
 			qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_min );
 			qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max );
 		}
@@ -693,7 +693,7 @@ static void Upload32( byte *data, int x, int y, int width, int height, image_t *
 	}
 
 	//
-	// clamp to the current upper OpenGL limit
+	// clamp to the current texture size limit
 	// scale both axis down equally so we don't have to
 	// deal with a half mip resampling
 	//
@@ -707,9 +707,9 @@ static void Upload32( byte *data, int x, int y, int width, int height, image_t *
 
 	if ( !subImage ) {
 		// verify if the alpha channel is being used or not
-		if ( image->internalFormat == 0 )
+		if ( image->internalFormat == 0 ) {
 			image->internalFormat = RawImage_GetInternalFormat( data, width*height, lightMap, allowCompression );
-
+		}
 		image->uploadWidth = scaled_width;
 		image->uploadHeight = scaled_height;
 	}
@@ -792,6 +792,8 @@ image_t *R_CreateImage( const char *name, byte *pic, int width, int height, imgF
 	image_t		*image;
 	long		hash;
 	GLint		glWrapClampMode;
+	GLuint		currTexture;
+	int			currTMU;
 	size_t		namelen;
 
 	namelen = strlen( name );
@@ -837,29 +839,22 @@ image_t *R_CreateImage( const char *name, byte *pic, int width, int height, imgF
 	}
 
 	// Ridah
-	image = tr.images[tr.numImages] = R_CacheImageAlloc( sizeof( *image ) + namelen + 1 );
-	tr.numImages++;
-
-	// ydnar: not exactly sure why this mechanism is here at all, but it's generating
-	// bad texture names (not that the rest of the code is a saint, but hey...)
-	//%	image->texnum = 1024 + tr.numImages;
-
-	// Ridah
-	//%	if (r_cacheShaders->integer) {
-	//%		R_FindFreeTexnum(image);
-	//%	}
-	// done.
-
-	// ydnar: ok, let's try the recommended way
-	qglGenTextures( 1, &image->texnum );
-
-	image->flags = flags;
-
+	image = R_CacheImageAlloc( sizeof( *image ) + namelen + 1 );
 	image->imgName = (char *)( image + 1 );
 	strcpy( image->imgName, name );
 
+	hash = generateHashValue( name );
+	image->next = hashTable[ hash ];
+	hashTable[ hash ] = image;
+
+	tr.images[ tr.numImages++ ] = image;
+
+	// Ridah
+	image->hash = hash;
+	image->flags = flags;
 	image->width = width;
 	image->height = height;
+
 	if ( flags & IMGFLAG_RGB )
 		image->internalFormat = GL_RGB;
 	else
@@ -868,9 +863,15 @@ image_t *R_CreateImage( const char *name, byte *pic, int width, int height, imgF
 	if ( flags & IMGFLAG_CLAMPTOBORDER )
 		glWrapClampMode = GL_CLAMP_TO_BORDER;
 	else if ( flags & IMGFLAG_CLAMPTOEDGE )
-		glWrapClampMode = GL_CLAMP_TO_EDGE;
+		glWrapClampMode = gl_clamp_mode;
 	else
 		glWrapClampMode = GL_REPEAT;
+
+	// save current state
+	currTMU = glState.currenttmu;
+	currTexture = glState.currenttextures[ glState.currenttmu ];
+
+	qglGenTextures( 1, &image->texnum );
 
 	// lightmaps are always allocated on TMU 1
 	if ( qglActiveTextureARB && (flags & IMGFLAG_LIGHTMAP) ) {
@@ -908,19 +909,15 @@ image_t *R_CreateImage( const char *name, byte *pic, int width, int height, imgF
 	qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, glWrapClampMode );
 	qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, glWrapClampMode );
 
-	glState.currenttextures[ glState.currenttmu ] = 0;
-	qglBindTexture( GL_TEXTURE_2D, 0 );
+	// restore original state
+	GL_SelectTexture( currTMU );
+	glState.currenttextures[ glState.currenttmu ] = currTexture;
+	qglBindTexture( GL_TEXTURE_2D, currTexture );
 
-	if ( image->TMU == 1 ) {
-		GL_SelectTexture( 0 );
-	}
-
-	hash = generateHashValue(name);
-	image->next = hashTable[hash];
-	hashTable[hash] = image;
-
-	// Ridah
-	image->hash = hash;
+	//if ( image->TMU == 1 ) {
+	//	GL_SelectTexture( 0 );
+	//}
+	//qglBindTexture( GL_TEXTURE_2D, 0 );
 
 	return image;
 }
@@ -1060,8 +1057,8 @@ image_t	*R_FindImageFile( const char *name, imgFlags_t flags )
 	//
 	// see if the image is already loaded
 	//
-	for (image=hashTable[hash]; image; image=image->next) {
-		if ( !strcmp( name, image->imgName ) ) {
+	for ( image = hashTable[hash]; image; image = image->next ) {
+		if ( !Q_stricmp( name, image->imgName ) ) {
 			// the white image can be used with any set of parms, but other mismatches are errors
 			if ( strcmp( name, "*white" ) ) {
 				if ( image->flags != flags ) {
@@ -1161,72 +1158,12 @@ static void R_CreateDlightImage( void ) {
 			data[y][x][0] = 
 			data[y][x][1] = 
 			data[y][x][2] = b;
-			data[y][x][3] = 255;			
+			data[y][x][3] = 255;
 		}
 	}
 	tr.dlightImage = R_CreateImage("*dlight", (byte*)data, DLIGHT_SIZE, DLIGHT_SIZE, IMGFLAG_CLAMPTOEDGE );
 }
 
-
-/*
-=================
-R_InitFogTable
-=================
-*/
-void R_InitFogTable( void ) {
-	int		i;
-	float	d;
-	float	exp;
-	
-	exp = 0.5;
-
-	for ( i = 0 ; i < FOG_TABLE_SIZE ; i++ ) {
-		d = powf( (float)i/(FOG_TABLE_SIZE-1), exp );
-
-		// ydnar: changed to linear fog
-		tr.fogTable[ i ] = d;
-		//%	tr.fogTable[ i ] = (i / 255.0f);
-	}
-}
-
-
-/*
-================
-R_FogFactor
-
-Returns a 0.0 to 1.0 fog density value
-This is called for each texel of the fog texture on startup
-and for each vertex of transparent shaders in fog dynamically
-================
-*/
-float	R_FogFactor( float s, float t ) {
-	float	d;
-
-	s -= 1.0/512;
-	if ( s < 0 ) {
-		return 0;
-	}
-	if ( t < 1.0/32 ) {
-		return 0;
-	}
-	if ( t < 31.0/32 ) {
-		s *= (t - 1.0f/32.0f) / (30.0f/32.0f);
-	}
-
-	// we need to leave a lot of clamp range
-	s *= 8;
-
-	if ( s > 1.0 ) {
-		s = 1.0;
-	}
-
-	d = tr.fogTable[ (int)(s * (FOG_TABLE_SIZE-1)) ];
-
-	return d;
-}
-
-
-void SaveTGAAlpha( char *name, byte **pic, int width, int height );
 
 /*
 ================
@@ -1239,28 +1176,9 @@ R_CreateFogImage
 static void R_CreateFogImage( void ) {
 	int x, y, alpha;
 	byte    *data;
-	//float	d;
-	//float borderColor[4];
-
 
 	// allocate table for image
 	data = ri.Hunk_AllocateTempMemory( FOG_S * FOG_T * 4 );
-
-	// ydnar: old fog texture generating algo
-
-	// S is distance, T is depth
-	/*for (x=0 ; x<FOG_S ; x++) {
-		for (y=0 ; y<FOG_T ; y++) {
-			d = R_FogFactor( ( x + 0.5f ) / FOG_S, ( y + 0.5f ) / FOG_T );
-
-			data[(y*FOG_S+x)*4+0] =
-			data[(y*FOG_S+x)*4+1] =
-			data[(y*FOG_S+x)*4+2] = 255;
-			data[(y*FOG_S+x)*4+3] = 255 * d;
-		}
-	}*/
-
-	//%	SaveTGAAlpha( "fog_q3.tga", &data, FOG_S, FOG_T );
 
 	// ydnar: new, linear fog texture generating algo for GL_CLAMP_TO_EDGE (OpenGL 1.2+)
 
@@ -1288,21 +1206,11 @@ static void R_CreateFogImage( void ) {
 		}
 	}
 
-	//%	SaveTGAAlpha( "fog_yd.tga", &data, FOG_S, FOG_T );
-
 	// standard openGL clamping doesn't really do what we want -- it includes
 	// the border color at the edges.  OpenGL 1.2 has clamp-to-edge, which does
 	// what we want.
 	tr.fogImage = R_CreateImage( "*fog", data, FOG_S, FOG_T, IMGFLAG_CLAMPTOEDGE );
 	ri.Hunk_FreeTempMemory( data );
-
-	// ydnar: the following lines are unecessary for new GL_CLAMP_TO_EDGE fog
-	//borderColor[0] = 1.0;
-	//borderColor[1] = 1.0;
-	//borderColor[2] = 1.0;
-	//borderColor[3] = 1;
-
-	//qglTexParameterfv( GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor );
 }
 
 
@@ -1337,7 +1245,7 @@ static qboolean R_BuildDefaultImage( const char *format ) {
 	byte color[4];
 	int i, len, hex[6];
 	int x, y;
-	
+
 	if ( *format++ != '#' ) {
 		return qfalse;
 	}
@@ -1457,17 +1365,17 @@ void R_CreateBuiltinImages( void ) {
 			data[y][x][0] = 
 			data[y][x][1] = 
 			data[y][x][2] = tr.identityLightByte;
-			data[y][x][3] = 255;			
+			data[y][x][3] = 255;
 		}
 	}
 
 	tr.identityLightImage = R_CreateImage( "*identityLight", (byte *)data, 8, 8, IMGFLAG_NONE );
 
-	for ( x = 0; x < ARRAY_LEN( tr.scratchImage ); x++ ) {
+	//for ( x = 0; x < ARRAY_LEN( tr.scratchImage ); x++ ) {
 		// scratchimage is usually used for cinematic drawing
-		tr.scratchImage[x] = R_CreateImage( "*scratch", NULL, DEFAULT_SIZE, DEFAULT_SIZE,
-			IMGFLAG_PICMIP | IMGFLAG_CLAMPTOEDGE | IMGFLAG_RGB );
-	}
+		//tr.scratchImage[x] = R_CreateImage( "*scratch", NULL, DEFAULT_SIZE, DEFAULT_SIZE,
+		//	IMGFLAG_PICMIP | IMGFLAG_CLAMPTOEDGE | IMGFLAG_RGB );
+	//}
 
 	R_CreateDlightImage();
 	R_CreateFogImage();
@@ -1516,7 +1424,7 @@ void R_SetColorMappings( void ) {
 
 	shift = tr.overbrightBits;
 
-	for ( i = 0; i < 256; i++ ) {
+	for ( i = 0; i < ARRAY_LEN( s_gammatable ); i++ ) {
 		if ( g == 1.0f ) {
 			inf = i;
 		} else {
@@ -1532,9 +1440,9 @@ void R_SetColorMappings( void ) {
 		s_gammatable[i] = inf;
 	}
 
-	for (i=0 ; i<256 ; i++) {
+	for ( i = 0; i < ARRAY_LEN( s_intensitytable ); i++ ) {
 		j = i * r_intensity->value;
-		if (j > 255) {
+		if ( j > 255 ) {
 			j = 255;
 		}
 		s_intensitytable[i] = j;
@@ -1552,8 +1460,9 @@ void R_SetColorMappings( void ) {
 R_InitImages
 ===============
 */
-void    R_InitImages( void ) {
-	memset( hashTable, 0, sizeof( hashTable ) );
+void R_InitImages( void ) {
+
+	Com_Memset( hashTable, 0, sizeof( hashTable ) );
 
 	// Ridah, caching system
 	//%	R_InitTexnumImages(qfalse);
@@ -1570,6 +1479,7 @@ void    R_InitImages( void ) {
 	// done.
 }
 
+
 /*
 ===============
 R_DeleteTextures
@@ -1584,22 +1494,21 @@ void R_DeleteTextures( void ) {
 		qglDeleteTextures( 1, &img->texnum );
 	}
 
-	memset( tr.images, 0, sizeof( tr.images ) );
+	Com_Memset( tr.images, 0, sizeof( tr.images ) );
+	Com_Memset( tr.scratchImage, 0, sizeof( tr.scratchImage ) );
 	tr.numImages = 0;
 	// Ridah
 	//%	R_InitTexnumImages(qtrue);
 	// done.
 
 	memset( glState.currenttextures, 0, sizeof( glState.currenttextures ) );
-	if ( qglBindTexture ) {
-		if ( qglActiveTextureARB ) {
-			GL_SelectTexture( 1 );
-			qglBindTexture( GL_TEXTURE_2D, 0 );
-			GL_SelectTexture( 0 );
-			qglBindTexture( GL_TEXTURE_2D, 0 );
-		} else {
-			qglBindTexture( GL_TEXTURE_2D, 0 );
-		}
+	if ( qglActiveTextureARB ) {
+		GL_SelectTexture( 1 );
+		qglBindTexture( GL_TEXTURE_2D, 0 );
+		GL_SelectTexture( 0 );
+		qglBindTexture( GL_TEXTURE_2D, 0 );
+	} else {
+		qglBindTexture( GL_TEXTURE_2D, 0 );
 	}
 }
 
@@ -1643,7 +1552,6 @@ static char *CommaParse( char **data_p ) {
 			}
 			data++;
 		}
-
 
 		c = *data;
 
@@ -1789,7 +1697,7 @@ qhandle_t RE_GetShaderFromModel( qhandle_t modelid, int surfnum, int withlightma
 				// get mipmap info for original texture
 				hash = generateHashValue( surf->shader->name );
 				for ( image = hashTable[hash]; image; image = image->next ) {
-					if ( !strcmp( surf->shader->name, image->imgName ) ) {
+					if ( !Q_stricmp( surf->shader->name, image->imgName ) ) {
 						mip = (image->flags & IMGFLAG_MIPMAP);
 						break;
 					}
@@ -1861,7 +1769,7 @@ qhandle_t RE_RegisterSkin( const char *name ) {
 //			a map that has ai characters who had invalid skin names entered
 //			in thier "skin" or "head" field
 
-	R_IssuePendingRenderCommands();
+	//R_IssuePendingRenderCommands();
 
 	// load and parse the skin file
 	ri.FS_ReadFile( name, &text.v );
@@ -2252,15 +2160,13 @@ void R_PurgeImage( image_t *image ) {
 	R_CacheImageFree( image );
 
 	memset( glState.currenttextures, 0, sizeof( glState.currenttextures ) );
-	if ( qglBindTexture ) {
-		if ( qglActiveTextureARB ) {
-			GL_SelectTexture( 1 );
-			qglBindTexture( GL_TEXTURE_2D, 0 );
-			GL_SelectTexture( 0 );
-			qglBindTexture( GL_TEXTURE_2D, 0 );
-		} else {
-			qglBindTexture( GL_TEXTURE_2D, 0 );
-		}
+	if ( qglActiveTextureARB ) {
+		GL_SelectTexture( 1 );
+		qglBindTexture( GL_TEXTURE_2D, 0 );
+		GL_SelectTexture( 0 );
+		qglBindTexture( GL_TEXTURE_2D, 0 );
+	} else {
+		qglBindTexture( GL_TEXTURE_2D, 0 );
 	}
 }
 
@@ -2283,7 +2189,7 @@ void R_PurgeBackupImages( int purgeCount ) {
 		return;
 	}
 
-	R_IssuePendingRenderCommands();
+	//R_IssuePendingRenderCommands();
 
 	cnt = 0;
 	for ( i = lastPurged; i < FILE_HASH_SIZE; ) {
@@ -2330,15 +2236,13 @@ void R_BackupImages( void ) {
 	tr.numImages = 0;
 
 	memset( glState.currenttextures, 0, sizeof( glState.currenttextures ) );
-	if ( qglBindTexture ) {
-		if ( qglActiveTextureARB ) {
-			GL_SelectTexture( 1 );
-			qglBindTexture( GL_TEXTURE_2D, 0 );
-			GL_SelectTexture( 0 );
-			qglBindTexture( GL_TEXTURE_2D, 0 );
-		} else {
-			qglBindTexture( GL_TEXTURE_2D, 0 );
-		}
+	if ( qglActiveTextureARB ) {
+		GL_SelectTexture( 1 );
+		qglBindTexture( GL_TEXTURE_2D, 0 );
+		GL_SelectTexture( 0 );
+		qglBindTexture( GL_TEXTURE_2D, 0 );
+	} else {
+		qglBindTexture( GL_TEXTURE_2D, 0 );
 	}
 }
 
@@ -2389,7 +2293,7 @@ int R_GetTextureId( const char *name ) {
 //	ri.Printf( PRINT_ALL, "R_GetTextureId [%s].\n", name );
 
 	for ( i = 0 ; i < tr.numImages ; i++ ) {
-		if ( !strcmp( name, tr.images[ i ]->imgName ) ) {
+		if ( !Q_stricmp( name, tr.images[ i ]->imgName ) ) {
 //			ri.Printf( PRINT_ALL, "Found textureid %d\n", i );
 			return i;
 		}

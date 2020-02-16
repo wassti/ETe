@@ -340,22 +340,19 @@ void ARB_LightingPass( void )
 
 	pStage = tess.xstages[ tess.shader->lightingStage ];
 
-	R_ComputeTexCoords( pStage );
+	R_ComputeTexCoords( 0, &pStage->bundle[0] );
+
+	GL_ClientState( 1, CLS_NONE );
+	GL_ClientState( 0, CLS_TEXCOORD_ARRAY | CLS_NORMAL_ARRAY );
 
 	// since this is guaranteed to be a single pass, fill and lock all the arrays
-	
-	qglDisableClientState( GL_COLOR_ARRAY );
 
-	qglEnableClientState( GL_TEXTURE_COORD_ARRAY );
-	qglTexCoordPointer( 2, GL_FLOAT, 0, tess.svars.texcoords[ 0 ] );
-
-	qglEnableClientState( GL_NORMAL_ARRAY );
+	qglTexCoordPointer( 2, GL_FLOAT, 0, tess.svars.texcoordPtr[0] );
 	qglNormalPointer( GL_FLOAT, 16, tess.normal );
-
 	qglVertexPointer( 3, GL_FLOAT, 16, tess.xyz );
 
-	//if ( qglLockArraysEXT )
-	//		qglLockArraysEXT( 0, tess.numVertexes );
+	if ( qglLockArraysEXT )
+		qglLockArraysEXT( 0, tess.numVertexes );
 
 	// CPU may limit performance in following cases
 	if ( tess.light->linear || gl_version >= 40 )
@@ -363,16 +360,14 @@ void ARB_LightingPass( void )
 	else
 		ARB_Lighting( pStage );
 
-	//if ( qglUnlockArraysEXT )
-	//		qglUnlockArraysEXT();
+	if ( qglUnlockArraysEXT )
+		qglUnlockArraysEXT();
 
 	// reset polygon offset
 	if ( tess.shader->polygonOffset ) 
 	{
 		qglDisable( GL_POLYGON_OFFSET_FILL );
 	}
-
-	qglDisableClientState( GL_NORMAL_ARRAY );
 }
 #endif // USE_PMLIGHT
 
@@ -713,7 +708,7 @@ static char *ARB_BuildBloomProgram( char *buf ) {
 		}
 	}
 
-	s = Q_stradd( s,
+	/*s = */ Q_stradd( s,
 		"MOV base.w, 1.0; \n"
 		"MOV result.color, base; \n"
 		"END \n" );
@@ -754,7 +749,7 @@ static char *ARB_BuildBlurProgram( char *buf, int taps ) {
 		s = Q_stradd( s, va( "MAD cc, c%i, p%i.w, cc; \n", i, i ) ); // cc = cc + cN + pN.w
 	}
 
-	s = Q_stradd( s,
+	/*s = */ Q_stradd( s,
 		"MOV cc.a, 1.0; \n"
 		"MOV_SAT result.color, cc; \n"
 		"END \n" );
@@ -780,7 +775,7 @@ static char *ARB_BuildBlendProgram( char *buf, int count ) {
 			"ADD cc, cx, cc; \n", i ) );
 	}
 
-	s = Q_stradd( s,
+	/*s = */ Q_stradd( s,
 		"MOV cc.a, 1.0; \n"
 		"MOV_SAT result.color, cc; \n"
 		"END \n" );
@@ -1281,8 +1276,8 @@ static qboolean FBO_Create( frameBuffer_t *fb, GLsizei width, GLsizei height, qb
 	qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 	qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
 
-	qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-	qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+	qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, gl_clamp_mode );
+	qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, gl_clamp_mode );
 
 	// always use GL_RGB10_A2 for bloom textures which is fast as usual GL_RGBA8
 	// (GL_R11F_G11F_B10F is a bit slower at least on AMD GPUs)

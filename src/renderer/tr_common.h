@@ -27,25 +27,35 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "qgl.h"
 #include <math.h>
 
+#define MAX_TEXTURE_UNITS 8
+
 typedef enum
 {
 	IMGFLAG_NONE           = 0x0000,
 	IMGFLAG_MIPMAP         = 0x0001,
 	IMGFLAG_PICMIP         = 0x0002,
-	IMGFLAG_NO_COMPRESSION = 0x0004,
-	IMGFLAG_NOLIGHTSCALE   = 0x0008,
-	IMGFLAG_CLAMPTOEDGE    = 0x0010,
-	IMGFLAG_LIGHTMAP       = 0x0020,
-	IMGFLAG_NOSCALE        = 0x0040,
-	IMGFLAG_CLAMPTOBORDER  = 0x0080,
+	IMGFLAG_CLAMPTOEDGE    = 0x0004,
+	IMGFLAG_CLAMPTOBORDER  = 0x0008,
+	IMGFLAG_NO_COMPRESSION = 0x0010,
+	IMGFLAG_NOLIGHTSCALE   = 0x0020,
+	IMGFLAG_LIGHTMAP       = 0x0040,
+	IMGFLAG_NOSCALE        = 0x0080,
 	IMGFLAG_RGB            = 0x0100,
 } imgFlags_t;
 
+typedef enum {
+	CT_FRONT_SIDED = 0,
+	CT_BACK_SIDED,
+	CT_TWO_SIDED
+} cullType_t;
+
 typedef struct image_s {
 	char		*imgName;			// image path, including extension
-	int			width, height;				// source image
+	struct image_s *next;			// for hash search
+	int			width, height;		// source image
 	int			uploadWidth;		// after power of two and picmip but not including clamp to MAX_TEXTURE_SIZE
 	int			uploadHeight;
+	imgFlags_t	flags;
 	GLuint		texnum;				// gl texture binding
 
 	int			frameUsed;			// for texture usage in frame statistics
@@ -53,10 +63,7 @@ typedef struct image_s {
 	GLint		internalFormat;
 	int			TMU;				// only needed for voodoo2
 
-	imgFlags_t	flags;
-
 	int				hash;
-	struct image_s*	next;
 } image_t;
 
 // any change in the LIGHTMAP_* defines here MUST be reflected in

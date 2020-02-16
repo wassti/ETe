@@ -520,8 +520,7 @@ qhandle_t RE_RegisterModel( const char *name ) {
 	// only set the name after the model has been successfully loaded
 	Q_strncpyz( mod->name, name, sizeof( mod->name ) );
 
-
-	R_IssuePendingRenderCommands();
+	//R_IssuePendingRenderCommands();
 
 	// Ridah, look for it cached
 	if ( R_FindCachedModel( name, mod ) ) {
@@ -1901,7 +1900,7 @@ void RE_BeginRegistration( glconfig_t *glconfigOut ) {
 
 	*glconfigOut = glConfig;
 
-	R_IssuePendingRenderCommands();
+	//R_IssuePendingRenderCommands();
 
 	tr.viewCluster = -1;		// force markleafs to regenerate
 	R_ClearFlares();

@@ -1770,10 +1770,8 @@ qboolean FS_CL_ExtractFromPakFile( const char *fullpath, const char *gamedir, co
 	int destLength;
 	byte *srcData;
 	byte *destData;
-	qboolean needToCopy;
+	qboolean needToCopy = qtrue;
 	FILE *destHandle;
-
-	needToCopy = qtrue;
 
 	// read in compressed file (force it to exclude files from directories)
 	fs_filter_flag = FS_EXCLUDE_DIR;
@@ -1807,15 +1805,7 @@ qboolean FS_CL_ExtractFromPakFile( const char *fullpath, const char *gamedir, co
 
 			// compare files
 			if ( destLength == srcLength ) {
-				int i;
-
-				for ( i = 0; i < destLength; i++ ) {
-					if ( destData[i] != srcData[i] ) {
-						break;
-					}
-				}
-
-				if ( i == destLength ) {
+				if (memcmp(srcData, destData, srcLength) == 0) {
 					needToCopy = qfalse;
 				}
 			}

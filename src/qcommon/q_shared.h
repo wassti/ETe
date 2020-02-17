@@ -443,6 +443,10 @@ typedef	int	fixed4_t;
 typedef	int	fixed8_t;
 typedef	int	fixed16_t;
 
+#ifndef M_TAU
+#define M_TAU		6.28318530717958647693f
+#endif
+
 #ifndef M_PI
 #define M_PI		3.14159265358979323846f	// matches value in gcc v2 math.h
 #endif

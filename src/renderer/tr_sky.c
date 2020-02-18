@@ -889,14 +889,13 @@ void RB_DrawSun( void ) {
 		return;
 	}
 	qglLoadMatrixf( backEnd.viewParms.world.modelMatrix );
-	//qglTranslatef( backEnd.viewParms.orientation.origin[0], backEnd.viewParms.orientation.origin[1], backEnd.viewParms.orientation.origin[2] );
 
 	dist =  backEnd.viewParms.zFar / 1.75;      // div sqrt(3)
 
 	// (SA) shrunk the size of the sun
 	size = dist * 0.2;
 
-	VectorScale( tr.sunDirection, dist, origin );
+	VectorMA( backEnd.viewParms.orientation.origin, dist, tr.sunDirection, origin );
 	PerpendicularVector( vec1, tr.sunDirection );
 	CrossProduct( tr.sunDirection, vec1, vec2 );
 
@@ -919,7 +918,7 @@ void RB_DrawSun( void ) {
 
 		// get a point a little closer
 		dist = dist * 0.7;
-		VectorScale( tr.sunDirection, dist, origin );
+		VectorMA( backEnd.viewParms.orientation.origin, dist, tr.sunDirection, origin );
 
 		// and make the flare a little smaller
 		VectorScale( vec1, 0.5f, vec1 );
@@ -1009,8 +1008,6 @@ void RB_StageIteratorSky( void ) {
 		qglDepthRange( sky_min_depth, 1.0 );
 	}
 
-	//GL_Cull( CT_TWO_SIDED ); //etlegacy?
-
 	// draw the outer skybox
 	if ( tess.shader->sky.outerbox[0] && tess.shader->sky.outerbox[0] != tr.defaultImage ) {
 
@@ -1020,7 +1017,7 @@ void RB_StageIteratorSky( void ) {
 		qglColor3f( tr.identityLight, tr.identityLight, tr.identityLight );
 
 		GL_State( 0 );
-		GL_Cull( CT_FRONT_SIDED ); // fixme? q3e
+		GL_Cull( CT_TWO_SIDED );
 
 		DrawSkyBox( tess.shader );
 	}
@@ -1043,7 +1040,7 @@ void RB_StageIteratorSky( void ) {
 		qglColor3f( tr.identityLight, tr.identityLight, tr.identityLight );
 
 		//GL_State( 0 );
-		GL_Cull( CT_BACK_SIDED ); //fixme is this even right? removing this doesn't affect bug
+		GL_Cull( CT_TWO_SIDED );
 
 		DrawSkyBoxInner( tess.shader );
 	}

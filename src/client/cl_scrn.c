@@ -610,13 +610,13 @@ text to the screen.
 */
 void SCR_UpdateScreen( void ) {
 	static int recursive;
-	static int framecount;
-	static int next_frametime;
+	//static int framecount;
+	//static int next_frametime;
 
 	if ( !scr_initialized )
 		return; // not initialized yet
 
-	if ( framecount == cls.framecount ) {
+	/*if ( framecount == cls.framecount ) {
 		int ms = Sys_Milliseconds();
 		if ( next_frametime && ms - next_frametime < 0 ) {
 			re.ThrottleBackend();
@@ -626,7 +626,7 @@ void SCR_UpdateScreen( void ) {
 	} else {
 		next_frametime = 0;
 		framecount = cls.framecount;
-	}
+	}*/
 
 	if ( ++recursive > 2 ) {
 		recursive = 0;

@@ -1784,9 +1784,6 @@ typedef struct shaderCommands_s
 	vec2_t		texCoords[2][SHADER_MAX_VERTEXES] QALIGN(16);
 	vec2_t		texCoords00[SHADER_MAX_VERTEXES] QALIGN(16);
 	color4ub_t	vertexColors[SHADER_MAX_VERTEXES] QALIGN(16);
-//#ifdef USE_LEGACY_DLIGHTS
-//	int			vertexDlightBits[SHADER_MAX_VERTEXES] QALIGN(16);
-//#endif
 	stageVars_t	svars QALIGN(16);
 
 	color4ub_t	constantColor255[SHADER_MAX_VERTEXES] QALIGN(16);

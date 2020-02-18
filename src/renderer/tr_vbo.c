@@ -383,7 +383,8 @@ Decide if we can put surface in static vbo
 static qboolean isStaticShader( shader_t *shader )
 {
 	shaderStage_t* stage;
-	int i, svarsSize, mtx, atestBits;
+	int i, svarsSize, mtx;
+	GLbitfield atestBits;
 
 	if ( shader->isStaticShader )
 		return qtrue;
@@ -997,6 +998,13 @@ void VBO_Cleanup( void )
 	memset( vbo_fp, 0, sizeof( vbo_fp ) );
 
 	memset( &world_vbo, 0, sizeof( world_vbo ) );
+
+	for ( i = 0; i < tr.numShaders; i++ )
+	{
+		tr.shaders[ i ]->isStaticShader = qfalse;
+		tr.shaders[ i ]->iboOffset = -1;
+		tr.shaders[ i ]->vboOffset = -1;
+	}
 }
 
 
@@ -1242,7 +1250,8 @@ static void RB_IterateStagesVBO( const shaderCommands_t *input )
 {
 	const shaderStage_t *pStage;
 	const fogProgramParms_t *fparm;
-	int i, stateBits;
+	int i;
+	GLbitfield stateBits;
 	qboolean fogPass;
 
 	fogPass = ( tess.fogNum && tess.shader->fogPass );

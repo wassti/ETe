@@ -1529,14 +1529,13 @@ This is unfortunate, but the skin files aren't
 compatable with our normal parsing rules.
 ==================
 */
-static char *CommaParse( char **data_p ) {
-	int c = 0, len;
-	char *data;
-	static	char	com_token[MAX_TOKEN_CHARS];
+static char *CommaParse( const char **data_p ) {
+	int c, len;
+	const char *data;
+	static char com_token[ MAX_TOKEN_CHARS ];
 
 	data = *data_p;
-	len = 0;
-	com_token[0] = 0;
+	com_token[0] = '\0';
 
 	// make sure incoming data is valid
 	if ( !data ) {
@@ -1544,10 +1543,12 @@ static char *CommaParse( char **data_p ) {
 		return com_token;
 	}
 
+	len = 0;
+
 	while ( 1 ) {
 		// skip whitespace
-		while( (c = *data) <= ' ') {
-			if( !c ) {
+		while ( (c = *data) <= ' ' ) {
+			if ( c == '\0' ) {
 				break;
 			}
 			data++;
@@ -1559,12 +1560,12 @@ static char *CommaParse( char **data_p ) {
 		if ( c == '/' && data[1] == '/' )
 		{
 			data += 2;
-			while (*data && *data != '\n') {
+			while ( *data && *data != '\n' ) {
 				data++;
 			}
 		}
 		// skip /* */ comments
-		else if ( c=='/' && data[1] == '*' ) 
+		else if ( c == '/' && data[1] == '*' ) 
 		{
 			data += 2;
 			while ( *data && ( *data != '*' || data[1] != '/' ) ) 
@@ -1582,26 +1583,28 @@ static char *CommaParse( char **data_p ) {
 		}
 	}
 
-	if ( c == 0 ) {
+	if ( c == '\0' ) {
 		return "";
 	}
 
 	// handle quoted strings
-	if (c == '\"')
+	if ( c == '\"' )
 	{
 		data++;
 		while (1)
 		{
-			c = *data++;
-			if (c=='\"' || !c)
+			c = *data;
+			if ( c == '\"' || c == '\0' )
 			{
-				com_token[len] = 0;
-				*data_p = ( char * ) data;
+				if ( c == '\"' )
+					data++;
+				com_token[ len ] = '\0';
+				*data_p = data;
 				return com_token;
 			}
-			if (len < MAX_TOKEN_CHARS - 1)
+			if ( len < MAX_TOKEN_CHARS-1 )
 			{
-				com_token[len] = c;
+				com_token[ len ] = c;
 				len++;
 			}
 		}
@@ -1610,18 +1613,18 @@ static char *CommaParse( char **data_p ) {
 	// parse a regular word
 	do
 	{
-		if (len < MAX_TOKEN_CHARS - 1)
+		if ( len < MAX_TOKEN_CHARS-1 )
 		{
-			com_token[len] = c;
+			com_token[ len ] = c;
 			len++;
 		}
 		data++;
 		c = *data;
-	} while (c>32 && c != ',' );
+	} while ( c > ' ' && c != ',' );
 
-	com_token[len] = 0;
+	com_token[ len ] = '\0';
 
-	*data_p = ( char * ) data;
+	*data_p = data;
 	return com_token;
 }
 

@@ -762,9 +762,9 @@ void RE_Finish( void ) {
 
 
 /*
-=============
-RE_TakeVideoFrame
-=============
+==================
+RE_RenderOmnibot
+==================
 */
 void RE_RenderOmnibot( void ) {
 	renderOmnibot_t *cmd;

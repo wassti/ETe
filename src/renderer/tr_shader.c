@@ -2866,137 +2866,6 @@ static void InitShader( const char *name, int lightmapIndex ) {
 }
 
 
-/*
-SetImplicitShaderStages() - ydnar
-sets a shader's stages to one of several defaults
-*/
-
-static void SetImplicitShaderStages( image_t *image ) {
-	// set implicit cull type
-	if ( implicitCullType != CT_FRONT_SIDED && shader.cullType == CT_FRONT_SIDED ) {
-		shader.cullType = implicitCullType;
-	}
-
-	// set shader stages
-	switch ( shader.lightmapIndex )
-	{
-		// dynamic colors at vertexes
-	case LIGHTMAP_NONE:
-		stages[ 0 ].bundle[ 0 ].image[ 0 ] = image;
-		stages[ 0 ].active = qtrue;
-		stages[ 0 ].rgbGen = CGEN_LIGHTING_DIFFUSE;
-		stages[ 0 ].stateBits = implicitStateBits;
-		break;
-
-		// gui elements (note state bits are overridden)
-	case LIGHTMAP_2D:
-		stages[ 0 ].bundle[ 0 ].image[ 0 ] = image;
-		stages[ 0 ].active = qtrue;
-		stages[ 0 ].rgbGen = CGEN_VERTEX;
-		stages[ 0 ].alphaGen = AGEN_SKIP;
-		stages[ 0 ].stateBits = GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA;
-		break;
-
-		// fullbright level
-	case LIGHTMAP_WHITEIMAGE:
-		stages[0].active = qtrue;
-		stages[0].bundle[0].image[0] = image;
-		stages[0].rgbGen = CGEN_IDENTITY_LIGHTING;
-		stages[0].stateBits = GLS_DEFAULT;
-		break;
-
-		// explicit colors at vertexes
-	case LIGHTMAP_BY_VERTEX:
-		stages[ 0 ].bundle[ 0 ].image[ 0 ] = image;
-		stages[ 0 ].active = qtrue;
-		stages[ 0 ].rgbGen = CGEN_EXACT_VERTEX;
-		stages[ 0 ].alphaGen = AGEN_SKIP;
-		stages[ 0 ].stateBits = implicitStateBits;
-		break;
-
-		// use lightmap pass
-	default:
-		// masked or blended implicit shaders need texture first
-		if ( implicitStateBits & ( GLS_ATEST_BITS | GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) ) {
-			stages[ 0 ].bundle[ 0 ].image[ 0 ] = image;
-			stages[ 0 ].active = qtrue;
-			stages[ 0 ].rgbGen = CGEN_IDENTITY;
-			stages[ 0 ].stateBits = implicitStateBits;
-
-			stages[ 1 ].bundle[ 0 ].image[ 0 ] = tr.lightmaps[ shader.lightmapIndex ];
-			stages[ 1 ].bundle[ 0 ].isLightmap = qtrue;
-			stages[ 1 ].active = qtrue;
-			stages[ 1 ].rgbGen = CGEN_IDENTITY;
-			stages[ 1 ].stateBits = GLS_DEFAULT | GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ZERO | GLS_DEPTHFUNC_EQUAL;
-		}
-		// otherwise do standard lightmap + texture
-		else
-		{
-			stages[ 0 ].bundle[ 0 ].image[ 0 ] = tr.lightmaps[ shader.lightmapIndex ];
-			stages[ 0 ].bundle[ 0 ].isLightmap = qtrue;
-			stages[ 0 ].active = qtrue;
-			stages[ 0 ].rgbGen = CGEN_IDENTITY;
-			stages[ 0 ].stateBits = GLS_DEFAULT;
-
-			stages[ 1 ].bundle[ 0 ].image[ 0 ] = image;
-			stages[ 1 ].active = qtrue;
-			stages[ 1 ].rgbGen = CGEN_IDENTITY;
-			stages[ 1 ].stateBits = GLS_DEFAULT | GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ZERO;
-		}
-		break;
-	}
-
-	#if 0
-	if ( shader.lightmapIndex == LIGHTMAP_NONE ) {
-		// dynamic colors at vertexes
-		stages[0].bundle[0].image[0] = image;
-		stages[0].active = qtrue;
-		stages[0].rgbGen = CGEN_LIGHTING_DIFFUSE;
-		stages[0].stateBits = GLS_DEFAULT;
-	} else if ( shader.lightmapIndex == LIGHTMAP_BY_VERTEX ) {
-		// explicit colors at vertexes
-		stages[0].bundle[0].image[0] = image;
-		stages[0].active = qtrue;
-		stages[0].rgbGen = CGEN_EXACT_VERTEX;
-		stages[0].alphaGen = AGEN_SKIP;
-		stages[0].stateBits = GLS_DEFAULT;
-	} else if ( shader.lightmapIndex == LIGHTMAP_2D ) {
-		// GUI elements
-		stages[0].bundle[0].image[0] = image;
-		stages[0].active = qtrue;
-		stages[0].rgbGen = CGEN_VERTEX;
-		stages[0].alphaGen = AGEN_VERTEX;
-		stages[0].stateBits = GLS_DEPTHTEST_DISABLE |
-							  GLS_SRCBLEND_SRC_ALPHA |
-							  GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA;
-	} else if ( shader.lightmapIndex == LIGHTMAP_WHITEIMAGE ) {
-		// fullbright level
-		stages[0].bundle[0].image[0] = tr.whiteImage;
-		stages[0].active = qtrue;
-		stages[0].rgbGen = CGEN_IDENTITY_LIGHTING;
-		stages[0].stateBits = GLS_DEFAULT;
-
-		stages[1].bundle[0].image[0] = image;
-		stages[1].active = qtrue;
-		stages[1].rgbGen = CGEN_IDENTITY;
-		stages[1].stateBits |= GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ZERO;
-	} else {
-		// two pass lightmap
-		stages[0].bundle[0].image[0] = tr.lightmaps[shader.lightmapIndex];
-		stages[0].bundle[0].isLightmap = qtrue;
-		stages[0].active = qtrue;
-		stages[0].rgbGen = CGEN_IDENTITY;       // lightmaps are scaled on creation for identitylight
-		stages[0].stateBits = GLS_DEFAULT;
-
-		stages[1].bundle[0].image[0] = image;
-		stages[1].active = qtrue;
-		stages[1].rgbGen = CGEN_IDENTITY;
-		stages[1].stateBits |= GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ZERO;
-	}
-	#endif
-}
-
-
 static void DetectNeeds( void )
 {
 	texCoordGen_t t1;
@@ -3485,6 +3354,89 @@ shader_t *R_FindShaderByName( const char *name ) {
 }
 
 
+/*
+===============
+R_CreateDefaultShading
+===============
+*/
+static void R_CreateDefaultShading( image_t *image ) {
+	// set implicit cull type
+	if ( implicitCullType != CT_FRONT_SIDED && shader.cullType == CT_FRONT_SIDED ) {
+		shader.cullType = implicitCullType;
+	}
+
+	// set shader stages
+	switch ( shader.lightmapIndex )
+	{
+		// dynamic colors at vertexes
+	case LIGHTMAP_NONE:
+		stages[ 0 ].bundle[ 0 ].image[ 0 ] = image;
+		stages[ 0 ].active = qtrue;
+		stages[ 0 ].rgbGen = CGEN_LIGHTING_DIFFUSE;
+		stages[ 0 ].stateBits = implicitStateBits;
+		break;
+
+		// gui elements (note state bits are overridden)
+	case LIGHTMAP_2D:
+		stages[ 0 ].bundle[ 0 ].image[ 0 ] = image;
+		stages[ 0 ].active = qtrue;
+		stages[ 0 ].rgbGen = CGEN_VERTEX;
+		stages[ 0 ].alphaGen = AGEN_SKIP;
+		stages[ 0 ].stateBits = GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA;
+		break;
+
+		// fullbright level
+	case LIGHTMAP_WHITEIMAGE:
+		stages[0].active = qtrue;
+		stages[0].bundle[0].image[0] = image;
+		stages[0].rgbGen = CGEN_IDENTITY_LIGHTING;
+		stages[0].stateBits = GLS_DEFAULT;
+		break;
+
+		// explicit colors at vertexes
+	case LIGHTMAP_BY_VERTEX:
+		stages[ 0 ].bundle[ 0 ].image[ 0 ] = image;
+		stages[ 0 ].active = qtrue;
+		stages[ 0 ].rgbGen = CGEN_EXACT_VERTEX;
+		stages[ 0 ].alphaGen = AGEN_SKIP;
+		stages[ 0 ].stateBits = implicitStateBits;
+		break;
+
+		// use lightmap pass
+	default:
+		// masked or blended implicit shaders need texture first
+		if ( implicitStateBits & ( GLS_ATEST_BITS | GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS ) ) {
+			stages[ 0 ].bundle[ 0 ].image[ 0 ] = image;
+			stages[ 0 ].active = qtrue;
+			stages[ 0 ].rgbGen = CGEN_IDENTITY;
+			stages[ 0 ].stateBits = implicitStateBits;
+
+			stages[ 1 ].bundle[ 0 ].image[ 0 ] = tr.lightmaps[ shader.lightmapIndex ];
+			stages[ 1 ].bundle[ 0 ].isLightmap = qtrue;
+			stages[ 1 ].active = qtrue;
+			stages[ 1 ].rgbGen = CGEN_IDENTITY;
+			stages[ 1 ].stateBits = GLS_DEFAULT | GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ZERO | GLS_DEPTHFUNC_EQUAL;
+		}
+		// otherwise do standard lightmap + texture
+		else
+		{
+			stages[ 0 ].bundle[ 0 ].image[ 0 ] = tr.lightmaps[ shader.lightmapIndex ];
+			stages[ 0 ].bundle[ 0 ].isLightmap = qtrue;
+			stages[ 0 ].active = qtrue;
+			stages[ 0 ].rgbGen = CGEN_IDENTITY;
+			stages[ 0 ].stateBits = GLS_DEFAULT;
+
+			stages[ 1 ].bundle[ 0 ].image[ 0 ] = image;
+			stages[ 1 ].active = qtrue;
+			stages[ 1 ].rgbGen = CGEN_IDENTITY;
+			stages[ 1 ].stateBits = GLS_DEFAULT | GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ZERO;
+		}
+		break;
+	}
+}
+
+
+#if 0
 static const char *imageFormats[] = {
 	"png",
 	"tga",
@@ -3520,6 +3472,7 @@ int R_NumLightmapFiles( void ) {
 
 	return count;
 }
+#endif
 
 
 /*
@@ -3752,8 +3705,10 @@ shader_t *R_FindShader( const char *name, int lightmapIndex, qboolean mipRawImag
 		}
 	}
 
-	// ydnar: set default stages (removing redundant code)
-	SetImplicitShaderStages( image );
+	//
+	// create the default shading commands
+	//
+	R_CreateDefaultShading( image );
 
 	return FinishShader();
 }
@@ -3789,8 +3744,10 @@ qhandle_t RE_RegisterShaderFromImage( const char *name, int lightmapIndex, image
 	//shader.needsST2 = qtrue;
 	//shader.needsColor = qtrue;
 
-	// ydnar: set default stages (removing redundant code)
-	SetImplicitShaderStages( image );
+	//
+	// create the default shading commands
+	//
+	R_CreateDefaultShading( image );
 
 	sh = FinishShader();
 

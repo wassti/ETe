@@ -452,17 +452,19 @@ RB_SurfaceFoliage - ydnar
 */
 
 void RB_SurfaceFoliage( srfFoliage_t *srf ) {
-	int o, i, numVerts, numIndexes;
+	int o, i;// , numVerts, numIndexes;
 #ifdef USE_DISTANCE_CULL
 	int a;
 	vec4_t distanceCull, distanceVector;
 	float alpha, z, dist, fovScale;
 	vec3_t viewOrigin, local;
 #endif
-	vec_t               *xyz;
-	int srcColor, *color;
+	vec_t	*xyz, *normal;
+	float	*texCoords0;
+	float	*texCoords1;
+	byte	*color;
 	int dlightBits;
-	foliageInstance_t   *instance;
+	const foliageInstance_t   *instance;
 
 #ifdef USE_LEGACY_DLIGHTS
 	if ( tess.allowVBO && srf->vboItemIndex && !srf->dlightBits ) {
@@ -483,10 +485,6 @@ void RB_SurfaceFoliage( srfFoliage_t *srf ) {
 		VBO_QueueItem( srf->vboItemIndex );
 		return; // no need to tesselate anything
 	}
-
-	// basic setup
-	numVerts = srf->numVerts;
-	numIndexes = srf->numIndexes;
 
 #ifdef USE_DISTANCE_CULL
 	VectorCopy( backEnd.orientation.viewOrigin, viewOrigin );
@@ -526,7 +524,7 @@ void RB_SurfaceFoliage( srfFoliage_t *srf ) {
 	{
 #ifdef USE_DISTANCE_CULL
 		// fade alpha based on distance between inner and outer radii
-		if ( distanceCull[ 1 ] > 0.0f ) {
+		if ( distanceCull[ 1 ] > 0.0f && !tr.mapLoading ) {
 			// calculate z distance
 			z = fovScale * ( DotProduct( instance->origin, distanceVector ) + distanceVector[ 3 ] );
 			if ( z < -64.0f ) {  // epsilon so close-by foliage doesn't pop in and out
@@ -568,62 +566,78 @@ void RB_SurfaceFoliage( srfFoliage_t *srf ) {
 #endif
 		} else
 #endif
-		{
+		/*{
 			srcColor = *( (int*) instance->color );
-		}
+		}*/
 
 		// Com_Printf( "Color: %d %d %d %d\n", srf->colors[ o ][ 0 ], srf->colors[ o ][ 1 ], srf->colors[ o ][ 2 ], alpha );
 
-		RB_CHECKOVERFLOW( numVerts, numIndexes );
-		
-		tess.surfType = SF_FOLIAGE;
-
-		// ydnar: set after overflow check so dlights work properly
-		tess.dlightBits |= dlightBits;
-
-		// copy indexes
-		memcpy( &tess.indexes[ tess.numIndexes ], srf->indexes, numIndexes * sizeof( srf->indexes[ 0 ] ) );
-		for ( i = 0; i < numIndexes; i++ )
-			tess.indexes[ tess.numIndexes + i ] += tess.numVertexes;
-
-		// copy xyz, normal and st
-		xyz = tess.xyz[ tess.numVertexes ];
-		memcpy( xyz, srf->xyz, numVerts * sizeof( srf->xyz[ 0 ] ) );
-#ifdef USE_TESS_NEEDS_NORMAL
-		if ( tess.needsNormal )
+		if ( tess.numVertexes + srf->numVerts > SHADER_MAX_VERTEXES || tess.numIndexes + srf->numIndexes > SHADER_MAX_INDEXES ) {
+			if ( tr.mapLoading ) {
+				// estimate and flush
+				if ( srf->vboItemIndex ) {
+					VBO_PushData( srf->vboItemIndex, &tess );
+					tess.numIndexes = 0;
+					tess.numVertexes = 0;
+				}
+				else {
+					ri.Error( ERR_DROP, "Unexpected foliage flush during map loading!\n" );
+				}
+			}
+			else {
+				RB_EndSurface();
+				RB_BeginSurface( tess.shader, tess.fogNum );
+#ifdef USE_LEGACY_DLIGHTS
+				tess.dlightBits |= dlightBits;  // ydnar: for proper dlighting
 #endif
-		{
-			memcpy( &tess.normal[ tess.numVertexes ], srf->normal, numVerts * sizeof( srf->xyz[ 0 ] ) );
-		}
-
-		for (i = 0; i < numVerts; i++) {
-			tess.texCoords[0][tess.numVertexes+i][0] = srf->texCoords[i][0];
-			tess.texCoords[0][tess.numVertexes+i][1] = srf->texCoords[i][1];
-
-#ifdef USE_TESS_NEEDS_ST2
-			if ( tess.needsST2 )
-#endif
-			{
-				tess.texCoords[1][tess.numVertexes+i][0] = srf->lmTexCoords[i][0];
-				tess.texCoords[1][tess.numVertexes+i][1] = srf->lmTexCoords[i][1];
 			}
 		}
 
-		// offset xyz
-		for ( i = 0; i < numVerts; i++, xyz += 4 )
-			VectorAdd( xyz, instance->origin, xyz );
+		
+		tess.surfType = SF_FOLIAGE;
 
-		// copy color
-		color = (int*) tess.vertexColors[ tess.numVertexes ];
-		for ( i = 0; i < numVerts; i++ )
-			color[ i ] = srcColor;
+		for (i = 0; i < srf->numIndexes; i++) {
+			tess.indexes[ tess.numIndexes + i ] = srf->indexes[ i ] + tess.numVertexes;
+		}
+
+		xyz = tess.xyz[tess.numVertexes];
+		normal = tess.normal[tess.numVertexes];
+		texCoords0 = tess.texCoords[0][tess.numVertexes];
+		texCoords1 = tess.texCoords[1][tess.numVertexes];
+		color = tess.vertexColors[tess.numVertexes];
+
+		for (i = 0; i < srf->numVerts; i++, xyz += 4, normal += 4, texCoords0 += 2, color += 4) {
+			VectorAdd( srf->xyz[i], instance->origin, xyz );
+
+#ifdef USE_TESS_NEEDS_NORMAL
+			if (tess.needsNormal)
+#endif
+			{
+				normal[0] = srf->normal[i][0];
+				normal[1] = srf->normal[i][1];
+				normal[2] = srf->normal[i][2];
+			}
+
+			texCoords0[0] = srf->texCoords[i][0];
+			texCoords0[1] = srf->texCoords[i][1];
+
+#ifdef USE_TESS_NEEDS_ST2
+			if (tess.needsST2)
+#endif
+			{
+				texCoords1[0] = srf->lmTexCoords[i][0];
+				texCoords1[1] = srf->lmTexCoords[i][1];
+				texCoords1 += 2;
+			}
+
+			*(int *)color = *(int *)instance->color;
+
+		}
 
 		// increment
-		tess.numIndexes += numIndexes;
-		tess.numVertexes += numVerts;
+		tess.numIndexes += srf->numIndexes;
+		tess.numVertexes += srf->numVerts;
 	}
-
-	// RB_DrawBounds( srf->bounds[ 0 ], srf->bounds[ 1 ] );
 }
 
 

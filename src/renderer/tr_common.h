@@ -51,6 +51,7 @@ typedef enum {
 
 typedef struct image_s {
 	char		*imgName;			// image path, including extension
+	char		*imgName2;			// image path with real file extension
 	struct image_s *next;			// for hash search
 	int			width, height;		// source image
 	int			uploadWidth;		// after power of two and picmip but not including clamp to MAX_TEXTURE_SIZE
@@ -125,7 +126,7 @@ void *R_GetImageBuffer( int size, bufferMemType_t bufferType );
 void R_FreeImageBuffer( void );*/
 
 image_t *R_FindImageFile( const char *name, imgFlags_t flags );
-image_t *R_CreateImage( const char *name, byte *pic, int width, int height, imgFlags_t flags );
+image_t *R_CreateImage( const char *name, const char *name2, byte *pic, int width, int height, imgFlags_t flags );
 void R_UploadSubImage( byte *data, int x, int y, int width, int height, image_t *image );
 
 void R_IssuePendingRenderCommands( void );

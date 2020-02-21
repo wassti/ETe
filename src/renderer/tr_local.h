@@ -35,7 +35,7 @@ If you have questions concerning this license or the applicable additional terms
 #define MAX_LITSURFS		(MAX_DRAWSURFS)
 
 #define USE_TESS_NEEDS_NORMAL
-#define USE_TESS_NEEDS_ST2
+//#define USE_TESS_NEEDS_ST2
 
 #include "../qcommon/q_shared.h"
 #include "../qcommon/qfiles.h"
@@ -323,11 +323,13 @@ typedef struct {
 	qboolean isFogged;              // used only for shaders that have fog disabled, so we can enable it for individual stages
 	qboolean		depthFragment;
 
-	short			vboVPindex;			// combined fog programs
-	short			vboFPindex;			// combined fog programs
-
+	short			vboVPindex[3];		// normal, eye-in, eye-out
+	short			vboFPindex[2];		// normal, fog-blend
+	
 	uint32_t		color_offset;		// within current shader
 	uint32_t		tex_offset[2];		// within current shader
+
+	qboolean		needViewPos;
 
 } shaderStage_t;
 

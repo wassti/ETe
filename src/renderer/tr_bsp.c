@@ -323,7 +323,7 @@ static void R_LoadMergedLightmaps( const lump_t *l )
  			}
  		}
 
-		tr.lightmaps[i] = R_CreateImage( va( "*lightmap%d", i ), image,
+		tr.lightmaps[i] = R_CreateImage( va( "*lightmap%d", i ), NULL, image,
 			LIGHTMAP_SIZE * lightmapWidth, 
 			LIGHTMAP_SIZE * lightmapHeight, 
 			lightmapFlags );
@@ -396,7 +396,7 @@ static void R_LoadLightmaps( const lump_t *l ) {
 			maxIntensity = intensity;
 		}
 
-		tr.lightmaps[i] = R_CreateImage( va( "*lightmap%d",i ), image,
+		tr.lightmaps[i] = R_CreateImage( va( "*lightmap%d",i ), NULL, image,
 										 LIGHTMAP_SIZE, LIGHTMAP_SIZE, lightmapFlags );
 	}
 

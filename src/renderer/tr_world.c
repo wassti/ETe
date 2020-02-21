@@ -817,7 +817,6 @@ void R_AddBrushModelSurfaces( trRefEntity_t *ent ) {
 	int savedNumDecalProjectors, numLocalProjectors;
 	decalProjector_t    *savedDecalProjectors, localProjectors[ MAX_DECAL_PROJECTORS ];
 
-
 	pModel = R_GetModelByHandle( ent->e.hModel );
 
 	bmodel = pModel->model.bmodel;

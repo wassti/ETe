@@ -2258,7 +2258,6 @@ extern int max_polyverts;
 
 extern	backEndData_t	*backEndData;
 
-void *R_GetCommandBuffer(int bytes);
 void RB_ExecuteRenderCommands( const void *data );
 void RB_TakeScreenshot( int x, int y, int width, int height, const char *fileName );
 void RB_TakeScreenshotJPEG( int x, int y, int width, int height, const char *fileName );

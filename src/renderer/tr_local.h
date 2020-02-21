@@ -2221,11 +2221,11 @@ typedef enum {
 // Ridah, these aren't enough for cool effects
 //#define	MAX_POLYS		256
 //#define	MAX_POLYVERTS	1024
-#define MAX_POLYS       4096
-#define MAX_POLYVERTS   8192
+#define	MAX_POLYS		8192
+#define	MAX_POLYVERTS	32768
 // done.
 // Gordon: testing
-#define MAX_POLYINDICIES 8192
+//#define MAX_POLYINDICIES 8192
 
 // ydnar: max decal projectors per frame, each can generate lots of polys
 #define MAX_DECAL_PROJECTORS      128     ///< includes decal projectors that will be culled out, hard limited to 32 active projectors because of bitmasks.

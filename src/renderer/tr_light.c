@@ -68,6 +68,7 @@ void R_TransformDlights( int count, dlight_t *dl, orientationr_t *or) {
 /*
 R_CullDlights()
 frustum culls dynamic lights
+only used by skybox portal rendering
 */
 
 void R_CullDlights( void ) {
@@ -85,7 +86,7 @@ void R_CullDlights( void ) {
 	dlightBits = 0;
 	for ( i = 0, dl = tr.refdef.dlights; i < tr.refdef.num_dlights; i++, dl++ )
 	{
-		if ( ( dl->flags & REF_DIRECTED_DLIGHT ) || R_CullPointAndRadius( dl->origin, dl->radius ) != CULL_OUT ) {
+		if ( R_CullDlight( dl ) != CULL_OUT ) {
 			numDlights = i + 1;
 			dlightBits |= ( 1 << i );
 		}

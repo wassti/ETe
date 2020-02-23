@@ -41,6 +41,22 @@ static const float s_flipMatrix[16] = {
 };
 
 
+const float *GL_Ortho( const float left, const float right, const float bottom, const float top, const float znear, const float zfar )
+{
+	static float m[ 16 ] = { 0 };
+
+	m[0] = 2.0f / (right - left);
+	m[5] = 2.0f / (top - bottom);
+	m[10] = - 2.0f / (zfar - znear);
+	m[12] = - (right + left)/(right - left);
+	m[13] = - (top + bottom) / (top - bottom);
+	m[14] = - (zfar + znear) / (zfar - znear);
+	m[15] = 1.0f;
+
+	return m;
+}
+
+
 /*
 ** GL_Bind
 */
@@ -915,6 +931,8 @@ static void RB_RenderLitSurfList( dlight_t* dl ) {
 	oldSort = MAX_UINT;
 	depthRange = qfalse;
 
+	tess.dlightUpdateParams = qtrue;
+
 	for ( litSurf = dl->head; litSurf; litSurf = litSurf->next ) {
 		//if ( litSurf->sort == sort ) {
 		if ( litSurf->sort == oldSort ) {
@@ -1071,7 +1089,6 @@ RENDER BACK END FUNCTIONS
 /*
 ================
 RB_SetGL2D
-
 ================
 */
 void RB_SetGL2D( void ) {
@@ -1081,8 +1098,7 @@ void RB_SetGL2D( void ) {
 	qglViewport( 0, 0, glConfig.vidWidth, glConfig.vidHeight );
 	qglScissor( 0, 0, glConfig.vidWidth, glConfig.vidHeight );
 	qglMatrixMode( GL_PROJECTION );
-	qglLoadIdentity();
-	qglOrtho( 0, glConfig.vidWidth, glConfig.vidHeight, 0, 0, 1 );
+	qglLoadMatrixf( GL_Ortho( 0, glConfig.vidWidth, glConfig.vidHeight, 0, 0, 1 ) );
 	qglMatrixMode( GL_MODELVIEW );
 	qglLoadIdentity();
 

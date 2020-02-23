@@ -276,14 +276,14 @@ qboolean R_LightCullBounds( const dlight_t* dl, const vec3_t mins, const vec3_t 
 
 static qboolean R_LightCullFace( const srfSurfaceFace_t* face, const dlight_t* dl )
 {
-	float d = DotProduct( dl->origin, face->plane.normal ) - face->plane.dist;
+	float d = DotProduct( dl->transformed, face->plane.normal ) - face->plane.dist;
 
 	if ( dl->flags & REF_DIRECTED_DLIGHT )
 		return qfalse;
 
 	if ( dl->linear )
 	{
-		float d2 = DotProduct( dl->origin2, face->plane.normal ) - face->plane.dist;
+		float d2 = DotProduct( dl->transformed2, face->plane.normal ) - face->plane.dist;
 		if ( (d < -dl->radius) && (d2 < -dl->radius) )
 			return qtrue;
 		if ( (d > dl->radius) && (d2 > dl->radius) ) 
@@ -337,7 +337,7 @@ static int R_DlightFace( srfSurfaceFace_t *face, int dlightBits ) {
 			continue;
 		}
 		dl = &tr.refdef.dlights[i];
-		d = DotProduct( dl->origin, face->plane.normal ) - face->plane.dist;
+		d = DotProduct( dl->transformed, face->plane.normal ) - face->plane.dist;
 		if ( d < -dl->radius || d > dl->radius ) {
 			// dlight doesn't reach the plane
 			dlightBits &= ~( 1 << i );
@@ -884,9 +884,9 @@ void R_AddBrushModelSurfaces( trRefEntity_t *ent ) {
 			surf->fogIndex = fognum;
 			// Arnout: custom shader support for brushmodels
 			if ( ent->e.customShader ) {
-				R_AddWorldSurface( surf, R_GetShaderByHandle( ent->e.customShader ), qfalse, decalBits );
+				R_AddWorldSurface( surf, R_GetShaderByHandle( ent->e.customShader ), 0, decalBits );
 			} else {
-				R_AddWorldSurface( surf, surf->shader, qfalse, decalBits );
+				R_AddWorldSurface( surf, surf->shader, 0, decalBits );
 			}
 		}
 

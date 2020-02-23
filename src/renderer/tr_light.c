@@ -117,7 +117,7 @@ void R_DlightBmodel( bmodel_t *bmodel ) {
 	R_TransformDlights( tr.refdef.num_dlights, tr.refdef.dlights, &tr.orientation );
 
 	mask = 0;
-	for ( i = 0 ; i < tr.refdef.num_dlights ; i++ ) {
+	for ( i = 0; i < tr.refdef.num_dlights; i++ ) {
 		dl = &tr.refdef.dlights[i];
 
 		// ydnar: parallel dlights affect all entities
@@ -129,14 +129,6 @@ void R_DlightBmodel( bmodel_t *bmodel ) {
 				}
 				if ( bmodel->bounds[0][j] - dl->transformed[j] > dl->radius ) {
 					break;
-				}
-				if ( dl->linear ) {
-					if ( dl->transformed2[j] - bmodel->bounds[1][j] > dl->radius ) {
-						break;
-					}
-					if ( bmodel->bounds[0][j] - dl->transformed2[j] > dl->radius ) {
-						break;
-					}
 				}
 			}
 			if ( j < 3 ) {
@@ -155,8 +147,7 @@ void R_DlightBmodel( bmodel_t *bmodel ) {
 	// (SA) isn't this dangerous to do to an enumerated type? (setting it to an int)
 	//		meaning, shouldn't ->needDlights be changed to an int rather than a qbool?
 
-	tr.currentEntity->needDlights = mask;
-
+	tr.currentEntity->needDlights = (mask != 0) ? 1 : 0;
 
 	// set the dlight bits in all the surfaces
 	for ( i = 0 ; i < bmodel->numSurfaces ; i++ ) {

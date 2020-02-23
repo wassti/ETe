@@ -3880,6 +3880,8 @@ static void CL_InitRef( void ) {
 	cl_renderer->modified = qfalse;
 #endif
 
+	Com_Memset( &rimp, 0, sizeof( rimp ) );
+
 	rimp.Cmd_AddCommand = Cmd_AddCommand;
 	rimp.Cmd_RemoveCommand = Cmd_RemoveCommand;
 	rimp.Cmd_Argc = Cmd_Argc;
@@ -3955,10 +3957,12 @@ static void CL_InitRef( void ) {
 	rimp.GLimp_NormalFontBase = GLimp_NormalFontBase;
 
 	// Vulkan API
+#ifdef USE_VULKAN_API
 	rimp.VKimp_Init = VKimp_Init;
 	rimp.VKimp_Shutdown = VKimp_Shutdown;
 	rimp.VK_GetInstanceProcAddr = VK_GetInstanceProcAddr;
 	rimp.VK_CreateSurface = VK_CreateSurface;
+#endif
 
 	ret = GetRefAPI( REF_API_VERSION, &rimp );
 

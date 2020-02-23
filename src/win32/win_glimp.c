@@ -79,11 +79,13 @@ static qboolean s_classRegistered = qfalse;
 //
 // function declaration
 //
-qboolean QGL_Init( const char *dllname );
-void     QGL_Shutdown( qboolean unloadDLL );
+qboolean	QGL_Init( const char *dllname );
+void		QGL_Shutdown( qboolean unloadDLL );
 
-qboolean QVK_Init( void );
-void     QVK_Shutdown( qboolean unloadDLL );
+#ifdef USE_VULKAN_API
+qboolean	QVK_Init( void );
+void		QVK_Shutdown( qboolean unloadDLL );
+#endif
 
 //
 // variable declarations
@@ -577,6 +579,7 @@ static qboolean GLW_InitOpenGLDriver( int colorbits )
 /*
 ** GLW_InitVulkanDriver
 */
+#ifdef USE_VULKAN_API
 static qboolean GLW_InitVulkanDriver( int colorbits )
 {
 	int depthbits;
@@ -605,6 +608,7 @@ static qboolean GLW_InitVulkanDriver( int colorbits )
 
 	return qtrue;
 }
+#endif
 
 
 /*
@@ -752,9 +756,11 @@ static qboolean GLW_CreateWindow( int width, int height, int colorbits, qboolean
 	if ( colorbits == 0 )
 		colorbits = dm_desktop.dmBitsPerPel;
 
+#ifdef USE_VULKAN_API
 	if ( vulkan )
 		res = GLW_InitVulkanDriver( colorbits );
 	else
+#endif
 		res = GLW_InitOpenGLDriver( colorbits );
 
 	if ( !res )
@@ -1333,25 +1339,6 @@ fail:
 }
 
 
-static qboolean GLW_LoadVulkan( void )
-{
-	//
-	// load the driver and bind our function pointers to it
-	// 
-	if ( QVK_Init() )
-	{
-		qboolean cdsFullscreen = (r_fullscreen->integer != 0);
-		// create the window and set up the context
-		if ( GLW_StartDriverAndSetMode( r_mode->integer, r_modeFullscreen->string, r_colorbits->integer, cdsFullscreen, qtrue ) )
-			return qtrue;
-	}
-
-	QVK_Shutdown( qtrue );
-
-	return qfalse;
-}
-
-
 static void GLimp_SwapBuffers( void ) 
 {
 	if ( !SwapBuffers( glw_state.hDC ) )
@@ -1409,21 +1396,7 @@ static qboolean GLW_StartOpenGL( void )
 			}
 		}
 
-		Com_Error( ERR_VID_FATAL, "GLW_StartOpenGL() - could not load OpenGL subsystem\n" );
-		return qfalse;
-	}
-
-	return qtrue;
-}
-
-
-static qboolean GLW_StartVulkan( void )
-{
-	//
-	// load and initialize Vulkan driver
-	//
-	if ( !GLW_LoadVulkan() ) {
-		Com_Error( ERR_FATAL, "GLW_StartVulkan() - could not load Vulkan subsystem\n" );
+		Com_Error( ERR_VID_FATAL, "GLW_StartOpenGL() - could not load OpenGL subsystem" );
 		return qfalse;
 	}
 
@@ -1496,37 +1469,6 @@ void GLimp_Init( glconfig_t *config )
 
 	// initialise default lists
 	GLW_GenDefaultLists();
-
-	// show main window after all initializations
-	ShowWindow( g_wv.hWnd, SW_SHOW );
-}
-
-
-/*
-** VKimp_Init
-**
-** This is the platform specific Vulkan initialization function.  It
-** is responsible for loading Vulkan, initializing it, setting
-** extensions, creating a window of the appropriate size, doing
-** fullscreen manipulations, etc.  Its overall responsibility is
-** to make sure that a functional Vulkan subsystem is operating
-** when it returns to the ref.
-*/
-void VKimp_Init( glconfig_t *config )
-{
-	Com_Printf( "Initializing Vulkan subsystem\n" );
-
-	// feedback to renderer configuration
-	glw_state.config = config;
-
-	// load appropriate DLL and initialize subsystem
-	if ( !GLW_StartVulkan() )
-		return;
-
-	GLimp_DetectSteamOverlay();
-
-	config->driverType = GLDRV_ICD;
-	config->hardwareType = GLHW_GENERIC;
 
 	// show main window after all initializations
 	ShowWindow( g_wv.hWnd, SW_SHOW );
@@ -1611,6 +1553,71 @@ void GLimp_Shutdown( qboolean unloadDLL )
 }
 
 
+#ifdef USE_VULKAN_API
+static qboolean GLW_LoadVulkan( void )
+{
+	//
+	// load the driver and bind our function pointers to it
+	// 
+	if ( QVK_Init() )
+	{
+		qboolean cdsFullscreen = (r_fullscreen->integer != 0);
+		// create the window and set up the context
+		if ( GLW_StartDriverAndSetMode( r_mode->integer, r_modeFullscreen->string, r_colorbits->integer, cdsFullscreen, qtrue ) )
+			return qtrue;
+	}
+
+	QVK_Shutdown( qtrue );
+
+	return qfalse;
+}
+
+
+static qboolean GLW_StartVulkan( void )
+{
+	//
+	// load and initialize Vulkan driver
+	//
+	if ( !GLW_LoadVulkan() ) {
+		Com_Error( ERR_VID_FATAL, "GLW_StartVulkan() - could not load Vulkan subsystem" );
+		return qfalse;
+	}
+
+	return qtrue;
+}
+
+
+/*
+** VKimp_Init
+**
+** This is the platform specific Vulkan initialization function.  It
+** is responsible for loading Vulkan, initializing it, setting
+** extensions, creating a window of the appropriate size, doing
+** fullscreen manipulations, etc.  Its overall responsibility is
+** to make sure that a functional Vulkan subsystem is operating
+** when it returns to the ref.
+*/
+void VKimp_Init( glconfig_t *config )
+{
+	Com_Printf( "Initializing Vulkan subsystem\n" );
+
+	// feedback to renderer configuration
+	glw_state.config = config;
+
+	// load appropriate DLL and initialize subsystem
+	if ( !GLW_StartVulkan() )
+		return;
+
+	GLimp_DetectSteamOverlay();
+
+	config->driverType = GLDRV_ICD;
+	config->hardwareType = GLHW_GENERIC;
+
+	// show main window after all initializations
+	ShowWindow( g_wv.hWnd, SW_SHOW );
+}
+
+
 /*
 ** VKimp_Shutdown
 **
@@ -1649,3 +1656,4 @@ void VKimp_Shutdown( qboolean unloadDLL )
 	// shutdown QGL subsystem
 	QVK_Shutdown( unloadDLL );
 }
+#endif // USE_VULKAN_API

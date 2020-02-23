@@ -793,7 +793,9 @@ void	*GL_GetProcAddress( const char *name );
 int		GLimp_NormalFontBase( void );
 
 // Vulkan
+#ifdef USE_VULKAN_API
 void	VKimp_Init( glconfig_t *config );
 void	VKimp_Shutdown( qboolean unloadDLL );
 void	*VK_GetInstanceProcAddr( VkInstance instance, const char *name );
 qboolean VK_CreateSurface( VkInstance instance, VkSurfaceKHR* pSurface );
+#endif

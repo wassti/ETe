@@ -206,6 +206,7 @@ typedef char GLchar;
 	GLE( void, glDepthRange, GLclampd zNear, GLclampd zFar ) \
 	GLE( void, glDisable, GLenum cap ) \
 	GLE( void, glDisableClientState, GLenum array ) \
+	GLE( void, glDrawArrays, GLenum mode, GLint first, GLsizei count ) \
 	GLE( void, glDrawBuffer, GLenum mode ) \
 	GLE( void, glDrawElements, GLenum mode, GLsizei count, GLenum type, const GLvoid *indices ) \
 	GLE( void, glEnable, GLenum cap ) \
@@ -229,7 +230,6 @@ typedef char GLchar;
 	GLE( void, glLoadMatrixf, const GLfloat *m ) \
 	GLE( void, glMatrixMode, GLenum mode ) \
 	GLE( void, glNormalPointer, GLenum type, GLsizei stride, const GLvoid *pointer ) \
-	GLE( void, glOrtho, GLdouble left, GLdouble right, GLdouble bottom, GLdouble top, GLdouble zNear, GLdouble zFar ) \
 	GLE( void, glPointSize, GLfloat size ) \
 	GLE( void, glPolygonMode, GLenum face, GLenum mode ) \
 	GLE( void, glPolygonOffset, GLfloat factor, GLfloat units ) \

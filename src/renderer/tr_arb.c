@@ -269,6 +269,8 @@ void ARB_SetupLightParams( void )
 
 	if ( dl->linear ) {
 		fragmentProgram = (tess.shader->cullType == CT_TWO_SIDED) ? DLIGHT_LINEAR_ABS_FRAGMENT : DLIGHT_LINEAR_FRAGMENT;
+	} else if ( dl->flags & REF_DIRECTED_DLIGHT ) {
+		fragmentProgram = (tess.shader->cullType == CT_TWO_SIDED) ? DLIGHT_DIRECTIONAL_ABS_FRAGMENT : DLIGHT_DIRECTIONAL_FRAGMENT;
 	} else {
 		fragmentProgram = (tess.shader->cullType == CT_TWO_SIDED) ? DLIGHT_ABS_FRAGMENT : DLIGHT_FRAGMENT;
 	}
@@ -467,6 +469,7 @@ static const char *ARB_BuildDlightFP( char *program, int programIndex )
 {
 	qboolean fog = qfalse;
 	qboolean linear = qfalse;
+	qboolean directional = qfalse;
 	qboolean abslight = qfalse;
 
 	program[0] = '\0';
@@ -476,6 +479,8 @@ static const char *ARB_BuildDlightFP( char *program, int programIndex )
 		case DLIGHT_ABS_FRAGMENT_FOG:
 		case DLIGHT_LINEAR_FRAGMENT_FOG:
 		case DLIGHT_LINEAR_ABS_FRAGMENT_FOG:
+		case DLIGHT_DIRECTIONAL_FRAGMENT_FOG:
+		case DLIGHT_DIRECTIONAL_ABS_FRAGMENT_FOG:
 			fog = qtrue;
 			break;
 	}
@@ -490,10 +495,21 @@ static const char *ARB_BuildDlightFP( char *program, int programIndex )
 	}
 
 	switch ( programIndex ) {
+		case DLIGHT_DIRECTIONAL_FRAGMENT:
+		case DLIGHT_DIRECTIONAL_FRAGMENT_FOG:
+		case DLIGHT_DIRECTIONAL_ABS_FRAGMENT:
+		case DLIGHT_DIRECTIONAL_ABS_FRAGMENT_FOG:
+			directional = qtrue;
+			break;
+	}
+
+	switch ( programIndex ) {
 		case DLIGHT_ABS_FRAGMENT:
 		case DLIGHT_ABS_FRAGMENT_FOG:
 		case DLIGHT_LINEAR_ABS_FRAGMENT:
 		case DLIGHT_LINEAR_ABS_FRAGMENT_FOG:
+		case DLIGHT_DIRECTIONAL_ABS_FRAGMENT:
+		case DLIGHT_DIRECTIONAL_ABS_FRAGMENT_FOG:
 			abslight = qtrue;
 			break;
 	}
@@ -1033,7 +1049,7 @@ qboolean ARB_UpdatePrograms( void )
 	if ( !ARB_CompileProgram( Vertex, va( dlightVP, fogLevelVPCode ), programs[ DLIGHT_VERTEX_FOG_LEVEL ] ) )
 		return qfalse;
 
-	for ( i = DLIGHT_FRAGMENT; i <= DLIGHT_LINEAR_ABS_FRAGMENT_FOG; i++ ) {
+	for ( i = DLIGHT_FRAGMENT; i <= DLIGHT_DIRECTIONAL_ABS_FRAGMENT_FOG; i++ ) {
 		program = ARB_BuildDlightFP( buf, i );
 		if ( !ARB_CompileProgram( Fragment, program, programs[ i ] ) ) {
 			return qfalse;

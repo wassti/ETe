@@ -70,7 +70,7 @@ R_CullDlights()
 frustum culls dynamic lights
 only used by skybox portal rendering
 */
-
+#if 0
 void R_CullDlights( void ) {
 	int i, numDlights, dlightBits;
 	dlight_t    *dl;
@@ -80,6 +80,8 @@ void R_CullDlights( void ) {
 	if ( tr.refdef.num_dlights > MAX_DLIGHTS ) {
 		tr.refdef.num_dlights = MAX_DLIGHTS;
 	}
+
+	R_TransformDlights( tr.refdef.num_dlights, tr.refdef.dlights, &tr.orientation );
 
 	/* walk dlight list */
 	numDlights = 0;
@@ -98,6 +100,7 @@ void R_CullDlights( void ) {
 	/* set bits */
 	tr.refdef.dlightBits = dlightBits;
 }
+#endif
 
 
 #ifdef USE_LEGACY_DLIGHTS

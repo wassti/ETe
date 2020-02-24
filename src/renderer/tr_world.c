@@ -1332,7 +1332,7 @@ void R_AddWorldSurfaces( void ) {
 		mnode_t **node;
 
 		for ( i = 0, node = tr.world->skyNodes; i < tr.world->numSkyNodes; i++, node++ )
-			R_AddLeafSurfaces( *node, tr.refdef.dlightBits, 0 );    // no decals on skybox nodes
+			R_AddLeafSurfaces( *node, ( 1ULL << tr.refdef.num_dlights ) - 1/*tr.refdef.dlightBits*/, 0 );    // no decals on skybox nodes
 	} else
 	{
 		// determine which leaves are in the PVS / areamask

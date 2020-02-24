@@ -2038,12 +2038,12 @@ void R_GenerateDrawSurfs( void ) {
 	R_SetupProjection(&tr.viewParms, r_zproj->value, qtrue);
 
 	R_CullDecalProjectors();
-#ifdef USE_LEGACY_DLIGHTS
+/*#ifdef USE_LEGACY_DLIGHTS
 #ifdef USE_PMLIGHT
 	if ( !r_dlightMode->integer )
 #endif // USE_PMLIGHT
 		R_CullDlights();
-#endif // USE_LEGACY_DLIGHTS
+#endif // USE_LEGACY_DLIGHTS*/
 
 	R_AddWorldSurfaces();
 

@@ -166,10 +166,10 @@ static void DrawTris( shaderCommands_t *input ) {
 
 #ifdef USE_PMLIGHT
 	if ( tess.dlightPass )
-		qglColor3f( 1.0f, 0.33f, 0.2f );
+		qglColor4f( 1.0f, 0.33f, 0.2f, 1.0f );
 	else
 #endif
-	qglColor4fv( trisColor );
+	qglColor4f( trisColor[0], trisColor[1], trisColor[2], trisColor[3] );
 	
 	stateBits |= ( GLS_POLYMODE_LINE | GLS_DEPTHMASK_TRUE );
 	GL_State( stateBits );
@@ -239,7 +239,7 @@ static void DrawNormals( const shaderCommands_t *input ) {
 
 	qglDepthRange( 0, 0 );	// never occluded
 
-	GL_State( GLS_POLYMODE_LINE | GLS_DEPTHMASK_TRUE );
+	GL_State( GLS_DEPTHMASK_TRUE );
 
 	// ydnar: light direction
 	if ( r_shownormals->integer == 2 ) {
@@ -261,16 +261,16 @@ static void DrawNormals( const shaderCommands_t *input ) {
         tess.indexes[1] = 1;
 
         qglPointSize( 5 );
-        qglColor3f( ent->ambientLight[ 0 ] / 255.0, ent->ambientLight[ 1 ] / 255.0, ent->ambientLight[ 2 ] / 255.0 );
+        qglColor4f( ent->ambientLight[ 0 ] / 255.0, ent->ambientLight[ 1 ] / 255.0, ent->ambientLight[ 2 ] / 255.0, 1 );
         qglVertexPointer( 3, GL_FLOAT, sizeof( tess.xyz[0] ), tess.xyz );
         tess.numIndexes = 1;
         qglDrawElements( GL_POINTS, tess.numIndexes, GL_INDEX_TYPE, tess.indexes );
         qglPointSize( 1 );
         
         if ( fabs( VectorLengthSquared( ent->lightDir ) - 1.0f ) > 0.2f ) {
-            qglColor3f( 1, 0, 0 );
+            qglColor4f( 1, 0, 0, 1 );
         } else {
-            qglColor3f( ent->directedLight[ 0 ] / 255.0, ent->directedLight[ 1 ] / 255.0, ent->directedLight[ 2 ] / 255.0 );
+            qglColor4f( ent->directedLight[ 0 ] / 255.0, ent->directedLight[ 1 ] / 255.0, ent->directedLight[ 2 ] / 255.0, 1 );
         }
 
         qglLineWidth( 3 );
@@ -286,7 +286,7 @@ static void DrawNormals( const shaderCommands_t *input ) {
 			VectorCopy( tess.xyz[i], tess.xyz[i*2] );
 		}
 
-		qglColor3f( 1, 1, 1 );
+		qglColor4f( 1, 1, 1, 1 );
 
 		qglVertexPointer( 3, GL_FLOAT, sizeof( tess.xyz[0] ), tess.xyz );
 

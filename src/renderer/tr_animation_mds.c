@@ -1373,9 +1373,7 @@ void RB_SurfaceAnim( mdsSurface_t *surface ) {
 				qglLineWidth( 1 );
 				qglBegin( GL_LINES );
 				for ( j = 0; j < 3; j++ ) {
-					VectorClear( vec );
-					vec[j] = 1;
-					qglColor3fv( vec );
+					qglColor4f( 1, 1, 1, 1 );
 					qglVertex3fv( bonePtr->translation );
 					VectorMA( bonePtr->translation, 5, bonePtr->matrix[j], vec );
 					qglVertex3fv( vec );
@@ -1386,7 +1384,7 @@ void RB_SurfaceAnim( mdsSurface_t *surface ) {
 				if ( validBones[boneInfo[*boneRefs].parent] ) {
 					qglLineWidth( 2 );
 					qglBegin( GL_LINES );
-					qglColor3f( .6f,.6f,.6f );
+					qglColor4f( .6f, .6f, .6f, 1.f );
 					qglVertex3fv( bonePtr->translation );
 					qglVertex3fv( bones[boneInfo[*boneRefs].parent].translation );
 					qglEnd();
@@ -1406,7 +1404,7 @@ void RB_SurfaceAnim( mdsSurface_t *surface ) {
 			GL_Bind( tr.whiteImage );
 			qglLineWidth( 1 );
 			qglBegin( GL_LINES );
-			qglColor3f( 0.0f, 0.0f, 0.8f );
+			qglColor4f( 0.0f, 0.0f, 0.8f, 1.f );
 
 			pIndexes = &tess.indexes[oldIndexes];
 			for ( j = 0; j < render_indexes / 3; j++, pIndexes += 3 ) {

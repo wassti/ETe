@@ -1315,6 +1315,7 @@ static void RB_LightingPass( void )
 }
 #endif
 
+
 static const void* RB_Draw2dPolys( const void* data ) {
 	const poly2dCommand_t* cmd;
 	shader_t *shader;
@@ -1366,6 +1367,7 @@ static const void* RB_Draw2dPolys( const void* data ) {
 
 	return (const void *)( cmd + 1 );
 }
+
 
 // NERVE - SMF
 /*
@@ -1541,36 +1543,67 @@ static const void *RB_StretchPicGradient( const void *data ) {
 }
 
 
+static void transform_to_eye_space( const vec3_t v, vec3_t v_eye )
+{
+	const float *m = backEnd.viewParms.world.modelMatrix;
+	v_eye[0] = m[0]*v[0] + m[4]*v[1] + m[8 ]*v[2] + m[12];
+	v_eye[1] = m[1]*v[0] + m[5]*v[1] + m[9 ]*v[2] + m[13];
+	v_eye[2] = m[2]*v[0] + m[6]*v[1] + m[10]*v[2] + m[14];
+};
+
+
 /*
 ================
 RB_DebugPolygon
 ================
 */
 /*static */void RB_DebugPolygon( int color, int numPoints, float *points ) {
+	vec3_t pa;
+	vec3_t pb;
+	vec3_t p;
+	vec3_t q;
+	vec3_t n;
+	int i;
 
-	int		i;
+	if ( numPoints < 3 ) {
+		return;
+	}
 
-	GL_State( GLS_DEPTHMASK_TRUE | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE );
+	transform_to_eye_space( &points[0], pa );
+	transform_to_eye_space( &points[3], pb );
+	VectorSubtract( pb, pa, p );
+
+	for ( i = 2; i < numPoints; i++ ) {
+		transform_to_eye_space( &points[3*i], pb );
+		VectorSubtract( pb, pa, q );
+		CrossProduct( q, p, n );
+		if ( VectorLength( n ) > 1e-5 ) {
+			break;
+		}
+	}
+
+	if ( DotProduct( n, pa ) >= 0 ) {
+		return; // discard backfacing polygon
+	}
+
+	GL_SelectTexture( 0 );
+	qglDisable( GL_TEXTURE_2D );
+
+	GL_ClientState( 0, CLS_NONE );
+	qglVertexPointer( 3, GL_FLOAT, 0, points );
 
 	// draw solid shade
-
-	qglColor3f( color&1, (color>>1)&1, (color>>2)&1 );
-	qglBegin( GL_POLYGON );
-	for ( i = 0 ; i < numPoints ; i++ ) {
-		qglVertex3fv( points + i * 3 );
-	}
-	qglEnd();
+	GL_State( GLS_DEPTHMASK_TRUE | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE );
+	qglColor4f( color&1, (color>>1)&1, (color>>2)&1, 1 );
+	qglDrawArrays( GL_TRIANGLE_FAN, 0, numPoints );
 
 	// draw wireframe outline
-	GL_State( GLS_POLYMODE_LINE | GLS_DEPTHMASK_TRUE | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE );
 	qglDepthRange( 0, 0 );
-	qglColor3f( 1, 1, 1 );
-	qglBegin( GL_POLYGON );
-	for ( i = 0 ; i < numPoints ; i++ ) {
-		qglVertex3fv( points + i * 3 );
-	}
-	qglEnd();
+	qglColor4f( 1, 1, 1, 1 );
+	qglDrawArrays( GL_LINE_LOOP, 0, numPoints );
 	qglDepthRange( 0, 1 );
+
+	qglEnable( GL_TEXTURE_2D );
 }
 
 
@@ -1585,7 +1618,7 @@ void RB_DebugText( const vec3_t org, float r, float g, float b, const char *text
 		qglDepthRange( 0, 0 );  // never occluded
 
 	}
-	qglColor3f( r, g, b );
+	qglColor4f( r, g, b, 1 );
 	qglRasterPos3fv( org );
 	qglPushAttrib( GL_LIST_BIT );
 	qglListBase( ri.GLimp_NormalFontBase() );
@@ -1627,7 +1660,7 @@ RB_DrawSurfs
 =============
 */
 static const void *RB_DrawSurfs( const void *data ) {
-	const drawSurfsCommand_t	*cmd;
+	const drawSurfsCommand_t *cmd;
 
 	// finish any 2D drawing if needed
 	RB_EndSurface();
@@ -1723,6 +1756,8 @@ void RB_ShowImages( void ) {
 	image_t	*image;
 	float	x, y, w, h;
 	int		start, end;
+	const vec2_t t[4] = { {0,0}, {1,0}, {0,1}, {1,1} };
+	vec3_t v[4];
 
 	if ( !backEnd.projection2D ) {
 		RB_SetGL2D();
@@ -1731,6 +1766,9 @@ void RB_ShowImages( void ) {
 	qglClear( GL_COLOR_BUFFER_BIT );
 
 	qglFinish();
+
+	GL_ClientState( 0, CLS_TEXCOORD_ARRAY );
+	qglTexCoordPointer( 2, GL_FLOAT, 0, t );
 
 	start = ri.Milliseconds();
 
@@ -1750,16 +1788,14 @@ void RB_ShowImages( void ) {
 		}
 
 		GL_Bind( image );
-		qglBegin (GL_QUADS);
-		qglTexCoord2f( 0, 0 );
-		qglVertex2f( x, y );
-		qglTexCoord2f( 1, 0 );
-		qglVertex2f( x + w, y );
-		qglTexCoord2f( 1, 1 );
-		qglVertex2f( x + w, y + h );
-		qglTexCoord2f( 0, 1 );
-		qglVertex2f( x, y + h );
-		qglEnd();
+
+		VectorSet(v[0],x,y,0);
+		VectorSet(v[1],x+w,y,0);
+		VectorSet(v[2],x,y+h,0);
+		VectorSet(v[3],x+w,y+h,0);
+
+		qglVertexPointer( 3, GL_FLOAT, 0, v );
+		qglDrawArrays( GL_TRIANGLE_STRIP, 0, 4 );
 	}
 
 	qglFinish();
@@ -1794,10 +1830,6 @@ static const void *RB_ClearDepth( const void *data )
 	const clearDepthCommand_t *cmd = data;
 	
 	RB_EndSurface();
-
-	// texture swapping test
-	if ( r_showImages->integer )
-		RB_ShowImages();
 
 	qglClear( GL_DEPTH_BUFFER_BIT );
 	
@@ -1961,16 +1993,16 @@ RB_DrawBounds - ydnar
 =============
 */
 
+#if 0 //unused
 void RB_DrawBounds( vec3_t mins, vec3_t maxs ) {
 	vec3_t center;
-
 
 	GL_Bind( tr.whiteImage );
 	GL_State( GLS_POLYMODE_LINE );
 
 	// box corners
 	qglBegin( GL_LINES );
-	qglColor3f( 1, 1, 1 );
+	qglColor4f( 1, 1, 1, 1 );
 
 	qglVertex3f( mins[ 0 ], mins[ 1 ], mins[ 2 ] );
 	qglVertex3f( maxs[ 0 ], mins[ 1 ], mins[ 2 ] );
@@ -1993,7 +2025,7 @@ void RB_DrawBounds( vec3_t mins, vec3_t maxs ) {
 
 	// center axis
 	qglBegin( GL_LINES );
-	qglColor3f( 1, 0.85, 0 );
+	qglColor4f( 1, 0.85, 0, 1 );
 
 	qglVertex3f( mins[ 0 ], center[ 1 ], center[ 2 ] );
 	qglVertex3f( maxs[ 0 ], center[ 1 ], center[ 2 ] );
@@ -2003,6 +2035,7 @@ void RB_DrawBounds( vec3_t mins, vec3_t maxs ) {
 	qglVertex3f( center[ 0 ], center[ 1 ], maxs[ 2 ] );
 	qglEnd();
 }
+#endif
 
 //bani
 /*

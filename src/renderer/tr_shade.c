@@ -1038,6 +1038,7 @@ void R_ComputeTexCoords( const int b, const textureBundle_t *bundle ) {
 
 		case TMOD_SWAP:
 			RB_CalcSwapTexCoords( (float *)src, (float *) dst );
+			src = dst;
 			break;
 
 		case TMOD_TURBULENT:

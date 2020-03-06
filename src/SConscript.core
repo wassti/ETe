@@ -155,7 +155,9 @@ cl_avi.c
 cl_cgame.c
 cl_cin.c
 cl_console.c
+cl_curl.c
 cl_input.c
+cl_jpeg.c
 cl_keys.c
 cl_main.c
 cl_net_chan.c
@@ -224,10 +226,12 @@ win32_sources = [
 ]
 
 win32_full_sources = [
-'win32/win_input.c',
-'win32/win_glimp.c',
-'win32/win_qgl.c',
+'win32/win_dpi.c'
 'win32/win_gamma.c',
+'win32/win_glimp.c',
+'win32/win_input.c',
+'win32/win_qgl.c',
+'win32/win_qvk.c',
 'win32/win_minimize.c',
 'win32/win_snd.c',
 'win32/win_wndproc.c',

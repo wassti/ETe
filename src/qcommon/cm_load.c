@@ -484,22 +484,24 @@ CMod_LoadEntityString
 void CMod_LoadEntityString( lump_t *l, const char *name ) {
 	fileHandle_t h;
 	char entName[MAX_QPATH];
+	size_t entNameLen = 0;
+	int entFileLen = 0;
 
 	// Attempt to load entities from an external .ent file if available
 	Q_strncpyz(entName, name, sizeof(entName));
-	const size_t entNameLen = strlen(entName);
+	entNameLen = strlen(entName);
 	entName[entNameLen - 3] = 'e';
 	entName[entNameLen - 2] = 'n';
 	entName[entNameLen - 1] = 't';
-	const int iEntityFileLen = FS_FOpenFileRead( entName, &h, qtrue );
-	if (h)
+	entFileLen = FS_FOpenFileRead( entName, &h, qtrue );
+	if (h && entFileLen > 0)
 	{
-		cm.entityString = (char *)Hunk_Alloc( iEntityFileLen + 1, h_high );
-		cm.numEntityChars = iEntityFileLen + 1;
-		FS_Read( cm.entityString, iEntityFileLen, h );
+		cm.entityString = (char *)Hunk_Alloc(entFileLen + 1, h_high );
+		cm.numEntityChars = entFileLen + 1;
+		FS_Read( cm.entityString, entFileLen, h );
 		FS_FCloseFile(h);
-		cm.entityString[iEntityFileLen] = '\0';
-		Com_Printf("Loaded entities from %s\n", entName);
+		cm.entityString[entFileLen] = '\0';
+		Com_Printf( S_COLOR_CYAN "Loaded entities from %s\n", entName );
 		return;
 	}
 

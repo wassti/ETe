@@ -1914,7 +1914,7 @@ static void R_SetParent( mnode_t *node, mnode_t *parent )
 	node->parent = parent;
 
 	// handle leaf nodes
-	if ( node->contents != -1 ) {
+	if ( node->contents != CONTENTS_NODE ) {
 		// add node surfaces to bounds
 		if ( node->nummarksurfaces > 0 ) {
 			int c;
@@ -2109,7 +2109,7 @@ static void R_LoadMarksurfaces( const lump_t *l ) {
 R_LoadPlanes
 =================
 */
-static void R_LoadPlanes( lump_t *l ) {
+static void R_LoadPlanes( const lump_t *l ) {
 	int i, j;
 	cplane_t    *out;
 	dplane_t    *in;

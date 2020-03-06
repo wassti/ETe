@@ -712,7 +712,7 @@ typedef enum {
 #define CONSOLE_HISTORY_FILE "ethistory"
 #endif
 
-#ifdef WIN32
+#ifdef _WIN32
 	#define Q_rmdir _rmdir
 #else
 	#define Q_rmdir rmdir
@@ -1397,6 +1397,7 @@ char **Sys_ListFiles( const char *directory, const char *extension, const char *
 void Sys_FreeFileList( char **list );
 
 qboolean Sys_GetFileStats( const char *filename, fileOffset_t *size, fileTime_t *mtime, fileTime_t *ctime );
+int Sys_PathIsDir( const char *path );
 
 void Sys_BeginProfiling( void );
 void Sys_EndProfiling( void );

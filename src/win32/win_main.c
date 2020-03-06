@@ -520,6 +520,28 @@ qboolean Sys_GetFileStats( const char *filename, fileOffset_t *size, fileTime_t 
 }
 
 
+/*
+==============
+Sys_PathIsDir
+Test an file given OS path:
+returns -1 if not found
+returns 1 if directory
+returns 0 otherwise
+==============
+*/
+int Sys_PathIsDir( const char *path ) {
+	struct _stat s;
+
+	if ( _stat( path, &s ) == -1 ) {
+		return -1;
+	}
+	if ( s.st_mode & _S_IFDIR ) {
+		return 1;
+	}
+	return 0;
+}
+
+
 //========================================================
 
 /*

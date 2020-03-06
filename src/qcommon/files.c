@@ -1926,38 +1926,6 @@ static int FS_DeleteDir( const char *dirname, qboolean nonEmpty, qboolean recurs
 	return 0;
 }
 
-/*
-==============
-FS_OSStatFile
-Test an file given OS path:
-returns -1 if not found
-returns 1 if directory
-returns 0 otherwise
-==============
-*/
-#ifdef WIN32
-static int FS_OSStatFile( const char *ospath ) {
-	struct _stat stat;
-	if ( _stat( ospath, &stat ) == -1 ) {
-		return -1;
-	}
-	if ( stat.st_mode & _S_IFDIR ) {
-		return 1;
-	}
-	return 0;
-}
-#else
-static int FS_OSStatFile( const char *ospath ) {
-	struct stat stat_buf;
-	if ( stat( ospath, &stat_buf ) == -1 ) {
-		return -1;
-	}
-	if ( S_ISDIR( stat_buf.st_mode ) ) {
-		return 1;
-	}
-	return 0;
-}
-#endif
 
 /*
 ==============
@@ -1986,7 +1954,7 @@ int FS_Delete( const char *filename ) {
 
 	ospath = FS_BuildOSPath( fs_homepath->string, fs_gamedir, filename );
 
-	stat = FS_OSStatFile( ospath );
+	stat = Sys_PathIsDir( ospath );
 	if ( stat == -1 ) {
 		return 0;
 	}

@@ -322,6 +322,19 @@ qboolean Sys_GetFileStats( const char *filename, fileOffset_t *size, fileTime_t 
 }
 
 
+int Sys_PathIsDir( const char *path ) {
+	struct stat s;
+
+	if ( stat( path, &s ) == -1 ) {
+		return -1;
+	}
+	if ( S_ISDIR( s.st_mode ) ) {
+		return 1;
+	}
+	return 0;
+}
+
+
 /*
 =================
 Sys_Mkdir

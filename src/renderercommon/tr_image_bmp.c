@@ -77,6 +77,7 @@ void R_LoadBMP( const char *name, byte **pic, int *width, int *height )
 
 	if (length < 54)
 	{
+		ri.FS_FreeFile( buffer.v );
 		ri.Error( ERR_DROP, "LoadBMP: header too short (%s)", name );
 	}
 
@@ -117,13 +118,17 @@ void R_LoadBMP( const char *name, byte **pic, int *width, int *height )
 	if ( bmpHeader.bitsPerPixel == 8 )
 	{
 		if (buf_p + sizeof(bmpHeader.palette) > end)
+		{
+			ri.FS_FreeFile( buffer.v );
 			ri.Error( ERR_DROP, "LoadBMP: header too short (%s)", name );
+		}
 
 		Com_Memcpy( bmpHeader.palette, buf_p, sizeof( bmpHeader.palette ) );
 	}
 
 	if (buffer.b + bmpHeader.bitmapDataOffset > end)
 	{
+		ri.FS_FreeFile( buffer.v );
 		ri.Error( ERR_DROP, "LoadBMP: invalid offset value in header (%s)", name );
 	}
 
@@ -131,18 +136,22 @@ void R_LoadBMP( const char *name, byte **pic, int *width, int *height )
 
 	if ( bmpHeader.id[0] != 'B' && bmpHeader.id[1] != 'M' ) 
 	{
+		ri.FS_FreeFile( buffer.v );
 		ri.Error( ERR_DROP, "LoadBMP: only Windows-style BMP files supported (%s)", name );
 	}
 	if ( bmpHeader.fileSize != length )
 	{
+		ri.FS_FreeFile (buffer.v );
 		ri.Error( ERR_DROP, "LoadBMP: header size does not match file size (%u vs. %u) (%s)", bmpHeader.fileSize, length, name );
 	}
 	if ( bmpHeader.compression != 0 )
 	{
+		ri.FS_FreeFile( buffer.v );
 		ri.Error( ERR_DROP, "LoadBMP: only uncompressed BMP files supported (%s)", name );
 	}
 	if ( bmpHeader.bitsPerPixel < 8 )
 	{
+		ri.FS_FreeFile( buffer.v );
 		ri.Error( ERR_DROP, "LoadBMP: monochrome and 4-bit BMP files not supported (%s)", name );
 	}
 
@@ -154,6 +163,7 @@ void R_LoadBMP( const char *name, byte **pic, int *width, int *height )
 		case 32:
 			break;
 		default:
+			ri.FS_FreeFile( buffer.v );
 			ri.Error( ERR_DROP, "LoadBMP: illegal pixel_size '%hu' in file '%s'", bmpHeader.bitsPerPixel, name );
 			break;
 	}
@@ -167,10 +177,12 @@ void R_LoadBMP( const char *name, byte **pic, int *width, int *height )
 	if(columns <= 0 || !rows || numPixels > 0x1FFFFFFF // 4*1FFFFFFF == 0x7FFFFFFC < 0x7FFFFFFF
 	    || ((numPixels * 4) / columns) / 4 != rows)
 	{
+	  ri.FS_FreeFile( buffer.v );
 	  ri.Error (ERR_DROP, "LoadBMP: %s has an invalid image size", name);
 	}
 	if(buf_p + numPixels*bmpHeader.bitsPerPixel/8 > end)
 	{
+	  ri.FS_FreeFile( buffer.v );
 	  ri.Error (ERR_DROP, "LoadBMP: file truncated (%s)", name);
 	}
 
@@ -181,7 +193,6 @@ void R_LoadBMP( const char *name, byte **pic, int *width, int *height )
 
 	bmpRGBA = R_GetImageBuffer( numPixels * 4, BUFFER_IMAGE );
 	*pic = bmpRGBA;
-
 
 	for ( row = rows-1; row >= 0; row-- )
 	{
@@ -235,5 +246,4 @@ void R_LoadBMP( const char *name, byte **pic, int *width, int *height )
 	}
 
 	ri.FS_FreeFile( buffer.v );
-
 }

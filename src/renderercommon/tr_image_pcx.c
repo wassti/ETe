@@ -82,8 +82,8 @@ void R_LoadPCX ( const char *filename, byte **pic, int *width, int *height)
 
 	if((unsigned)len < sizeof(pcx_t))
 	{
-		ri.Printf (PRINT_ALL, "PCX truncated: %s\n", filename);
 		ri.FS_FreeFile (raw.v);
+		ri.Printf (PRINT_ALL, "PCX truncated: %s\n", filename);
 		return;
 	}
 
@@ -105,6 +105,7 @@ void R_LoadPCX ( const char *filename, byte **pic, int *width, int *height)
 		|| w >= 1024
 		|| h >= 1024)
 	{
+		ri.FS_FreeFile (raw.v);
 		ri.Printf (PRINT_ALL, "Bad or unsupported pcx file %s (%dx%d@%d)\n", filename, w, h, pcx->bits_per_pixel);
 		return;
 	}

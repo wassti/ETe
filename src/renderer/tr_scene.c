@@ -311,7 +311,7 @@ void RE_AddPolysToScene( qhandle_t hShader, int numVerts, const polyVert_t *vert
 
 /*
 =====================
-R_AddPolygonSurfaces
+R_AddPolygonBufferSurfaces
 
 Adds all the scene's polys into this view's drawsurf list
 =====================
@@ -472,7 +472,6 @@ void RE_AddLightToScene( const vec3_t org, float radius, float intensity, float 
 	// set up a new dlight
 	dl = &backEndData->dlights[ r_numdlights++ ];
 	VectorCopy( org, dl->origin );
-	VectorCopy( org, dl->transformed );
 	dl->radius = radius;
 	dl->radiusInverseCubed = ( 1.0 / dl->radius );
 	dl->radiusInverseCubed = dl->radiusInverseCubed * dl->radiusInverseCubed * dl->radiusInverseCubed;
@@ -646,8 +645,7 @@ void RE_RenderScene( const refdef_t *fd ) {
 
 	tr.refdef.num_dlights = r_numdlights - r_firstSceneDlight;
 	tr.refdef.dlights = &backEndData->dlights[r_firstSceneDlight];
-	tr.refdef.dlightBits = 0;
-
+	//tr.refdef.dlightBits = 0;
 
 	tr.refdef.num_coronas = r_numcoronas - r_firstSceneCorona;
 	tr.refdef.coronas = &backEndData->coronas[r_firstSceneCorona];
@@ -665,8 +663,8 @@ void RE_RenderScene( const refdef_t *fd ) {
 	tr.refdef.decals = &backEndData->decals[ r_firstSceneDecal ];
 
 	// turn off dynamic lighting globally by clearing all the
-	// dlights if using permedia hw
-	if ( glConfig.hardwareType == GLHW_PERMEDIA2 ) {
+	// dlights if it needs to be disabled
+	if ( r_dynamiclight->integer == 0 || glConfig.hardwareType == GLHW_PERMEDIA2 ) {
 		tr.refdef.num_dlights = 0;
 	}
 

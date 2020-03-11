@@ -29,7 +29,7 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "tr_local.h"
 
-glconfig_t	glConfig = { 0 };
+glconfig_t	glConfig;
 qboolean	nonPowerOfTwoTextures;
 int			gl_version;
 int			gl_clamp_mode;	// GL_CLAMP or GL_CLAMP_TO_EGGE
@@ -389,7 +389,7 @@ static void R_InitExtensions( void )
 	qglLockArraysEXT = NULL;
 	qglUnlockArraysEXT = NULL;
 
-	glConfig.maxActiveTextures = 1; // ENSI note Q3e just changed the default here to 1 from 0
+	glConfig.numTextureUnits = 1; // ENSI note Q3e just changed the default here to 1 from 0
 	qglMultiTexCoord2fARB = NULL;
 	qglActiveTextureARB = NULL;
 	qglClientActiveTextureARB = NULL;
@@ -539,9 +539,9 @@ static void R_InitExtensions( void )
 
 			if ( qglActiveTextureARB && qglClientActiveTextureARB )
 			{
-				qglGetIntegerv( GL_MAX_ACTIVE_TEXTURES_ARB, &glConfig.maxActiveTextures );
+				qglGetIntegerv( GL_MAX_ACTIVE_TEXTURES_ARB, &glConfig.numTextureUnits );
 
-				if ( glConfig.maxActiveTextures > 1 )
+				if ( glConfig.numTextureUnits > 1 )
 				{
 					ri.Printf( PRINT_ALL, "...using GL_ARB_multitexture\n" );
 				}
@@ -714,8 +714,8 @@ static void InitOpenGL( void )
 		if ( max_bind_units > MAX_TEXTURE_UNITS )
 			max_bind_units = MAX_TEXTURE_UNITS;
 
-		if ( glConfig.maxActiveTextures && max_bind_units > 0 )
-			glConfig.maxActiveTextures = max_bind_units;
+		if ( glConfig.numTextureUnits && max_bind_units > 0 )
+			glConfig.numTextureUnits = max_bind_units;
 
 		captureWidth = glConfig.vidWidth;
 		captureHeight = glConfig.vidHeight;
@@ -1456,7 +1456,7 @@ static void GfxInfo( void )
 	R_PrintLongString( PRINT_ALL, gl_extensions );
 	ri.Printf( PRINT_ALL, "\n" );
 	ri.Printf( PRINT_ALL, "GL_MAX_TEXTURE_SIZE: %d\n", glConfig.maxTextureSize );
-	ri.Printf( PRINT_ALL, "GL_MAX_ACTIVE_TEXTURES_ARB: %d\n", glConfig.maxActiveTextures );
+	ri.Printf( PRINT_ALL, "GL_MAX_TEXTURE_UNITS_ARB: %d\n", glConfig.numTextureUnits );
 	ri.Printf( PRINT_ALL, "\nPIXELFORMAT: color(%d-bits) Z(%d-bit) stencil(%d-bits)\n", glConfig.colorBits, glConfig.depthBits, glConfig.stencilBits );
 
 	if ( glConfig.isFullscreen )
@@ -1755,7 +1755,6 @@ static void R_Register( void )
 	r_nobind = ri.Cvar_Get( "r_nobind", "0", CVAR_CHEAT );
 	r_showtris = ri.Cvar_Get( "r_showtris", "0", CVAR_CHEAT );
 	r_trisColor = ri.Cvar_Get( "r_trisColor", "1.0 1.0 1.0 1.0", CVAR_ARCHIVE_ND );
-	r_showsky = ri.Cvar_Get( "r_showsky", "0", CVAR_CHEAT );
 	r_shownormals = ri.Cvar_Get( "r_shownormals", "0", CVAR_CHEAT );
 	r_normallength = ri.Cvar_Get( "r_normallength", "0.5", CVAR_ARCHIVE_ND );
 	r_showmodelbounds = ri.Cvar_Get( "r_showmodelbounds", "0", CVAR_CHEAT );
@@ -1796,6 +1795,8 @@ static void R_Register( void )
 
 	r_stencilbits = ri.Cvar_Get( "r_stencilbits", "8", CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE );
 	r_ignorehwgamma = ri.Cvar_Get( "r_ignorehwgamma", "0", CVAR_ARCHIVE_ND | CVAR_LATCH );        // ydnar: use hw gamma by default
+
+	r_showsky = ri.Cvar_Get( "r_showsky", "0", CVAR_LATCH | CVAR_CHEAT );
 
 	r_flares = ri.Cvar_Get( "r_flares", "1", CVAR_ARCHIVE_ND | CVAR_LATCH );
 
@@ -1942,7 +1943,7 @@ static void RE_Shutdown( int destroyWindow ) {
 	ri.Printf( PRINT_ALL, "RE_Shutdown( %i )\n", destroyWindow );
 
 	ri.Cmd_RemoveCommand( "modellist" );
-	ri.Cmd_RemoveCommand ("screenshotBMP");
+	ri.Cmd_RemoveCommand( "screenshotBMP" );
 	ri.Cmd_RemoveCommand( "screenshotJPEG" );
 	ri.Cmd_RemoveCommand( "screenshot" );
 	ri.Cmd_RemoveCommand( "imagelist" );

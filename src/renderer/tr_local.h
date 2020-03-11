@@ -507,7 +507,7 @@ typedef struct {
 	int num_entities;
 	trRefEntity_t   *entities;
 
-	int dlightBits;                 // ydnar: optimization
+	//int dlightBits;                 // ydnar: optimization
 	unsigned int num_dlights;
 	dlight_t    *dlights;
 
@@ -1336,6 +1336,7 @@ typedef struct {
 	
 	qboolean throttle;
 	qboolean drawConsole;
+	qboolean doneShadows;
 
 } backEndState_t;
 

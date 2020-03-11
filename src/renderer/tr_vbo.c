@@ -478,8 +478,8 @@ static qboolean isStaticShader( shader_t *shader )
 			break;
 		if ( stage->depthFragment )
 			return qfalse;
-		//if ( stage->adjustColorsForFog != ACFF_NONE )
-		//	return qfalse;
+		if ( stage->adjustColorsForFog != ACFF_NONE )
+			return qfalse;
 		if ( !isStaticTCmod( &stage->bundle[0] ) || !isStaticTCmod( &stage->bundle[1] ) )
 			return qfalse;
 		if ( !isStaticRGBgen( stage->rgbGen ) )
@@ -797,7 +797,7 @@ void R_BuildWorldVBO( msurface_t *surf, int surfCount )
 	if ( !qglBindBufferARB || !r_vbo->integer )
 		return;
 
-	if ( glConfig.maxActiveTextures < 3 ) {
+	if ( glConfig.numTextureUnits < 3 ) {
 		ri.Printf( PRINT_WARNING, "... not enough texture units for VBO\n" );
 		return;
 	}

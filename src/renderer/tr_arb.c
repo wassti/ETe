@@ -1482,10 +1482,10 @@ static qboolean FBO_CreateBloom( void )
 
 	fboBloomPasses = 0;
 
-	if ( glConfig.maxActiveTextures < r_bloom_passes->integer )
+	if ( glConfig.numTextureUnits < r_bloom_passes->integer )
 	{
 		ri.Printf( PRINT_WARNING, "...not enough texture units (%i) for %i-pass bloom\n",
-			glConfig.maxActiveTextures, r_bloom_passes->integer );
+			glConfig.numTextureUnits, r_bloom_passes->integer );
 		return qfalse;
 	}
 

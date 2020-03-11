@@ -1439,7 +1439,7 @@ Prints persistent rendering configuration
 static void GfxInfo( void )
 {
 	const char *enablestrings[] = { "disabled", "enabled" };
-	const char *fsstrings[] = { "windowed", "fullscreen" };
+	const char *fsstrings[] = { "windowed", "fullscreen", "windowed (borderless)" };
 	const char *tc_table[] =
 	{
 		"None",
@@ -1471,7 +1471,10 @@ static void GfxInfo( void )
 	else
 	{
 		mode = ri.Cvar_VariableIntegerValue( "r_mode" );
-		fs = fsstrings[0];
+		if ( Cvar_VariableIntegerValue( "r_noborder" ) != 0 )
+			fs = fsstrings[2];
+		else
+			fs = fsstrings[0];
 	}
 
 	if ( windowAdjusted )

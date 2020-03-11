@@ -65,7 +65,7 @@ vec4_t clrBrownText =      {108 / 255.f,         88 / 255.f,       62 / 255.f,  
 vec4_t clrBrownTextDk =    {20 / 255.f,          2 / 255.f,        0 / 255.f,        1.f};
 vec4_t clrBrownTextDk2 =   {108 * 0.75 / 255.f,    88 * 0.75 / 255.f,  62 * 0.75 / 255.f,  1.f};
 
-vec4_t g_color_table[32] =
+const vec4_t g_color_table[32] =
 {
 	{ 0.0,  0.0,    0.0,    1.0 },      // 0 - black		0
 	{ 1.0,  0.0,    0.0,    1.0 },      // 1 - red			1
@@ -645,6 +645,7 @@ float Q_rsqrt( float number )
 	return y;
 }
 
+
 float Q_fabs( float f ) {
 	floatint_t fi;
 	fi.f = f;
@@ -694,6 +695,7 @@ void LerpPosition( vec3_t start, vec3_t end, float frac, vec3_t out ) {
 	VectorSubtract( end, start, dist );
 	VectorMA( start, frac, dist, out );
 }
+
 
 /*
 =================
@@ -1143,7 +1145,7 @@ int Q_isnan( float x )
 Q_log2f
 ================
 */
-float Q_log2f( float f ) 
+float Q_log2f( float f )
 {
 	return logf( f ) / M_LN2;
 }
@@ -1154,7 +1156,7 @@ float Q_log2f( float f )
 Q_exp2f
 ================
 */
-float Q_exp2f( float f ) 
+float Q_exp2f( float f )
 {
 	return powf( 2.0f, f );
 }

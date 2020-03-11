@@ -570,7 +570,7 @@ extern vec4_t clrBrownLineFull;
 #define S_COLOR_MDPURPLE    "^C"
 #define S_COLOR_NULL        "^*"
 
-extern vec4_t g_color_table[32];
+extern const vec4_t g_color_table[32];
 extern int ColorIndexFromChar( char ccode );
 
 #define MAKERGB( v, r, g, b ) v[0] = r; v[1] = g; v[2] = b
@@ -661,7 +661,7 @@ typedef struct {
 #define Vector2Copy( a,b )            ( ( b )[0] = ( a )[0],( b )[1] = ( a )[1] )
 #define Vector2Subtract( a,b,c )      ( ( c )[0] = ( a )[0] - ( b )[0],( c )[1] = ( a )[1] - ( b )[1] )
 
-#define Vector4Set( v, x, y, z, n )   ( ( v )[0] = ( x ),( v )[1] = ( y ),( v )[2] = ( z ),( v )[3] = ( n ) )
+#define Vector4Set( v, x, y, z, w )   ( ( v )[0] = ( x ),( v )[1] = ( y ),( v )[2] = ( z ),( v )[3] = ( w ) )
 #define Vector4Copy( a,b )            ( ( b )[0] = ( a )[0],( b )[1] = ( a )[1],( b )[2] = ( a )[2],( b )[3] = ( a )[3] )
 #define Vector4MA( v, s, b, o )       ( ( o )[0] = ( v )[0] + ( b )[0] * ( s ),( o )[1] = ( v )[1] + ( b )[1] * ( s ),( o )[2] = ( v )[2] + ( b )[2] * ( s ),( o )[3] = ( v )[3] + ( b )[3] * ( s ) )
 #define Vector4Average( v, b, s, o )  ( ( o )[0] = ( ( v )[0] * ( 1 - ( s ) ) ) + ( ( b )[0] * ( s ) ),( o )[1] = ( ( v )[1] * ( 1 - ( s ) ) ) + ( ( b )[1] * ( s ) ),( o )[2] = ( ( v )[2] * ( 1 - ( s ) ) ) + ( ( b )[2] * ( s ) ),( o )[3] = ( ( v )[3] * ( 1 - ( s ) ) ) + ( ( b )[3] * ( s ) ) )
@@ -794,12 +794,12 @@ void AxisCopy( vec3_t in[3], vec3_t out[3] );
 void SetPlaneSignbits( struct cplane_s *out );
 int BoxOnPlaneSide( vec3_t emins, vec3_t emaxs, struct cplane_s *plane );
 
-qboolean BoundsIntersect(const vec3_t mins, const vec3_t maxs,
+/*qboolean BoundsIntersect(const vec3_t mins, const vec3_t maxs,
 		const vec3_t mins2, const vec3_t maxs2);
 qboolean BoundsIntersectSphere(const vec3_t mins, const vec3_t maxs,
 		const vec3_t origin, vec_t radius);
 qboolean BoundsIntersectPoint(const vec3_t mins, const vec3_t maxs,
-		const vec3_t origin);
+		const vec3_t origin);*/
 float   AngleMod( float a );
 float   LerpAngle( float from, float to, float frac );
 void    LerpPosition( vec3_t start, vec3_t end, float frac, vec3_t out );
@@ -819,7 +819,7 @@ void RotateAroundDirection( vec3_t axis[3], float yaw );
 void MakeNormalVectors( const vec3_t forward, vec3_t right, vec3_t up );
 // perpendicular vector could be replaced by this
 
-int PlaneTypeForNormal( vec3_t normal );
+//int PlaneTypeForNormal( vec3_t normal );
 
 void MatrixMultiply( float in1[3][3], float in2[3][3], float out[3][3] );
 void AngleVectors( const vec3_t angles, vec3_t forward, vec3_t right, vec3_t up );
@@ -1848,7 +1848,9 @@ typedef struct {
 	char name[MAX_QPATH];
 } fontInfo_t;
 
-#define Square( x ) ( ( x ) * ( x ) )
+#define Q_square( x ) ( ( x ) * ( x ) )
+#define Q_cube( x) ( ( x ) * ( x ) * ( x ) )
+#define Square( x ) Q_square( x )
 
 // real time
 //=============================================

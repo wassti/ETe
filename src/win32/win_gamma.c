@@ -35,6 +35,53 @@ If you have questions concerning this license or the applicable additional terms
 
 static unsigned short s_oldHardwareGamma[3][256];
 
+static BOOL IsCurrentSessionRemoteable( void )
+{
+	BOOL fIsRemoteable = FALSE;
+
+	if ( GetSystemMetrics( SM_REMOTESESSION ) )
+	{
+		fIsRemoteable = TRUE;
+	}
+	else
+	{
+		#define TERMINAL_SERVER_KEY TEXT( "SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\" )
+		#define GLASS_SESSION_ID TEXT( "GlassSessionId" )
+
+		HKEY hRegKey = NULL;
+		LONG lResult;
+
+		lResult = RegOpenKeyEx( HKEY_LOCAL_MACHINE,	TERMINAL_SERVER_KEY, 0, KEY_READ, &hRegKey );
+
+		if ( lResult == ERROR_SUCCESS )
+		{
+			DWORD dwGlassSessionId;
+			DWORD cbGlassSessionId = sizeof(dwGlassSessionId);
+			DWORD dwType;
+
+			lResult = RegQueryValueEx( hRegKey, GLASS_SESSION_ID, NULL, &dwType, (BYTE*)&dwGlassSessionId, &cbGlassSessionId );
+
+			if ( lResult == ERROR_SUCCESS )
+			{
+				DWORD dwCurrentSessionId;
+
+				if ( ProcessIdToSessionId( GetCurrentProcessId(), &dwCurrentSessionId  ) )
+				{
+					fIsRemoteable = ( dwCurrentSessionId != dwGlassSessionId );
+				}
+			}
+		}
+
+		if ( hRegKey )
+		{
+			RegCloseKey( hRegKey );
+		}
+	}
+
+	return fIsRemoteable;
+}
+
+
 /*
 ** GLW_InitGamma
 **
@@ -45,6 +92,11 @@ void GLimp_InitGamma( glconfig_t *config )
 	HDC		hDC;
 
 	config->deviceSupportsGamma = qfalse;
+
+	if ( IsCurrentSessionRemoteable() )
+	{
+		return; // no hardware gamma control via RDP
+	}
 
 	if ( glw_state.displayName[0] )
 	{

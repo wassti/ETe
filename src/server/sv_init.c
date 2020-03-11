@@ -986,7 +986,7 @@ void SV_Init( void )
 	// fretn - note: redirecting of clients to other servers relies on this,
 	// ET://someserver.com
 	sv_fullmsg = Cvar_Get( "sv_fullmsg", "Server is full.", CVAR_ARCHIVE );
-	
+
 #ifdef USE_BANS
 	sv_banFile = Cvar_Get("sv_banFile", "serverbans.dat", CVAR_ARCHIVE);
 #endif
@@ -998,7 +998,6 @@ void SV_Init( void )
 	sv_leanPakRefs = Cvar_Get( "sv_leanPakRefs", "0", CVAR_LATCH );
 
 	sv_filterCommands = Cvar_Get( "sv_filterCommands", "1", CVAR_ARCHIVE );
-
 	Cvar_SetDescription( sv_filterCommands, "0: Disabled\n1: Filter newlines and carriage returns in reliable commands.\n2: Also filter semicolons" );
 
 	// initialize bot cvars so they are listed and can be set before loading the botlib

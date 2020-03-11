@@ -87,7 +87,6 @@ void COM_FixPath( char *pathname ) {
 }
 
 
-
 /*
 ============
 COM_SkipPath
@@ -805,10 +804,10 @@ char *COM_ParseExt( const char **data_p, qboolean allowLineBreaks )
 	com_tokenline = com_lines;
 
 	// handle quoted strings
-	if ( c == '\"' )
+	if ( c == '"' )
 	{
 		data++;
-		while (1)
+		while ( 1 )
 		{
 			c = *data++;
 			if ( c == '\\' && *( data ) == '\"' )

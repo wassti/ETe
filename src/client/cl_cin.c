@@ -125,7 +125,7 @@ typedef struct {
 
 	long samplesPerPixel;                               // defaults to 2
 	byte*               gray;
-	unsigned int xsize, ysize, maxsize, minsize;
+	long xsize, ysize, maxsize, minsize;
 
 	qboolean half, smootheddouble, inMemory;
 	long normalBuffer0;

@@ -760,7 +760,7 @@ void *QDECL Sys_LoadDll( const char *name, dllSyscall_t *entryPoint, dllSyscall_
 	}
 	fn = filename;
 
-#ifdef DEBUG
+#ifdef _DEBUG
 	if ( GetCurrentDirectory( currpath, ARRAY_LEN( currpath ) ) < ARRAY_LEN( currpath ) ) {
 		fn = FS_BuildOSPath( WtoA( currpath ), gamedir, filename );
 		libHandle = LoadLibrary( AtoW( filename ) );

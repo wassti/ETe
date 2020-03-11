@@ -42,7 +42,7 @@ and one exported function: Perform
 #include "vm_local.h"
 
 
-#ifdef DEBUG
+#ifdef _DEBUG
 int		vm_debugLevel;
 #endif
 
@@ -60,7 +60,7 @@ static const char *vmName[ VM_COUNT ] = {
 static void VM_VmInfo_f( void );
 static void VM_VmProfile_f( void );
 
-#ifdef DEBUG
+#ifdef _DEBUG
 void VM_Debug( int level ) {
 	vm_debugLevel = level;
 }
@@ -369,7 +369,7 @@ intptr_t QDECL VM_Call( vm_t *vm, int nargs, int callnum, ... )
 		Com_Error( ERR_FATAL, "VM_Call with NULL vm" );
 	}
 
-#ifdef DEBUG
+#ifdef _DEBUG
 	if ( vm_debugLevel ) {
 	  Com_Printf( "VM_Call( %d )\n", callnum );
 	}

@@ -1724,8 +1724,9 @@ char *Q_strupr( char *s1 ) {
 
 	s = s1;
 	while ( *s ) {
-		if ( *s >= 'a' && *s <= 'z' )
-			*s = *s - 'a' + 'A';
+		*s = upcase[(byte)*s];
+		/*if ( *s >= 'a' && *s <= 'z' )
+			*s = *s - 'a' + 'A';*/
 		s++;
 	}
 	return s1;

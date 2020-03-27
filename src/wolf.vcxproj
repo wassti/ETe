@@ -71,7 +71,7 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>_DEBUG;_CRT_SECURE_NO_WARNINGS;USE_PBMD5;USE_CURL;CURL_STATICLIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CRT_SECURE_NO_WARNINGS;USE_CURL;CURL_STATICLIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <PrecompiledHeader />
       <PrecompiledHeaderOutputFile>$(TargetDir)$(TargetName).pch</PrecompiledHeaderOutputFile>
@@ -134,7 +134,7 @@ nmake /f Makefile.vc6 CFG=debug
     </Midl>
     <ClCompile>
       <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
-      <PreprocessorDefinitions>NDEBUG;_CRT_SECURE_NO_WARNINGS;USE_PBMD5;USE_CURL;CURL_STATICLIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CRT_SECURE_NO_WARNINGS;USE_CURL;CURL_STATICLIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <BufferSecurityCheck>false</BufferSecurityCheck>
@@ -210,7 +210,6 @@ nmake /f Makefile.vc6 CFG=release
     <ClCompile Include="qcommon\keys.c" />
     <ClCompile Include="qcommon\md5.c" />
     <ClCompile Include="qcommon\net_ip.c" />
-    <ClCompile Include="qcommon\pbmd5.c" />
     <ClCompile Include="qcommon\q_math.c" />
     <ClCompile Include="qcommon\q_shared.c" />
     <ClCompile Include="qcommon\cmd.c" />

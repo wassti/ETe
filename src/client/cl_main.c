@@ -1202,26 +1202,11 @@ static void CL_UpdateGUID(void)
 {
 	fileHandle_t f;
 	int          len;
-	char		*buffer = NULL;
 
 	len = FS_SV_FOpenFileRead(BASEGAME "/" ETKEY_FILE, &f);
-	if ( !f || len <= 0 ) {
-		Com_Printf(S_COLOR_RED "ERROR: Could not find valid etkey, skipping cl_guid.\n");
-		Cvar_Set("cl_guid", "");
-		return;
-	}
 
-	buffer = malloc( len + 1 );
-
-	if ( !buffer ) {
-		Com_Printf( S_COLOR_RED "ERROR: Ran out of memory attempting to parse etkey, skipping cl_guid.\n" );
-		FS_FCloseFile( f );
-		return;
-	}
-
-	FS_Read(buffer, len, f);
-	buffer[len] = '\0';
-	FS_FCloseFile(f);
+	if ( f )
+		FS_FCloseFile(f);
 
 	if (len < ETKEY_SIZE)
 	{
@@ -1230,15 +1215,13 @@ static void CL_UpdateGUID(void)
 	}
 	else
 	{
-		char *guid = Com_PBMD5File(buffer);
+		char *guid = Com_PBMD5File( ETKEY_FILE );
 
 		if (guid)
 		{
 			Cvar_Set("cl_guid", guid);
 		}
 	}
-	free( buffer );
-	buffer = NULL;
 }
 
 /*

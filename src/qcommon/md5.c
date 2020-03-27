@@ -62,6 +62,7 @@ static void MD5Init(struct MD5Context *ctx)
 	ctx->bits[1] = 0;
 }
 
+
 static void MD5Copy( struct MD5Context *to, const struct MD5Context *from )
 {
 	memcpy( to, from, sizeof( *to ) );
@@ -349,6 +350,91 @@ char *Com_MD5Buf( const char *data, int length, const char *data2, int length2 )
 }
 
 
+#ifndef DEDICATED
+static void MD5InitSeed(struct MD5Context *ctx, uint32_t seed)
+{
+	ctx->buf[0]  = ( uint32_t ) 0x67452301 + seed * 11;
+	ctx->buf[1]  = ( uint32_t ) 0xefcdab89 + seed * 71;
+	ctx->buf[2]  = ( uint32_t ) 0x98badcfe + seed * 37;
+	ctx->buf[3]  = ( uint32_t ) 0x10325476 + seed * 97;
+
+	ctx->bits[0] = ctx->bits[1] = 0;
+}
+
+
+/**
+ * @author Morsik
+ * https://github.com/morsik/war-territory
+ */
+static char *CalculateMD5ForSeed(const char *key, int seed)
+{
+	MD5_CTX           ctx;
+	int               i;
+	static char       hash[33];
+	static const char hex[17] = "0123456789abcdef";
+	unsigned char     digest[MD5_DIGEST_SIZE];
+
+	MD5InitSeed(&ctx, seed);
+	MD5Update(&ctx, ( const byte * ) key, strlen(key));
+	MD5Final(&ctx, digest);
+
+	for (i = 0; i < sizeof(digest); i++)
+	{
+		hash[i << 1]       = hex[digest[i] >> 4];
+		hash[(i << 1) + 1] = hex[digest[i] & 15];
+	}
+	hash[i << 1] = 0;
+	return hash;
+}
+
+static char *CalculateGUID(const char *key)
+{
+	int  i;
+	char *tmp, *hash;
+
+	tmp  = CalculateMD5ForSeed( key, 0x00b684a3 );
+	hash = CalculateMD5ForSeed( tmp, 0x00051a56 );
+
+	// guids are lowercased after md5sums, we must to change case to upper
+	// so it can be compared in mods with xpsave data for example
+	for (i = 0; hash[i]; i++)
+		hash[i] = upcase[(byte)hash[i]];
+
+	return hash;
+}
+
+char *Com_PBMD5File(const char *filename)
+{
+	char key[19] = { 0 };
+	union {
+		char* c;
+		void* v;
+	} fbuffer;
+	int  len;
+
+	len = FS_ReadFile( filename, &fbuffer.v );
+	if (fbuffer.c)
+	{
+		if (len >= 28)
+		{
+			int i;
+
+			for (i = 0; i < 18; i++)
+			{
+				key[i] = fbuffer.c[i + 10];
+			}
+
+			FS_FreeFile(fbuffer.v);
+
+			return CalculateGUID(key);
+		}
+		FS_FreeFile(fbuffer.v);
+	}
+	return NULL;
+}
+#endif
+
+
 // stateless challenges
 
 static struct MD5Context hmac_ctx_in;
@@ -409,4 +495,3 @@ int Com_MD5Addr( const netadr_t *addr, int timestamp )
 
 	return digest.i[0];
 }
-

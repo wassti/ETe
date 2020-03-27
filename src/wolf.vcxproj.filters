@@ -215,9 +215,6 @@
     <ClCompile Include="qcommon\gameinfo.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="qcommon\pbmd5.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="client\cl_curl.c">
       <Filter>Source Files</Filter>
     </ClCompile>

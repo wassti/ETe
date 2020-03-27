@@ -1020,13 +1020,13 @@ unsigned	Com_BlockChecksum( const void *buffer, int length );
 
 char		*Com_MD5File(const char *filename, int length, const char *prefix, int prefix_len);
 char		*Com_MD5Buf( const char *data, int length, const char *data2, int length2 );
+#ifndef DEDICATED
+char		*Com_PBMD5File( const char *filename );
+#endif
 
 // stateless challenge functions
 void		Com_MD5Init( void );
 int			Com_MD5Addr( const netadr_t *addr, int timestamp );
-#ifdef USE_PBMD5
-char		*Com_PBMD5File( char *key );
-#endif
 
 qboolean	Com_EarlyParseCmdLine( char *commandLine, char *con_title, int title_size, int *vid_xpos, int *vid_ypos );
 int			Com_Split( char *in, char **out, int outsz, int delim );

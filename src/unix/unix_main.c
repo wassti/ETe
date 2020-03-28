@@ -1370,6 +1370,10 @@ qboolean Sys_IsNumLockDown( void ) {
 	return qfalse;
 }
 
+int Sys_GetPID( void ) {
+	return (int)getpid();
+}
+
 void Sys_OmnibotLoad()
 {
 	// TODO linux omnibot

@@ -3621,7 +3621,6 @@ Com_Init
 void Com_Init( char *commandLine ) {
 	const char *s;
 	int	qport;
-	int pid;
 	// TTimo gcc warning: variable `safeMode' might be clobbered by `longjmp' or `vfork'
 	volatile qboolean safeMode = qtrue;
 
@@ -3675,14 +3674,7 @@ void Com_Init( char *commandLine ) {
 	Cvar_CheckRange( com_journal, "0", "2", CV_INTEGER );
 
 	// bani: init pid
-#ifdef _WIN32
-	pid = GetCurrentProcessId();
-#elif __linux__
-	pid = getpid();
-#elif __MACOS__
-	pid = getpid();
-#endif
-	s = va( "%d", pid );
+	s = va( "%d", Sys_GetPID() );
 	com_pid = Cvar_Get( "com_pid", s, CVAR_ROM );
 
 	// done early so bind command exists

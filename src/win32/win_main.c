@@ -1029,6 +1029,10 @@ qboolean Sys_IsNumLockDown( void ) {
 	return qfalse;
 }
 
+int Sys_GetPID( void ) {
+	return (int)GetCurrentProcessId();
+}
+
 HINSTANCE omnibotHandle = NULL;
 typedef void (*pfnOmnibotRenderOGL)();
 pfnOmnibotRenderOGL gOmnibotRenderFunc = 0;

@@ -32,6 +32,10 @@ PCX files are used for 8 bit images
 ========================================================================
 */
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4200)
+#endif
 typedef struct {
 	int8_t		manufacturer;
 	int8_t		version;
@@ -48,6 +52,9 @@ typedef struct {
 	int8_t		filler[54];
 	byte		data[];
 } pcx_t;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 void R_LoadPCX ( const char *filename, byte **pic, int *width, int *height)
 {

@@ -1767,13 +1767,13 @@ static void Cvar_ListUserCreated_f( void ) {
 		} else {
 			Com_Printf(" ");
 		}
-		if (var->flags & CVAR_USER_CREATED) {
+		/*if (var->flags & CVAR_USER_CREATED) {
 			Com_Printf("?");
 		} else {
 			Com_Printf(" ");
-		}
+		}*/
 
-		Com_Printf (" %s \"%s\", default \"%s\"\n", var->name, value, var->resetString);
+		Com_Printf (" %s \"%s\"\n", var->name, value);
 	}
 
 	Com_Printf ("\n%i total user created cvars\n", totalUserCreated);

@@ -421,7 +421,7 @@ typedef enum {
 typedef enum {
 	VM_BAD = -1,
 	VM_GAME = 0,
-#ifndef USE_DEDICATED
+#ifndef DEDICATED
 	VM_CGAME,
 	VM_UI,
 #endif

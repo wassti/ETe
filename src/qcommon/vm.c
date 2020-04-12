@@ -53,8 +53,10 @@ struct vm_s	vmTable[ VM_COUNT ];
 
 static const char *vmName[ VM_COUNT ] = {
 	"qagame",
+#ifndef DEDICATED
 	"cgame",
 	"ui"
+#endif
 };
 
 static void VM_VmInfo_f( void );
@@ -259,7 +261,6 @@ vm_t *VM_Create( vmIndex_t index, syscall_t systemCalls, dllSyscall_t dllSyscall
 	vm->dllSyscall = dllSyscalls;
 	vm->privateFlag = CVAR_PRIVATE;
 
-
 	if ( interpret == VMI_NATIVE ) {
 		// try to load as a system dll
 		Com_Printf( "Loading dll file %s.\n", name );
@@ -430,10 +431,12 @@ static vm_t *VM_NameToVM( const char *name )
 
 	if ( !Q_stricmp( name, "game" ) )
 		index = VM_GAME;
+#ifndef DEDICATED
 	else if ( !Q_stricmp( name, "cgame" ) )
 		index = VM_CGAME;
 	else if ( !Q_stricmp( name, "ui" ) )
 		index = VM_UI;
+#endif
 	else {
 		Com_Printf( " unknown VM name '%s'\n", name );
 		return NULL;

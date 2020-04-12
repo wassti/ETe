@@ -65,28 +65,28 @@ up to five or more times in a frame with 3D status bar icons).
 // flare states maintain visibility over multiple frames for fading
 // layers: view, mirror, menu
 typedef struct flare_s {
-	struct      flare_s *next;      // for active chain
+	struct		flare_s	*next;		// for active chain
 
-	int addedFrame;
+	int			addedFrame;
 
 	portalView_t portalView;
-	int frameSceneNum;
-	void        *surface;
-	int fogNum;
+	int			frameSceneNum;
+	void		*surface;
+	int			fogNum;
 
-	int fadeTime;
+	int			fadeTime;
 
-	qboolean cgvisible;             // for coronas, the client determines current visibility, but it's still inserted so it will fade out properly
-	qboolean visible;               // state of last test
-	float drawIntensity;            // may be non 0 even if !visible due to fading
+	qboolean	cgvisible;			// for coronas, the client determines current visibility, but it's still inserted so it will fade out properly
+	qboolean	visible;			// state of last test
+	float		drawIntensity;		// may be non 0 even if !visible due to fading
 
-	int windowX, windowY;
-	float eyeZ;
+	int			windowX, windowY;
+	float		eyeZ;
 
-	vec3_t color;
-	float scale;
+	vec3_t		color;
+	float		scale;
 
-	int id;
+	int			id;
 } flare_t;
 
 #define     MAX_FLARES      128
@@ -125,10 +125,21 @@ void RB_AddFlare( void *surface, int fogNum, vec3_t point, vec3_t color, float s
 	int				i;
 	flare_t			*f;
 	vec3_t			local;
-	float			d;
+	float			d = 1;
 	vec4_t			eye, clip, normalized, window;
 
 	backEnd.pc.c_flareAdds++;
+
+	if ( normal && (normal[0] || normal[1] || normal[2]) )
+	{
+		VectorSubtract( backEnd.viewParms.orientation.origin, point, local );
+		VectorNormalizeFast( local );
+		d = DotProduct( local, normal );
+
+		// If the viewer is behind the flare don't add it.
+		//if ( d < 0 )
+		//	return;
+	}
 
 	// if the point is off the screen, don't bother adding it
 	// calculate screen coordinates and depth
@@ -198,12 +209,7 @@ void RB_AddFlare( void *surface, int fogNum, vec3_t point, vec3_t color, float s
 
 	// fade the intensity of the flare down as the
 	// light surface turns away from the viewer
-	if ( normal ) {
-		VectorSubtract( backEnd.viewParms.orientation.origin, point, local );
-		VectorNormalizeFast( local );
-		d = DotProduct( local, normal );
-		VectorScale( f->color, d, f->color );
-	}
+	VectorScale( f->color, d, f->color );
 
 	// save info needed to test
 	f->windowX = backEnd.viewParms.viewportX + window[0];
@@ -374,11 +380,22 @@ RB_RenderFlare
 ==================
 */
 void RB_RenderFlare( flare_t *f ) {
-	float size;
-	vec3_t color;
-	int iColor[3];
+	float			size;
+	vec3_t			color;
+	int				iColor[3];
+	float distance;//, intensity, factor;
+	//byte fogFactors[3] = {255, 255, 255};
 
 	backEnd.pc.c_flareRenders++;
+
+	// We don't want too big values anyways when dividing by distance.
+	if ( f->eyeZ > -1.0f )
+		distance = 1.0f;
+	else
+		distance = -f->eyeZ;
+
+	// calculate the flare size..
+	size = backEnd.viewParms.viewportWidth * ( ( r_flareSize->value * f->scale )/640.0f + 8 / distance );
 
 //----(SA)	changed to use alpha blend rather than additive blend
 //			this is to accomidate the fact we can't right now do
@@ -393,8 +410,6 @@ void RB_RenderFlare( flare_t *f ) {
 	iColor[0] = color[0] * 255;
 	iColor[1] = color[1] * 255;
 	iColor[2] = color[2] * 255;
-
-	size = backEnd.viewParms.viewportWidth * ( ( r_flareSize->value * f->scale ) / 640.0 + 8 / -f->eyeZ );
 
 	RB_BeginSurface( tr.flareShader, f->fogNum );
 
@@ -533,7 +548,7 @@ void RB_RenderFlares (void) {
 	}
 
 	qglPushMatrix();
-    qglLoadIdentity();
+	qglLoadIdentity();
 	qglMatrixMode( GL_PROJECTION );
 	qglPushMatrix();
 	qglLoadMatrixf( GL_Ortho( backEnd.viewParms.viewportX, backEnd.viewParms.viewportX + backEnd.viewParms.viewportWidth,
@@ -551,4 +566,3 @@ void RB_RenderFlares (void) {
 	qglMatrixMode( GL_MODELVIEW );
 	qglPopMatrix();
 }
-

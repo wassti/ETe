@@ -2673,4 +2673,3 @@ void RE_LoadWorldMap( const char *name ) {
 //----(SA)	end
 	ri.FS_FreeFile( buffer.v );
 }
-

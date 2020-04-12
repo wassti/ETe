@@ -32,6 +32,9 @@ If you have questions concerning this license or the applicable additional terms
 
 static char *s_shaderText;
 
+static const char *s_extensionOffset;
+static int s_extendedShader;
+
 // the shader is parsed into these global variables, then copied into
 // dynamically allocated memory if it is valid.
 static shaderStage_t stages[MAX_SHADER_STAGES];
@@ -717,7 +720,7 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 		//
 		// clampmap <name>
 		//
-		else if ( !Q_stricmp( token, "clampmap" ) || !Q_stricmp( token, "screenMap" ) )
+		else if ( !Q_stricmp( token, "clampmap" ) || ( !Q_stricmp( token, "screenMap" ) && s_extendedShader ) )
 		{
 			imgFlags_t flags;
 
@@ -802,6 +805,7 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 		else if ( !Q_stricmp( token, "animMap" ) )
 		{
 			int	totalImages = 0;
+			int maxAnimations = s_extendedShader ? MAX_IMAGE_ANIMATIONS : MAX_IMAGE_ANIMATIONS_VET;
 
 			token = COM_ParseExt( text, qfalse );
 			if ( !token[0] )
@@ -820,7 +824,7 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 					break;
 				}
 				num = stage->bundle[0].numImageAnimations;
-				if ( num < MAX_IMAGE_ANIMATIONS ) {
+				if ( num < maxAnimations ) {
 					imgFlags_t flags = IMGFLAG_NONE;
 
 					if (!shader.noMipMaps)
@@ -843,9 +847,9 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 				totalImages++;
 			}
 
-			if ( totalImages > MAX_IMAGE_ANIMATIONS ) {
+			if ( totalImages > maxAnimations ) {
 				ri.Printf( PRINT_WARNING, "WARNING: ignoring excess images for 'animMap' (found %d, max is %d) in shader '%s'\n",
-						totalImages, MAX_IMAGE_ANIMATIONS, shader.name );
+					totalImages, maxAnimations, shader.name );
 			}
 		}
 		else if ( !Q_stricmp( token, "videoMap" ) )
@@ -1214,7 +1218,7 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 
 			continue;
 		}
-		else if ( !Q_stricmp( token, "depthFragment" ) )
+		else if ( !Q_stricmp( token, "depthFragment" ) && s_extendedShader )
 		{
 			stage->depthFragment = qtrue;
 		}
@@ -1280,6 +1284,7 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 
 	return qtrue;
 }
+
 
 /*
 ===============
@@ -1840,6 +1845,8 @@ static qboolean ParseShader( const char **text )
 
 	s = 0;
 
+	s_extendedShader = (*text >= s_extensionOffset);
+
 	token = COM_ParseExt( text, qtrue );
 	if ( token[0] != '{' )
 	{
@@ -2211,7 +2218,7 @@ static qboolean ParseShader( const char **text )
 			continue;
 		}
 		// conditional stage definition
-		else if ( !Q_stricmp( token, "if" ) || !Q_stricmp( token, "else" ) || !Q_stricmp( token, "elif" ) )
+		else if ( ( !Q_stricmp( token, "if" ) || !Q_stricmp( token, "else" ) || !Q_stricmp( token, "elif" ) ) && s_extendedShader )
 		{
 			if ( Q_stricmp( token, "if" ) == 0 ) {
 				branch = brIF;
@@ -2482,7 +2489,7 @@ static qboolean CollapseMultitexture( shaderStage_t *st0, shaderStage_t *st1, in
 	// set the new blend state bits
 	shader.multitextureEnv = qtrue;
 	st0->mtEnv = collapse[i].multitextureEnv;
-	st0->stateBits &= ~( GLS_DSTBLEND_BITS | GLS_SRCBLEND_BITS );
+	st0->stateBits &= ~GLS_BLEND_BITS;
 	st0->stateBits |= collapse[i].multitextureBlend;
 
 	//
@@ -3067,7 +3074,8 @@ static shader_t *FinishShader( void ) {
 		}
 	}
 
-	if ( shader.isSky || (tr.sunShaderName && Q_stricmp( shader.name, tr.sunShaderName ) == 0) ) {
+#ifndef USE_SKY_DEPTH_WRITE
+	if ( shader.isSky || ( tr.sunShaderName && tr.sunShaderName[0] && Q_stricmp( shader.name, "sun" ) == 0 ) ) {
 		if ( shader.isSky ) {
 			// r_showsky will let all the sky blocks be drawn in
 			// front of everything to allow developers to see how
@@ -3079,10 +3087,11 @@ static shader_t *FinishShader( void ) {
 					stages[i].stateBits |= GLS_DEPTHTEST_DISABLE;
 				}
 			} else {
-				// disable depth tests and writes for skybox shaders
+				// disable depth writes for skybox shaders
+				// but we still needs depth tests for portal views
 				for ( i = 0; i < stage; i++ ) {
 					stages[i].stateBits &= ~GLS_DEPTHMASK_TRUE;
-					stages[i].stateBits |= GLS_DEPTHTEST_DISABLE;
+					// stages[i].stateBits |= GLS_DEPTHTEST_DISABLE;
 				}
 			}
 		} else {
@@ -3092,6 +3101,7 @@ static shader_t *FinishShader( void ) {
 			}
 		}
 	}
+#endif
 
 	DetectNeeds();
 
@@ -4126,7 +4136,7 @@ static void ScanAndLoadShaderFiles( void )
 
 	// build single large buffer
 	s_shaderText = ri.Hunk_Alloc( sum + numShaderxFiles*2 + numShaderFiles*2 + 1, h_low );
-	s_shaderText[ 0 ] = '\0';
+	s_shaderText[ 0 ] = s_shaderText[ sum + numShaderxFiles*2 + numShaderFiles*2 ] = '\0';
 
 	textEnd = s_shaderText;
 
@@ -4139,6 +4149,11 @@ static void ScanAndLoadShaderFiles( void )
 			ri.FS_FreeFile( buffers[ i ] );
 		}
 	}
+
+	// if shader text >= s_extensionOffset then it is an extended shader
+	// normal shaders will never encounter that
+	s_extensionOffset = textEnd;
+
 	// extended shaders
 	for ( i = numShaderxFiles - 1; i >= 0 ; i-- ) {
 		if ( xbuffers[ i ] ) {

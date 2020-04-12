@@ -122,7 +122,10 @@ static void DrawTris( shaderCommands_t *input ) {
 	GLbitfield stateBits = 0;
 	GLboolean didDepth = GL_FALSE, polygonState = GL_FALSE;
 
-	if ( (r_showtris->integer == 1 && backEnd.doneSurfaces) || (r_showtris->integer == 2 && backEnd.drawConsole) )
+	if ( r_showtris->integer == 1 && backEnd.drawConsole )
+		return;
+
+	if ( tess.numIndexes == 0 )
 		return;
 
 	GL_ProgramDisable();
@@ -397,12 +400,6 @@ static void DrawMultitextured( const shaderCommands_t *input, int stage ) {
 	// done.
 
 	GL_State( pStage->stateBits );
-
-	// this is an ugly hack to work around a GeForce driver
-	// bug with multitexture and clip planes
-	if ( backEnd.viewParms.portalView != PV_NONE ) {
-		qglPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
-	}
 
 	if ( !setArraysOnce ) {
 		R_ComputeColors( pStage );

@@ -118,7 +118,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define OS_STRING "linux"
 #if defined (__i386__)
 #define OSARCH_STRING OS_STRING "32"
-defined (__x86_64__) || defined (__amd64__)
+#elif defined (__x86_64__) || defined (__amd64__)
 #define OSARCH_STRING OS_STRING "64"
 #endif
 #define ID_INLINE inline
@@ -143,7 +143,7 @@ defined (__x86_64__) || defined (__amd64__)
 
 #if defined (__i386__)
 #define OSARCH_STRING OS_STRING "32"
-defined (__x86_64__) || defined (__amd64__)
+#elif defined (__x86_64__) || defined (__amd64__)
 #define OSARCH_STRING OS_STRING "64"
 #endif
 

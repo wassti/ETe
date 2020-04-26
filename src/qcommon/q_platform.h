@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #define QDECL
 
+#define idppc 0
 #define id386 0
 #define idx64 0
 
@@ -59,6 +60,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define PATH_SEP '\\'
 #define PATH_SEP_FOREIGN '/'
 #define DLL_EXT ".dll"
+#define REN_DLL_EXT DLL_EXT
 
 #if defined( _M_IX86 )
 #define OSARCH_STRING "win32"
@@ -91,6 +93,15 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define PATH_SEP '/'
 #define PATH_SEP_FOREIGN '\\'
 #define DLL_EXT ".so"
+#define REN_DLL_EXT DLL_EXT
+
+#if defined (__ppc__)
+#define ARCH_STRING "ppc"
+#define Q3_BIG_ENDIAN
+#undef idppc
+#define idppc 1
+#endif // __ppc__
+#endif
 
 #if defined (__i386__)
 #define ARCH_STRING "i386"
@@ -108,6 +119,25 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #endif // __x86_64__ || __amd64__
 
 #endif // !_WIN32
+
+// ============================== macOS ====================================
+
+#if defined(__APPLE__) || defined(__APPLE_CC__)
+
+#include <endian.h>
+
+#define OS_STRING "macOS"
+#undef DLL_EXT
+#define DLL_EXT "_mac"
+#define REN_DLL_EXT ".dylib"
+#if defined (__i386__)
+#define OSARCH_STRING OS_STRING "32"
+#elif defined (__x86_64__) || defined (__amd64__)
+#define OSARCH_STRING OS_STRING "64"
+#endif
+#define ID_INLINE inline
+
+#endif // __linux___
 
 // ============================== Linux ====================================
 

@@ -101,7 +101,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #undef idppc
 #define idppc 1
 #endif // __ppc__
-#endif
 
 #if defined (__i386__)
 #define ARCH_STRING "i386"
@@ -124,7 +123,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #if defined(__APPLE__) || defined(__APPLE_CC__)
 
-#include <endian.h>
+#include <endian.h> // fixme what is the header for apple
 
 #define OS_STRING "macOS"
 #undef DLL_EXT

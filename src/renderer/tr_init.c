@@ -2002,6 +2002,7 @@ static void RE_Shutdown( int destroyWindow ) {
 
 		Com_Memset( &glConfig, 0, sizeof( glConfig ) );
 		gl_extensions = NULL;
+		gl_version = 0;
 		Com_Memset( &glState, 0, sizeof( glState ) );
 
 		// Ridah, release the virtual memory

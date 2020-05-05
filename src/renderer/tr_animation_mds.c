@@ -43,6 +43,11 @@ frame.
 //#define HIGH_PRECISION_BONES	// enable this for 32bit precision bones
 //#define DBG_PROFILE_BONES
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4459)
+#endif
+
 //-----------------------------------------------------------------------------
 // Static Vars, ugly but easiest (and fastest) means of seperating RB_SurfaceAnim
 // and R_CalcBones
@@ -1540,3 +1545,7 @@ int R_GetBoneTag( orientation_t *outTag, mdsHeader_t *mds, int startTagIndex, co
 
 	return i;
 }
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif

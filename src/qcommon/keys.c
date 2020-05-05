@@ -20,7 +20,15 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
 
+#include "../qcommon/q_shared.h"
+#include "../qcommon/qcommon.h"
+
+#ifdef DEDICATED
+#include "../client/keys.h"
+#else
+// Needed for cls struct access and cl_language
 #include "../client/client.h"
+#endif
 
 int		 anykeydown;
 qkey_t	 keys[MAX_KEYS];

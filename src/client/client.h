@@ -81,6 +81,20 @@ typedef struct {
 	int lastdoubleTap;
 } doubleTap_t;
 
+#ifdef USE_DISCORD
+typedef struct discordState_s {
+	char hostName[MAX_CVAR_VALUE_STRING];
+	char mapName[MAX_QPATH];
+	char gameDir[MAX_QPATH];
+	qboolean isETF;
+	qboolean needPassword;
+	int gametype, timelimit;
+	int playerCount, maxPlayers, botCount, specCount;
+	int redTeam, blueTeam, yellowTeam, greenTeam;
+	int playerClass, playerTeam;
+} discordState_t;
+#endif
+
 /*
 =============================================================================
 
@@ -175,6 +189,10 @@ typedef struct {
 	qboolean cameraMode;
 
 	byte			baselineUsed[MAX_GENTITIES];
+
+#ifdef USE_DISCORD
+	discordState_t	discord;
+#endif
 } clientActive_t;
 
 extern	clientActive_t		cl;
@@ -369,6 +387,11 @@ typedef struct {
 	int			realtime;			// ignores pause
 	int			realFrametime;		// ignoring pause, so console always works
 
+#ifdef USE_DISCORD
+	qboolean	discordInit;
+	int			discordUpdateTime;
+#endif
+
 	int			numlocalservers;
 	serverInfo_t	localServers[MAX_OTHER_SERVERS];
 
@@ -488,6 +511,10 @@ extern cvar_t  *cl_defaultProfile;
 
 extern	cvar_t	*cl_lanForcePackets;
 extern	cvar_t	*cl_autoRecordDemo;
+
+#ifdef USE_DISCORD
+extern	cvar_t	*cl_discordRichPresence;
+#endif
 
 //bani
 extern qboolean sv_cheats;
@@ -624,6 +651,9 @@ const char *Key_KeynumToString( int keynum, qboolean bTranslate );
 //
 extern int cl_connectedToPureServer;
 extern int cl_connectedToCheatServer;
+
+void CL_ParseServerInfo(void);
+void CL_ParsePlayerInfo(void);
 
 void CL_ParseServerMessage( msg_t *msg );
 
@@ -780,6 +810,12 @@ qboolean CL_OpenWAVForWriting( const char *filename, qboolean pipe );
 void CL_WriteWAVAudioFrame( const byte *pcmBuffer, int size );
 qboolean CL_CloseWAV( void );
 qboolean CL_WAVRecording( void );
+
+#ifdef USE_DISCORD
+void CL_DiscordInitialize(void);
+void CL_DiscordShutdown(void);
+void CL_DiscordUpdatePresence(void);
+#endif
 
 // platform-specific
 void	GLimp_Init( glconfig_t *config );

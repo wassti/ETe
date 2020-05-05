@@ -526,6 +526,14 @@ void CL_SystemInfoChanged( qboolean onlyGame ) {
 		Cvar_Set( "fs_game", "" );
 	}
 
+#ifdef USE_DISCORD
+	Q_strncpyz(cl.discord.gameDir, FS_GetCurrentGameDir(), sizeof(cl.discord.gameDir));
+	if (!Q_stricmp(cl.discord.gameDir, "etf"))
+		cl.discord.isETF = qtrue;
+	else
+		cl.discord.isETF = qfalse;
+#endif
+
 	if ( onlyGame && Cvar_Flags( "fs_game" ) & CVAR_MODIFIED ) {
 		// game directory change is needed
 		// return early to avoid systeminfo-cvar pollution in current fs_game
@@ -629,7 +637,7 @@ qboolean CL_GameSwitch( void )
 CL_ParseServerInfo
 ==================
 */
-static void CL_ParseServerInfo( void )
+void CL_ParseServerInfo( void )
 {
 	const char *serverInfo;
 	size_t	len;
@@ -647,7 +655,97 @@ static void CL_ParseServerInfo( void )
 	len = strlen( clc.sv_dlURL );
 	if ( len > 0 &&  clc.sv_dlURL[len-1] == '/' )
 		clc.sv_dlURL[len-1] = '\0';
+
+#ifdef USE_DISCORD
+	// Discord
+	Q_strncpyz(cl.discord.hostName, Info_ValueForKey(serverInfo, "sv_hostname"), sizeof(cl.discord.hostName));
+	cl.discord.maxPlayers = atoi(Info_ValueForKey(serverInfo, "sv_maxclients"));
+	cl.discord.timelimit = atoi(Info_ValueForKey(serverInfo, "timelimit"));
+	cl.discord.gametype = atoi(Info_ValueForKey(serverInfo, "g_gametype"));
+	cl.discord.needPassword = atoi(Info_ValueForKey(serverInfo, "g_needpass")) != 0 ? qtrue : qfalse;
+	cl.discord.botCount = atoi(Info_ValueForKey(serverInfo, "omnibot_playing"));
+	Q_strncpyz(cl.discord.mapName, Info_ValueForKey(serverInfo, "mapname"), sizeof(cl.discord.mapName));
+
+	Q_CleanStr(cl.discord.hostName);
+	Q_CleanStr(cl.discord.mapName);
+	Q_strlwr(cl.discord.mapName);
+#endif
 }
+
+#ifdef USE_DISCORD
+#define ETF_CS_PLAYERS (800)
+#define ETF_CS_PLAYERS_END (ETF_CS_PLAYERS + MAX_CLIENTS)
+#define CS_PLAYERS_END (CS_PLAYERS + MAX_CLIENTS)
+void CL_ParsePlayerInfo(void)
+{
+	int clientCount = 0, /*botCount = 0,*/ redTeam = 0, blueTeam = 0, yellowTeam = 0, greenTeam = 0, specTeam = 0;
+	const int start = cl.discord.isETF ? ETF_CS_PLAYERS : CS_PLAYERS;
+	const int end = cl.discord.isETF ? ETF_CS_PLAYERS_END : CS_PLAYERS_END;
+	int i = start;
+
+	while (i < end)
+	{
+		char *s = cl.gameState.stringData + cl.gameState.stringOffsets[i];
+		int team = atoi(Info_ValueForKey(s, "t"));
+		//char* bot = Info_ValueForKey(s, "skill");
+
+		if (i == clc.clientNum) {
+			if (cl.discord.isETF) {
+				cl.discord.playerClass = atoi(Info_ValueForKey(s, "cls"));
+			}
+			else {
+				cl.discord.playerClass = atoi(Info_ValueForKey(s, "c"));
+			}
+			cl.discord.playerTeam = team;
+		}
+
+		switch (team)
+		{
+		default:
+		case 0:
+			break;
+		case 1:
+			redTeam++;
+			break;
+		case 2:
+			blueTeam++;
+			break;
+		case 3:
+			if (cl.discord.isETF)
+				yellowTeam++;
+			else
+				specTeam++;
+			break;
+		case 4:
+			if (cl.discord.isETF)
+				greenTeam++;
+			break;
+		case 5:
+			if (cl.discord.isETF)
+				specTeam++;
+			break;
+		}
+
+		/*if (bot && bot[0])
+		{
+			botCount++;
+		}*/
+
+		if (s && s[0])
+		{
+			clientCount++;
+		}
+
+		i++;
+	}
+
+	cl.discord.playerCount = clientCount;
+	cl.discord.redTeam = redTeam;
+	cl.discord.blueTeam = blueTeam;
+	cl.discord.specCount = specTeam;
+	//cl.discord.botCount = 0;//botCount;
+}
+#endif
 
 
 /*
@@ -766,6 +864,11 @@ static void CL_ParseGamestate( msg_t *msg ) {
 	FS_ConditionalRestart( clc.checksumFeed, gamedirModified );
 
 	cls.gameSwitch = qfalse;
+
+#ifdef USE_DISCORD
+	// Parse player info for discord
+	CL_ParsePlayerInfo();
+#endif
 
 	// This used to call CL_StartHunkUsers, but now we enter the download state before loading the
 	// cgame

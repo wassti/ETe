@@ -209,6 +209,11 @@ qboolean CL_CGameCheckKeyExec( int key ) {
 }
 
 
+#ifdef USE_DISCORD
+#define ETF_CS_PLAYERS (800)
+#define ETF_CS_PLAYERS_END (ETF_CS_PLAYERS + MAX_CLIENTS)
+#define CS_PLAYERS_END (CS_PLAYERS + MAX_CLIENTS)
+#endif
 /*
 =====================
 CL_ConfigstringModified
@@ -263,10 +268,20 @@ static void CL_ConfigstringModified( void ) {
 		cl.gameState.dataCount += len + 1;
 	}
 
-	if ( index == CS_SYSTEMINFO ) {
+	if ( index == CS_SERVERINFO ) {
+		CL_ParseServerInfo();
+	} else if ( index == CS_SYSTEMINFO ) {
 		// parse serverId and other cvars
 		CL_SystemInfoChanged( qfalse );
+#ifdef USE_DISCORD
+	} else if ( cl.discord.isETF && index >= ETF_CS_PLAYERS && index < ETF_CS_PLAYERS_END) {
+		CL_ParsePlayerInfo();
+	} else if ( !cl.discord.isETF && index >= CS_PLAYERS && index < CS_PLAYERS_END) {
+		CL_ParsePlayerInfo();
 	}
+#else
+	}
+#endif
 }
 
 

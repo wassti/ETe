@@ -135,6 +135,10 @@ cvar_t *r_currentResolution;
 // this is shared with the OS sys files
 cvar_t *in_forceCharset;
 
+#ifdef USE_DISCORD
+cvar_t	*cl_discordRichPresence;
+#endif
+
 clientActive_t		cl;
 clientConnection_t	clc;
 clientStatic_t		cls;
@@ -3489,6 +3493,27 @@ void CL_Frame( int msec ) {
 	SCR_RunCinematic();
 
 	Con_RunConsole();
+
+#ifdef USE_DISCORD
+	if (cl_discordRichPresence->integer) {
+		if ( cls.realtime >= 5000 && !cls.discordInit )
+		{ //we just turned it on
+			CL_DiscordInitialize();
+			cls.discordInit = qtrue;
+		}
+	
+		if ( cls.realtime >= cls.discordUpdateTime && cls.discordInit)
+		{
+			CL_DiscordUpdatePresence();
+			cls.discordUpdateTime = cls.realtime + 500;
+		}
+	}
+	else if (cls.discordInit) { //we just turned it off
+		CL_DiscordShutdown();
+		cls.discordUpdateTime = 0;
+		cls.discordInit = qfalse;
+	}
+#endif
 }
 
 
@@ -4489,6 +4514,11 @@ void CL_Init( void ) {
 
 	in_forceCharset = Cvar_Get( "in_forceCharset", "1", CVAR_ARCHIVE_ND );
 
+#ifdef USE_DISCORD
+	cl_discordRichPresence = Cvar_Get("cl_discordRichPresence", "0", CVAR_ARCHIVE );
+	Cvar_SetDescription( cl_discordRichPresence, "Allow/disallow sharing current game information on Discord profile status" );
+#endif
+
 	//
 	// register client commands
 	//
@@ -4587,6 +4617,12 @@ void CL_Init( void ) {
 	CL_InitTranslation();       // NERVE - SMF - localization
 #endif
 
+#ifdef USE_DISCORD
+	if (cl_discordRichPresence->integer) {
+		CL_DiscordInitialize();
+		cls.discordInit = qtrue;
+	}
+#endif
 
 	Cvar_SetGroup( cl_language, CVG_LANGUAGE );
 	Cvar_SetGroup( in_forceCharset, CVG_LANGUAGE );
@@ -4686,6 +4722,11 @@ void CL_Shutdown( const char *finalmsg, qboolean quit ) {
 #endif
 
 	Cmd_RemoveCommand( "locations" );
+
+#ifdef USE_DISCORD
+	if (cl_discordRichPresence->integer || cls.discordInit)
+		CL_DiscordShutdown();
+#endif
 
 	CL_ShutdownInput();
 	Con_Shutdown();

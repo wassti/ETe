@@ -932,7 +932,7 @@ int FS_SV_FOpenFileRead( const char *filename, fileHandle_t *fp ) {
 	FS_InitHandle( fd );
 
 #ifndef DEDICATED
-	// don't let sound shutter
+	// don't let sound stutter
 	//S_ClearSoundBuffer( qfalse );
 #endif
 
@@ -1175,6 +1175,20 @@ void FS_FCloseFile( fileHandle_t f ) {
 	}
 
 	Com_Memset( fd, 0, sizeof( *fd ) );
+}
+
+
+/*
+===========
+FS_ResetReadOnlyAttribute
+===========
+*/
+qboolean FS_ResetReadOnlyAttribute( const char *filename ) {
+	char *ospath;
+	
+	ospath = FS_BuildOSPath( fs_homepath->string, fs_gamedir, filename );
+
+	return Sys_ResetReadOnlyAttribute( ospath );
 }
 
 

@@ -529,7 +529,7 @@ void SV_DirectConnect( const netadr_t *from ) {
 		return;
 	}
 	version = atoi( v );
-	
+
 	if ( version == PROTOCOL_VERSION )
 		compat = qtrue;
 	else
@@ -985,9 +985,13 @@ static void SV_SendClientGameState( client_t *client ) {
 	msg_t		msg;
 	byte		msgBuffer[ MAX_MSGLEN_BUF ];
 
- 	Com_DPrintf( "SV_SendClientGameState() for %s\n", client->name );
-	Com_DPrintf( "Going from CS_CONNECTED to CS_PRIMED for %s\n", client->name );
+	Com_DPrintf( "SV_SendClientGameState() for %s\n", client->name );
+
+	if ( client->state != CS_PRIMED ) {
+		Com_DPrintf( "Going from CS_CONNECTED to CS_PRIMED for %s\n", client->name );
+	}
 	client->state = CS_PRIMED;
+
 	client->pureAuthentic = qfalse;
 	client->gotCP = qfalse;
 
@@ -1162,8 +1166,9 @@ static void SV_DoneDownload_f( client_t *cl ) {
 		return;
 
 	Com_DPrintf( "clientDownload: %s Done\n", cl->name);
+
 	// resend the game state to update any clients that entered during the download
-	SV_SendClientGameState(cl);
+	SV_SendClientGameState( cl );
 }
 
 
@@ -2271,29 +2276,25 @@ static void SV_UserMove( client_t *cl, msg_t *msg, qboolean delta ) {
 	}
 
 	// save time for ping calculation
-	if ( cl->frames[ cl->messageAcknowledge & PACKET_MASK ].messageAcked == 0 )
+	if ( cl->frames[ cl->messageAcknowledge & PACKET_MASK ].messageAcked == 0 ) {
 		cl->frames[ cl->messageAcknowledge & PACKET_MASK ].messageAcked = Sys_Milliseconds();
-
-	// TTimo
-	// catch the no-cp-yet situation before SV_ClientEnterWorld
-	// if CS_ACTIVE, then it's time to trigger a new gamestate emission
-	// if not, then we are getting remaining parasite usermove commands, which we should ignore
-	if ( sv_pure->integer != 0 && !cl->pureAuthentic && !cl->gotCP ) {
-		if ( cl->state == CS_ACTIVE ) {
-			// we didn't get a cp yet, don't assume anything and just send the gamestate all over again
-			Com_DPrintf( "%s: didn't get cp command, resending gamestate\n", cl->name );
-			SV_SendClientGameState( cl );
-		}
-		return;
 	}
 
 	// if this is the first usercmd we have received
 	// this gamestate, put the client into the world
 	if ( cl->state == CS_PRIMED ) {
+		if ( sv_pure->integer != 0 && !cl->gotCP ) {
+			// we didn't get a cp yet, don't assume anything and just send the gamestate all over again
+			if ( !SVC_RateLimit( &cl->gamestate_rate, 4, 1000 ) ) {
+				Com_DPrintf( "%s: didn't get cp command, resending gamestate\n", cl->name );
+				SV_SendClientGameState( cl );
+			}
+			return;
+		}
 		SV_ClientEnterWorld( cl, &cmds[0] );
 		// the moves can be processed normaly
 	}
-
+	
 	// a bad cp command was sent, drop the client
 	if ( sv_pure->integer != 0 && !cl->pureAuthentic ) {
 		SV_DropClient( cl, "Cannot validate pure client!" );
@@ -2419,8 +2420,10 @@ void SV_ExecuteClientMessage( client_t *cl, msg_t *msg ) {
 		// if we can tell that the client has dropped the last
 		// gamestate we sent them, resend it
 		if ( cl->state != CS_ACTIVE && cl->messageAcknowledge > cl->gamestateMessageNum ) {
-			Com_DPrintf( "%s : dropped gamestate, resending\n", cl->name );
-			SV_SendClientGameState( cl );
+			if ( !SVC_RateLimit( &cl->gamestate_rate, 4, 1000 ) ) {
+				Com_DPrintf( "%s : dropped gamestate, resending\n", cl->name );
+				SV_SendClientGameState( cl );
+			}
 		}
 
 		// read optional clientCommand strings

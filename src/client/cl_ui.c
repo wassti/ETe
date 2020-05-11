@@ -819,10 +819,10 @@ static void *VM_ArgPtr( intptr_t intValue ) {
 	if ( !intValue || uivm == NULL )
 	  return NULL;
 
-	if ( uivm->entryPoint )
+	//if ( uivm->entryPoint )
 		return (void *)(intValue);
-	else
-		return (void *)(uivm->dataBase + (intValue & uivm->dataMask));
+	//else
+	//	return (void *)(uivm->dataBase + (intValue & uivm->dataMask));
 }
 
 

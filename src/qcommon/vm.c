@@ -60,7 +60,6 @@ static const char *vmName[ VM_COUNT ] = {
 };
 
 static void VM_VmInfo_f( void );
-static void VM_VmProfile_f( void );
 
 #ifdef _DEBUG
 void VM_Debug( int level ) {
@@ -74,7 +73,6 @@ VM_Init
 ==============
 */
 void VM_Init( void ) {
-	Cmd_AddCommand( "vmprofile", VM_VmProfile_f );
 	Cmd_AddCommand( "vminfo", VM_VmInfo_f );
 
 	Com_Memset( vmTable, 0, sizeof( vmTable ) );
@@ -404,21 +402,6 @@ intptr_t QDECL VM_Call( vm_t *vm, int nargs, int callnum, ... )
 
 //=================================================================
 
-static int QDECL VM_ProfileSort( const void *a, const void *b ) {
-	vmSymbol_t	*sa, *sb;
-
-	sa = *(vmSymbol_t **)a;
-	sb = *(vmSymbol_t **)b;
-
-	if ( sa->profileCount < sb->profileCount ) {
-		return -1;
-	}
-	if ( sa->profileCount > sb->profileCount ) {
-		return 1;
-	}
-	return 0;
-}
-
 
 /*
 ==============
@@ -453,63 +436,11 @@ static vm_t *VM_NameToVM( const char *name )
 
 /*
 ==============
-VM_VmProfile_f
-
-==============
-*/
-static void VM_VmProfile_f( void ) {
-	vm_t		*vm;
-	vmSymbol_t	**sorted, *sym;
-	int			i;
-	double		total;
-
-	if ( Cmd_Argc() < 2 ) {
-		Com_Printf( "usage: %s <game|cgame|ui>\n", Cmd_Argv( 0 ) );
-		return;
-	}
-
-	vm = VM_NameToVM( Cmd_Argv( 1 ) );
-	if ( vm == NULL ) {
-		return;
-	}
-
-	if ( !vm->numSymbols ) {
-		return;
-	}
-
-	sorted = Z_Malloc( vm->numSymbols * sizeof( *sorted ) );
-	sorted[0] = vm->symbols;
-	total = sorted[0]->profileCount;
-	for ( i = 1 ; i < vm->numSymbols ; i++ ) {
-		sorted[i] = sorted[i-1]->next;
-		total += sorted[i]->profileCount;
-	}
-
-	qsort( sorted, vm->numSymbols, sizeof( *sorted ), VM_ProfileSort );
-
-	for ( i = 0 ; i < vm->numSymbols ; i++ ) {
-		int		perc;
-
-		sym = sorted[i];
-
-		perc = 100 * (float) sym->profileCount / total;
-		Com_Printf( "%2i%% %9i %s\n", perc, sym->profileCount, sym->symName );
-		sym->profileCount = 0;
-	}
-
-	Com_Printf("    %9.0f total\n", total );
-
-	Z_Free( sorted );
-}
-
-
-/*
-==============
 VM_VmInfo_f
 ==============
 */
 static void VM_VmInfo_f( void ) {
-	vm_t	*vm;
+	const vm_t	*vm;
 	int		i;
 
 	Com_Printf( "Registered virtual machines:\n" );
@@ -534,27 +465,3 @@ static void VM_VmInfo_f( void ) {
 	}
 }
 
-
-/*
-===============
-VM_LogSyscalls
-
-Insert calls to this while debugging the vm compiler
-===============
-*/
-void VM_LogSyscalls( int *args ) {
-#if 0
-	static	int		callnum;
-	static	FILE	*f;
-
-	if ( !f ) {
-		f = Sys_FOpen( "syscalls.log", "w" );
-		if ( !f ) {
-			return;
-		}
-	}
-	callnum++;
-	fprintf( f, "%i: %p (%i) = %i %i %i %i\n", callnum, (void*)(args - (int *)currentVM->dataBase),
-		args[0], args[1], args[2], args[3], args[4] );
-#endif
-}

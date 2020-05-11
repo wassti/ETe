@@ -286,7 +286,7 @@ SV_GetUsercmd
 */
 static void SV_GetUsercmd( int clientNum, usercmd_t *cmd ) {
 	if ( clientNum < 0 || clientNum >= sv_maxclients->integer ) {
-		Com_Error( ERR_DROP, "SV_GetUsercmd: bad clientNum:%i", clientNum );
+		Com_Error( ERR_DROP, "SV_GetUsercmd: bad clientNum: %i", clientNum );
 	}
 	*cmd = svs.clients[clientNum].lastUsercmd;
 }
@@ -369,10 +369,10 @@ static void *VM_ArgPtr( intptr_t intValue ) {
 	if ( !intValue || gvm == NULL )
 		return NULL;
 
-	if ( gvm->entryPoint )
+	//if ( gvm->entryPoint )
 		return (void *)(intValue);
-	else
-		return (void *)(gvm->dataBase + (intValue & gvm->dataMask));
+	//else
+	//	return (void *)(gvm->dataBase + (intValue & gvm->dataMask));
 }
 
 

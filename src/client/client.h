@@ -537,9 +537,9 @@ extern	cvar_t	*r_customwidth;
 extern	cvar_t	*r_customheight;
 extern	cvar_t	*r_customaspect;
 extern	cvar_t	*r_colorbits;
-extern	cvar_t	*r_stencilbits;
-extern	cvar_t	*r_depthbits;
-extern	cvar_t	*r_drawBuffer;
+extern	cvar_t	*cl_stencilbits;
+extern	cvar_t	*cl_depthbits;
+extern	cvar_t	*cl_drawBuffer;
 extern	cvar_t	*r_currentResolution;
 
 //=================================================

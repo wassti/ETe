@@ -127,9 +127,10 @@ cvar_t *r_customaspect;
 
 cvar_t *r_colorbits;
 // these also shared with renderers:
-cvar_t *r_stencilbits;
-cvar_t *r_depthbits;
-cvar_t *r_drawBuffer;
+cvar_t *cl_stencilbits;
+cvar_t *cl_depthbits;
+cvar_t *cl_drawBuffer;
+
 cvar_t *r_currentResolution;
 
 // this is shared with the OS sys files
@@ -4320,12 +4321,12 @@ static void CL_InitGLimp_Cvars( void )
 	Cvar_CheckRange( r_colorbits, "0", "32", CV_INTEGER );
 
 	// shared with renderer:
-	r_stencilbits = Cvar_Get( "r_stencilbits", "8", CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE );
-	Cvar_CheckRange( r_stencilbits, "0", "8", CV_INTEGER );
-	r_depthbits = Cvar_Get( "r_depthbits", "0", CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE );
-	Cvar_CheckRange( r_depthbits, "0", "32", CV_INTEGER );
+	cl_stencilbits = Cvar_Get( "r_stencilbits", "8", CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE );
+	Cvar_CheckRange( cl_stencilbits, "0", "8", CV_INTEGER );
+	cl_depthbits = Cvar_Get( "r_depthbits", "0", CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE );
+	Cvar_CheckRange( cl_depthbits, "0", "32", CV_INTEGER );
 
-	r_drawBuffer = Cvar_Get( "r_drawBuffer", "GL_BACK", CVAR_CHEAT );
+	cl_drawBuffer = Cvar_Get( "r_drawBuffer", "GL_BACK", CVAR_CHEAT );
 
 #ifdef USE_RENDERER_DLOPEN
 	cl_renderer = Cvar_Get( "cl_renderer", "opengl", CVAR_ARCHIVE | CVAR_LATCH );

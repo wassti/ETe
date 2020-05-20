@@ -4505,7 +4505,6 @@ void CL_Init( void ) {
 	// Make sure cg_stereoSeparation is zero as that variable is deprecated and should not be used anymore.
 	Cvar_Get ("cg_stereoSeparation", "0", CVAR_ROM);
 
-
 	Cvar_Get( "cg_autoReload", "1", CVAR_ARCHIVE_ND );
 
 	// NERVE - SMF - localization
@@ -4543,7 +4542,6 @@ void CL_Init( void ) {
 	Cmd_AddCommand( "globalservers", CL_GlobalServers_f );
 	Cmd_AddCommand( "rcon", CL_Rcon_f );
 	Cmd_SetCommandCompletionFunc( "rcon", CL_CompleteRcon );
-	//Cmd_AddCommand( "setenv", CL_Setenv_f );
 	Cmd_AddCommand( "ping", CL_Ping_f );
 	Cmd_AddCommand( "serverstatus", CL_ServerStatus_f );
 	Cmd_AddCommand( "showip", CL_ShowIP_f );
@@ -4641,11 +4639,11 @@ CL_Shutdown
 */
 void CL_Shutdown( const char *finalmsg, qboolean quit ) {
 	static qboolean recursive = qfalse;
-	
+
 	// check whether the client is running at all.
 	if ( !( com_cl_running && com_cl_running->integer ) )
 		return;
-	
+
 	Com_Printf( "----- Client Shutdown (%s) -----\n", finalmsg );
 
 	if ( recursive ) {
@@ -4684,7 +4682,6 @@ void CL_Shutdown( const char *finalmsg, qboolean quit ) {
 	Cmd_RemoveCommand ("localservers");
 	Cmd_RemoveCommand ("globalservers");
 	Cmd_RemoveCommand ("rcon");
-	//Cmd_RemoveCommand( "setenv" );
 	Cmd_RemoveCommand ("ping");
 	Cmd_RemoveCommand ("serverstatus");
 	Cmd_RemoveCommand ("showip");
@@ -5621,73 +5618,6 @@ CL_ShowIP_f
 static void CL_ShowIP_f( void ) {
 	Sys_ShowIP();
 }
-
-// NERVE - SMF
-/*
-=======================
-CL_AddToLimboChat
-
-=======================
-*/
-void CL_AddToLimboChat( const char *str ) {
-	int len;
-	char *p, *ls;
-	int lastcolor;
-	int chatHeight;
-	int i;
-
-	chatHeight = LIMBOCHAT_HEIGHT;
-	cl.limboChatPos = LIMBOCHAT_HEIGHT - 1;
-	len = 0;
-
-	// copy old strings
-	for ( i = cl.limboChatPos; i > 0; i-- ) {
-		strcpy( cl.limboChatMsgs[i], cl.limboChatMsgs[i - 1] );
-	}
-
-	// copy new string
-	p = cl.limboChatMsgs[0];
-	*p = 0;
-
-	lastcolor = '7';
-
-	ls = NULL;
-	while ( *str ) {
-		if ( len > LIMBOCHAT_WIDTH - 1 ) {
-			break;
-		}
-
-		if ( Q_IsColorString( str ) ) {
-			*p++ = *str++;
-			lastcolor = *str;
-			*p++ = *str++;
-			continue;
-		}
-		if ( *str == ' ' ) {
-			ls = p;
-		}
-		*p++ = *str++;
-		len++;
-	}
-	*p = 0;
-}
-
-/*
-=======================
-CL_GetLimboString
-
-=======================
-*/
-qboolean CL_GetLimboString( int index, char *buf ) {
-	if ( index >= LIMBOCHAT_HEIGHT ) {
-		return qfalse;
-	}
-
-	strncpy( buf, cl.limboChatMsgs[index], 140 );
-	return qtrue;
-}
-// -NERVE - SMF
-
 
 
 // NERVE - SMF - Localization code

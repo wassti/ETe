@@ -44,9 +44,6 @@ If you have questions concerning this license or the applicable additional terms
 
 #define RETRANSMIT_TIMEOUT  3000    // time between connection packet retransmits
 
-#define LIMBOCHAT_WIDTH     140     // NERVE - SMF - NOTE TTimo buffer size indicator, not related to screen bbox
-#define LIMBOCHAT_HEIGHT    7       // NERVE - SMF
-
 #define ETKEY_FILE "etkey"
 #define ETKEY_SIZE 28
 
@@ -175,12 +172,6 @@ typedef struct {
 	entityState_t entityBaselines[MAX_GENTITIES];   // for delta compression when not in previous frame
 
 	entityState_t parseEntities[MAX_PARSE_ENTITIES];
-
-	// NERVE - SMF
-	// NOTE TTimo - UI uses LIMBOCHAT_WIDTH strings (140),
-	// but for the processing in CL_AddToLimboChat we need some safe room
-	char limboChatMsgs[LIMBOCHAT_HEIGHT][LIMBOCHAT_WIDTH * 3 + 1];
-	int limboChatPos;
 
 	qboolean corruptedTranslationFile;
 	char translationVersion[MAX_STRING_TOKENS];
@@ -566,9 +557,6 @@ int CL_GetPingQueueCount( void );
 void CL_ClearState( void );
 
 int CL_ServerStatus( const char *serverAddress, char *serverStatusString, int maxLen );
-
-void CL_AddToLimboChat( const char *str );                  // NERVE - SMF
-qboolean CL_GetLimboString( int index, char *buf );         // NERVE - SMF
 
 // NERVE - SMF - localization
 void CL_InitTranslation();

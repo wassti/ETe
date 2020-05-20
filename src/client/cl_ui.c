@@ -1271,7 +1271,8 @@ static intptr_t CL_UISystemCalls( intptr_t *args ) {
 
 		// NERVE - SMF
 	case UI_CL_GETLIMBOSTRING:
-		return CL_GetLimboString( args[1], VMA( 2 ) );
+		return qtrue;
+		//return CL_GetLimboString( args[1], VMA( 2 ) );
 
 	case UI_CL_TRANSLATE_STRING:
 		CL_TranslateString( VMA( 1 ), VMA( 2 ) );

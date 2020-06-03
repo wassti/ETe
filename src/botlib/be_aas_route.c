@@ -126,7 +126,7 @@ void AAS_RoutingInfo( void ) {
 // Returns:				-
 // Changes Globals:		-
 //===========================================================================
-__inline int AAS_ClusterAreaNum( int cluster, int areanum ) {
+static ID_INLINE int AAS_ClusterAreaNum( int cluster, int areanum ) {
 	int side, areacluster;
 
 	areacluster = aasworld->areasettings[areanum].cluster;
@@ -198,7 +198,7 @@ int AAS_TravelFlagForType( int traveltype ) {
 // Returns:					-
 // Changes Globals:		-
 //===========================================================================
-__inline float AAS_RoutingTime( void ) {
+static ID_INLINE float AAS_RoutingTime( void ) {
 	return AAS_Time();
 } //end of the function AAS_RoutingTime
 
@@ -1329,7 +1329,7 @@ void AAS_FreeRoutingCaches( void ) {
 // Returns:				-
 // Changes Globals:		-
 //===========================================================================
-__inline void AAS_AddUpdateToList( aas_routingupdate_t **updateliststart,
+static ID_INLINE void AAS_AddUpdateToList( aas_routingupdate_t **updateliststart,
 								   aas_routingupdate_t **updatelistend,
 								   aas_routingupdate_t *update ) {
 	if ( !update->inlist ) {

@@ -179,6 +179,7 @@ TTimo: added some verbosity in debug
 */
 const char* Sys_GetDLLName(const char* name);
 
+#if 0
 static void * QDECL VM_LoadDll( const char *name, dllSyscall_t *entryPoint, dllSyscall_t systemcalls ) {
 
 	const char	*gamedir = Cvar_VariableString( "fs_game" );
@@ -215,6 +216,7 @@ static void * QDECL VM_LoadDll( const char *name, dllSyscall_t *entryPoint, dllS
 
 	return libHandle;
 }
+#endif
 
 
 /*

@@ -1253,6 +1253,7 @@ Used for extraction, expects that you know what you are doing
 as far as making sure the extension is allowed
 ===========
 */
+#ifndef DEDICATED
 static fileHandle_t FS_FOpenDLLWrite( const char *filename ) {
 	char			*ospath;
 	fileHandle_t	f;
@@ -1296,6 +1297,7 @@ static fileHandle_t FS_FOpenDLLWrite( const char *filename ) {
 
 	return f;
 }
+#endif
 
 
 /*

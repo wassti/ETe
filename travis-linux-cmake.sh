@@ -19,7 +19,7 @@ cd src
 mkdir build
 cd build
 
-cmake .. -G "Unix Makefiles" -DCMAKE_BUILD_TYPE="$BUILD_CONFIGURATION" -DUSE_SDL2=TRUE || exit 1
+cmake .. -G "Unix Makefiles" -DCMAKE_BUILD_TYPE="$BUILD_CONFIGURATION" -DUSE_SDL2=TRUE -DCMAKE_TOOLCHAIN_FILE="../CMakeModules/linux-i686.cmake" || exit 1
 cmake --build . --config $BUILD_CONFIGURATION || exit 1
 
 ls -R *.x86

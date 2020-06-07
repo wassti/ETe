@@ -1,6 +1,21 @@
 cmake_minimum_required(VERSION 3.6)
 project(ETe C CXX)
 
+# Set a default build type if none was specified
+set(default_build_type "Release")
+#if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
+#  set(default_build_type "Debug")
+#endif()
+ 
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  message(STATUS "Setting build type to '${default_build_type}' as none was specified.")
+  set(CMAKE_BUILD_TYPE "${default_build_type}" CACHE
+      STRING "Choose the type of build." FORCE)
+  # Set the possible values of build type for cmake-gui
+  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS
+    "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
+endif()
+
 Include(CheckTypeSize)
 check_type_size("void*" CMAKE_SIZEOF_VOID_P)
 
@@ -8,20 +23,20 @@ if(CMAKE_SIZEOF_VOID_P EQUAL 8)
     message("64-bit compatibility not yet working! Enforce 32-bit with a toolchain")
 endif(CMAKE_SIZEOF_VOID_P EQUAL 8)
 
-#option(USE_SDL2 "Whether to use native backends or SDL2" OFF)
+option(BUILD_CLIENT "Build the ete client binary" ON)
+option(BUILD_DEDSERVER "Build the ete dedicated server binary" ON)
+option(USE_SDL2 "Whether to use native backends or SDL2" OFF)
+option(USE_SYSTEM_JPEG "Look for and use system jpeg library instead of locally built" ON)
 #option(DYNAMIC_RENDERER "Whether to use modular rendering features (builds as shared object instead of library" OFF)
+#option(USE_DISCORD "Use discord rich presence API" OFF)
 
-#set(gcc_like_cxx "$<COMPILE_LANG_AND_ID:CXX,ARMClang,AppleClang,Clang,GNU>")
+set(USE_DISCORD OFF)
 
-set(CMAKE_CXX_FLAGS "-pipe -Wall -fmessage-length=0 -fno-strict-aliasing")
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -g -D_DEBUG")
-set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_DEBUG} -O1")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -O3 -march=i686 -Winline -ffast-math -fomit-frame-pointer -finline-functions -fschedule-insns2")
-
-set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS}")
-set(CMAKE_C_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
-set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
-set(CMAKE_C_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
+set(compiler_flags_global -pipe -Wall -fmessage-length=0 -fno-strict-aliasing)
+set(compiler_flags_debug ${compiler_flags_global} -g -D_DEBUG)
+set(compiler_flags_relwithdebinfo ${compiler_flags_debug} -O1)
+#set(compiler_flags_minsizerel)
+set(compiler_flags_release ${compiler_flags_global} -DNDEBUG -O3 -march=i686 -Winline -ffast-math -fomit-frame-pointer -finline-functions -fschedule-insns2)
 
 set(SRCDIR "${CMAKE_SOURCE_DIR}")
 
@@ -150,55 +165,67 @@ set(linux_client_files
     "unix/x11_vidmode.c"
 )
 
+if(USE_SDL2)
+    set(sdl_files
+        "sdl/sdl_gamma.c"
+        "sdl/sdl_glimp.c"
+        "sdl/sdl_glw.h"
+        "sdl/sdl_icon.h"
+        "sdl/sdl_input.c"
+        "sdl/sdl_snd.c")
+endif(USE_SDL2)
+
 #todo allow system jpeg(turbo)
-set(jpeg_local_files
-    "jpeg-8c/jaricom.c"
-    "jpeg-8c/jcapimin.c"
-    "jpeg-8c/jcapistd.c"
-    "jpeg-8c/jcarith.c"
-    "jpeg-8c/jccoefct.c"
-    "jpeg-8c/jccolor.c"
-    "jpeg-8c/jcdctmgr.c"
-    "jpeg-8c/jchuff.c"
-    "jpeg-8c/jcinit.c"
-    "jpeg-8c/jcmainct.c"
-    "jpeg-8c/jcmarker.c"
-    "jpeg-8c/jcmaster.c"
-    "jpeg-8c/jcomapi.c"
-    "jpeg-8c/jcparam.c"
-    "jpeg-8c/jcprepct.c"
-    "jpeg-8c/jcsample.c"
-    "jpeg-8c/jctrans.c"
-    "jpeg-8c/jdapimin.c"
-    "jpeg-8c/jdapistd.c"
-    "jpeg-8c/jdarith.c"
-    "jpeg-8c/jdatadst.c"
-    "jpeg-8c/jdatasrc.c"
-    "jpeg-8c/jdcoefct.c"
-    "jpeg-8c/jdcolor.c"
-    "jpeg-8c/jddctmgr.c"
-    "jpeg-8c/jdhuff.c"
-    "jpeg-8c/jdinput.c"
-    "jpeg-8c/jdmainct.c"
-    "jpeg-8c/jdmarker.c"
-    "jpeg-8c/jdmaster.c"
-    "jpeg-8c/jdmerge.c"
-    "jpeg-8c/jdpostct.c"
-    "jpeg-8c/jdsample.c"
-    "jpeg-8c/jdtrans.c"
-    "jpeg-8c/jerror.c"
-    "jpeg-8c/jfdctflt.c"
-    "jpeg-8c/jfdctfst.c"
-    "jpeg-8c/jfdctint.c"
-    "jpeg-8c/jidctflt.c"
-    "jpeg-8c/jidctfst.c"
-    "jpeg-8c/jidctint.c"
-    "jpeg-8c/jmemmgr.c"
-    "jpeg-8c/jmemnobs.c"
-    "jpeg-8c/jquant1.c"
-    "jpeg-8c/jquant2.c"
-    "jpeg-8c/jutils.c"
-)
+if(NOT USE_SYSTEM_JPEG)
+    set(jpeg_local_files
+        "jpeg-8c/jaricom.c"
+        "jpeg-8c/jcapimin.c"
+        "jpeg-8c/jcapistd.c"
+        "jpeg-8c/jcarith.c"
+        "jpeg-8c/jccoefct.c"
+        "jpeg-8c/jccolor.c"
+        "jpeg-8c/jcdctmgr.c"
+        "jpeg-8c/jchuff.c"
+        "jpeg-8c/jcinit.c"
+        "jpeg-8c/jcmainct.c"
+        "jpeg-8c/jcmarker.c"
+        "jpeg-8c/jcmaster.c"
+        "jpeg-8c/jcomapi.c"
+        "jpeg-8c/jcparam.c"
+        "jpeg-8c/jcprepct.c"
+        "jpeg-8c/jcsample.c"
+        "jpeg-8c/jctrans.c"
+        "jpeg-8c/jdapimin.c"
+        "jpeg-8c/jdapistd.c"
+        "jpeg-8c/jdarith.c"
+        "jpeg-8c/jdatadst.c"
+        "jpeg-8c/jdatasrc.c"
+        "jpeg-8c/jdcoefct.c"
+        "jpeg-8c/jdcolor.c"
+        "jpeg-8c/jddctmgr.c"
+        "jpeg-8c/jdhuff.c"
+        "jpeg-8c/jdinput.c"
+        "jpeg-8c/jdmainct.c"
+        "jpeg-8c/jdmarker.c"
+        "jpeg-8c/jdmaster.c"
+        "jpeg-8c/jdmerge.c"
+        "jpeg-8c/jdpostct.c"
+        "jpeg-8c/jdsample.c"
+        "jpeg-8c/jdtrans.c"
+        "jpeg-8c/jerror.c"
+        "jpeg-8c/jfdctflt.c"
+        "jpeg-8c/jfdctfst.c"
+        "jpeg-8c/jfdctint.c"
+        "jpeg-8c/jidctflt.c"
+        "jpeg-8c/jidctfst.c"
+        "jpeg-8c/jidctint.c"
+        "jpeg-8c/jmemmgr.c"
+        "jpeg-8c/jmemnobs.c"
+        "jpeg-8c/jquant1.c"
+        "jpeg-8c/jquant2.c"
+        "jpeg-8c/jutils.c"
+    )
+endif(NOT USE_SYSTEM_JPEG)
 
 #note renderer needs extra files in modular mode
 set(renderer_files
@@ -239,46 +266,109 @@ set(renderer_files
 )
 
 add_library(botlib STATIC "${botlib_files}")
+target_compile_options(botlib
+    PRIVATE $<$<AND:$<COMPILE_LANGUAGE:C,CXX>,$<CONFIG:DEBUG>>:${compiler_flags_debug} -w>
+            $<$<AND:$<COMPILE_LANGUAGE:C,CXX>,$<CONFIG:RELEASE>>:${compiler_flags_release} -w>
+            $<$<AND:$<COMPILE_LANGUAGE:C,CXX>,$<CONFIG:RELWITHDEBINFO>>:${compiler_flags_relwithdebinfo} -w>
+)
 target_include_directories(botlib PUBLIC "${SRCDIR}/botlib ${SRCDIR}/qcommon")
 target_compile_definitions(botlib PUBLIC "BOTLIB")
 
 add_library(splines STATIC "${splines_files}")
+target_compile_options(splines
+    PRIVATE $<$<AND:$<COMPILE_LANGUAGE:C,CXX>,$<CONFIG:DEBUG>>:${compiler_flags_debug} -w>
+            $<$<AND:$<COMPILE_LANGUAGE:C,CXX>,$<CONFIG:RELEASE>>:${compiler_flags_release} -w>
+            $<$<AND:$<COMPILE_LANGUAGE:C,CXX>,$<CONFIG:RELWITHDEBINFO>>:${compiler_flags_relwithdebinfo} -w>
+)
 target_include_directories(splines PUBLIC "${SRCDIR}/splines")
 #target_link_libraries(splines PRIVATE "libstdc++")
 
 add_library(renderer STATIC "${renderer_files}")
+target_compile_options(renderer
+    PRIVATE $<$<AND:$<COMPILE_LANGUAGE:C,CXX>,$<CONFIG:DEBUG>>:${compiler_flags_debug}>
+            $<$<AND:$<COMPILE_LANGUAGE:C,CXX>,$<CONFIG:RELEASE>>:${compiler_flags_release}>
+            $<$<AND:$<COMPILE_LANGUAGE:C,CXX>,$<CONFIG:RELWITHDEBINFO>>:${compiler_flags_relwithdebinfo}>
+)
 target_include_directories(renderer PUBLIC "${SRCDIR}/renderer ${SRCDIR}/renderercommon ${SRCDIR}/qcommon")
 
 set(core_client_files
     "${client_files}"
     "${qcommon_files}"
     "${server_files}"
-    "${jpeg_local_files}"
     "${linux_shared_files}"
-    "${linux_client_files}")
+)
+
+if(USE_SDL2)
+    set(core_client_files
+        "${core_client_files}"
+        "${sdl_files}"
+    )
+else()
+    set(core_client_files
+        "${core_client_files}"
+        "${linux_client_files}"
+    )
+endif(USE_SDL2)
+
+if(NOT USE_SYSTEM_JPEG)
+    set(core_client_files
+        "${core_client_files}"
+        "${jpeg_local_files}"
+    )
+endif(NOT USE_SYSTEM_JPEG)
 
 set(dedicated_server_files
     "${qcommon_files}"
     "${server_files}"
-    "${linux_shared_files}")
+    "${linux_shared_files}"
+)
 
-#add_custom_target(local_curl
-#    COMMAND sh cmake-curl.sh
-#    WORKING_DIRECTORY "${SRCDIR}/curl-7.58.0"
-#    BYPRODUCTS "${SRCDIR}/curl-7.58.0/lib/.libs/libcurl.a"
-#    )
+if(BUILD_CLIENT)
+    if(USE_SYSTEM_JPEG)
+        find_package(JPEG REQUIRED)
+    endif(USE_SYSTEM_JPEG)
+    find_package(CURL REQUIRED)
+    if(USE_SDL2)
+        find_package(SDL2 REQUIRED CONFIG)
+    endif(USE_SDL2)
 
-find_package(CURL REQUIRED)
+    add_executable(ete "${core_client_files}")
+    target_compile_options(ete
+        PRIVATE $<$<AND:$<COMPILE_LANGUAGE:C,CXX>,$<CONFIG:DEBUG>>:${compiler_flags_debug}>
+                $<$<AND:$<COMPILE_LANGUAGE:C,CXX>,$<CONFIG:RELEASE>>:${compiler_flags_release}>
+                $<$<AND:$<COMPILE_LANGUAGE:C,CXX>,$<CONFIG:RELWITHDEBINFO>>:${compiler_flags_relwithdebinfo}>
+    )
+    set_target_properties(ete PROPERTIES SUFFIX ".x86") #NOTE changeme when multi-platform and multi-arch support is added
+    target_include_directories(ete PUBLIC "${SRCDIR}/botlib ${SRCDIR}/server ${SRCDIR}/client ${SRCDIR}/qcommon")
+    target_compile_definitions(ete PUBLIC "USE_CURL")
+    target_link_libraries(ete PRIVATE ${CMAKE_DL_LIBS} m pthread X11 CURL::libcurl)
+    if(USE_SDL2)
+        target_compile_definitions(ete PUBLIC "USE_SDL" "USE_ICON")
+        target_link_libraries(ete PRIVATE SDL2::SDL2)
+    endif(USE_SDL2)
+    #if(USE_DISCORD)
+    #    target_compile_definitions(ete PUBLIC "USE_DISCORD")
+    #endif(USE_SDL2)
+    if(USE_SYSTEM_JPEG)
+        target_link_libraries(ete PRIVATE JPEG::JPEG)
+    endif()
+    target_link_libraries(ete PUBLIC botlib splines renderer)
+endif(BUILD_CLIENT)
 
-add_executable(ete "${core_client_files}")
-target_include_directories(ete PUBLIC "${SRCDIR}/botlib ${SRCDIR}/server ${SRCDIR}/client ${SRCDIR}/qcommon")
-target_compile_definitions(ete PUBLIC "USE_CURL")
-target_link_libraries(ete PRIVATE ${CMAKE_DL_LIBS} m pthread X11 ${CURL_LIBRARIES})
-target_link_libraries(ete PUBLIC botlib splines renderer)
-#add_dependencies(ete local_curl)
+if(BUILD_DEDSERVER)
+    add_executable(ete-ded "${dedicated_server_files}")
+    target_compile_options(ete-ded
+        PRIVATE $<$<AND:$<COMPILE_LANGUAGE:C,CXX>,$<CONFIG:DEBUG>>:${compiler_flags_debug}>
+                $<$<AND:$<COMPILE_LANGUAGE:C,CXX>,$<CONFIG:RELEASE>>:${compiler_flags_release}>
+                $<$<AND:$<COMPILE_LANGUAGE:C,CXX>,$<CONFIG:RELWITHDEBINFO>>:${compiler_flags_relwithdebinfo}>
+    )
+    set_target_properties(ete-ded PROPERTIES SUFFIX ".x86") #NOTE changeme when multi-platform and multi-arch support is added
+    target_include_directories(ete-ded PUBLIC "${SRCDIR}/botlib ${SRCDIR}/server ${SRCDIR}/client ${SRCDIR}/qcommon")
+    target_compile_definitions(ete-ded PUBLIC "DEDICATED")
+    target_link_libraries(ete-ded PRIVATE ${CMAKE_DL_LIBS} "m")
+    target_link_libraries(ete-ded PUBLIC botlib)
+endif(BUILD_DEDSERVER)
 
-add_executable(ete-ded "${dedicated_server_files}")
-target_include_directories(ete-ded PUBLIC "${SRCDIR}/botlib ${SRCDIR}/server ${SRCDIR}/client ${SRCDIR}/qcommon")
-target_compile_definitions(ete-ded PUBLIC "DEDICATED")
-target_link_libraries(ete-ded PRIVATE ${CMAKE_DL_LIBS} "m")
-target_link_libraries(ete-ded PUBLIC botlib)
+install(TARGETS ete ete-ded
+        RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}
+)

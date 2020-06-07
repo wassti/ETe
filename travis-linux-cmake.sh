@@ -5,7 +5,7 @@ set -o verbose
 sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
 sudo apt-get -qq update
 sudo apt-get -y install gcc-8 g++-8 gcc-8-multilib g++-8-multilib
-sudo apt-get install libsdl2-dev:i386
+sudo apt-get install libsdl2-dev:i386 libjpeg8-dev:i386 libcurl4-openssl-dev:i386
 sudo apt-get install p7zip-full
 
 cmake --version
@@ -19,7 +19,7 @@ cd src
 mkdir build
 cd build
 
-cmake .. -G "Unix Makefiles" -DCMAKE_BUILD_TYPE="$BUILD_CONFIGURATION" || exit 1
+cmake .. -G "Unix Makefiles" -DCMAKE_BUILD_TYPE="$BUILD_CONFIGURATION" -DUSE_SDL2=TRUE || exit 1
 cmake --build . --config $BUILD_CONFIGURATION || exit 1
 
 ls -R *.x86

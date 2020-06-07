@@ -49,6 +49,7 @@ void Key_ParseBinding( int key, qboolean down, unsigned time, qboolean forceAll 
 
 int Key_GetKey( const char *binding );
 const char *Key_KeynumToString( int keynum, qboolean bTranslate );
+int Key_StringToKeynum( const char *str );
 
 qboolean Key_IsDown( int keynum );
 void Key_ClearStates( void );

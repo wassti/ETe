@@ -854,7 +854,6 @@ qboolean Key_IsDown( int keynum )
 }
 
 
-
 /*
 ===================
 Key_StringToKeynum
@@ -868,7 +867,7 @@ the K_* names are matched up.
 to be configured even if they don't have defined names.
 ===================
 */
-static int Key_StringToKeynum( const char *str ) {
+int Key_StringToKeynum( const char *str ) {
 	const keyname_t	*kn;
 	
 	if ( !str || str[0] == '\0' ) {

@@ -532,6 +532,9 @@ extern	cvar_t	*cl_stencilbits;
 extern	cvar_t	*cl_depthbits;
 extern	cvar_t	*cl_drawBuffer;
 extern	cvar_t	*r_currentResolution;
+#ifndef USE_SDL
+extern	cvar_t	*in_forceCharset;
+#endif
 
 //=================================================
 
@@ -566,7 +569,9 @@ void CL_TranslateString( const char *string, char *dest_buffer );
 const char* CL_TranslateStringBuf( const char *string ); // TTimo
 // -NERVE - SMF
 
+#ifndef USE_SDL
 void CL_TrackCvarChanges( void );
+#endif
 
 void CL_OpenURL( const char *url ); // TTimo
 

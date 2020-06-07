@@ -36,9 +36,6 @@ If you have questions concerning this license or the applicable additional terms
 
 //static UINT MSH_MOUSEWHEEL;
 
-// Console variables that we need to access from this module
-cvar_t		*in_forceCharset;
-
 static HHOOK WinHook;
 
 /*

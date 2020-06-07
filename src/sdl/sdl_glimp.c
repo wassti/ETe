@@ -407,7 +407,7 @@ static int GLW_SetMode( int mode, const char *modeFS, qboolean fullscreen, qbool
 #endif
 		}
 
-		if ( ( SDL_window = SDL_CreateWindow( CLIENT_WINDOW_TITLE, x, y, config->vidWidth, config->vidHeight, flags ) ) == NULL )
+		if ( ( SDL_window = SDL_CreateWindow( CLIENT_WINDOW_TITLE " ( " ARCH_STRING " )", x, y, config->vidWidth, config->vidHeight, flags ) ) == NULL )
 		{
 			Com_DPrintf( "SDL_CreateWindow failed: %s\n", SDL_GetError() );
 			continue;
@@ -599,7 +599,7 @@ void GLimp_Init( glconfig_t *config )
 		if ( !GLimp_StartDriverAndSetMode( 3, "", r_fullscreen->integer, qfalse ) )
 		{
 			// Nothing worked, give up
-			Com_Error( ERR_FATAL, "GLimp_Init() - could not load OpenGL subsystem" );
+			Com_Error( ERR_VID_FATAL, "GLimp_Init() - could not load OpenGL subsystem" );
 			return;
 		}
 	}
@@ -678,7 +678,7 @@ void VKimp_Init( glconfig_t *config )
 		if ( !GLimp_StartDriverAndSetMode( 3, "", r_fullscreen->integer, qtrue ) )
 		{
 			// Nothing worked, give up
-			Com_Error( ERR_FATAL, "VKimp_Init() - could not load Vulkan subsystem" );
+			Com_Error( ERR_VID_FATAL, "VKimp_Init() - could not load Vulkan subsystem" );
 			return;
 		}
 	}
@@ -688,7 +688,7 @@ void VKimp_Init( glconfig_t *config )
 	if ( qvkGetInstanceProcAddr == NULL )
 	{
 		SDL_QuitSubSystem( SDL_INIT_VIDEO );
-		Com_Error( ERR_FATAL, "VKimp_Init: qvkGetInstanceProcAddr is NULL" );
+		Com_Error( ERR_VID_FATAL, "VKimp_Init: qvkGetInstanceProcAddr is NULL" );
 	}
 
 	// This values force the UI to disable driver selection
@@ -799,4 +799,8 @@ void Sys_SetClipboardBitmap( const byte *bitmap, int length )
 	}
 	CloseClipboard();
 #endif
+}
+
+int GLimp_NormalFontBase( void ) {
+    return 0;
 }

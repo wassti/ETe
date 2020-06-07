@@ -98,7 +98,7 @@ cvar_t  *cl_wavefilename; //bani
 cvar_t  *cl_waveoffset; //bani
 
 cvar_t  *cl_packetloss; //bani
-cvar_t  *cl_packetdelay;    //bani
+//cvar_t  *cl_packetdelay;    //bani
 extern qboolean sv_cheats;  //bani
 
 cvar_t	*cl_lanForcePackets;
@@ -133,8 +133,10 @@ cvar_t *cl_drawBuffer;
 
 cvar_t *r_currentResolution;
 
+#ifndef USE_SDL
 // this is shared with the OS sys files
 cvar_t *in_forceCharset;
+#endif
 
 #ifdef USE_DISCORD
 cvar_t	*cl_discordRichPresence;
@@ -3348,8 +3350,10 @@ void CL_Frame( int msec ) {
 	float fps;
 	float frameDuration;
 
+#ifndef USE_SDL
 	if ( Cvar_CheckGroup( CVG_LANGUAGE ) )
 		CL_TrackCvarChanges();
+#endif
 
 #ifdef USE_CURL	
 	if ( download.cURL ) 
@@ -4512,7 +4516,9 @@ void CL_Init( void ) {
 	cl_debugTranslation = Cvar_Get( "cl_debugTranslation", "0", 0 );
 	// -NERVE - SMF
 
+#ifndef USE_SDL
 	in_forceCharset = Cvar_Get( "in_forceCharset", "1", CVAR_ARCHIVE_ND );
+#endif
 
 #ifdef USE_DISCORD
 	cl_discordRichPresence = Cvar_Get("cl_discordRichPresence", "0", CVAR_ARCHIVE );
@@ -4623,10 +4629,12 @@ void CL_Init( void ) {
 	}
 #endif
 
+#ifndef USE_SDL
 	Cvar_SetGroup( cl_language, CVG_LANGUAGE );
 	Cvar_SetGroup( in_forceCharset, CVG_LANGUAGE );
 
 	CL_TrackCvarChanges();
+#endif
 
 	Com_Printf( "----- Client Initialization Complete -----\n" );
 }
@@ -6241,6 +6249,7 @@ const char* CL_TranslateStringBuf( const char *string ) {
 }
 
 
+#ifndef USE_SDL
 void CL_TrackCvarChanges( void ) {
 	if ( cl_language->integer > 0 && in_forceCharset->integer > 0 ) {
 		Com_Printf( "WARNING: in_forceCharset incompatible with non-English languages!\n"
@@ -6250,6 +6259,7 @@ void CL_TrackCvarChanges( void ) {
 
 	Cvar_ResetGroup( CVG_LANGUAGE, qfalse );
 }
+#endif
 
 /*
 =======================

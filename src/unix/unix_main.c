@@ -1365,26 +1365,46 @@ int main( int argc, const char* argv[] )
 	return 0;
 }
 
+#ifndef USE_SDL
 qboolean Sys_IsNumLockDown( void ) {
 	// Gordon: FIXME for timothee
 	return qfalse;
 }
+#endif
 
 int Sys_GetPID( void ) {
 	return (int)getpid();
 }
 
+void *omnibotHandle = NULL;
+typedef void (*pfnOmnibotRenderOGL)();
+pfnOmnibotRenderOGL gOmnibotRenderFunc = 0;
+
 void Sys_OmnibotLoad()
 {
-	// TODO linux omnibot
+	const char *omnibotLibrary = Cvar_VariableString( "omnibot_library" );
+	if ( omnibotLibrary != NULL && omnibotLibrary[0] != '\0' )
+	{
+		omnibotHandle = Sys_LoadLibrary( va("%s.so", omnibotLibrary ) );
+		if ( omnibotHandle )
+		{
+			gOmnibotRenderFunc = (pfnOmnibotRenderOGL)Sys_LoadFunction( omnibotHandle, "RenderOpenGL" );
+		}
+	}
 }
 
 void Sys_OmnibotUnLoad()
 {
-	// TODO linux omnibot
+	Sys_UnloadLibrary( omnibotHandle );
+	omnibotHandle = NULL;
 }
 
 const void * Sys_OmnibotRender( const void * data )
 {
-	assert(0 && "Linux Sys_OmnibotRender unimplemented");
+	renderOmnibot_t * cmd = (renderOmnibot_t*)data;
+	if ( gOmnibotRenderFunc )
+	{
+		gOmnibotRenderFunc();
+	}
+	return (const void *)( cmd + 1 );
 }

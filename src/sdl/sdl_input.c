@@ -67,6 +67,15 @@ static int in_eventTime = 0;
 
 #define CTRL(a) ((a)-'a'+1)
 
+qboolean Sys_IsNumLockDown( void ) {
+	// note recent SDL builds probably needed for this to fully work
+	if (SDL_GetModState() & KMOD_NUM)
+	{
+		return qtrue;
+	}
+	return qfalse;
+}
+
 /*
 ===============
 IN_PrintKey
@@ -96,7 +105,7 @@ static void IN_PrintKey( const SDL_Keysym *keysym, keyNum_t key, qboolean down )
 	if( keysym->mod & KMOD_MODE )     Com_Printf( " KMOD_MODE" );
 	if( keysym->mod & KMOD_RESERVED ) Com_Printf( " KMOD_RESERVED" );
 
-	Com_Printf( " Q:0x%02x(%s)\n", key, Key_KeynumToString( key ) );
+	Com_Printf( " Q:0x%02x(%s)\n", key, Key_KeynumToString( key, qfalse ) );
 }
 
 
@@ -130,6 +139,15 @@ static qboolean IN_IsConsoleKey( keyNum_t key, int character )
 	static consoleKey_t consoleKeys[ MAX_CONSOLE_KEYS ];
 	static int numConsoleKeys = 0;
 	int i;
+
+	/*if (key == K_GRAVE
+#ifdef __APPLE__
+	    || key == 60 // Same as console key
+#endif
+	    )
+	{
+		return qtrue;
+	}*/
 
 	// Only parse the variable when it changes
 	if ( cl_consoleKeys->modified )
@@ -205,7 +223,7 @@ static keyNum_t IN_TranslateSDLToQ3Key( SDL_Keysym *keysym, qboolean down )
 {
 	keyNum_t key = 0;
 
-	if ( keysym->scancode >= SDL_SCANCODE_1 && keysym->scancode <= SDL_SCANCODE_0 )
+	/*if ( keysym->scancode >= SDL_SCANCODE_1 && keysym->scancode <= SDL_SCANCODE_0 )
 	{
 		// Always map the number keys as such even if they actually map
 		// to other characters (eg, "1" is "&" on an AZERTY keyboard).
@@ -216,7 +234,7 @@ static keyNum_t IN_TranslateSDLToQ3Key( SDL_Keysym *keysym, qboolean down )
 		else
 			key = '1' + keysym->scancode - SDL_SCANCODE_1;
 	}
-	else if( keysym->sym >= SDLK_SPACE && keysym->sym < SDLK_DELETE )
+	else */if( keysym->sym >= SDLK_SPACE && keysym->sym < SDLK_DELETE )
 	{
 		// These happen to match the ASCII chars
 		key = (int)keysym->sym;
@@ -286,7 +304,7 @@ static keyNum_t IN_TranslateSDLToQ3Key( SDL_Keysym *keysym, qboolean down )
 			case SDLK_KP_5:         key = K_KP_5;          break;
 			case SDLK_INSERT:       key = K_INS;           break;
 			case SDLK_KP_0:         key = K_KP_INS;        break;
-			case SDLK_KP_MULTIPLY:  key = K_KP_STAR;       break;
+			case SDLK_KP_MULTIPLY:  key = '*'; /*K_KP_STAR;*/ break;
 			case SDLK_KP_PLUS:      key = K_KP_PLUS;       break;
 			case SDLK_KP_MINUS:     key = K_KP_MINUS;      break;
 			case SDLK_KP_DIVIDE:    key = K_KP_SLASH;      break;
@@ -1243,7 +1261,7 @@ void IN_Init( void )
 {
 	if ( !SDL_WasInit( SDL_INIT_VIDEO ) )
 	{
-		Com_Error( ERR_FATAL, "IN_Init called before SDL_Init( SDL_INIT_VIDEO )" );
+		Com_Error( ERR_VID_FATAL, "IN_Init called before SDL_Init( SDL_INIT_VIDEO )" );
 		return;
 	}
 

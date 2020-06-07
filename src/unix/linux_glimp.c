@@ -140,8 +140,6 @@ static cvar_t *in_shiftedKeys; // obey modifiers for certain keys in non-console
 cvar_t *in_subframe;
 cvar_t *in_nograb; // handy for developers
 
-cvar_t *in_forceCharset;
-
 #ifdef USE_JOYSTICK
 cvar_t   *in_joystick      = NULL;
 cvar_t   *in_joystickDebug = NULL;
@@ -1624,7 +1622,7 @@ int GLW_SetMode( int mode, const char *modeFS, qboolean fullscreen, qboolean vul
 			sizeof(decohint) / sizeof(long) );
 	}
 
-	XStoreName( dpy, win, CLIENT_WINDOW_TITLE );
+	XStoreName( dpy, win, CLIENT_WINDOW_TITLE " ( " ARCH_STRING " )" );
 
 	/* GH: Don't let the window be resized */
 	sizehints.flags = PMinSize | PMaxSize;
@@ -2024,7 +2022,6 @@ void IN_Shutdown( void )
 
 void IN_Frame( void )
 {
-
 #ifdef USE_JOYSTICK
 	IN_JoyMove();
 #endif

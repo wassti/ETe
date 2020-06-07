@@ -10,7 +10,8 @@ matrix:
    #   osx_image: xcode9.3
 
 script:
- - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./travis-linux.sh; fi
+ - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./travis-linux-cmake.sh; fi
+# - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./travis-linux.sh; fi
  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then ./travis-macos.sh; fi
 
 deploy:

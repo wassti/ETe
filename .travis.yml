@@ -10,7 +10,7 @@ before_install: |
   DOCKER="i386/ubuntu:16.04"
 
   docker pull $DOCKER
-  docker run --name bc -v $TRAVIS_BUILD_DIR:/ete --cap-add SYS_ADMIN --device /dev/fuse -td $DOCKER /bin/bash
+  docker run --name bc -v $TRAVIS_BUILD_DIR:/ETe --cap-add SYS_ADMIN --device /dev/fuse -td $DOCKER /bin/bash
 
 install: |
   docker exec bc apt update
@@ -22,8 +22,8 @@ script: |
 
   CMAKE_OPTIONS="-DCMAKE_BUILD_TYPE=Release -DUSE_SDL2=TRUE -DSystemProcessor=i386"
 
-  docker exec bc sh -c "cd /ete/src/build/travis && cmake $CMAKE_OPTIONS ../../../
-  docker exec bc sh -c "cd /ete/src/build/travis && cmake --build . --config Release"
+  docker exec bc sh -c "cd /ETe/src/build/travis && cmake $CMAKE_OPTIONS ../../../
+  docker exec bc sh -c "cd /ETe/src/build/travis && cmake --build . --config Release"
 
 after_script: |
   docker stop bc;

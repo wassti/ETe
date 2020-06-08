@@ -16,14 +16,16 @@ install: |
   docker exec bc apt update
   docker exec bc apt -y install git cmake p7zip-full wget libfuse2 build-essential libsdl2-dev libgl1-mesa-dev libjpeg-dev
 
+# mkdir $TRAVIS_BUILD_DIR/src/build/travis
+# cd $TRAVIS_BUILD_DIR/src/build/travis
+
 script: |
-  mkdir $TRAVIS_BUILD_DIR/src/build/travis
-  cd $TRAVIS_BUILD_DIR/src/build/travis
+  ls -R $TRAVIS_BUILD_DIR
 
-  CMAKE_OPTIONS="-DCMAKE_BUILD_TYPE=Release -DUSE_SDL2=TRUE -DSystemProcessor=i386"
+#  CMAKE_OPTIONS="-DCMAKE_BUILD_TYPE=Release -DUSE_SDL2=TRUE -DSystemProcessor=i386"
 
-  docker exec bc sh -c "cd /ETe/src/build/travis && cmake $CMAKE_OPTIONS ../../../
-  docker exec bc sh -c "cd /ETe/src/build/travis && cmake --build . --config Release"
+#  docker exec bc sh -c "cd /ETe/src/build/travis && cmake $CMAKE_OPTIONS ../../../
+#  docker exec bc sh -c "cd /ETe/src/build/travis && cmake --build . --config Release"
 
 after_script: |
   docker stop bc;

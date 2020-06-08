@@ -25,7 +25,7 @@ script: |
 
   CMAKE_OPTIONS="-DCMAKE_BUILD_TYPE=Release -DUSE_SDL2=TRUE -DSystemProcessor=i386"
 
-  docker exec bc sh -c "cd /ETe/src/build/travis && cmake $CMAKE_OPTIONS ../../../"
+  docker exec bc sh -c "cd /ETe/src/build/travis && cmake $CMAKE_OPTIONS ../.."
   docker exec bc sh -c "cd /ETe/src/build/travis && cmake --build . --config Release"
 
 after_script: |

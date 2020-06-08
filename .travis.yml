@@ -13,19 +13,23 @@ before_install: |
   docker run --name bc -v $TRAVIS_BUILD_DIR:/ETe --cap-add SYS_ADMIN --device /dev/fuse -td $DOCKER /bin/bash
 
 install: |
+  docker exec bc add-apt-repository -y ppa:ubuntu-toolchain-r/test
   docker exec bc apt update
   docker exec bc apt -y install git cmake p7zip-full wget libfuse2 build-essential libsdl2-dev libgl1-mesa-dev libjpeg-dev
+  docker exec bc apt -y install gcc-8 g++-8 gcc-8-multilib g++-8-multilib
 
 # mkdir $TRAVIS_BUILD_DIR/src/build/travis
 # cd $TRAVIS_BUILD_DIR/src/build/travis
 
 script: |
-  ls -R $TRAVIS_BUILD_DIR
+  cd $TRAVIS_BUILD_DIR/src
+  mkdir build/travis
+  cd build/travis
 
-#  CMAKE_OPTIONS="-DCMAKE_BUILD_TYPE=Release -DUSE_SDL2=TRUE -DSystemProcessor=i386"
+  CMAKE_OPTIONS="-DCMAKE_BUILD_TYPE=Release -DUSE_SDL2=TRUE -DSystemProcessor=i386"
 
-#  docker exec bc sh -c "cd /ETe/src/build/travis && cmake $CMAKE_OPTIONS ../../../
-#  docker exec bc sh -c "cd /ETe/src/build/travis && cmake --build . --config Release"
+  docker exec bc sh -c "cd /ETe/src/build/travis && cmake $CMAKE_OPTIONS ../../../
+  docker exec bc sh -c "cd /ETe/src/build/travis && cmake --build . --config Release"
 
 after_script: |
   docker stop bc;

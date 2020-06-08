@@ -18,8 +18,10 @@ install: |
 
 script: |
   cd $TRAVIS_BUILD_DIR/src
-  mkdir build/travis
-  cd build/travis
+  mkdir $TRAVIS_BUILD_DIR/src/build
+  cd $TRAVIS_BUILD_DIR/src/build
+  mkdir $TRAVIS_BUILD_DIR/src/build/travis
+  cd $TRAVIS_BUILD_DIR/src/build/travis
 
   CMAKE_OPTIONS="-DCMAKE_BUILD_TYPE=Release -DUSE_SDL2=TRUE -DSystemProcessor=i386"
 

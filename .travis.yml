@@ -14,7 +14,17 @@ before_install: |
 
 install: |
   docker exec bc apt update
-  docker exec bc apt -y install git cmake p7zip-full wget libfuse2 build-essential libsdl2-dev libgl1-mesa-dev libjpeg-dev
+  docker exec bc apt -y install apt-transport-https ca-certificates gnupg software-properties-common wget
+  docker exec bc apt -y install git p7zip-full libfuse2 build-essential libsdl2-dev libgl1-mesa-dev libjpeg-dev
+  docker exec bc wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null
+  docker exec bc apt-add-repository -y 'deb https://apt.kitware.com/ubuntu/ xenial main'
+  docker exec bc add-apt-repository -y ppa:ubuntu-toolchain-r/test
+  docker exec bc apt update
+  docker exec bc apt -y install kitware-archive-keyring
+  docker exec bc rm /etc/apt/trusted.gpg.d/kitware.gpg
+  docker exec bc apt -y install cmake
+  docker exec bc apt -y install gcc-8 g++-8 gcc-8-multilib g++-8-multilib
+  
 
 script: |
   cd $TRAVIS_BUILD_DIR/src

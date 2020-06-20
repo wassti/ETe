@@ -329,7 +329,7 @@ if(BUILD_CLIENT)
     endif(USE_SYSTEM_JPEG)
     find_package(CURL REQUIRED)
     if(USE_SDL2)
-        find_package(SDL2 REQUIRED CONFIG)
+        find_package(SDL2 CONFIG REQUIRED)
     endif(USE_SDL2)
 
     add_executable(ete "${core_client_files}")

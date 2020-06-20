@@ -106,7 +106,7 @@ cvar_t		*s_mixahead;
 cvar_t		*s_mixPreStep;
 cvar_t      *s_wavonly;
 
-#ifdef __linux__
+#if defined(__linux__) && !defined(USE_SDL)
 cvar_t		*s_device;
 #endif
 
@@ -2404,11 +2404,27 @@ qboolean S_Base_Init( soundInterface_t *si ) {
 	}
 
 	s_khz = Cvar_Get( "s_khz", "22", CVAR_ARCHIVE_ND | CVAR_LATCH );
+	Cvar_CheckRange( s_khz, "0", "48", CV_INTEGER );
+
+	switch( s_khz->integer ) {
+		case 48:
+		case 44:
+		case 22:
+		case 11:
+			// these are legal values
+			break;
+		default:
+			// anything else is illegal
+			Com_Printf( "WARNING: cvar 's_khz' must be one of (11, 22, 44, 48), setting to '%s'\n", s_khz->resetString );
+			Cvar_ForceReset( "s_khz" );
+			break;
+	}
+
 	s_mixahead = Cvar_Get( "s_mixahead", "0.2", CVAR_ARCHIVE_ND );
 	s_mixPreStep = Cvar_Get( "s_mixPreStep", "0.05", CVAR_ARCHIVE_ND );
 	s_show = Cvar_Get( "s_show", "0", CVAR_CHEAT );
 	s_testsound = Cvar_Get( "s_testsound", "0", CVAR_CHEAT );
-#ifdef __linux__
+#if defined(__linux__) && !defined(USE_SDL)
 	s_device = Cvar_Get( "s_device", "default", CVAR_ARCHIVE_ND | CVAR_LATCH );
 	Cvar_SetDescription( s_device, "Set ALSA output device\n"
 		" Use \"default\", \"sysdefault\", \"front\", etc.\n"
@@ -2420,7 +2436,9 @@ qboolean S_Base_Init( soundInterface_t *si ) {
 
 	// fretn
 	s_bits = Cvar_Get( "s_bits", "16", CVAR_LATCH | CVAR_ARCHIVE_ND );
+	Cvar_CheckRange( s_bits, "8", "16", CV_INTEGER );
 	s_numchannels = Cvar_Get( "s_channels", "2", CVAR_LATCH | CVAR_ARCHIVE_ND );
+	Cvar_CheckRange( s_numchannels, "1", "2", CV_INTEGER );
 
 	r = SNDDMA_Init();
 

@@ -32,9 +32,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 qboolean snd_inited = qfalse;
 
-cvar_t *s_sdlBits;
-cvar_t *s_sdlSpeed;
-cvar_t *s_sdlChannels;
+extern cvar_t *s_khz;
+//extern cvar_t *s_device;
+extern cvar_t *s_bits;
+extern cvar_t *s_numchannels;
 cvar_t *s_sdlDevSamps;
 cvar_t *s_sdlMixSamps;
 
@@ -176,6 +177,19 @@ static void SNDDMA_PrintAudiospec(const char *str, const SDL_AudioSpec *spec)
 }
 
 
+static int SNDDMA_KHzToHz(int khz)
+{
+	switch (khz)
+	{
+		default:
+		case 48: return 48000;
+		case 44: return 44100;
+		case 22: return 22050;
+		case 11: return 11025;
+	}
+}
+
+
 /*
 ===============
 SNDDMA_Init
@@ -190,20 +204,8 @@ qboolean SNDDMA_Init( void )
 	if ( snd_inited )
 		return qtrue;
 
-	//if ( !s_sdlBits )
-	{
-		s_sdlBits = Cvar_Get( "s_sdlBits", "16", CVAR_ARCHIVE_ND | CVAR_LATCH );
-		Cvar_CheckRange( s_sdlBits, "8", "16", CV_INTEGER );
-
-		s_sdlSpeed = Cvar_Get( "s_sdlSpeed", "0", CVAR_ARCHIVE_ND | CVAR_LATCH );
-		Cvar_CheckRange( s_sdlSpeed, "0", "48000", CV_INTEGER );
-
-		s_sdlChannels = Cvar_Get( "s_sdlChannels", "2", CVAR_ARCHIVE_ND | CVAR_LATCH );
-		Cvar_CheckRange( s_sdlChannels, "1", "2", CV_INTEGER );
-
-		s_sdlDevSamps = Cvar_Get( "s_sdlDevSamps", "0", CVAR_ARCHIVE_ND | CVAR_LATCH );
-		s_sdlMixSamps = Cvar_Get( "s_sdlMixSamps", "0", CVAR_ARCHIVE_ND | CVAR_LATCH );
-	}
+	s_sdlDevSamps = Cvar_Get( "s_sdlDevSamps", "0", CVAR_ARCHIVE_ND | CVAR_LATCH );
+	s_sdlMixSamps = Cvar_Get( "s_sdlMixSamps", "0", CVAR_ARCHIVE_ND | CVAR_LATCH );
 
 	Com_Printf( "SDL_Init( SDL_INIT_AUDIO )... " );
 
@@ -220,11 +222,11 @@ qboolean SNDDMA_Init( void )
 	memset( &desired, '\0', sizeof (desired) );
 	memset( &obtained, '\0', sizeof (obtained) );
 
-	desired.freq = s_sdlSpeed->integer;
+	desired.freq = SNDDMA_KHzToHz( s_khz->integer);
 	if ( desired.freq == 0 )
 		desired.freq = 22050;
 
-	tmp = s_sdlBits->integer;
+	tmp = s_bits->integer;
 	if ( tmp < 16 )
 		tmp = 8;
 
@@ -247,7 +249,7 @@ qboolean SNDDMA_Init( void )
 			desired.samples = 2048;  // (*shrug*)
 	}
 
-	desired.channels = s_sdlChannels->integer;
+	desired.channels = s_numchannels->integer;
 	desired.callback = SNDDMA_AudioCallback;
 
 	sdlPlaybackDevice = SDL_OpenAudioDevice( NULL, SDL_FALSE, &desired, &obtained, SDL_AUDIO_ALLOW_ANY_CHANGE );

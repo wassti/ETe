@@ -10,7 +10,7 @@ It is based on the Quake3e engine which itself is based on the last non-SDL sour
 * improved server-side DoS protection, much reduced memory usage
 * raised filesystem limits (up to 20,000 maps can be handled in a single directory)
 * reworked Zone memory allocator, no more out-of-memory errors
-* ~~non-intrusive support for SDL2 backend (video,audio,input), selectable at compile time~~ **NOT YET**
+* non-intrusive support for SDL2 backend (video,audio,input), selectable at compile time for *nix via CMake
 * tons of bugfixes and other improvements
 
 *This repository do not contains any game content so in order to play you must copy resulting binaries into your existing Wolfenstein: Enemy Territory installation*
@@ -43,7 +43,7 @@ WIP
 
 ~~All build dependencies (libraries, headers) are bundled-in~~
 
-~~Build with either `make ARCH=x86` or `make ARCH=x86_64` commands depending from your target system, then copy resulting binaries from created `build` directory or use command: ~~
+~~Build with either `make ARCH=x86` or `make ARCH=x86_64` commands depending from your target system, then copy resulting binaries from created `build` directory or use command:~~
 
 ~~`make install DESTDIR=<path_to_game_files>`~~
 
@@ -53,33 +53,19 @@ WIP
 
 Only 32-bit binaries compatible until 64-bit mods become available and a 64-bit etmain is available
 
-Use `scons`
+Use `cmake` or `cmake-gui`
 
-~~You may need to run following commands to install packages (using fresh ubuntu-18.04 installation as example):~~
+The provided 32-bit cross compile toolchain is provided on this repository.
 
-* ~~sudo apt install make gcc libcurl4-openssl-dev mesa-common-dev~~
-* ~~sudo apt install libxxf86dga-dev libxrandr-dev libxxf86vm-dev libasound-dev~~
-* ~~sudo apt install libsdl2-dev~~
+Several options available for linux builds with CMake:
 
-~~Build with: `make`~~
+`BUILD_CLIENT=ON` - build unified client/server executable, enabled by default
 
-~~Copy resulting binaries from created `build` directory or use command:~~
+`BUILD_DEDSERVER=ON` - build dedicated server executable, enabled by default
 
-~~`make install DESTDIR=<path_to_game_files>`~~
+`USE_SDL2=OFF` - use SDL2 backend for video, audio, input subsystems, disabled by default but recommended
 
-~~Several make options available for linux/mingw builds:~~
-
-~~`BUILD_CLIENT=1` - build unified client/server executable, enabled by default~~
-~~`BUILD_SERVER=1` - build dedicated server executable, enabled by default~~
-
-~~`USE_SDL=0`- use SDL2 backend for video, audio, input subsystems, disabled by default~~
-~~`USE_VULKAN=0` - link client with vulkan renderer instead of OpenGL, disabled by default~~
-
-~~`USE_RENDERER_DLOPEN=0` - do not link single renderer into client binary, compile all renderers as dynamic libraries and allow to switch them on the fly via `\cl_renderer` cvar, disabled by default - *not recommented due to not stable renderer API*~~
-
-~~Example:~~
-
-~~`make BUILD_SERVER=0 USE_VULKAN=1` - which means do not build dedicated binary, build client with static vulkan renderer~~
+`USE_SYSTEM_JPEG=ON` - use current system JPEG-turbo library, enabled by default
 
 ### macOS
 

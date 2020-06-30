@@ -106,7 +106,7 @@ cvar_t		*s_mixahead;
 cvar_t		*s_mixPreStep;
 cvar_t      *s_wavonly;
 
-#if defined(__linux__) && !defined(USE_SDL)
+#if defined(__linux__)
 cvar_t		*s_device;
 #endif
 
@@ -2429,7 +2429,11 @@ qboolean S_Base_Init( soundInterface_t *si ) {
 	Cvar_SetDescription( s_device, "Set ALSA output device\n"
 		" Use \"default\", \"sysdefault\", \"front\", etc.\n"
 		" Enter " S_COLOR_CYAN "aplay -L "S_COLOR_WHITE"in your shell to see all options.\n"
-		S_COLOR_YELLOW " Please note that only mono/stereo devices are acceptable.\n" );
+		S_COLOR_YELLOW " Please note that only mono/stereo devices are acceptable." );
+#elif defined(__linux__) && defined(USE_SDL)
+	s_device = Cvar_Get( "s_device", "default", CVAR_ARCHIVE_ND | CVAR_LATCH );
+	Cvar_SetDescription( s_device, "Set SDL audio output device index\n"
+		"Use \"default\" to let system pick or choose one from \\s_devlist output." );
 #endif
 
 	s_debugStreams = Cvar_Get("s_debugStreams", "0", CVAR_TEMP);

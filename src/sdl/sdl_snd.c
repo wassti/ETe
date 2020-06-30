@@ -33,7 +33,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 qboolean snd_inited = qfalse;
 
 extern cvar_t *s_khz;
-//extern cvar_t *s_device;
+extern cvar_t *s_device;
 extern cvar_t *s_bits;
 extern cvar_t *s_numchannels;
 cvar_t *s_sdlDevSamps;
@@ -177,6 +177,20 @@ static void SNDDMA_PrintAudiospec(const char *str, const SDL_AudioSpec *spec)
 }
 
 
+static void SND_DeviceList(void)
+{
+	int i;
+	int count = SDL_GetNumAudioDevices(SDL_FALSE);
+
+	Com_Printf("Printing audio device list. Number of devices: %i\n\n", count);
+
+	for (i = 0; i < count; i++)
+	{
+		Com_Printf("  Audio device %d: %s\n", i, SDL_GetAudioDeviceName(i, SDL_FALSE));
+	}
+}
+
+
 static int SNDDMA_KHzToHz(int khz)
 {
 	switch (khz)
@@ -199,6 +213,7 @@ qboolean SNDDMA_Init( void )
 {
 	SDL_AudioSpec desired;
 	SDL_AudioSpec obtained;
+	const char	*device_name;
 	int tmp;
 
 	if ( snd_inited )
@@ -214,6 +229,8 @@ qboolean SNDDMA_Init( void )
 		Com_Printf( "FAILED (%s)\n", SDL_GetError() );
 		return qfalse;
 	}
+
+	Cmd_AddCommand( "s_devlist", SND_DeviceList );
 
 	Com_Printf( "OK\n" );
 
@@ -252,7 +269,32 @@ qboolean SNDDMA_Init( void )
 	desired.channels = s_numchannels->integer;
 	desired.callback = SNDDMA_AudioCallback;
 
-	sdlPlaybackDevice = SDL_OpenAudioDevice( NULL, SDL_FALSE, &desired, &obtained, SDL_AUDIO_ALLOW_ANY_CHANGE );
+	if ( !Q_stricmp(s_device->string, "default") || !*s_device->string ) {
+		device_name = NULL;
+		Com_Printf( "Acquiring default audio device\n" );
+	}
+	else {
+		if ( Q_isanumber( s_device->string ) && Q_isintegral( s_device->value ) ) {
+			if ( s_device->integer >= 0 && s_device->integer < SDL_GetNumAudioDevices( SDL_FALSE ) ) {
+				device_name = SDL_GetAudioDeviceName( s_device->integer, SDL_FALSE );
+				Com_Printf( "Acquiring audio device: %s\n", device_name );
+			}
+			else {
+				Com_Printf( "SDL audio device out of range: %i\n", s_device->integer );
+				device_name = NULL;
+				Com_Printf( "Acquiring default audio device\n" );
+				Cvar_ForceReset( "s_device" );
+			}
+		}
+		else {
+			Com_Printf( "SDL audio device invalid: %s\n", s_device->string );
+			device_name = NULL;
+			Com_Printf( "Acquiring default audio device\n" );
+			Cvar_ForceReset( "s_device" );
+		}
+	}
+
+	sdlPlaybackDevice = SDL_OpenAudioDevice( device_name, SDL_FALSE, &desired, &obtained, SDL_AUDIO_ALLOW_ANY_CHANGE );
 	if ( sdlPlaybackDevice == 0 )
 	{
 		Com_Printf( "SDL_OpenAudioDevice() failed: %s\n", SDL_GetError() );
@@ -369,6 +411,8 @@ void SNDDMA_Shutdown( void )
 		sdlCaptureDevice = 0;
 	}
 #endif
+
+	Cmd_RemoveCommand("s_devlist");
 
 	SDL_QuitSubSystem(SDL_INIT_AUDIO);
 	free(dma.buffer);

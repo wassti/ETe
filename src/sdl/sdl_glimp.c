@@ -539,6 +539,11 @@ static qboolean GLimp_StartDriverAndSetMode( int mode, const char *modeFS, qbool
 	{
 		const char *driverName;
 
+		if ( *r_sdlDriver->string )
+		{
+			SDL_setenv("SDL_VIDEODRIVER", r_sdlDriver->string, 0 );
+		}
+
 		if ( SDL_Init( SDL_INIT_VIDEO ) != 0 )
 		{
 			Com_Printf( "SDL_Init( SDL_INIT_VIDEO ) FAILED (%s)\n", SDL_GetError() );
@@ -595,7 +600,6 @@ void GLimp_Init( glconfig_t *config )
 
 	r_swapInterval = Cvar_Get( "r_swapInterval", "0", CVAR_ARCHIVE | CVAR_LATCH );
 	r_stereoEnabled = Cvar_Get( "r_stereoEnabled", "0", CVAR_ARCHIVE | CVAR_LATCH );
-	r_ignorehwgamma = Cvar_Get( "r_ignorehwgamma", "0", CVAR_ARCHIVE | CVAR_LATCH );
 
 	// Create the window and set up the context
 	if ( !GLimp_StartDriverAndSetMode( r_mode->integer, r_modeFullscreen->string, r_fullscreen->integer, qfalse ) )
@@ -673,7 +677,6 @@ void VKimp_Init( glconfig_t *config )
 
 	r_swapInterval = Cvar_Get( "r_swapInterval", "0", CVAR_ARCHIVE | CVAR_LATCH );
 	r_stereoEnabled = Cvar_Get( "r_stereoEnabled", "0", CVAR_ARCHIVE | CVAR_LATCH );
-	r_ignorehwgamma = Cvar_Get( "r_ignorehwgamma", "0", CVAR_ARCHIVE | CVAR_LATCH );
 
 	// feedback to renderer configuration
 	glw_state.config = config;

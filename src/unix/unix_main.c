@@ -44,14 +44,13 @@ If you have questions concerning this license or the applicable additional terms
 #include <sys/mman.h>
 #include <errno.h>
 #include <libgen.h> // dirname
-#ifdef __linux__ // rb010123
-  #include <mntent.h>
-#endif
 
 #include <dlfcn.h>
 
 #ifdef __linux__
+#ifdef _GNU_SOURCE
   #include <fpu_control.h> // bk001213 - force dumps on divide by zero
+#endif
 #endif
 
 #if defined(__sun)
@@ -1085,6 +1084,7 @@ void Sys_ConfigureFPU( void )  // bk001213 - divide by zero
 {
 #ifdef __linux__
 #ifdef __i386
+#ifdef _GNU_SOURCE
 #ifndef NDEBUG
 	// bk0101022 - enable FPE's in debug mode
 	static int fpu_word = _FPU_DEFAULT & ~(_FPU_MASK_ZM | _FPU_MASK_IM);
@@ -1103,6 +1103,7 @@ void Sys_ConfigureFPU( void )  // bk001213 - divide by zero
 	static int fpu_word = _FPU_DEFAULT;
 	_FPU_SETCW( fpu_word );
 #endif // NDEBUG
+#endif // _GNU_SOURCE
 #endif // __i386 
 #endif // __linux
 }

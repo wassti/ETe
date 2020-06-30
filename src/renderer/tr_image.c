@@ -913,9 +913,9 @@ image_t *R_CreateImage( const char *name, const char *name2, byte *pic, int widt
 
 	if ( image->flags & IMGFLAG_MIPMAP )
 	{
-		if ( glConfig.anisotropicAvailable )
-			qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT,
-					(GLint)Com_Clamp( 1, (int)glConfig.maxAnisotropy, r_ext_max_anisotropy->integer ) );
+		if ( glConfig.anisotropicAvailable ) {
+			qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, (GLint) glConfig.maxAnisotropy );
+		}
 
 		qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_min );
 		qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max );

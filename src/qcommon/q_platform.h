@@ -117,13 +117,21 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define idx64 1
 #endif // __x86_64__ || __amd64__
 
+#if defined (__e2k__)
+#define ARCH_STRING "e2k"
+#define Q3_LITTLE_ENDIAN
+#undef ide2k
+#define ide2k 1
+#endif // __e2k__
+
 #endif // !_WIN32
 
 // ============================== macOS ====================================
 
 #if defined(__APPLE__) || defined(__APPLE_CC__)
 
-#include <endian.h> // fixme what is the header for apple
+#include <sys/types.h>
+#include <machine/endian.h>
 
 #define OS_STRING "macOS"
 #undef DLL_EXT
@@ -133,10 +141,12 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define OSARCH_STRING OS_STRING "32"
 #elif defined (__x86_64__) || defined (__amd64__)
 #define OSARCH_STRING OS_STRING "64"
+#else
+#define OSARCH_STRING OS_STRING ARCH_STRING
 #endif
 #define ID_INLINE inline
 
-#endif // __linux___
+#endif // __APPLE__  || __APPLE_CC__
 
 // ============================== Linux ====================================
 
@@ -149,6 +159,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define OSARCH_STRING OS_STRING "32"
 #elif defined (__x86_64__) || defined (__amd64__)
 #define OSARCH_STRING OS_STRING "64"
+#elif defined (__e2k__)
+#define OSARCH_STRING OS_STRING ARCH_STRING
 #endif
 #define ID_INLINE inline
 
@@ -174,6 +186,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define OSARCH_STRING OS_STRING "32"
 #elif defined (__x86_64__) || defined (__amd64__)
 #define OSARCH_STRING OS_STRING "64"
+#elif defined (__e2k__)
+#define OSARCH_STRING OS_STRING ARCH_STRING
 #endif
 
 #define ID_INLINE inline

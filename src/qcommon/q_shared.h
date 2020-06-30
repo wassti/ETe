@@ -456,12 +456,14 @@ typedef	int	fixed16_t;
 #endif
 
 #ifdef __linux__
+#ifdef _GNU_SOURCE
 #if idx64
 // force version for better runtime compatibility
 __asm__(".symver logf,logf@GLIBC_2.2.5");
 __asm__(".symver powf,powf@GLIBC_2.2.5");
 __asm__(".symver expf,expf@GLIBC_2.2.5");
 __asm__(".symver memcpy,memcpy@GLIBC_2.2.5");
+#endif
 #endif
 #endif
 
@@ -1057,6 +1059,7 @@ const char *Info_ValueForKeyToken( const char *key );
 #define Info_SetValueForKey( buf, key, value ) Info_SetValueForKey_s( (buf), MAX_INFO_STRING, (key), (value) )
 qboolean Info_SetValueForKey_s( char *s, int slen, const char *key, const char *value );
 qboolean Info_Validate( const char *s );
+qboolean Info_ValidateKeyValue( const char *s );
 qboolean Info_NextPair( const char **s, char *key, char *value );
 int Info_RemoveKey( char *s, const char *key );
 

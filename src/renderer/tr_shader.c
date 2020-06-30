@@ -1269,9 +1269,15 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 		}
 	}
 
-	// fix decals on q3wcp18 and other maps
-	if ( depthMaskExplicit && blendSrcBits == GLS_SRCBLEND_SRC_ALPHA && blendDstBits == GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA && stage->rgbGen == CGEN_VERTEX ) {
-		depthMaskBits &= ~GLS_DEPTHMASK_TRUE;
+	if ( depthMaskExplicit && shader.sort == SS_BAD ) {
+		// fix decals on q3wcp18 and other maps
+		if ( blendSrcBits == GLS_SRCBLEND_SRC_ALPHA && blendDstBits == GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA /*&& stage->rgbGen == CGEN_VERTEX*/ ) {
+			depthMaskBits &= ~GLS_DEPTHMASK_TRUE;
+			shader.sort = shader.polygonOffset ? SS_DECAL : SS_OPAQUE + 0.01f;
+		} else if ( blendSrcBits == GLS_SRCBLEND_ZERO && blendDstBits == GLS_DSTBLEND_ONE_MINUS_SRC_COLOR && stage->rgbGen == CGEN_EXACT_VERTEX ) {
+			depthMaskBits &= ~GLS_DEPTHMASK_TRUE;
+			shader.sort = SS_SEE_THROUGH;
+		}
 	}
 
 	//
@@ -2534,6 +2540,8 @@ static void FindLightingStages( void )
 			if ( st->bundle[0].tcGen != TCGEN_TEXTURE )
 				continue;
 			if ( (st->stateBits & GLS_BLEND_BITS) == (GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE) )
+				continue;
+			if ( st->bundle[0].image[0] == tr.whiteImage )
 				continue;
 			 // fix for q3wcp17' textures/scanctf2/bounce_white and others
 			if ( st->rgbGen == CGEN_IDENTITY && (st->stateBits & GLS_BLEND_BITS) == (GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ZERO) ) {

@@ -115,7 +115,11 @@ cvar_t	*r_noborder;
 
 cvar_t *r_allowSoftwareGL;	// don't abort out if the pixelformat claims software
 cvar_t *r_swapInterval;
+#ifndef USE_SDL
 cvar_t *r_glDriver;
+#else
+cvar_t *r_sdlDriver;
+#endif
 cvar_t *r_displayRefresh;
 cvar_t *r_fullscreen;
 cvar_t *r_mode;
@@ -1630,11 +1634,15 @@ static void CL_Connect_f( void ) {
 	} else {
 		if( !strcmp( Cmd_Argv(1), "-4" ) )
 			family = NA_IP;
+#ifdef USE_IPV6
 		else if( !strcmp( Cmd_Argv(1), "-6" ) )
 			family = NA_IP6;
 		else
-			Com_Printf( "warning: only -4 or -6 as address type understood.\n" );
-		
+			Com_Printf( S_COLOR_YELLOW "warning: only -4 or -6 as address type understood.\n" );
+#else
+		else
+			Com_Printf( S_COLOR_YELLOW "warning: only -4 as address type understood.\n" );
+#endif
 		server = Cmd_Argv(2);
 	}
 
@@ -1773,12 +1781,12 @@ CL_CompleteRcon
 */
 static void CL_CompleteRcon( char *args, int argNum )
 {
-	if( argNum == 2 )
+	if ( argNum >= 2 )
 	{
 		// Skip "rcon "
 		char *p = Com_SkipTokens( args, 1, " " );
 
-		if( p > args )
+		if ( p > args )
 			Field_CompleteCommand( p, qtrue, qtrue );
 	}
 }
@@ -2692,7 +2700,9 @@ unsigned int hash_func( const netadr_t *addr ) {
 
 	switch ( addr->type ) {
 		case NA_IP:  ip = addr->ipv._4; size = 4;  break;
+#ifdef USE_IPV6
 		case NA_IP6: ip = addr->ipv._6; size = 16; break;
+#endif
 		default: size = 0; break;
 	}
 
@@ -2792,6 +2802,7 @@ static void CL_ServersResponsePacket( const netadr_t* from, msg_t *msg, qboolean
 
 			addresses[numservers].type = NA_IP;
 		}
+#ifdef USE_IPV6
 		// IPv6 address, if it's an extended response
 		else if (extended && *buffptr == '/')
 		{
@@ -2806,6 +2817,7 @@ static void CL_ServersResponsePacket( const netadr_t* from, msg_t *msg, qboolean
 			addresses[numservers].type = NA_IP6;
 			addresses[numservers].scope_id = from->scope_id;
 		}
+#endif
 		else
 			// syntax error!
 			break;
@@ -4260,8 +4272,8 @@ static void CL_ModeList_f( void )
 	int i;
 
 	Com_Printf( "\n" );
-	Com_Printf( "Mode -2: Current Desktop Resolution\n" );
-	Com_Printf( "Mode -1: Custom Resolution (%i x %i)\n", r_customwidth->integer, r_customheight->integer );
+	Com_Printf( "Mode -2: Current Desktop Resolution (%s)\n", Cvar_VariableString("r_currentResolution") );
+	Com_Printf( "Mode -1: Custom Resolution (%ix%i)\n", r_customwidth->integer, r_customheight->integer );
 	Com_Printf( "         Set r_customWidth and r_customHeight cvars to change\n" );
 	Com_Printf( "\n" );
 	for ( i = 0; i < s_numVidModes; i++ )
@@ -4289,8 +4301,13 @@ static void CL_InitGLimp_Cvars( void )
 	// shared with GLimp
 	r_allowSoftwareGL = Cvar_Get( "r_allowSoftwareGL", "0", CVAR_LATCH );
 	r_swapInterval = Cvar_Get( "r_swapInterval", "0", CVAR_ARCHIVE_ND );
+
+#ifndef USE_SDL
 	r_glDriver = Cvar_Get( "r_glDriver", OPENGL_DRIVER_NAME, CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE );
-	
+#else
+	r_sdlDriver = Cvar_Get( "r_sdlDriver", "", CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE );
+#endif
+
 	r_displayRefresh = Cvar_Get( "r_displayRefresh", "0", CVAR_LATCH | CVAR_UNSAFE );
 	Cvar_CheckRange( r_displayRefresh, "0", "250", CV_INTEGER );
 
@@ -4851,15 +4868,18 @@ static void CL_ServerInfoPacket( const netadr_t *from, msg_t *msg ) {
 				case NA_IP:
 					type = 1;
 					break;
+#ifdef USE_IPV6
 				case NA_IP6:
 					type = 2;
 					break;
+#endif
 				default:
 					type = 0;
 					break;
 			}
-			Info_SetValueForKey( cl_pinglist[i].info, "nettype", va("%d", type) );
-			CL_SetServerInfoByAddress(from, infoString, cl_pinglist[i].time);
+
+			Info_SetValueForKey( cl_pinglist[i].info, "nettype", va( "%d", type ) );
+			CL_SetServerInfoByAddress( from, infoString, cl_pinglist[i].time );
 
 			return;
 		}
@@ -5134,8 +5154,10 @@ static void CL_LocalServers_f( void ) {
 
 			to.type = NA_BROADCAST;
 			NET_SendPacket( NS_CLIENT, n, message, &to );
+#ifdef USE_IPV6
 			to.type = NA_MULTICAST6;
 			NET_SendPacket( NS_CLIENT, n, message, &to );
+#endif
 		}
 	}
 }
@@ -5213,6 +5235,7 @@ static void CL_GlobalServers_f( void ) {
 	cls.pingUpdateSource = AS_GLOBAL;
 
 	// Use the extended query for IPv6 masters
+#ifdef USE_IPV6
 	if ( to.type == NA_IP6 || to.type == NA_MULTICAST6 )
 	{
 		int v4enabled = Cvar_VariableIntegerValue( "net_enabled" ) & NET_ENABLEV4;
@@ -5228,7 +5251,8 @@ static void CL_GlobalServers_f( void ) {
 				GAMENAME_FOR_MASTER, Cmd_Argv(2) );
 		}
 	}
-	else 
+	else
+#endif
 		Com_sprintf( command, sizeof( command ), "getservers %s", Cmd_Argv(2) );
 
 	for ( i = 3; i < count; i++ )
@@ -5429,10 +5453,15 @@ static void CL_Ping_f( void ) {
 	{
 		if(!strcmp(Cmd_Argv(1), "-4"))
 			family = NA_IP;
+#ifdef USE_IPV6
 		else if(!strcmp(Cmd_Argv(1), "-6"))
 			family = NA_IP6;
 		else
 			Com_Printf( "warning: only -4 or -6 as address type understood.\n");
+#else
+		else
+			Com_Printf( "warning: only -4 as address type understood.\n");
+#endif
 		
 		server = Cmd_Argv(2);
 	}

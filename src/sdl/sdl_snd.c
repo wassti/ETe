@@ -222,7 +222,7 @@ qboolean SNDDMA_Init( void )
 	memset( &desired, '\0', sizeof (desired) );
 	memset( &obtained, '\0', sizeof (obtained) );
 
-	desired.freq = SNDDMA_KHzToHz( s_khz->integer);
+	desired.freq = SNDDMA_KHzToHz( s_khz->integer );
 	if ( desired.freq == 0 )
 		desired.freq = 22050;
 

@@ -466,6 +466,8 @@ void RE_AddLightToScene( const vec3_t org, float radius, float intensity, float 
 		r *= r_dlightIntensity->value;
 		g *= r_dlightIntensity->value;
 		b *= r_dlightIntensity->value;
+		radius *= r_dlightScale->value;
+		//intensity *= r_dlightScale->value;
 	}
 #endif
 
@@ -513,6 +515,7 @@ void RE_AddLinearLightToScene( const vec3_t start, const vec3_t end, float inten
 		r *= r_dlightIntensity->value;
 		g *= r_dlightIntensity->value;
 		b *= r_dlightIntensity->value;
+		intensity *= r_dlightScale->value;
 	}
 #endif
 	dl = &backEndData->dlights[ r_numdlights++ ];

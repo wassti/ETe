@@ -287,7 +287,7 @@ static void SV_MasterHeartbeat( const char *message )
 		{
 			sv_master[i]->modified = qfalse;
 			svs.masterResolveTime[i] = svs.time + MASTERDNS_MSEC;
-			
+
 			if(netenabled & NET_ENABLEV4)
 			{
 				Com_Printf("Resolving %s (IPv4)\n", sv_master[i]->string);
@@ -298,13 +298,13 @@ static void SV_MasterHeartbeat( const char *message )
 					// if no port was specified, use the default master port
 					adr[i][0].port = BigShort(PORT_MASTER);
 				}
-				
+
 				if(res)
 					Com_Printf( "%s resolved to %s\n", sv_master[i]->string, NET_AdrToStringwPort( &adr[i][0] ) );
 				else
 					Com_Printf( "%s has no IPv4 address.\n", sv_master[i]->string );
 			}
-			
+#ifdef USE_IPV6
 			if(netenabled & NET_ENABLEV6)
 			{
 				Com_Printf("Resolving %s (IPv6)\n", sv_master[i]->string);
@@ -315,19 +315,18 @@ static void SV_MasterHeartbeat( const char *message )
 					// if no port was specified, use the default master port
 					adr[i][1].port = BigShort(PORT_MASTER);
 				}
-				
 				if(res)
 					Com_Printf( "%s resolved to %s\n", sv_master[i]->string, NET_AdrToStringwPort( &adr[i][1] ) );
 				else
 					Com_Printf( "%s has no IPv6 address.\n", sv_master[i]->string );
 			}
+#endif
 		}
 
 		if( adr[i][0].type == NA_BAD && adr[i][1].type == NA_BAD )
 		{
 			continue;
 		}
-
 
 		Com_Printf ("Sending heartbeat to %s\n", sv_master[i]->string );
 
@@ -376,7 +375,7 @@ void SV_MasterGameCompleteStatus( void ) {
 		{
 			sv_master[i]->modified = qfalse;
 			svs.masterResolveTime[i] = svs.time + MASTERDNS_MSEC;
-			
+
 			if(netenabled & NET_ENABLEV4)
 			{
 				Com_Printf("Resolving %s (IPv4)\n", sv_master[i]->string);
@@ -387,13 +386,13 @@ void SV_MasterGameCompleteStatus( void ) {
 					// if no port was specified, use the default master port
 					adr[i][0].port = BigShort(PORT_MASTER);
 				}
-				
+
 				if(res)
 					Com_Printf( "%s resolved to %s\n", sv_master[i]->string, NET_AdrToStringwPort( &adr[i][0] ) );
 				else
 					Com_Printf( "%s has no IPv4 address.\n", sv_master[i]->string );
 			}
-			
+#ifdef USE_IPV6
 			if(netenabled & NET_ENABLEV6)
 			{
 				Com_Printf("Resolving %s (IPv6)\n", sv_master[i]->string);
@@ -404,12 +403,13 @@ void SV_MasterGameCompleteStatus( void ) {
 					// if no port was specified, use the default master port
 					adr[i][1].port = BigShort(PORT_MASTER);
 				}
-				
+
 				if(res)
 					Com_Printf( "%s resolved to %s\n", sv_master[i]->string, NET_AdrToStringwPort( &adr[i][1] ) );
 				else
 					Com_Printf( "%s has no IPv6 address.\n", sv_master[i]->string );
 			}
+#endif
 		}
 
 		if( adr[i][0].type == NA_BAD && adr[i][1].type == NA_BAD )
@@ -481,7 +481,9 @@ static int SVC_HashForAddress( const netadr_t *address ) {
 
 	switch ( address->type ) {
 		case NA_IP:  ip = address->ipv._4; size = 4;  break;
+#ifdef USE_IPV6
 		case NA_IP6: ip = address->ipv._6; size = 16; break;
+#endif
 		default: break;
 	}
 
@@ -548,7 +550,7 @@ static leakyBucket_t *SVC_BucketForAddress( const netadr_t *address, int burst, 
 					return bucket;
 				}
 				break;
-
+#ifdef USE_IPV6
 			case NA_IP6:
 				if ( memcmp( bucket->ipv._6, address->ipv._6, 16 ) == 0 ) {
 					if ( n > 8 ) {
@@ -557,7 +559,7 @@ static leakyBucket_t *SVC_BucketForAddress( const netadr_t *address, int burst, 
 					return bucket;
 				}
 				break;
-
+#endif
 			default:
 				return &dummy;
 		}
@@ -590,7 +592,9 @@ static leakyBucket_t *SVC_BucketForAddress( const netadr_t *address, int burst, 
 			bucket->type = address->type;
 			switch ( address->type ) {
 				case NA_IP:  Com_Memcpy( bucket->ipv._4, address->ipv._4, 4 );  break;
+#ifdef USE_IPV6
 				case NA_IP6: Com_Memcpy( bucket->ipv._6, address->ipv._6, 16 ); break;
+#endif
 				default: break;
 			}
 
@@ -1733,9 +1737,11 @@ int SV_RateMsec( const client_t *client )
 
 	messageSize = client->netchan.lastSentSize;
 
+#ifdef USE_IPV6
 	if ( client->netchan.remoteAddress.type == NA_IP6 )
 		messageSize += UDPIP6_HEADER_SIZE;
 	else
+#endif
 		messageSize += UDPIP_HEADER_SIZE;
 		
 	rateMsec = messageSize * 1000 / ((int) (client->rate * com_timescale->value));

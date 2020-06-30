@@ -518,8 +518,11 @@ extern	cvar_t	*r_noborder;
 
 extern	cvar_t	*r_allowSoftwareGL;
 extern	cvar_t	*r_swapInterval;
+#ifndef USE_SDL
 extern	cvar_t	*r_glDriver;
-
+#else
+extern	cvar_t	*r_sdlDriver;
+#endif
 extern	cvar_t	*r_displayRefresh;
 extern	cvar_t	*r_fullscreen;
 extern	cvar_t	*r_mode;

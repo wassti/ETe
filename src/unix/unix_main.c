@@ -115,20 +115,28 @@ tty_err Sys_ConsoleInputInit( void );
 // General routines
 // =======================================================================
 
-// bk001207 
-#define MEM_THRESHOLD 96*1024*1024
+#define MEM_THRESHOLD 96*1024
 
 /*
 ==================
-Sys_LowPhysicalMemory()
+Sys_LowPhysicalMemory
 ==================
 */
 qboolean Sys_LowPhysicalMemory( void )
 {
-	//MEMORYSTATUS stat;
-	//GlobalMemoryStatus (&stat);
-	//return (stat.dwTotalPhys <= MEM_THRESHOLD) ? qtrue : qfalse;
-	return qfalse; // bk001207 - FIXME
+	FILE *fp;
+	uint32_t totalkb;
+
+	fp = fopen( "/proc/meminfo", "r" );
+	if( !fp )
+		return qfalse;
+	if(fscanf (fp, "MemTotal: %d kB", &totalkb) < 1) {
+		// failed to parse for some reason, abort;
+		fclose(fp);
+		return qfalse;
+	}
+	fclose(fp);
+	return (totalkb <= MEM_THRESHOLD) ? qtrue : qfalse;
 }
 
 

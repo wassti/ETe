@@ -31,8 +31,9 @@ If you have questions concerning this license or the applicable additional terms
 #include "q_shared.h"
 #include "qcommon.h"
 
-// we don't need more than 5 arguments (counting callnum) for vmMain, at least in ET
-#define MAX_VMMAIN_CALL_ARGS 5
+// we don't need more than 6 arguments (counting callnum) for vmMain, at least in ET
+// 6 arguments for vET 8 for etlegacy cgame compatibility
+#define MAX_VMMAIN_CALL_ARGS 8
 
 struct vm_s {
 	syscall_t	systemCall;

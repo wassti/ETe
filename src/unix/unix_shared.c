@@ -53,7 +53,7 @@ Sys_Milliseconds
    timeval:tv_sec is an int: 
    assuming this wraps every 0x7fffffff - ~68 years since the Epoch (1970) - we're safe till 2038
    using unsigned long data type to work right with Sys_XTimeToSysTime */
-unsigned long sys_timeBase = 0;
+unsigned int sys_timeBase = 0;
 /* current time in ms, using sys_timeBase as origin
    NOTE: sys_timeBase*1000 + curtime -> ms since the Epoch
      0x7fffffff ms - ~24 days
@@ -61,6 +61,25 @@ unsigned long sys_timeBase = 0;
      (which would affect the wrap period) */
 int Sys_Milliseconds( void )
 {
+	int curtime;
+	struct timespec ts;
+	
+#ifdef CLOCK_MONOTONIC_RAW
+	clock_gettime( CLOCK_MONOTONIC_RAW, &ts );
+#else
+	clock_gettime( CLOCK_MONOTONIC, &ts );
+#endif
+	
+	if( !sys_timeBase )
+	{
+		sys_timeBase = ts.tv_sec;
+		return ts.tv_nsec / 1000000;
+	}
+	
+	curtime = ( ts.tv_sec - sys_timeBase ) * 1000 + ts.tv_nsec / 1000000;
+	
+	return curtime;
+#if 0
 	struct timeval tp;
 	int curtime;
 

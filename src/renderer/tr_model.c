@@ -604,6 +604,8 @@ qhandle_t RE_RegisterModel( const char *name ) {
 // Ridah, mesh compression
 #include "anorms256.h"
 
+// rain - unused
+#if 0
 /*
 =============
 R_MDC_GetVec
@@ -723,19 +725,17 @@ qboolean R_MDC_EncodeXyzCompressed( const vec3_t vec, const vec3_t normal, mdcXy
 R_MDC_DecodeXyzCompressed
 =================
 */
-#if 0   // unoptimized version, used for finding right settings
-void R_MDC_DecodeXyzCompressed( mdcXyzCompressed_t *xyzComp, vec3_t out, vec3_t normal ) {
+//#if 0   // unoptimized version, used for finding right settings
+/*void R_MDC_DecodeXyzCompressed( mdcXyzCompressed_t *xyzComp, vec3_t out, vec3_t normal ) {
 	int i;
 
 	for ( i = 0; i < 3; i++ ) {
 		out[i] = ( (float)( ( xyzComp->ofsVec >> ( i * MDC_BITS_PER_AXIS ) ) & ( ( 1 << MDC_BITS_PER_AXIS ) - 1 ) ) - MDC_MAX_OFS ) * MDC_DIST_SCALE;
 	}
 	R_MDC_GetVec( ( unsigned char )( xyzComp->ofsVec >> 24 ), normal );
-}
-#endif
+}*/
+//#endif
 
-// rain - unused
-#if 0
 /*
 =================
 R_MDC_GetXyzCompressed
@@ -2683,7 +2683,7 @@ R_LoadCacheModels
 void R_LoadCacheModels( void ) {
 	int len;
 	byte *buf;
-	char    *token, *pString;
+	const char    *token, *pString;
 	char name[MAX_QPATH];
 
 	if ( !r_cacheModels->integer ) {
@@ -2703,7 +2703,7 @@ void R_LoadCacheModels( void ) {
 
 	buf = (byte *)ri.Hunk_AllocateTempMemory( len );
 	ri.FS_ReadFile( "model.cache", (void **)&buf );
-	pString = buf;
+	pString = (const char *)buf;
 
 	while ( ( token = COM_ParseExt( &pString, qtrue ) ) && token[0] ) {
 		Q_strncpyz( name, token, sizeof( name ) );

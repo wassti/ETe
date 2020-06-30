@@ -356,7 +356,6 @@ static void SV_AddEntitiesVisibleFromPoint( const vec3_t origin, clientSnapshot_
 	int l;
 	int clientarea, clientcluster;
 	int leafnum;
-	int c_fullsend;
 	byte    *clientpvs;
 	byte    *bitvector;
 
@@ -375,8 +374,6 @@ static void SV_AddEntitiesVisibleFromPoint( const vec3_t origin, clientSnapshot_
 	frame->areabytes = CM_WriteAreaBits( frame->areabits, clientarea );
 
 	clientpvs = CM_ClusterPVS (clientcluster);
-
-	c_fullsend = 0;
 
 	playerEnt = SV_GentityNum( frame->ps.clientNum );
 	if ( playerEnt->r.svFlags & SVF_SELF_PORTAL ) {

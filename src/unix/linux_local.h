@@ -47,7 +47,5 @@ void QGL_Shutdown( qboolean unloadDLL );
 qboolean QVK_Init( void );
 void QVK_Shutdown( qboolean unloadDLL );
 
-char *strlwr (char *s);
-
 // signals.c
 void InitSig(void);

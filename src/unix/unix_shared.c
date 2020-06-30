@@ -94,19 +94,7 @@ int Sys_Milliseconds( void )
 	curtime = (tp.tv_sec - sys_timeBase) * 1000 + tp.tv_usec / 1000;
 	
 	return curtime;
-}
-
-
-char *strlwr( char *s ) {
-  if ( s==NULL ) { // bk001204 - paranoia
-    assert(0);
-    return s;
-  }
-  while (*s) {
-    *s = tolower(*s);
-    s++;
-  }
-  return s; // bk001204 - duh
+#endif
 }
 
 
@@ -138,7 +126,6 @@ qboolean Sys_RandomBytes( byte *string, int len )
 //============================================
 
 
-// bk001129 - new in 1.26
 void Sys_ListFilteredFiles( const char *basedir, const char *subdirs, const char *filter, char **list, int *numfiles ) {
 	char	search[MAX_OSPATH*2+1];
 	char	newsubdirs[MAX_OSPATH*2];
@@ -191,8 +178,6 @@ void Sys_ListFilteredFiles( const char *basedir, const char *subdirs, const char
 }
 
 
-// bk001129 - in 1.17 this used to be
-// char **Sys_ListFiles( const char *directory, const char *extension, int *numfiles, qboolean wantsubs )
 char **Sys_ListFiles( const char *directory, const char *extension, const char *filter, int *numfiles, qboolean wantsubs )
 {
 	struct dirent *d;
@@ -466,7 +451,6 @@ const char *Sys_DefaultHomePath( void )
 	}
 	return ""; // assume current dir
 }
-
 
 
 /*

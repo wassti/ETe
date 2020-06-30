@@ -569,7 +569,6 @@ void COM_BeginParseSession( const char *name )
 }
 
 
-
 void COM_BackupParseSession( const char **data_p )
 {
 	backup_lines = com_lines;
@@ -577,6 +576,7 @@ void COM_BackupParseSession( const char **data_p )
 	backup_text = *data_p;
 	backup_tokentype = com_tokentype;
 }
+
 
 void COM_RestoreParseSession( const char **data_p )
 {
@@ -586,10 +586,12 @@ void COM_RestoreParseSession( const char **data_p )
 	com_tokentype = backup_tokentype;
 }
 
+
 /*void COM_SetCurrentParseLine( int line )
 {
 	com_lines = line;
 }*/
+
 
 int COM_GetCurrentParseLine( void )
 {
@@ -608,7 +610,7 @@ char *COM_Parse( const char **data_p )
 }
 
 
-void COM_ParseError( char *format, ... )
+void FORMAT_PRINTF(1, 2) COM_ParseError( const char *format, ... )
 {
 	va_list argptr;
 	static char string[4096];
@@ -621,7 +623,7 @@ void COM_ParseError( char *format, ... )
 }
 
 
-void COM_ParseWarning( char *format, ... )
+void FORMAT_PRINTF(1, 2) COM_ParseWarning( const char *format, ... )
 {
 	va_list argptr;
 	static char string[4096];
@@ -1222,7 +1224,7 @@ void Parse3DMatrix( const char **buf_p, int z, int y, int x, float *m ) {
 Com_ParseInfos
 ===============
 */
-int Com_ParseInfos( char *buf, int max, char infos[][MAX_INFO_STRING] ) {
+int Com_ParseInfos( const char *buf, int max, char infos[][MAX_INFO_STRING] ) {
 	const char  *token;
 	int count;
 	char key[MAX_TOKEN_CHARS];

@@ -831,7 +831,8 @@ void SV_DropClient( client_t *drop, const char *reason ) {
 	SV_FreeClient( drop );
 
 	// tell everyone why they got dropped
-	if ( reason && ( !SV_GameIsSinglePlayer() ) || ( !isBot ) ) {
+	if ( reason && !SV_GameIsSinglePlayer() && !isBot ) {
+	//if ( reason && ( !SV_GameIsSinglePlayer() ) || ( !isBot ) ) {
 		// Gordon: we want this displayed elsewhere now
 		SV_SendServerCommand( NULL, "cpm \"%s" S_COLOR_WHITE " %s\n\"", name, reason );
 //		SV_SendServerCommand( NULL, "print \"[lof]%s" S_COLOR_WHITE " [lon]%s\n\"", drop->name, reason );
@@ -2346,7 +2347,7 @@ static void SV_ParseBinaryMessage( client_t *cl, msg_t *msg ) {
 		return;
 	}
 
-	SV_GameBinaryMessageReceived( cl - svs.clients, &msg->data[msg->readcount], size, cl->lastUsercmd.serverTime );
+	SV_GameBinaryMessageReceived( cl - svs.clients, (char *)&msg->data[msg->readcount], size, cl->lastUsercmd.serverTime );
 }
 
 /*

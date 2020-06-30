@@ -206,7 +206,7 @@ void		NET_Init( void );
 void		NET_Shutdown( void );
 void		NET_FlushPacketQueue(void);
 void		NET_SendPacket( netsrc_t sock, int length, const void *data, const netadr_t *to );
-void		QDECL NET_OutOfBandPrint( netsrc_t net_socket, const netadr_t *adr, const char *format, ...) __attribute__ ((format (printf, 3, 4)));
+void		QDECL NET_OutOfBandPrint( netsrc_t net_socket, const netadr_t *adr, const char *format, ...) FORMAT_PRINTF(3, 4);
 void		NET_OutOfBandCompress( netsrc_t sock, const netadr_t *adr, const byte *data, int len );
 
 qboolean	NET_CompareAdr( const netadr_t *a, const netadr_t *b );
@@ -838,7 +838,7 @@ int		FS_FTell( fileHandle_t f );
 
 void	FS_Flush( fileHandle_t f );
 
-void 	QDECL FS_Printf( fileHandle_t f, const char *fmt, ... ) __attribute__ ((format (printf, 2, 3)));
+void 	QDECL FS_Printf( fileHandle_t f, const char *fmt, ... ) FORMAT_PRINTF(2, 3);
 // like fprintf
 
 int		FS_FOpenFileByMode( const char *qpath, fileHandle_t *f, fsMode_t mode );
@@ -1012,10 +1012,10 @@ void		Info_Print( const char *s );
 
 void		Com_BeginRedirect (char *buffer, int buffersize, void (*flush)(const char *));
 void		Com_EndRedirect( void );
-int			QDECL Com_VPrintf( const char *fmt, va_list argptr ) __attribute__ ((format (printf, 1, 0))); // conforms to vprintf prototype for print callback passing
-void 		QDECL Com_Printf( const char *fmt, ... ) __attribute__ ((format (printf, 1, 2)));
-void 		QDECL Com_DPrintf( const char *fmt, ... ) __attribute__ ((format (printf, 1, 2)));
-void 		NORETURN QDECL Com_Error( errorParm_t code, const char *fmt, ... ) __attribute__ ((format (printf, 2, 3)));
+int			QDECL Com_VPrintf( const char *fmt, va_list argptr ) FORMAT_PRINTF(1, 0); // conforms to vprintf prototype for print callback passing
+void 		QDECL Com_Printf( const char *fmt, ... ) FORMAT_PRINTF(1, 2);
+void 		QDECL Com_DPrintf( const char *fmt, ... ) FORMAT_PRINTF(1, 2);
+void 		NORETURN QDECL Com_Error( errorParm_t code, const char *fmt, ... ) FORMAT_PRINTF(2, 3);
 void 		Com_Quit_f( void );
 void		Com_GameRestart( int checksumFeed, qboolean clientRestart );
 
@@ -1362,15 +1362,15 @@ int Sys_GetPID( void );
 void	*QDECL Sys_LoadDll( const char *name, dllSyscall_t *entryPoint, dllSyscall_t systemcalls );
 void	Sys_UnloadDll( void *dllHandle );
 
-void	QDECL Sys_Error( const char *error, ...) __attribute__ ((noreturn, format (printf, 1, 2)));
-void	Sys_Quit (void) __attribute__ ((noreturn));
+void	NORETURN QDECL Sys_Error( const char *error, ...) FORMAT_PRINTF(1, 2);
+void	NORETURN Sys_Quit (void);
 char	*Sys_GetClipboardData( void );	// note that this isn't journaled...
 void	Sys_SetClipboardBitmap( const byte *bitmap, int length );
 
 void	Sys_Print( const char *msg );
 
 // dedicated console status, win32-only at the moment
-void	QDECL Sys_SetStatus( const char *format, ...) __attribute__ ((format (printf, 1, 2)));
+void	QDECL Sys_SetStatus( const char *format, ...) FORMAT_PRINTF(1, 2);
 
 void	Sys_SetAffinityMask( int mask );
 

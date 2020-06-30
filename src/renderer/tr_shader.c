@@ -3199,7 +3199,7 @@ returns qtrue if request was successful, qfalse if the gods were angered
 */
 qboolean RE_LoadDynamicShader( const char *shadername, const char *shadertext ) {
 	dynamicshader_t *dptr, *lastdptr;
-	char *q, *token;
+	const char *q, *token;
 
 	if ( !shadername && shadertext ) {
 		ri.Printf( PRINT_WARNING, "WARNING: %s: called with NULL shadername and non-NULL shadertext:\n%s\n", __func__, shadertext );
@@ -3310,7 +3310,7 @@ static const char *FindShaderInShaderText( const char *shadername ) {
 	//bani - if we have any dynamic shaders loaded, check them first
 	if ( dshader ) {
 		dynamicshader_t *dptr;
-		char    *q;
+		const char *q;
 
 		dptr = dshader;
 		i = 0;
@@ -4613,7 +4613,7 @@ R_LoadCacheShaders
 void R_LoadCacheShaders( void ) {
 	int len;
 	byte *buf;
-	char    *token, *pString;
+	const char    *token, *pString;
 	char name[MAX_QPATH];
 
 	if ( !r_cacheShaders->integer ) {
@@ -4633,7 +4633,7 @@ void R_LoadCacheShaders( void ) {
 
 	buf = (byte *)ri.Hunk_AllocateTempMemory( len );
 	ri.FS_ReadFile( "shader.cache", (void **)&buf );
-	pString = buf;
+	pString = (const char *)buf;
 
 	while ( ( token = COM_ParseExt( &pString, qtrue ) ) && token[0] ) {
 		Q_strncpyz( name, token, sizeof( name ) );

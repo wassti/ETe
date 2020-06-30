@@ -135,6 +135,12 @@ If you have questions concerning this license or the applicable additional terms
 #define NORETURN_PTR /* nothing */
 #endif
 
+#if defined(__GNUC__)
+#define FORMAT_PRINTF(x, y) __attribute__((format (printf, x, y)))
+#else
+#define FORMAT_PRINTF(x, y) /* nothing */
+#endif
+
 /**********************************************************************
   VM Considerations
 
@@ -873,9 +879,9 @@ int     COM_GetCurrentParseLine( void );
 char	*COM_Parse( const char **data_p );
 char	*COM_ParseExt( const char **data_p, qboolean allowLineBreak );
 int     COM_Compress( char *data_p );
-void    COM_ParseError( char *format, ... ) __attribute__ ( ( format( printf,1,2 ) ) );
-void    COM_ParseWarning( char *format, ... ) __attribute__ ( ( format( printf,1,2 ) ) );
-int Com_ParseInfos( char *buf, int max, char infos[][MAX_INFO_STRING] );
+void    COM_ParseError( const char *format, ... ) FORMAT_PRINTF(1, 2);
+void    COM_ParseWarning( const char *format, ... ) FORMAT_PRINTF(1, 2);
+int Com_ParseInfos( const char *buf, int max, char infos[][MAX_INFO_STRING] );
 
 char	*COM_ParseComplex( const char **data_p, qboolean allowLineBreak );
 
@@ -1042,7 +1048,7 @@ float	LittleFloat (const float *l);
 
 void	Swap_Init (void);
 */
-const char *QDECL va( const char *format, ... ) __attribute__ ((format( printf, 1, 2 )));
+const char *QDECL va( const char *format, ... ) FORMAT_PRINTF(1, 2);
 float   *tv( float x, float y, float z );
 
 #define TRUNCATE_LENGTH	64
@@ -1064,8 +1070,8 @@ qboolean Info_NextPair( const char **s, char *key, char *value );
 int Info_RemoveKey( char *s, const char *key );
 
 // this is only here so the functions in q_shared.c and bg_*.c can link
-void	NORETURN QDECL Com_Error( errorParm_t level, const char *fmt, ... ) __attribute__ ((format (printf, 2, 3)));
-void	QDECL Com_Printf( const char *msg, ... ) __attribute__ ((format (printf, 1, 2)));
+void	NORETURN QDECL Com_Error( errorParm_t level, const char *fmt, ... ) FORMAT_PRINTF(2, 3);
+void	QDECL Com_Printf( const char *msg, ... ) FORMAT_PRINTF(1, 2);
 
 /*
 ==========================================================

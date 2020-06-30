@@ -117,7 +117,7 @@ Draws triangle outlines for debugging
 ================
 */
 static void DrawTris( shaderCommands_t *input ) {
-	char            *s = r_trisColor->string;
+	const char *s = r_trisColor->string;
 	vec4_t trisColor = { 1, 1, 1, 1 };
 	GLbitfield stateBits = 0;
 	GLboolean didDepth = GL_FALSE, polygonState = GL_FALSE;
@@ -147,7 +147,7 @@ static void DrawTris( shaderCommands_t *input ) {
 		}
 	} else {
 		int i;
-		char    *token;
+		const char *token;
 
 		for ( i = 0 ; i < 4 ; i++ ) {
 			token = COM_Parse( &s );

@@ -133,19 +133,6 @@ static float CM_DistanceFromLineSquared( const vec3_t p, const vec3_t lp1, const
 
 /*
 ================
-CM_VectorDistanceSquared
-================
-*/
-static float CM_VectorDistanceSquared( const vec3_t p1, const vec3_t p2 ) {
-	vec3_t dir;
-
-	VectorSubtract( p2, p1, dir );
-	return VectorLengthSquared( dir );
-}
-
-
-/*
-================
 SquareRootFloat
 ================
 */

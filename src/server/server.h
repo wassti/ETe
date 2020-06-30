@@ -424,7 +424,7 @@ void SVC_RateRestoreToxicAddress( const netadr_t *from, int burst, int period );
 void SVC_RateDropAddress( const netadr_t *from, int burst, int period );
 
 void SV_FinalCommand( const char *message, qboolean disconnect ); // ydnar: added disconnect flag so map changes can use this function as well
-void QDECL SV_SendServerCommand( client_t *cl, const char *fmt, ... ) __attribute__ ((format (printf, 2, 3)));
+void QDECL SV_SendServerCommand( client_t *cl, const char *fmt, ... ) FORMAT_PRINTF(2, 3);
 
 void SV_AddOperatorCommands( void );
 void SV_RemoveOperatorCommands( void );

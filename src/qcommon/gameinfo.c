@@ -37,8 +37,8 @@ gameInfo_t com_gameInfo;
 static qboolean firstLaunch = qtrue;
 
 void Com_GetGameInfo( void ) {
-	char    *f, *buf;
-	char    *token;
+	char    *f;
+	const char *buf, *token;
 
 	memset( &com_gameInfo, 0, sizeof( com_gameInfo ) );
 

@@ -34,15 +34,6 @@ If you have questions concerning this license or the applicable additional terms
 #include <netinet/in.h>
 #include <sys/stat.h> // umask
 #include <sys/time.h>
-#endif
-// htons
-#ifdef __linux__
-#include <netinet/in.h>
-// getpid
-#include <unistd.h>
-#elif __MACOS__
-// getpid
-#include <unistd.h>
 #else
 #include <winsock.h>
 #endif
@@ -159,14 +150,6 @@ void CIN_CloseAllVideos( void );
 
 //============================================================================
 
-qboolean Com_DedicatedServer( void ) {
-#ifdef DEDICATED
-	return qtrue;
-#else
-	return Cvar_VariableIntegerValue("dedicated") != 0 ? qtrue : qfalse;
-#endif
-}
-
 static char	*rd_buffer;
 static int	rd_buffersize;
 static qboolean rd_flushing = qfalse;
@@ -209,7 +192,7 @@ A raw string should NEVER be passed as fmt, because of "%f" type crashers.
 =============
 */
 static qboolean devPrint = qfalse;
-int QDECL Com_VPrintf( const char *fmt, va_list argptr ) {
+int FORMAT_PRINTF(1, 0) QDECL Com_VPrintf( const char *fmt, va_list argptr ) {
 	static qboolean opening_qconsole = qfalse;
 	char		msg[MAXPRINTMSG];
 	int			len;
@@ -295,16 +278,14 @@ int QDECL Com_VPrintf( const char *fmt, va_list argptr ) {
 	}
 	return len;
 }
-int QDECL Com_VPrintf( const char *fmt, va_list argptr ) __attribute__( ( format( printf,1,0 ) ) );
 
-void QDECL Com_Printf( const char *fmt, ... ) {
+void FORMAT_PRINTF(1, 2) QDECL Com_Printf( const char *fmt, ... ) {
 	va_list argptr;
 
 	va_start( argptr, fmt );
 	Com_VPrintf( fmt, argptr );
 	va_end( argptr );
 }
-void QDECL Com_Printf( const char *fmt, ... ) __attribute__( ( format( printf,1,2 ) ) );
 
 /*
 ================
@@ -313,7 +294,7 @@ Com_DPrintf
 A Com_Printf that only shows up if the "developer" cvar is set
 ================
 */
-void QDECL Com_DPrintf( const char *fmt, ...) {
+void FORMAT_PRINTF(1, 2) QDECL Com_DPrintf( const char *fmt, ...) {
 	va_list		argptr;
 		
 	if ( !com_developer || !com_developer->integer ) {
@@ -326,7 +307,6 @@ void QDECL Com_DPrintf( const char *fmt, ...) {
 	devPrint = qfalse;
 	va_end( argptr );
 }
-void QDECL Com_DPrintf( const char *fmt, ... ) __attribute__( ( format( printf,1,2 ) ) );
 
 /*
 =============
@@ -336,7 +316,7 @@ Both client and server can use this, and it will
 do the apropriate things.
 =============
 */
-void NORETURN QDECL Com_Error( errorParm_t code, const char *fmt, ... ) {
+void NORETURN FORMAT_PRINTF(2, 3) QDECL Com_Error( errorParm_t code, const char *fmt, ... ) {
 	va_list		argptr;
 	static int	lastErrorTime;
 	static int	errorCount;
@@ -3082,8 +3062,8 @@ void Com_ExecuteCfg(qboolean safeMode)
 				FS_ReadFile( "profiles/defaultprofile.dat", (void **)&defaultProfile );
 
 				if ( defaultProfile ) {
-					char *text_p = defaultProfile;
-					char *token = COM_Parse( &text_p );
+					const char *text_p = defaultProfile;
+					const char *token = COM_Parse( &text_p );
 
 					if ( token && *token ) {
 						Cvar_Set( "cl_defaultProfile", token );
@@ -3229,13 +3209,13 @@ static void Com_GameRestart_f( void )
 }
 
 void Com_SetRecommended() {
-	cvar_t *r_highQualityVideo,* com_recommended;
+	cvar_t *r_highQualityVideo;//,* com_recommended;
 	qboolean goodVideo;
 	float cpuSpeed;
 	//qboolean goodCPU;
 	// will use this for recommended settings as well.. do i outside the lower check so it gets done even with command line stuff
 	r_highQualityVideo = Cvar_Get( "r_highQualityVideo", "1", CVAR_ARCHIVE );
-	com_recommended = Cvar_Get( "com_recommended", "-1", CVAR_ARCHIVE );
+	/*com_recommended = */Cvar_Get( "com_recommended", "-1", CVAR_ARCHIVE );
 	goodVideo = ( r_highQualityVideo && r_highQualityVideo->integer );
 
 	cpuSpeed = 3000;//Sys_GetCPUSpeed();

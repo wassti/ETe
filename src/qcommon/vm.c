@@ -410,7 +410,7 @@ intptr_t QDECL VM_Call( vm_t *vm, int nargs, int callnum, ... )
 VM_NameToVM
 ==============
 */
-static vm_t *VM_NameToVM( const char *name ) 
+/*static vm_t *VM_NameToVM( const char *name ) 
 {
 	vmIndex_t index;
 
@@ -433,7 +433,7 @@ static vm_t *VM_NameToVM( const char *name )
 	}
 
 	return &vmTable[ index ];
-}
+}*/
 
 
 /*

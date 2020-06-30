@@ -803,13 +803,11 @@ void Cmd_RemoveCommandSafe( const char *cmd_name )
 		return;
 	if( cmd->function )
 	{
-		const char *foundkey = NULL;
-
-		foundkey = (const char *)Q_LinearSearch( cmd_name, safeCommands, numSafeCommands, sizeof( safeCommands[0] ), Q_stricmp );
-		//if ( foundkey ) {
-			Com_Printf( S_COLOR_RED, "Restricted source tried to remove "
+		const char *ret = (const char *)Q_LinearSearch( cmd_name, safeCommands, numSafeCommands, sizeof( safeCommands[0] ), (cmpFunc_t)Q_stricmp );
+		if ( ret ) {
+			Com_Printf( S_COLOR_RED "Restricted source tried to remove "
 				"system command \"%s\"", cmd_name );
-		//}
+		}
 		//else {
 			//Com_Error( ERR_DROP, "Restricted source tried to remove "
 			//	"system command \"%s\"", cmd_name );

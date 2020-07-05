@@ -185,6 +185,14 @@ void COM_DefaultExtension( char *path, int maxSize, const char *extension )
 }
 
 
+void COM_StripFilename( const char *in, char *out ) {
+	char *end;
+	Q_strncpyz( out, in, strlen( in ) + 1 );
+	end = COM_SkipPath( out );
+	*end = 0;
+}
+
+
 /*
 ==================
 COM_GenerateHashValue

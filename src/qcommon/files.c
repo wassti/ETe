@@ -5155,7 +5155,6 @@ static void FS_CheckIdPaks( void )
 
 		pakBasename = path->pack->pakBasename;
 
-
 		if(!Q_stricmpn( path->pack->pakGamename, BASEGAME, MAX_OSPATH )
 			&& strlen(pakBasename) == 4 && !Q_stricmpn( pakBasename, "pak", 3 )
 			&& pakBasename[3] >= '0' && pakBasename[3] <= '2')
@@ -5192,7 +5191,7 @@ static void FS_CheckIdPaks( void )
 			foundPak |= 1<<(pakBasename[3]-'0');
 		}
 		else if(!Q_stricmpn( path->pack->pakGamename, BASEGAME, MAX_OSPATH )
-			&& !Q_stricmpn( pakBasename, "mp_bin", 6 ))
+			&& !Q_stricmp( pakBasename, "mp_bin" ))
 		{
 			if( (unsigned int)path->pack->checksum != mpbin_checksum )
 			{

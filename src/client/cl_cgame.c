@@ -431,7 +431,7 @@ CL_SetExpectedHunkUsage
 static void CL_SetExpectedHunkUsage( const char *mapname ) {
 	int handle;
 	char *buf;
-	const char **buftrav;
+	const char *buftrav;
 	char *token;
 	int len;
 
@@ -445,11 +445,11 @@ static void CL_SetExpectedHunkUsage( const char *mapname ) {
 		FS_FCloseFile( handle );
 
 		// now parse the file, filtering out the current map
-		buftrav = (const char **)&buf;
-		while ( ( token = COM_Parse( buftrav ) ) != NULL && token[0] ) {
+		buftrav = (const char *)buf;
+		while ( ( token = COM_Parse( &buftrav ) ) != NULL && token[0] ) {
 			if ( !Q_stricmp( token, (char *)mapname ) ) {
 				// found a match
-				token = COM_Parse( buftrav );  // read the size
+				token = COM_Parse( &buftrav );  // read the size
 				if ( token && *token ) {
 					// this is the usage
 					com_expectedhunkusage = atoi( token );
@@ -1140,7 +1140,7 @@ void CL_UpdateLevelHunkUsage( void ) {
 	int handle;
 	char *buf, *outbuf;
 	char *outbuftrav;
-	const char **buftrav;
+	const char *buftrav;
 	char *token;
 	char outstr[256];
 	int len, memusage;
@@ -1159,13 +1159,13 @@ void CL_UpdateLevelHunkUsage( void ) {
 		FS_FCloseFile( handle );
 
 		// now parse the file, filtering out the current map
-		buftrav = (const char **) &buf;
+		buftrav = (const char *) buf;
 		outbuftrav = outbuf;
 		outbuftrav[0] = '\0';
-		while ( ( token = COM_Parse( buftrav ) ) != NULL && token[0] ) {
+		while ( ( token = COM_Parse( &buftrav ) ) != NULL && token[0] ) {
 			if ( !Q_stricmp( token, cl.mapname ) ) {
 				// found a match
-				token = COM_Parse( buftrav );  // read the size
+				token = COM_Parse( &buftrav );  // read the size
 				if ( token && token[0] ) {
 					if ( atoi( token ) == memusage ) {  // if it is the same, abort this process
 						Z_Free( buf );
@@ -1176,7 +1176,7 @@ void CL_UpdateLevelHunkUsage( void ) {
 			} else {    // send it to the outbuf
 				Q_strcat( outbuftrav, len + 1, token );
 				Q_strcat( outbuftrav, len + 1, " " );
-				token = COM_Parse( buftrav );  // read the size
+				token = COM_Parse( &buftrav );  // read the size
 				if ( token && token[0] ) {
 					Q_strcat( outbuftrav, len + 1, token );
 					Q_strcat( outbuftrav, len + 1, "\n" );

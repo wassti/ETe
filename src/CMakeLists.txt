@@ -157,7 +157,7 @@ set(linux_shared_files
 set(linux_client_files
     "unix/linux_glimp.c"
     "unix/linux_qgl.c"
-    "unix/linux_qvk.c"
+    #"unix/linux_qvk.c"
     "unix/linux_snd.c"
     "unix/x11_dga.c"
     "unix/x11_randr.c"

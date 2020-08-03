@@ -30,6 +30,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ** QVK_Shutdown() - unloads libraries, NULLs function pointers
 */
 
+#ifdef USE_VULKAN_API
+
 #include <unistd.h>
 #include <sys/types.h>
 #include "../qcommon/q_shared.h"
@@ -151,3 +153,4 @@ qboolean QVK_Init( void )
 
 	return qtrue;
 }
+#endif // USE_VULKAN_API

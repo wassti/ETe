@@ -43,9 +43,11 @@ void IN_StartupJoystick( void );
 qboolean QGL_Init( const char *dllname );
 void QGL_Shutdown( qboolean unloadDLL );
 
+#ifdef USE_VULKAN_API
 // Vulkan subsystem
 qboolean QVK_Init( void );
 void QVK_Shutdown( qboolean unloadDLL );
+#endif
 
 // signals.c
 void InitSig(void);

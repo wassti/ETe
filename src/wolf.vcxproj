@@ -257,7 +257,10 @@ nmake /f Makefile.vc6 CFG=release
     <ClCompile Include="win32\win_main.c" />
     <ClCompile Include="win32\win_minimize.c" />
     <ClCompile Include="win32\win_qgl.c" />
-    <ClCompile Include="win32\win_qvk.c" />
+    <ClCompile Include="win32\win_qvk.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="win32\win_shared.c" />
     <ClCompile Include="win32\win_snd.c" />
     <ClCompile Include="win32\win_syscon.c" />

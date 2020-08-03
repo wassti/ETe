@@ -456,7 +456,7 @@ static void SV_SetExpectedHunkUsage( const char *mapname ) {
 	int handle;
 	char *buf;
 	const char *buftrav;
-	char *token;
+	const char *token;
 	int len;
 
 	len = FS_FOpenFileByMode( HUNKUSAGE_FILENAME, &handle, FS_READ );

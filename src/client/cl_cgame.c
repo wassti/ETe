@@ -432,7 +432,7 @@ static void CL_SetExpectedHunkUsage( const char *mapname ) {
 	int handle;
 	char *buf;
 	const char *buftrav;
-	char *token;
+	const char *token;
 	int len;
 
 	len = FS_FOpenFileByMode( HUNKUSAGE_FILENAME, &handle, FS_READ );
@@ -447,7 +447,7 @@ static void CL_SetExpectedHunkUsage( const char *mapname ) {
 		// now parse the file, filtering out the current map
 		buftrav = (const char *)buf;
 		while ( ( token = COM_Parse( &buftrav ) ) != NULL && token[0] ) {
-			if ( !Q_stricmp( token, (char *)mapname ) ) {
+			if ( !Q_stricmp( token, mapname ) ) {
 				// found a match
 				token = COM_Parse( &buftrav );  // read the size
 				if ( token && *token ) {

@@ -565,7 +565,7 @@ int Sys_LoadFunctionErrors( void )
 Sys_SetAffinityMask
 =================
 */
-#if !defined(__FreeBSD__)
+#ifdef USE_AFFINITY_MASK
 void Sys_SetAffinityMask( int mask )
 {
 	static qboolean inited = qfalse;
@@ -610,4 +610,4 @@ void Sys_SetAffinityMask( int mask )
 		Com_Printf( S_COLOR_YELLOW "error setting CPU affinity mask %i\n", mask );
 	}
 }
-#endif
+#endif // USE_AFFINITY_MASK

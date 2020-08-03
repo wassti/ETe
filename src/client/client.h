@@ -477,7 +477,7 @@ extern	cvar_t	*cl_showTimeDelta;
 
 extern cvar_t  *cl_bypassMouseInput;    // NERVE - SMF
 
-extern	cvar_t	*cl_timedemo;
+extern	cvar_t	*com_timedemo;
 extern	cvar_t	*cl_aviFrameRate;
 extern	cvar_t	*cl_aviMotionJpeg;
 extern	cvar_t	*cl_aviPipeFormat;

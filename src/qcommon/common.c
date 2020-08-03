@@ -3720,8 +3720,8 @@ void Com_Init( char *commandLine ) {
 	com_watchdog_cmd = Cvar_Get( "com_watchdog_cmd", "", CVAR_ARCHIVE_ND );
 
 #ifndef DEDICATED	
-	com_timedemo = Cvar_Get("timedemo", "0", CVAR_CHEAT);
-	Cvar_CheckRange( com_timedemo, NULL, NULL, CV_BOOLEAN );
+	com_timedemo = Cvar_Get( "timedemo", "0", CVAR_CHEAT );
+	Cvar_CheckRange( com_timedemo, "0", "1", CV_INTEGER );
 	cl_paused = Cvar_Get ("cl_paused", "0", CVAR_ROM);
 	cl_packetdelay = Cvar_Get ("cl_packetdelay", "0", CVAR_CHEAT);
 	com_cl_running = Cvar_Get ("cl_running", "0", CVAR_ROM);

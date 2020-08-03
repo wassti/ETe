@@ -39,6 +39,12 @@ typedef struct _TargaHeader {
 	uint8_t		pixel_size, attributes;
 } TargaHeader;
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4701)
+// Potentially unused variable red/green/blue/alphabyte ~ln246
+// caused by ri.Error funcptr can't tell that it is noreturn on win32 due to limitations on compiler features
+#endif
 void R_LoadTGA ( const char *name, byte **pic, int *width, int *height)
 {
 	uint32_t	columns, rows, numPixels;
@@ -332,3 +338,6 @@ void R_LoadTGA ( const char *name, byte **pic, int *width, int *height)
 
   ri.FS_FreeFile (buffer.v);
 }
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif

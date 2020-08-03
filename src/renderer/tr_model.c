@@ -2699,7 +2699,7 @@ void R_LoadCacheModels( void ) {
 	ri.FS_ReadFile( "model.cache", (void **)&buf );
 	pString = (const char *)buf;
 
-	while ( ( token = COM_ParseExt( &pString, qtrue ) ) && token[0] ) {
+	while ( ( token = COM_ParseExt( &pString, qtrue ) ) != NULL && token[0] ) {
 		Q_strncpyz( name, token, sizeof( name ) );
 		RE_RegisterModel( name );
 	}

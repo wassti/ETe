@@ -1375,7 +1375,7 @@ dlStatus_t DL_DownloadLoop( void ) {
 		return DL_CONTINUE;
 	}
 
-	while ( ( msg = dl_curl_multi_info_read( dl_multi, &dls ) ) && msg->easy_handle != dl_request )
+	while ( ( msg = dl_curl_multi_info_read( dl_multi, &dls ) ) != NULL && msg->easy_handle != dl_request )
 		;
 
 	if ( !msg || msg->msg != CURLMSG_DONE ) {

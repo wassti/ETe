@@ -139,10 +139,10 @@ void R_LoadBMP( const char *name, byte **pic, int *width, int *height )
 		ri.FS_FreeFile( buffer.v );
 		ri.Error( ERR_DROP, "LoadBMP: only Windows-style BMP files supported (%s)", name );
 	}
-	if ( bmpHeader.fileSize != length )
+	if ( bmpHeader.fileSize != (uint32_t)length )
 	{
 		ri.FS_FreeFile (buffer.v );
-		ri.Error( ERR_DROP, "LoadBMP: header size does not match file size (%u vs. %u) (%s)", bmpHeader.fileSize, length, name );
+		ri.Error( ERR_DROP, "LoadBMP: header size does not match file size (%u vs. %i) (%s)", bmpHeader.fileSize, length, name );
 	}
 	if ( bmpHeader.compression != 0 )
 	{
@@ -175,7 +175,7 @@ void R_LoadBMP( const char *name, byte **pic, int *width, int *height )
 	numPixels = columns * rows;
 
 	if(columns <= 0 || !rows || numPixels > 0x1FFFFFFF // 4*1FFFFFFF == 0x7FFFFFFC < 0x7FFFFFFF
-	    || ((numPixels * 4) / columns) / 4 != rows)
+	    || ((numPixels * 4) / (uint32_t)columns) / 4 != (uint32_t)rows)
 	{
 	  ri.FS_FreeFile( buffer.v );
 	  ri.Error (ERR_DROP, "LoadBMP: %s has an invalid image size", name);

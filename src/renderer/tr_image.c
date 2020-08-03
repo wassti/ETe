@@ -2220,7 +2220,8 @@ void R_PurgeBackupImages( int purgeCount ) {
 	for ( i = lastPurged; i < FILE_HASH_SIZE; ) {
 		lastPurged = i;
 		// TTimo: assignment used as truth value
-		if ( ( image = backupHashTable[i] ) ) {
+		image = backupHashTable[i];
+		if ( image ) {
 			// kill it
 			backupHashTable[i] = image->next;
 			R_PurgeImage( image );
@@ -2404,7 +2405,7 @@ void R_LoadCacheImages( void ) {
 	ri.FS_ReadFile( "image.cache", (void **)&buf );
 	pString = (const char *)buf;
 
-	while ( ( token = COM_ParseExt( &pString, qtrue ) ) && token[0] ) {
+	while ( ( token = COM_ParseExt( &pString, qtrue ) ) != NULL && token[0] ) {
 		Q_strncpyz( name, token, sizeof( name ) );
 		flags = atoi( COM_ParseExt( &pString, qfalse ) );
 		R_FindImageFile( name, flags );

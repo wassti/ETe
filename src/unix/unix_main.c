@@ -831,6 +831,7 @@ void *Sys_LoadDll( const char *name, dllSyscall_t *entryPoint, dllSyscall_t syst
 	const char	*homepath;
 	const char	*gamedir;
 #if !defined( DEDICATED )
+	const char	*fn = NULL;
 	const char	*cvar_name = NULL;
 #endif
 	const char	*err = NULL;
@@ -864,7 +865,7 @@ void *Sys_LoadDll( const char *name, dllSyscall_t *entryPoint, dllSyscall_t syst
 #endif*/
 	{
 		const char	*pwdpath = Sys_Pwd();
-		const char	*fn = FS_BuildOSPath( homepath, gamedir, fname );
+		fn = FS_BuildOSPath( homepath, gamedir, fname );
 		if ( access( fn, R_OK ) == 0 ) {
 			// there is a .so in fs_homepath, but is it a valid one version-wise?
 			// we use a persistent variable in config.cfg to make sure

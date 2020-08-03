@@ -35,7 +35,7 @@ If you have questions concerning this license or the applicable additional terms
 
 static qboolean signalcaught = qfalse;
 
-extern void Sys_Exit( int code );
+extern void NORETURN Sys_Exit( int code );
 
 static void signal_handler( int sig )
 {

@@ -74,6 +74,7 @@ static qboolean IsWindows7OrGreater( void ) {
 	return qfalse;
 }
 
+
 UINT32				bufferFrameCount;
 UINT32				bufferPosition; // in fullsamples
 UINT32				bufferSampleSize;

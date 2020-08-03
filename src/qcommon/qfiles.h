@@ -25,7 +25,6 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-
 #ifndef __QFILES_H__
 #define __QFILES_H__
 

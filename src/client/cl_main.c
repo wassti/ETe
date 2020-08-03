@@ -3693,7 +3693,7 @@ void CL_SetRecommended_f( void ) {
 CL_RefPrintf
 ================
 */
-static __attribute__ ((format (printf, 2, 3))) void QDECL CL_RefPrintf( printParm_t level, const char *fmt, ... ) {
+static FORMAT_PRINTF(2, 3) void QDECL CL_RefPrintf( printParm_t level, const char *fmt, ... ) {
 	va_list		argptr;
 	char		msg[MAXPRINTMSG];
 	

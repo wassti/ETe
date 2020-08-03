@@ -25,6 +25,9 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
+#ifndef __LINUX_LOCAL_H__
+#define __LINUX_LOCAL_H__
+
 // linux_local.h: Linux-specific Quake3 header file
 
 void HandleEvents( void );
@@ -51,3 +54,5 @@ void QVK_Shutdown( qboolean unloadDLL );
 
 // signals.c
 void InitSig(void);
+
+#endif // __LINUX_LOCAL_H__

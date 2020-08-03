@@ -830,7 +830,9 @@ void *Sys_LoadDll( const char *name, dllSyscall_t *entryPoint, dllSyscall_t syst
 	const char	*basepath;
 	const char	*homepath;
 	const char	*gamedir;
-	const char	*cvar_name;
+#if !defined( DEDICATED )
+	const char	*cvar_name = NULL;
+#endif
 	const char	*err = NULL;
 
 	assert( name ); // let's have some paranoia
@@ -843,8 +845,12 @@ void *Sys_LoadDll( const char *name, dllSyscall_t *entryPoint, dllSyscall_t syst
 		gamedir = Cvar_VariableString( "fs_basegame" );
 	}
 
-	cvar_name = va( "cl_lastVersion%s", name );
-	Com_DPrintf("cl_lastVersion: %s\n", cvar_name);
+#ifdef DEBUG
+	if ( getcwd( currpath, sizeof( currpath ) ) )
+		libHandle = try_dlopen( currpath, gamedir, fname );
+	else
+#endif
+	libHandle = NULL;
 
 	// this is relevant to client only
 	// this code is in for full client hosting a game, but it's not affected by it
@@ -852,45 +858,48 @@ void *Sys_LoadDll( const char *name, dllSyscall_t *entryPoint, dllSyscall_t syst
 	// do a first scan to identify what we are going to dlopen
 	// we need to pass this to FS_ExtractFromPakFile so that it checksums the right file
 	// NOTE: if something fails (not found, or file operation failed), we will ERR_FATAL (in the checksum itself, we only ERR_DROP)
-#ifdef _DEBUG
+/*#ifdef _DEBUG
 	fn = FS_BuildOSPath( pwdpath, gamedir, fname );
 	if ( access( fn, R_OK ) == -1 ) {
-#endif
-	const char	*pwdpath = Sys_Pwd();
-	const char	*fn = FS_BuildOSPath( homepath, gamedir, fname );
-	if ( access( fn, R_OK ) == 0 ) {
-		// there is a .so in fs_homepath, but is it a valid one version-wise?
-		// we use a persistent variable in config.cfg to make sure
-		// this is set in FS_CL_ExtractFromPakFile when the file is extracted
-		cvar_t *lastVersion;
-		lastVersion = Cvar_Get( cvar_name, "(uninitialized)", CVAR_ARCHIVE );
-		if ( Q_stricmp( Cvar_VariableString( "version" ), lastVersion->string ) ) {
-			Com_DPrintf( "clearing non matching version of %s .so: %s\n", name, fn );
-			if ( remove( fn ) == -1 ) {
-				Com_Error( ERR_FATAL, "failed to remove outdated '%s' file:\n\"%s\"\n", fn, strerror( errno ) );
+#endif*/
+	{
+		const char	*pwdpath = Sys_Pwd();
+		const char	*fn = FS_BuildOSPath( homepath, gamedir, fname );
+		if ( access( fn, R_OK ) == 0 ) {
+			// there is a .so in fs_homepath, but is it a valid one version-wise?
+			// we use a persistent variable in config.cfg to make sure
+			// this is set in FS_CL_ExtractFromPakFile when the file is extracted
+			cvar_t *lastVersion;
+			cvar_name = va( "cl_lastVersion%s", name );
+			lastVersion = Cvar_Get( cvar_name, "(uninitialized)", CVAR_ARCHIVE );
+			if ( Q_stricmp( Cvar_VariableString( "version" ), lastVersion->string ) ) {
+				Com_DPrintf( "clearing non matching version of %s .so: %s\n", name, fn );
+				if ( remove( fn ) == -1 ) {
+					Com_Error( ERR_FATAL, "failed to remove outdated '%s' file:\n\"%s\"\n", fn, strerror( errno ) );
+				}
+				// we cancelled fs_homepath, go work on basepath now
+				fn = FS_BuildOSPath( basepath, gamedir, fname );
+				if ( access( fn, R_OK ) == -1 ) {
+					// we may be dealing with a media-only mod, check wether we can find 'reference' DLLs and copy them over
+					if ( !CopyDLLForMod( (char **)&fn, gamedir, pwdpath, homepath, basepath, fname ) ) {
+						Com_Error( ERR_FATAL, "Sys_LoadDll(%s) failed, no corresponding .so file found in fs_homepath or fs_basepath\n", fname );
+					}
+				}
 			}
-			// we cancelled fs_homepath, go work on basepath now
+			// the .so in fs_homepath is valid version-wise .. FS_CL_ExtractFromPakFile will have to decide wether it's valid pk3-wise later
+		} else {
 			fn = FS_BuildOSPath( basepath, gamedir, fname );
 			if ( access( fn, R_OK ) == -1 ) {
-				// we may be dealing with a media-only mod, check wether we can find 'reference' DLLs and copy them over
+				// we may be dealing with a media-only mod, check whether we can find 'reference' DLLs and copy them over
 				if ( !CopyDLLForMod( (char **)&fn, gamedir, pwdpath, homepath, basepath, fname ) ) {
-					Com_Error( ERR_FATAL, "Sys_LoadDll(%s) failed, no corresponding .so file found in fs_homepath or fs_basepath\n", name );
+					Com_Error( ERR_FATAL, "Sys_LoadDll(%s) failed, no corresponding .so file found in fs_homepath or fs_basepath\n", fname );
 				}
 			}
 		}
-		// the .so in fs_homepath is valid version-wise .. FS_CL_ExtractFromPakFile will have to decide wether it's valid pk3-wise later
-	} else {
-		fn = FS_BuildOSPath( basepath, gamedir, fname );
-		if ( access( fn, R_OK ) == -1 ) {
-			// we may be dealing with a media-only mod, check whether we can find 'reference' DLLs and copy them over
-			if ( !CopyDLLForMod( (char **)&fn, gamedir, pwdpath, homepath, basepath, fname ) ) {
-				Com_Error( ERR_FATAL, "Sys_LoadDll(%s) failed, no corresponding .so file found in fs_homepath or fs_basepath\n", name );
-			}
-		}
 	}
-#ifdef _DEBUG
+/*#ifdef _DEBUG
 }
-#endif
+#endif*/
 
 	// NERVE - SMF - extract dlls from pak file for security
 	// we have to handle the game dll a little differently
@@ -898,32 +907,35 @@ void *Sys_LoadDll( const char *name, dllSyscall_t *entryPoint, dllSyscall_t syst
 	//   won't be a problem since we start a brand new scan next
 	if ( cl_connectedToPureServer && Q_strncmp( name, "qagame", 6 ) ) {
 		if ( !FS_CL_ExtractFromPakFile( fn, gamedir, fname, cvar_name ) ) {
-			Com_Error( ERR_DROP, "Game code(%s) failed Pure Server check", fname );
+			Com_Printf( "Sys_LoadDLL(%s/%s) failed to extract library\n", gamedir, name );
+			//Com_Error( ERR_DROP, "Game code(%s) failed Pure Server check", fname );
+		} else {
+			Com_Printf( "Sys_LoadDLL(%s/%s) library extraction succeeded\n", gamedir, name );
 		}
 	}
 #endif
 
-#ifdef _DEBUG
+/*#ifdef _DEBUG
 	// current directory
 	// NOTE: only for debug build, see Sys_LoadDll discussion
 	libHandle = try_dlopen( pwdpath, gamedir, fname );
 #else
 	libHandle = NULL;
-#endif
+#endif*/
 
 	// homepath
 	if ( !libHandle && homepath && homepath[0] )
 		libHandle = try_dlopen( homepath, gamedir, fname );
-		
+
 	if( !libHandle && basepath && basepath[0] )
 		libHandle = try_dlopen( basepath, gamedir, fname );
 
 	if ( !libHandle ) 
 	{
-#ifndef NDEBUG // in debug abort on failure
-		Com_Error( ERR_FATAL, "Sys_LoadDll(%s) failed dlopen() completely!\n", name  );
+#ifdef _DEBUG // in debug abort on failure
+		Com_Error( ERR_FATAL, "Sys_LoadDll(%s%s) failed dlopen() completely!\n", gamedir, name  );
 #else
-		Com_Printf( "Sys_LoadDll(%s) failed dlopen() completely!\n", name );
+		Com_Printf( "Sys_LoadDll(%s/%s) failed dlopen() completely!\n", gamedir, name );
 #endif
 		return NULL;
 	}
@@ -935,22 +947,22 @@ void *Sys_LoadDll( const char *name, dllSyscall_t *entryPoint, dllSyscall_t syst
 	{
 		err = do_dlerror();
 #ifdef _DEBUG
-		Com_Error ( ERR_FATAL, "Sys_LoadDll(%s) failed dlsym(vmMain):\n\"%s\" !\n", name, err );
+		Com_Error ( ERR_FATAL, "Sys_LoadDll(%s/%s) failed dlsym(vmMain):\n\"%s\" !\n", gamedir, name, err );
 #else
-		Com_Printf ( "Sys_LoadDll(%s) failed dlsym(vmMain):\n\"%s\" !\n", name, err );
+		Com_Printf ( "Sys_LoadDll(%s/%s) failed dlsym(vmMain):\n\"%s\" !\n", gamedir, name, err );
 #endif
 		dlclose( libHandle );
 		err = do_dlerror();
 		if ( err != NULL ) 
 		{
-			Com_Printf( "Sys_LoadDll(%s) failed dlcose:\n\"%s\"\n", name, err );
+			Com_Printf( "Sys_LoadDll(%s/%s) failed dlcose:\n\"%s\"\n", gamedir, name, err );
 		}
 		return NULL;
 	}
 
-	Com_Printf( "Sys_LoadDll(%s) found **vmMain** at %p\n", name, *entryPoint );
+	Com_Printf( "Sys_LoadDll(%s/%s) found **vmMain** at %p\n", gamedir, name, *entryPoint );
 	dllEntry( systemcalls );
-	Com_Printf( "Sys_LoadDll(%s) succeeded!\n", name );
+	Com_Printf( "Sys_LoadDll(%s/%s) succeeded!\n", gamedir, name );
 
 	return libHandle;
 }

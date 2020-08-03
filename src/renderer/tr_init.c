@@ -1758,9 +1758,7 @@ static void R_Register( void )
 	r_nobind = ri.Cvar_Get( "r_nobind", "0", CVAR_CHEAT );
 	r_showtris = ri.Cvar_Get( "r_showtris", "0", CVAR_CHEAT );
 	r_trisColor = ri.Cvar_Get( "r_trisColor", "1.0 1.0 1.0 1.0", CVAR_ARCHIVE_ND );
-#ifdef USE_SKY_DEPTH_WRITE
-	r_showsky = ri.Cvar_Get( "r_showsky", "0", CVAR_CHEAT );
-#endif
+	r_showsky = ri.Cvar_Get( "r_showsky", "0", 0 );
 	r_shownormals = ri.Cvar_Get( "r_shownormals", "0", CVAR_CHEAT );
 	r_normallength = ri.Cvar_Get( "r_normallength", "0.5", CVAR_ARCHIVE_ND );
 	r_showmodelbounds = ri.Cvar_Get( "r_showmodelbounds", "0", CVAR_CHEAT );
@@ -1804,10 +1802,6 @@ static void R_Register( void )
 
 	r_stencilbits = ri.Cvar_Get( "r_stencilbits", "8", CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE );
 	r_ignorehwgamma = ri.Cvar_Get( "r_ignorehwgamma", "0", CVAR_ARCHIVE_ND | CVAR_LATCH );        // ydnar: use hw gamma by default
-
-#ifndef USE_SKY_DEPTH_WRITE
-	r_showsky = ri.Cvar_Get( "r_showsky", "0", CVAR_LATCH | CVAR_CHEAT );
-#endif
 
 	r_flares = ri.Cvar_Get( "r_flares", "1", CVAR_ARCHIVE_ND | CVAR_LATCH );
 

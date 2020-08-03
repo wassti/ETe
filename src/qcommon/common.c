@@ -1840,8 +1840,8 @@ Goals:
 #define	HUNK_FREE_MAGIC	0x89537893
 
 typedef struct {
-	int		magic;
-	int		size;
+	unsigned int magic;
+	unsigned int size;
 } hunkHeader_t;
 
 typedef struct {
@@ -3384,7 +3384,7 @@ qboolean Com_WriteProfile( const char *profile_path ) {
 */
 
 #if defined _MSC_VER
-
+#include <intrin.h>
 static void CPUID( int func, unsigned int *regs )
 {
 	__cpuid( regs, func );
@@ -3491,7 +3491,6 @@ Sys_SnapVector
 ================
 */
 #ifdef _MSC_VER
-#include <intrin.h>
 #if idx64
 void Sys_SnapVector( float *vector ) 
 {

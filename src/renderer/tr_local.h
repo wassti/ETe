@@ -37,8 +37,6 @@ If you have questions concerning this license or the applicable additional terms
 #define USE_TESS_NEEDS_NORMAL
 //#define USE_TESS_NEEDS_ST2
 
-//#define USE_SKY_DEPTH_WRITE
-
 #include "../qcommon/q_shared.h"
 #include "../qcommon/qfiles.h"
 #include "../qcommon/qcommon.h"

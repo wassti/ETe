@@ -905,9 +905,7 @@ void RB_DrawSun( void ) {
 	VectorScale( vec2, size, vec2 );
 
 	// farthest depth range
-#ifdef USE_SKY_DEPTH_WRITE
 	qglDepthRange( sky_min_depth, 1.0 );
-#endif
 
 	// (SA) simpler sun drawing
 	RB_BeginSurface( tr.sunShader, tess.fogNum );
@@ -946,9 +944,7 @@ void RB_DrawSun( void ) {
 	}
 
 	// back to normal depth range
-#ifdef USE_SKY_DEPTH_WRITE
 	qglDepthRange( 0.0, 1.0 );
-#endif
 }
 
 
@@ -1007,13 +1003,11 @@ void RB_StageIteratorSky( void ) {
 	// r_showsky will let all the sky blocks be drawn in
 	// front of everything to allow developers to see how
 	// much sky is getting sucked in
-#ifdef USE_SKY_DEPTH_WRITE
 	if ( r_showsky->integer ) {
 		qglDepthRange( 0.0, 0.0 );
 	} else {
 		qglDepthRange( sky_min_depth, 1.0 );
 	}
-#endif
 
 	// draw the outer skybox
 	if ( tess.shader->sky.outerbox[0] && tess.shader->sky.outerbox[0] != tr.defaultImage ) {
@@ -1054,9 +1048,7 @@ void RB_StageIteratorSky( void ) {
 	// Rafael - end
 
 	// back to normal depth range
-#ifdef USE_SKY_DEPTH_WRITE
 	qglDepthRange( 0.0, 1.0 );
-#endif
 
 	backEnd.refdef.rdflags &= ~RDF_DRAWINGSKY;
 

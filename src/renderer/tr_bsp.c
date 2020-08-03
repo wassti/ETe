@@ -1778,23 +1778,20 @@ static void R_LoadSurfaces( const lump_t *surfs, const lump_t *verts, const lump
 	numFlares = 0;
 	numFoliage = 0;
 
-	in = ( void * )( fileBase + surfs->fileofs );
-	if ( surfs->filelen % sizeof( *in ) ) {
-		ri.Error( ERR_DROP, "LoadMap: funny lump size in %s",s_worldData.name );
-	}
-	count = surfs->filelen / sizeof( *in );
+	in = (void *)(fileBase + surfs->fileofs);
+	if (surfs->filelen % sizeof(*in))
+		ri.Error( ERR_DROP, "%s(): funny lump size in %s", __func__, s_worldData.name );
+	count = surfs->filelen / sizeof(*in);
 
-	dv = ( void * )( fileBase + verts->fileofs );
-	if ( verts->filelen % sizeof( *dv ) ) {
-		ri.Error( ERR_DROP, "LoadMap: funny lump size in %s",s_worldData.name );
-	}
+	dv = (void *)(fileBase + verts->fileofs);
+	if (verts->filelen % sizeof(*dv))
+		ri.Error( ERR_DROP, "%s(): funny lump size in %s", __func__, s_worldData.name );
 
-	indexes = ( void * )( fileBase + indexLump->fileofs );
-	if ( indexLump->filelen % sizeof( *indexes ) ) {
-		ri.Error( ERR_DROP, "LoadMap: funny lump size in %s",s_worldData.name );
-	}
+	indexes = (void *)(fileBase + indexLump->fileofs);
+	if ( indexLump->filelen % sizeof(*indexes))
+		ri.Error( ERR_DROP, "%s(): funny lump size in %s", __func__, s_worldData.name );
 
-	out = ri.Hunk_Alloc( count * sizeof( *out ), h_low );
+	out = ri.Hunk_Alloc( count * sizeof(*out), h_low );
 
 	s_worldData.surfaces = out;
 	s_worldData.numsurfaces = count;
@@ -1829,7 +1826,7 @@ static void R_LoadSurfaces( const lump_t *surfs, const lump_t *verts, const lump
 			numFoliage++;
 			break;
 		default:
-			ri.Error( ERR_DROP, "Bad surfaceType" );
+			ri.Error( ERR_DROP, "Bad surfaceType %i", LittleLong( in->surfaceType ) );
 		}
 	}
 
@@ -1855,14 +1852,13 @@ R_LoadSubmodels
 */
 static void R_LoadSubmodels( const lump_t *l ) {
 	const dmodel_t *in;
-	bmodel_t    *out;
-	int i, j, count;
+	bmodel_t	*out;
+	int			i, j, count;
 
-	in = ( void * )( fileBase + l->fileofs );
-	if ( l->filelen % sizeof( *in ) ) {
-		ri.Error( ERR_DROP, "LoadMap: funny lump size in %s",s_worldData.name );
-	}
-	count = l->filelen / sizeof( *in );
+	in = (void *)(fileBase + l->fileofs);
+	if (l->filelen % sizeof(*in))
+		ri.Error( ERR_DROP, "%s(): funny lump size in %s", __func__, s_worldData.name );
+	count = l->filelen / sizeof(*in);
 
 	s_worldData.numBModels = count;
 
@@ -1874,7 +1870,7 @@ static void R_LoadSubmodels( const lump_t *l ) {
 		model = R_AllocModel();
 
 		if ( model == NULL ) {
-			ri.Error(ERR_DROP, "R_LoadSubmodels: R_AllocModel() failed");
+			ri.Error( ERR_DROP, "R_LoadSubmodels: R_AllocModel() failed" );
 		}
 
 		model->type = MOD_BRUSH; //-V1004
@@ -1963,21 +1959,21 @@ R_LoadNodesAndLeafs
 =================
 */
 static void R_LoadNodesAndLeafs( const lump_t *nodeLump, const lump_t *leafLump ) {
-	int i, j, p;
-	dnode_t     *in;
-	dleaf_t     *inLeaf;
-	mnode_t     *out;
-	int numNodes, numLeafs;
+	int			i, j, p;
+	dnode_t		*in;
+	dleaf_t		*inLeaf;
+	mnode_t 	*out;
+	int			numNodes, numLeafs;
 
-	in = ( void * )( fileBase + nodeLump->fileofs );
-	if ( nodeLump->filelen % sizeof( dnode_t ) ||
-		 leafLump->filelen % sizeof( dleaf_t ) ) {
-		ri.Error( ERR_DROP, "LoadMap: funny lump size in %s",s_worldData.name );
+	in = (void *)(fileBase + nodeLump->fileofs);
+	if (nodeLump->filelen % sizeof(dnode_t) ||
+		leafLump->filelen % sizeof(dleaf_t) ) {
+		ri.Error( ERR_DROP, "%s(): funny lump size in %s", __func__, s_worldData.name );
 	}
-	numNodes = nodeLump->filelen / sizeof( dnode_t );
-	numLeafs = leafLump->filelen / sizeof( dleaf_t );
+	numNodes = nodeLump->filelen / sizeof(dnode_t);
+	numLeafs = leafLump->filelen / sizeof(dleaf_t);
 
-	out = ri.Hunk_Alloc( ( numNodes + numLeafs ) * sizeof( *out ), h_low );
+	out = ri.Hunk_Alloc ( (numNodes + numLeafs) * sizeof(*out), h_low);	
 
 	s_worldData.nodes = out;
 	s_worldData.numnodes = numNodes + numLeafs;
@@ -2054,15 +2050,14 @@ R_LoadShaders
 =================
 */
 static void R_LoadShaders( const lump_t *l ) {
-	int i, count;
-	dshader_t   *in, *out;
-
-	in = ( void * )( fileBase + l->fileofs );
-	if ( l->filelen % sizeof( *in ) ) {
-		ri.Error( ERR_DROP, "LoadMap: funny lump size in %s",s_worldData.name );
-	}
-	count = l->filelen / sizeof( *in );
-	out = ri.Hunk_Alloc( count * sizeof( *out ), h_low );
+	int		i, count;
+	dshader_t	*in, *out;
+	
+	in = (void *)(fileBase + l->fileofs);
+	if (l->filelen % sizeof(*in))
+		ri.Error( ERR_DROP, "%s(): funny lump size in %s", __func__, s_worldData.name );
+	count = l->filelen / sizeof(*in);
+	out = ri.Hunk_Alloc ( count*sizeof(*out), h_low );
 
 	s_worldData.shaders = out;
 	s_worldData.numShaders = count;
@@ -2081,24 +2076,24 @@ static void R_LoadShaders( const lump_t *l ) {
 R_LoadMarksurfaces
 =================
 */
-static void R_LoadMarksurfaces( const lump_t *l ) {
-	int i, j, count;
-	int     *in;
+static void R_LoadMarksurfaces( const lump_t *l )
+{	
+	int		i, j, count;
+	int		*in;
 	msurface_t **out;
-
-	in = ( void * )( fileBase + l->fileofs );
-	if ( l->filelen % sizeof( *in ) ) {
-		ri.Error( ERR_DROP, "LoadMap: funny lump size in %s",s_worldData.name );
-	}
-	count = l->filelen / sizeof( *in );
-	out = ri.Hunk_Alloc( count * sizeof( *out ), h_low );
+	
+	in = (void *)(fileBase + l->fileofs);
+	if (l->filelen % sizeof(*in))
+		ri.Error( ERR_DROP, "%s(): funny lump size in %s", __func__, s_worldData.name );
+	count = l->filelen / sizeof(*in);
+	out = ri.Hunk_Alloc ( count*sizeof(*out), h_low);
 
 	s_worldData.marksurfaces = out;
 	s_worldData.nummarksurfaces = count;
 
-	for ( i = 0 ; i < count ; i++ )
+	for ( i=0 ; i<count ; i++)
 	{
-		j = LittleLong( in[i] );
+		j = LittleLong(in[i]);
 		out[i] = s_worldData.surfaces + j;
 	}
 }
@@ -2116,26 +2111,25 @@ static void R_LoadPlanes( const lump_t *l ) {
 	int count;
 	int bits;
 
-	in = ( void * )( fileBase + l->fileofs );
-	if ( l->filelen % sizeof( *in ) ) {
-		ri.Error( ERR_DROP, "LoadMap: funny lump size in %s",s_worldData.name );
-	}
-	count = l->filelen / sizeof( *in );
-	out = ri.Hunk_Alloc( count * 2 * sizeof( *out ), h_low );
+	in = (void *)(fileBase + l->fileofs);
+	if (l->filelen % sizeof(*in))
+		ri.Error( ERR_DROP, "%s(): funny lump size in %s", __func__, s_worldData.name );
+	count = l->filelen / sizeof(*in);
+	out = ri.Hunk_Alloc( count*2*sizeof(*out), h_low );
 
 	s_worldData.planes = out;
 	s_worldData.numplanes = count;
 
-	for ( i = 0 ; i < count ; i++, in++, out++ ) {
+	for ( i=0 ; i<count ; i++, in++, out++) {
 		bits = 0;
-		for ( j = 0 ; j < 3 ; j++ ) {
-			out->normal[j] = LittleFloat( in->normal[j] );
-			if ( out->normal[j] < 0 ) {
-				bits |= 1 << j;
+		for (j=0 ; j<3 ; j++) {
+			out->normal[j] = LittleFloat (in->normal[j]);
+			if (out->normal[j] < 0) {
+				bits |= 1<<j;
 			}
 		}
 
-		out->dist = LittleFloat( in->dist );
+		out->dist = LittleFloat (in->dist);
 		out->type = PlaneTypeForNormal( out->normal );
 		out->signbits = bits;
 	}
@@ -2159,11 +2153,11 @@ static void R_LoadFogs( const lump_t *l, const lump_t *brushesLump, const lump_t
 	shader_t    *shader;
 	int firstSide = 0;
 
-	fogs = ( void * )( fileBase + l->fileofs );
-	if ( l->filelen % sizeof( *fogs ) ) {
-		ri.Error( ERR_DROP, "LoadMap: funny lump size in %s",s_worldData.name );
+	fogs = (void *)(fileBase + l->fileofs);
+	if (l->filelen % sizeof(*fogs)) {
+		ri.Error( ERR_DROP, "%s(): funny lump size in %s", __func__, s_worldData.name );
 	}
-	count = l->filelen / sizeof( *fogs );
+	count = l->filelen / sizeof(*fogs);
 
 	// create fog strucutres for them
 	s_worldData.numfogs = count + 1;
@@ -2177,19 +2171,19 @@ static void R_LoadFogs( const lump_t *l, const lump_t *brushesLump, const lump_t
 		return;
 	}
 
-	brushes = ( void * )( fileBase + brushesLump->fileofs );
-	if ( brushesLump->filelen % sizeof( *brushes ) ) {
-		ri.Error( ERR_DROP, "LoadMap: funny lump size in %s",s_worldData.name );
+	brushes = (void *)(fileBase + brushesLump->fileofs);
+	if (brushesLump->filelen % sizeof(*brushes)) {
+		ri.Error( ERR_DROP, "%s(): funny lump size in %s", __func__, s_worldData.name );
 	}
-	brushesCount = brushesLump->filelen / sizeof( *brushes );
+	brushesCount = brushesLump->filelen / sizeof(*brushes);
 
-	sides = ( void * )( fileBase + sidesLump->fileofs );
-	if ( sidesLump->filelen % sizeof( *sides ) ) {
-		ri.Error( ERR_DROP, "LoadMap: funny lump size in %s",s_worldData.name );
+	sides = (void *)(fileBase + sidesLump->fileofs);
+	if (sidesLump->filelen % sizeof(*sides)) {
+		ri.Error( ERR_DROP, "%s(): funny lump size in %s", __func__, s_worldData.name );
 	}
-	sidesCount = sidesLump->filelen / sizeof( *sides );
+	sidesCount = sidesLump->filelen / sizeof(*sides);
 
-	for ( i = 0 ; i < count ; i++, fogs++ ) {
+	for ( i=0 ; i<count ; i++, fogs++) {
 		out->originalBrushNumber = LittleLong( fogs->brushNum );
 
 		// ydnar: global fog has a brush number of -1, and no visible side
@@ -2200,7 +2194,7 @@ static void R_LoadFogs( const lump_t *l, const lump_t *brushesLump, const lump_t
 		} else
 		{
 			if ( (unsigned)out->originalBrushNumber >= brushesCount ) {
-				ri.Error( ERR_DROP, "fog brushNumber out of range" );
+				ri.Error( ERR_DROP, "%s(): fog brushNumber out of range in %s", __func__, s_worldData.name );
 			}
 
 			// ydnar: find which bsp submodel the fog volume belongs to

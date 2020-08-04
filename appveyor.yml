@@ -2,7 +2,6 @@ version: ETe-{branch}-{build}
 image: Visual Studio 2017
 configuration: Release
 
-#environment variable version
 environment:
   BUILD_CONFIGURATION: Release
 

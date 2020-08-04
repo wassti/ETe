@@ -12,12 +12,10 @@ ssh-keyscan -H $HOST >> ~/.ssh/known_hosts
 
 file_count=$(ssh $USER@$HOST ls $SNAPSHOT_DIR | wc -l)
 if (( file_count > MAX_FILE_HISTORY )); then
-    remove_count=$((MAX_FILE_HISTORY - file_count))
-    for (( i = 0; i <=$remove_count; i++ ))
-        ssh -T $USER@$HOST << EOSSH
-            rm "$(ls -t $SNAPSHOT_DIR | tail -1)"
-        EOSSH
-    done
+    remove_count=$((file_count - MAX_FILE_HISTORY))
+    ssh -T $USER@$HOST << EOSSH
+rm "$(ls -t $SNAPSHOT_DIR | tail -$remove_count)"
+EOSSH
 fi
 
 ssh etf@etf2.org mkdir -p $TMP_DIR

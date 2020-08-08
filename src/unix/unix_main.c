@@ -1289,7 +1289,9 @@ int Sys_ParseArgs( int argc, const char* argv[] )
 	return 0;
 }
 
-
+#if USE_SDL && !defined(DEDICATED)
+void Sys_GetSDLVersion(uint8_t *minor, uint8_t *major, uint8_t *patch);
+#endif
 int main( int argc, const char* argv[] )
 {
 	char con_title[ MAX_CVAR_VALUE_STRING ];
@@ -1298,6 +1300,10 @@ int main( int argc, const char* argv[] )
 	char  *cmdline;
 	int   len, i;
 	tty_err	err;
+#if USE_SDL && !defined(DEDICATED)
+	uint8_t minor, major, patch;
+	Sys_GetSDLVersion(&minor, &major, &patch);
+#endif
 
 	if ( Sys_ParseArgs( argc, argv ) ) // added this for support
 		return 0;
@@ -1328,6 +1334,10 @@ int main( int argc, const char* argv[] )
 	NET_Init();
 
 	Com_Printf( "Working directory: %s\n", Sys_Pwd() );
+
+#if USE_SDL && !defined(DEDICATED)
+	Com_Printf( "Using SDL Version %u.%u.%u\n", (uint32_t)major, (uint32_t)minor, (uint32_t)patch );
+#endif
 
 	// Sys_ConsoleInputInit() might be called in signal handler
 	// so modify/init any cvars here

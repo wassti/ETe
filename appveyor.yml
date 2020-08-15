@@ -8,7 +8,7 @@ environment:
 # custom build script to specify xp mode and listed configuration
 # wolf.sln currently only has the projects included that are built due to difficulty of making it only build ones we want on appveyor
 build_script:
-  - cmd: call appveyor.bat
+  - cmd: call scripts/appveyor.bat
 artifacts:
   - path: wolfet*.zip
 deploy:

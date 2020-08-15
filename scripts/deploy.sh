@@ -12,14 +12,17 @@ SERVICE_NAME=etf.service
 
 ssh-keyscan -H $HOST >> ~/.ssh/known_hosts
 
-file_count=$(ssh $USER@$HOST ls $SNAPSHOT_DIR | wc -l)
-if (( file_count > MAX_FILE_HISTORY )); then
-    remove_count=$((file_count - MAX_FILE_HISTORY + 1))
-    files_to_remove=$(ssh $USER@$HOST ls -t $SNAPSHOT_DIR | tail -$remove_count | tr '\n' ' ')
+ssh $USER@$HOST bash <<EOF
+file_count=\$(ls $SNAPSHOT_DIR | wc -l)
+if (( \$file_count > $MAX_FILE_HISTORY )); then
+    remove_count=\$((file_count - MAX_FILE_HISTORY + 1))
+    files_to_remove=\$(ls -t $SNAPSHOT_DIR | tail -\$remove_count | tr '\n' ' ')
     # remove last whitespace
-    files_to_remove=${files_to_remove%?}
-    ssh $USER@$HOST "cd $SNAPSHOT_DIR && rm $files_to_remove"
+    files_to_remove=\${files_to_remove%?}
+    cd $SNAPSHOT_DIR && rm \$files_to_remove
 fi
+EOF
+
 
 ssh $USER@$HOST mkdir -p $TMP_DIR
 scp $TRAVIS_BUILD_DIR/*.7z $USER@$HOST:$TMP_DIR

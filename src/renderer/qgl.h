@@ -187,13 +187,11 @@ typedef char GLchar;
 	GLE( void, glClear, GLbitfield mask ) \
 	GLE( void, glClearColor, GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha ) \
 	GLE( void, glClearDepth, GLclampd depth ) \
-	GLE( void, glClipPlane, GLenum plane, const GLdouble *equation ) \
 	GLE( void, glColor4f, GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha ) \
 	GLE( void, glColorMask, GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha ) \
 	GLE( void, glColorPointer, GLint size, GLenum type, GLsizei stride, const GLvoid *pointer ) \
 	GLE( void, glCopyTexImage2D, GLenum target, GLint level, GLenum internalFormat, GLint x, GLint y, GLsizei width, GLsizei height, GLint border ) \
 	GLE( void, glCullFace, GLenum mode ) \
-	/*GLE( void, glDeleteLists, GLuint list, GLsizei range ) */\
 	GLE( void, glDeleteTextures, GLsizei n, const GLuint *textures ) \
 	GLE( void, glDepthFunc, GLenum func ) \
 	GLE( void, glDepthMask, GLboolean flag ) \
@@ -210,7 +208,6 @@ typedef char GLchar;
 	GLE( void, glFogf, GLenum pname, GLfloat param ) \
 	GLE( void, glFogfv, GLenum pname, const GLfloat *params ) \
 	GLE( void, glFogi, GLenum pname, GLint param ) \
-	/*GLE( GLuint, glGenLists, GLsizei range ) */\
 	GLE( void, glGenTextures, GLsizei n, GLuint *textures ) \
 	GLE( void, glGetBooleanv, GLenum pname, GLboolean *params ) \
 	GLE( GLenum, glGetError, void ) \
@@ -240,7 +237,6 @@ typedef char GLchar;
 	GLE( void, glTexEnvi, GLenum target, GLenum pname, GLint param ) \
 	GLE( void, glTexImage2D, GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid *pixels ) \
 	GLE( void, glTexParameteri, GLenum target, GLenum pname, GLint param ) \
-	GLE( void, glTexSubImage1D, GLenum target, GLint level, GLint xoffset, GLsizei width, GLenum format, GLenum type, const GLvoid *pixels ) \
 	GLE( void, glTexSubImage2D, GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid *pixels ) \
 	GLE( void, glVertex3f, GLfloat x, GLfloat y, GLfloat z ) \
 	GLE( void, glVertex3fv, const GLfloat *v ) \
@@ -293,17 +289,11 @@ typedef char GLchar;
 	GLE( BOOL,  wglDeleteContext ,HGLRC ) \
 	GLE( HGLRC, wglGetCurrentContext, VOID ) \
 	GLE( PROC,  wglGetProcAddress, LPCSTR ) \
-	GLE( BOOL,  wglMakeCurrent, HDC, HGLRC ) \
-	GLE( BOOL,  wglShareLists, HGLRC, HGLRC ) \
-	GLE( BOOL,  wglDescribeLayerPlane, HDC, int, int, UINT, LPLAYERPLANEDESCRIPTOR ) \
-	GLE( int,   wglSetLayerPaletteEntries, HDC, int, int, int, CONST COLORREF * ) \
-	GLE( BOOL,  wglRealizeLayerPalette, HDC, int, BOOL ) \
-	GLE( BOOL,  wglSwapLayerBuffers, HDC, UINT )
+	GLE( BOOL,  wglMakeCurrent, HDC, HGLRC )
 
 // These require the ansi suffix when calling GetProcAddress
 #define QGL_Win32_ANSI_PROCS \
-	GLE( BOOL,  wglUseFontBitmaps, HDC, DWORD, DWORD, DWORD ) \
-	GLE( BOOL,  wglUseFontOutlines, HDC, DWORD, DWORD, DWORD, FLOAT, FLOAT, int, LPGLYPHMETRICSFLOAT ) \
+	GLE( BOOL,  wglUseFontBitmaps, HDC, DWORD, DWORD, DWORD )
 
 #ifdef _WIN32
 #define QGL_Swp_PROCS \

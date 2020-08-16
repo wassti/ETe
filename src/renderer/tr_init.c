@@ -1504,15 +1504,7 @@ static void GfxInfo( void )
 	ri.Printf( PRINT_ALL, "anisotropic filtering: %s ", enablestrings[(r_ext_texture_filter_anisotropic->integer != 0) && glConfig.maxAnisotropy] );
 	if (r_ext_texture_filter_anisotropic->integer != 0 && glConfig.maxAnisotropy)
 	{
-		if (Q_isintegral(r_ext_texture_filter_anisotropic->value))
-			ri.Printf( PRINT_ALL, "(%i of ", (int)r_ext_texture_filter_anisotropic->value);
-		else
-			ri.Printf( PRINT_ALL, "(%f of ", r_ext_texture_filter_anisotropic->value);
-
-		if (Q_isintegral(glConfig.maxAnisotropy))
-			ri.Printf( PRINT_ALL, "%i)\n", (int)glConfig.maxAnisotropy);
-		else
-			ri.Printf( PRINT_ALL, "%f)\n", glConfig.maxAnisotropy);
+		ri.Printf( PRINT_ALL, "(Using level: %i)\n", (int)glConfig.maxAnisotropy);
 	}
 	else
 		ri.Printf( PRINT_ALL, "\n" );

@@ -110,6 +110,10 @@ Several options available for linux builds with CMake:
 
 **UNSUPPORTED** Patches and pull requests welcome
 
+## Contacts
+
+Discord channel: https://discordapp.com/invite/hsDQVby
+
 ## Links
 
 * https://github.com/ec-/Quake3e

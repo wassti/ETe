@@ -14,7 +14,7 @@ environment:
 build_script:
   - cmd: call scripts/appveyor.bat
 artifacts:
-  - path: wolfet*.zip
+  - path: '**\*.zip'
 deploy:
   - provider: GitHub
     auth_token:
@@ -29,3 +29,5 @@ deploy:
     username: etfdevs_sftp
     password:
       secure: 7hq/8YkYlCge7N4Gs/kenV/GkBLdx9JD9IB7B4biXbo=
+    folder: .
+    debug: true

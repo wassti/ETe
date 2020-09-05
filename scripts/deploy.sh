@@ -14,14 +14,15 @@ SERVICE_NAME=etf.service
 ssh-keyscan -H $HOST >> ~/.ssh/known_hosts
 
 ssh $USER@$HOST bash <<EOF
+set -euxo
 function clean_snapshots {
-    file_count=\$(ls $1 | wc -l)
+    file_count=\$(ls \$1 | wc -l)
     if (( \$file_count > $MAX_FILE_HISTORY )); then
-        remove_count=\$((file_count - MAX_FILE_HISTORY + 1))
-        files_to_remove=\$(ls -t $1 | tail -\$remove_count | tr '\n' ' ')
+        remove_count=\$((file_count - $MAX_FILE_HISTORY + 1))
+        files_to_remove=\$(ls -t \$1 | tail -\$remove_count | tr '\n' ' ')
         # remove last whitespace
         files_to_remove=\${files_to_remove%?}
-        cd $1 && rm \$files_to_remove
+        cd \$1 && rm \$files_to_remove
     fi
 }
 clean_snapshots $LINUX_SNAPSHOT_DIR

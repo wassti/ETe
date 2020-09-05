@@ -2,6 +2,10 @@ version: ETe-{branch}-{build}
 image: Visual Studio 2017
 configuration: Release
 
+branches:
+  only:
+  - deploy-snapshot
+
 environment:
   BUILD_CONFIGURATION: Release
 
@@ -24,4 +28,4 @@ deploy:
     host: etf2.org
     username: etfdevs_sftp
     password:
-      secure: TODO
+      secure: 7hq/8YkYlCge7N4Gs/kenV/GkBLdx9JD9IB7B4biXbo=

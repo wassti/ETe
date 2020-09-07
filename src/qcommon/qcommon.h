@@ -994,12 +994,17 @@ MISC
 
 extern	int	CPU_Flags;
 
+// x86 flags
 #define CPU_FCOM   0x01
 #define CPU_MMX    0x02
 #define CPU_SSE    0x04
 #define CPU_SSE2   0x08
 #define CPU_SSE3   0x10
 #define CPU_SSE41  0x20
+
+// ARM flags
+#define CPU_IDIV   0x01
+#define CPU_VFPv3  0x02
 
 typedef struct gameInfo_s {
 	qboolean spEnabled;
@@ -1400,7 +1405,6 @@ void	Sys_SnapVector( float *v );
 
 qboolean Sys_RandomBytes( byte *string, int len );
 
-int		Sys_GetProcessorId( char *vendor );
 
 void	Sys_ShowConsole( int level, qboolean quitOnClose );
 void	Sys_SetErrorText( const char *text );

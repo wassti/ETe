@@ -3383,6 +3383,8 @@ qboolean Com_WriteProfile( const char *profile_path ) {
 ** --------------------------------------------------------------------------------
 */
 
+#if (idx64 || id386)
+
 #if defined _MSC_VER
 #include <intrin.h>
 static void CPUID( int func, unsigned int *regs )
@@ -3394,22 +3396,17 @@ static void CPUID( int func, unsigned int *regs )
 
 static void CPUID( int func, unsigned int *regs )
 {
-#if (idx64 || id386)
 	__asm__ __volatile__( "cpuid" :
 		"=a"(regs[0]),
 		"=b"(regs[1]),
 		"=c"(regs[2]),
 		"=d"(regs[3]) :
 		"a"(func) );
-#else	// non-x86
-		regs[0] = regs[1] = regs[2] = regs[3] = 0;
-#endif
 }
 
 #endif  // clang/gcc/mingw
 
-
-int Sys_GetProcessorId( char *vendor )
+static void Sys_GetProcessorId( char *vendor )
 {
 	unsigned int regs[4];
 
@@ -3481,9 +3478,68 @@ int Sys_GetProcessorId( char *vendor )
 				strcat( vendor, " SSE4.1" );
 		}
 	}
-	return 1;
 }
 
+#else // non-x86
+
+#if arm32 || arm64
+#include <sys/auxv.h>
+#include <asm/hwcap.h>
+#endif
+
+static void Sys_GetProcessorId( char *vendor )
+{
+#if arm32 || arm64
+	const char *platform;
+#if arm32
+	long hwcaps;
+#endif
+	CPU_Flags = 0;
+
+	platform = (const char*)getauxval( AT_PLATFORM );
+
+	if ( !platform || *platform == '\0' ) {
+		platform = "(unknown)";
+	}
+
+	if ( platform[0] == 'v' || platform[0] == 'V' ) {
+		if ( atoi( platform + 1 ) >= 7 ) {
+			CPU_Flags |= CPU_ARMv7;
+		}
+	}
+
+	Com_sprintf( vendor, 100, "ARM %s", platform );
+#if arm32
+	hwcaps = getauxval( AT_HWCAP );
+	if ( hwcaps & ( HWCAP_IDIVA | HWCAP_VFPv3 ) ) {
+		strcat( vendor, " /w" );
+
+		if ( hwcaps & HWCAP_IDIVA ) {
+			CPU_Flags |= CPU_IDIVA;
+			strcat( vendor, " IDIVA" );
+		}
+
+		if ( hwcaps & HWCAP_VFPv3 ) {
+			CPU_Flags |= CPU_VFPv3;
+			strcat( vendor, " VFPv3" );
+		}
+
+		if ( ( CPU_Flags & ( CPU_ARMv7 | CPU_VFPv3 ) ) == ( CPU_ARMv7 | CPU_VFPv3 ) ) {
+			strcat( vendor, " QVM-bytecode" );
+		}
+	}
+#endif // arm32
+#else // !arm32 && !arm64
+	CPU_Flags = 0;
+	Com_sprintf( vendor, 128, "%s %s", ARCH_STRING, (const char*)getauxval( AT_PLATFORM ) );
+#endif
+}
+
+#if idppc
+#error "PPC support not available for CPUID/Sys_GetProcessorId"
+#endif
+
+#endif // non-x86
 
 /*
 ================
@@ -3492,7 +3548,7 @@ Sys_SnapVector
 */
 #ifdef _MSC_VER
 #if idx64
-void Sys_SnapVector( float *vector ) 
+void Sys_SnapVector( float *vector )
 {
 	__m128 vf0, vf1, vf2;
 	__m128i vi;
@@ -3516,7 +3572,7 @@ void Sys_SnapVector( float *vector )
 	_mm_store_ss( &vector[2], vf2 );
 }
 #else // id386
-void Sys_SnapVector( float *vector ) 
+void Sys_SnapVector( float *vector )
 {
 	static const DWORD cw037F = 0x037F;
 	DWORD cwCurr;
@@ -3775,7 +3831,6 @@ void Com_Init( char *commandLine ) {
 
 	Sys_Init();
 
-#if defined (id386) || defined (idx64)
 	// CPU detection
 	Cvar_Get( "sys_cpustring", "detect", CVAR_PROTECTED | CVAR_ROM | CVAR_NORESTART );
 	if ( !Q_stricmp( Cvar_VariableString( "sys_cpustring" ), "detect" ) )
@@ -3786,7 +3841,6 @@ void Com_Init( char *commandLine ) {
 		Cvar_Set( "sys_cpustring", vendor );
 	}
 	Com_Printf( "%s\n", Cvar_VariableString( "sys_cpustring" ) );
-#endif
 
 #ifdef USE_AFFINITY_MASK
 	if ( com_affinityMask->integer )

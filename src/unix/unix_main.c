@@ -876,14 +876,14 @@ void *Sys_LoadDll( const char *name, dllSyscall_t *entryPoint, dllSyscall_t syst
 			if ( Q_stricmp( Cvar_VariableString( "version" ), lastVersion->string ) ) {
 				Com_DPrintf( "clearing non matching version of %s .so: %s\n", name, fn );
 				if ( remove( fn ) == -1 ) {
-					Com_Error( ERR_FATAL, "failed to remove outdated '%s' file:\n\"%s\"\n", fn, strerror( errno ) );
+					Com_Error( ERR_FATAL, "failed to remove outdated '%s' file:\n\"%s\"", fn, strerror( errno ) );
 				}
 				// we cancelled fs_homepath, go work on basepath now
 				fn = FS_BuildOSPath( basepath, gamedir, fname );
 				if ( access( fn, R_OK ) == -1 ) {
 					// we may be dealing with a media-only mod, check wether we can find 'reference' DLLs and copy them over
 					if ( !CopyDLLForMod( (char **)&fn, gamedir, pwdpath, homepath, basepath, fname ) ) {
-						Com_Error( ERR_FATAL, "Sys_LoadDll(%s) failed, no corresponding .so file found in fs_homepath or fs_basepath\n", fname );
+						Com_Error( ERR_FATAL, "Sys_LoadDll(%s) failed, no corresponding .so file found in fs_homepath or fs_basepath", fname );
 					}
 				}
 			}
@@ -893,7 +893,7 @@ void *Sys_LoadDll( const char *name, dllSyscall_t *entryPoint, dllSyscall_t syst
 			if ( access( fn, R_OK ) == -1 ) {
 				// we may be dealing with a media-only mod, check whether we can find 'reference' DLLs and copy them over
 				if ( !CopyDLLForMod( (char **)&fn, gamedir, pwdpath, homepath, basepath, fname ) ) {
-					Com_Error( ERR_FATAL, "Sys_LoadDll(%s) failed, no corresponding .so file found in fs_homepath or fs_basepath\n", fname );
+					Com_Error( ERR_FATAL, "Sys_LoadDll(%s) failed, no corresponding .so file found in fs_homepath or fs_basepath", fname );
 				}
 			}
 		}
@@ -934,7 +934,7 @@ void *Sys_LoadDll( const char *name, dllSyscall_t *entryPoint, dllSyscall_t syst
 	if ( !libHandle ) 
 	{
 #ifdef _DEBUG // in debug abort on failure
-		Com_Error( ERR_FATAL, "Sys_LoadDll(%s%s) failed dlopen() completely!\n", gamedir, name  );
+		Com_Error( ERR_FATAL, "Sys_LoadDll(%s%s) failed dlopen() completely!", gamedir, name  );
 #else
 		Com_Printf( "Sys_LoadDll(%s/%s) failed dlopen() completely!\n", gamedir, name );
 #endif
@@ -948,7 +948,7 @@ void *Sys_LoadDll( const char *name, dllSyscall_t *entryPoint, dllSyscall_t syst
 	{
 		err = do_dlerror();
 #ifdef _DEBUG
-		Com_Error ( ERR_FATAL, "Sys_LoadDll(%s/%s) failed dlsym(vmMain):\n\"%s\" !\n", gamedir, name, err );
+		Com_Error ( ERR_FATAL, "Sys_LoadDll(%s/%s) failed dlsym(vmMain):\n\"%s\" !", gamedir, name, err );
 #else
 		Com_Printf ( "Sys_LoadDll(%s/%s) failed dlsym(vmMain):\n\"%s\" !\n", gamedir, name, err );
 #endif

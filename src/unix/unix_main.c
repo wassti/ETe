@@ -1162,7 +1162,7 @@ UGLY HACK:
 void Sys_DoStartProcess( const char *cmdline ) {
 	switch ( fork() )
 	{
-	case - 1:
+	case -1:
 		// main thread
 		break;
 	case 0:
@@ -1222,7 +1222,11 @@ void Sys_OpenURL( const char *url, qboolean doexit ) {
 	// opening an URL on *nix can mean a lot of things ..
 	// just spawn a script instead of deciding for the user :-)
 
+#ifdef __APPLE__
+	Com_sprintf( cmdline, sizeof(cmdline), "open '%s' &", url );
+#else
 	Com_sprintf( cmdline, sizeof(cmdline), "xdg-open '%s' &", url );
+#endif
 
 	if ( doexit ) {
 		doexit_spamguard = qtrue;

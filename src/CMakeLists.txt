@@ -27,7 +27,7 @@ option(BUILD_CLIENT "Build the ete client binary" ON)
 option(BUILD_DEDSERVER "Build the ete dedicated server binary" ON)
 option(USE_SDL2 "Whether to use native backends or SDL2" OFF)
 option(USE_SYSTEM_JPEG "Look for and use system jpeg library instead of locally built" ON)
-#option(DYNAMIC_RENDERER "Whether to use modular rendering features (builds as shared object instead of library" OFF)
+option(DYNAMIC_RENDERER "Whether to use modular rendering features (builds as shared object instead of library" OFF)
 #option(USE_DISCORD "Use discord rich presence API" OFF)
 
 set(USE_DISCORD OFF)
@@ -266,6 +266,14 @@ set(renderer_files
     "renderer/tr_world.c"
 )
 
+if(DYNAMIC_RENDERER)
+    set(renderer_files
+        ${renderer_files}
+        "qcommon/q_shared.c"
+        "qcommon/puff.c"
+        "qcommon/q_math.c"
+    )
+endif(DYNAMIC_RENDERER)
 add_library(botlib STATIC "${botlib_files}")
 target_compile_options(botlib
     PRIVATE $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:DEBUG>>:${compiler_flags_debug} -w>
@@ -290,8 +298,14 @@ target_compile_options(splines
 target_include_directories(splines PUBLIC "${SRCDIR}/splines")
 #target_link_libraries(splines PRIVATE "libstdc++")
 
-add_library(renderer STATIC "${renderer_files}")
-target_compile_options(renderer
+set(RENDERER_PREFIX "ete")
+if(DYNAMIC_RENDERER)
+    add_library(${RENDERER_PREFIX}_opengl SHARED "${renderer_files}")
+else()
+    add_library(${RENDERER_PREFIX}_opengl STATIC "${renderer_files}")
+endif(DYNAMIC_RENDERER)
+
+target_compile_options(${RENDERER_PREFIX}_opengl
     PRIVATE $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:DEBUG>>:${compiler_flags_debug}>
             $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:RELEASE>>:${compiler_flags_release}>
             $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:RELWITHDEBINFO>>:${compiler_flags_relwithdebinfo}>
@@ -299,7 +313,15 @@ target_compile_options(renderer
             $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:RELEASE>>:${compiler_flags_release}>
             $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:RELWITHDEBINFO>>:${compiler_flags_relwithdebinfo}>
 )
-target_include_directories(renderer PUBLIC "${SRCDIR}/renderer ${SRCDIR}/renderercommon ${SRCDIR}/qcommon")
+
+if(DYNAMIC_RENDERER)
+    target_compile_definitions(${RENDERER_PREFIX}_opengl PUBLIC "USE_RENDERER_DLOPEN" "RENDERER_PREFIX=\"${RENDERER_PREFIX}\"")
+    set_target_properties(${RENDERER_PREFIX}_opengl PROPERTIES PREFIX "")
+    set_target_properties(${RENDERER_PREFIX}_opengl PROPERTIES SUFFIX "_x86.so") #NOTE changeme when multi-platform and multi-arch support is added
+    target_link_libraries(${RENDERER_PREFIX}_opengl PRIVATE ${CMAKE_DL_LIBS} "m")
+endif(DYNAMIC_RENDERER)
+
+target_include_directories(${RENDERER_PREFIX}_opengl PUBLIC "${SRCDIR}/renderer ${SRCDIR}/renderercommon ${SRCDIR}/qcommon")
 
 set(core_client_files
     "${client_files}"
@@ -361,6 +383,9 @@ if(BUILD_CLIENT)
     target_compile_definitions(ete PUBLIC "USE_CURL" "USE_CURL_DLOPEN")
     target_include_directories(ete PRIVATE ${CURL_INCLUDE_DIRS})
     target_link_libraries(ete PRIVATE ${CMAKE_DL_LIBS} m pthread X11 ${CURL_LIBRARIES})
+    if(DYNAMIC_RENDERER)
+        target_compile_definitions(ete PUBLIC "USE_RENDERER_DLOPEN" "RENDERER_PREFIX=\"${RENDERER_PREFIX}\"")
+    endif(DYNAMIC_RENDERER)
     if(USE_SDL2)
         target_compile_definitions(ete PUBLIC "USE_SDL" "USE_ICON")
         target_include_directories(ete PRIVATE ${SDL2_INCLUDE_DIRS})
@@ -375,7 +400,11 @@ if(BUILD_CLIENT)
         target_include_directories(ete PRIVATE ${JPEG_INCLUDE_DIRS})
         target_link_libraries(ete PRIVATE ${JPEG_LIBRARIES})
     endif()
-    target_link_libraries(ete PUBLIC botlib splines renderer)
+    if(DYNAMIC_RENDERER)
+    target_link_libraries(ete PUBLIC botlib splines)
+    else()
+    target_link_libraries(ete PUBLIC botlib splines ${RENDERER_PREFIX}_opengl)
+    endif(DYNAMIC_RENDERER)
 endif(BUILD_CLIENT)
 
 if(BUILD_DEDSERVER)
@@ -398,3 +427,9 @@ endif(BUILD_DEDSERVER)
 install(TARGETS ete ete-ded
         RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}
 )
+
+if(DYNAMIC_RENDERER)
+    install(TARGETS ${RENDERER_PREFIX}_opengl
+            LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}
+    )
+endif(DYNAMIC_RENDERER)

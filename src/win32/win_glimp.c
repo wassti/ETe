@@ -103,7 +103,7 @@ static qboolean fontbase_init = qfalse;
 /*
 ** GLW_StartDriverAndSetMode
 */
-static qboolean GLW_StartDriverAndSetMode( int mode, const char *modeFS, int colorbits,
+static rserr_t GLW_StartDriverAndSetMode( int mode, const char *modeFS, int colorbits,
 										   qboolean cdsFullscreen, qboolean vulkan )
 {
 	rserr_t err;
@@ -115,16 +115,16 @@ static qboolean GLW_StartDriverAndSetMode( int mode, const char *modeFS, int col
 	case RSERR_INVALID_FULLSCREEN:
 		Com_Printf( "...WARNING: fullscreen unavailable in this mode\n" );
 		Cvar_ForceReset("r_currentResolution");
-		return qfalse;
+		return err;
 	case RSERR_INVALID_MODE:
 		Com_Printf( "...WARNING: could not set the given mode (%d)\n", mode );
 		Cvar_ForceReset("r_currentResolution");
-		return qfalse;
+		return err;
 	default:
 		break;
 	}
 	Cvar_Set("r_currentResolution", va("%dx%d", glw_state.config->vidWidth, glw_state.config->vidHeight));
-	return qtrue;
+	return RSERR_OK;
 }
 
 
@@ -338,12 +338,12 @@ __rescan:
 */
 static void GLW_CreatePFD( PIXELFORMATDESCRIPTOR *pPFD, int colorbits, int depthbits, int stencilbits, qboolean stereo )
 {
-    PIXELFORMATDESCRIPTOR src = 
+	PIXELFORMATDESCRIPTOR src =
 	{
 		sizeof(PIXELFORMATDESCRIPTOR),	// size of this pfd
 		1,								// version number
-		PFD_DRAW_TO_WINDOW |			// support window
-		PFD_SUPPORT_OPENGL |			// support OpenGL
+		PFD_DRAW_TO_WINDOW	|			// support window
+		PFD_SUPPORT_OPENGL	|			// support OpenGL
 		PFD_DOUBLEBUFFER,				// double buffered
 		PFD_TYPE_RGBA,					// RGBA type
 		24,								// 24-bit color depth
@@ -351,14 +351,14 @@ static void GLW_CreatePFD( PIXELFORMATDESCRIPTOR *pPFD, int colorbits, int depth
 		0,								// no alpha buffer
 		0,								// shift bit ignored
 		0,								// no accumulation buffer
-		0, 0, 0, 0, 					// accum bits ignored
+		0, 0, 0, 0,						// accum bits ignored
 		24,								// 24-bit z-buffer	
 		8,								// 8-bit stencil buffer
 		0,								// no auxiliary buffer
 		PFD_MAIN_PLANE,					// main layer
 		0,								// reserved
 		0, 0, 0							// layer masks ignored
-    };
+	};
 
 	src.cColorBits = colorbits;
 	src.cDepthBits = depthbits;
@@ -1318,12 +1318,12 @@ static qboolean GLW_LoadOpenGL( const char *drivername )
 		cdsFullscreen = (r_fullscreen->integer != 0);
 
 		// create the window and set up the context
-		if ( !GLW_StartDriverAndSetMode( r_mode->integer, r_modeFullscreen->string, r_colorbits->integer, cdsFullscreen, qfalse ) )
+		if ( GLW_StartDriverAndSetMode( r_mode->integer, r_modeFullscreen->string, r_colorbits->integer, cdsFullscreen, qfalse ) != RSERR_OK )
 		{
 			// if we're on a 24/32-bit desktop try it again but with a 16-bit desktop
 			if ( r_colorbits->integer != 16 || cdsFullscreen != qtrue || r_mode->integer != 3 )
 			{
-				if ( !GLW_StartDriverAndSetMode( 3, "", 16, qtrue, qfalse ) )
+				if ( GLW_StartDriverAndSetMode( 3, "", 16, qtrue, qfalse ) != RSERR_OK )
 				{
 					goto fail;
 				}
@@ -1343,7 +1343,7 @@ static void GLimp_SwapBuffers( void )
 {
 	if ( !SwapBuffers( glw_state.hDC ) )
 	{
-		Com_Error( ERR_VID_FATAL, "GLimp_EndFrame() - SwapBuffers() failed!\n" );
+		Com_Error( ERR_VID_FATAL, "GLimp_EndFrame() - SwapBuffers() failed!" );
 	}
 }
 
@@ -1491,6 +1491,8 @@ void GLimp_Shutdown( qboolean unloadDLL )
 		return;
 	}
 
+	IN_Shutdown();
+
 	Com_Printf( "Shutting down OpenGL subsystem\n" );
 
 	Cvar_ForceReset("r_currentResolution");
@@ -1558,12 +1560,13 @@ static qboolean GLW_LoadVulkan( void )
 {
 	//
 	// load the driver and bind our function pointers to it
-	// 
+	//
 	if ( QVK_Init() )
 	{
 		qboolean cdsFullscreen = (r_fullscreen->integer != 0);
+
 		// create the window and set up the context
-		if ( GLW_StartDriverAndSetMode( r_mode->integer, r_modeFullscreen->string, r_colorbits->integer, cdsFullscreen, qtrue ) )
+		if ( GLW_StartDriverAndSetMode( r_mode->integer, r_modeFullscreen->string, r_colorbits->integer, cdsFullscreen, qtrue ) == RSERR_OK )
 			return qtrue;
 	}
 
@@ -1626,6 +1629,8 @@ void VKimp_Init( glconfig_t *config )
 */
 void VKimp_Shutdown( qboolean unloadDLL )
 {
+	IN_Shutdown();
+
 	Com_Printf( "Shutting down Vulkan subsystem\n" );
 
 	Cvar_ForceReset("r_currentResolution");

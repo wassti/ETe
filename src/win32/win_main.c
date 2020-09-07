@@ -153,7 +153,6 @@ void NORETURN QDECL Sys_Error( const char *error, ... ) {
 	va_end( argptr );
 
 #ifndef DEDICATED
-	IN_Shutdown();
 	CL_Shutdown( text, qtrue );
 #endif
 
@@ -189,10 +188,6 @@ Sys_Quit
 void NORETURN Sys_Quit( void ) {
 
 	timeEndPeriod( 1 );
-
-#ifndef DEDICATED
-	IN_Shutdown();
-#endif
 
 	Sys_DestroyConsole();
 	exit( 0 );

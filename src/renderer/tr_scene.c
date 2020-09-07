@@ -452,7 +452,10 @@ void RE_AddLightToScene( const vec3_t org, float radius, float intensity, float 
 		}
 	}
 #ifdef USE_PMLIGHT
-	if ( r_dlightMode->integer ) {
+#ifdef USE_LEGACY_DLIGHTS
+	if ( r_dlightMode->integer )
+#endif
+	{
 		// ETF powerup hack
 		if ( modIsETF && ( radius == 200 || radius == 150 ) && intensity >= 1.25f )
 			intensity = 1.25f;
@@ -511,7 +514,10 @@ void RE_AddLinearLightToScene( const vec3_t start, const vec3_t end, float inten
 		return;
 	}
 #ifdef USE_PMLIGHT
-	if ( r_dlightMode->integer ) {
+#ifdef USE_LEGACY_DLIGHTS
+	if ( r_dlightMode->integer )
+#endif
+	{
 		r *= r_dlightIntensity->value;
 		g *= r_dlightIntensity->value;
 		b *= r_dlightIntensity->value;

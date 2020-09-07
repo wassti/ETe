@@ -3773,6 +3773,7 @@ void Com_Init( char *commandLine ) {
 	com_cameraMode = Cvar_Get ("com_cameraMode", "0", CVAR_CHEAT);
 
 	com_watchdog = Cvar_Get( "com_watchdog", "60", CVAR_ARCHIVE_ND );
+	Cvar_CheckRange( com_watchdog, "1", NULL, CV_INTEGER );
 	com_watchdog_cmd = Cvar_Get( "com_watchdog_cmd", "", CVAR_ARCHIVE_ND );
 
 #ifndef DEDICATED	

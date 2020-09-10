@@ -51,7 +51,7 @@
     <EmbedManifest>false</EmbedManifest>
     <GenerateManifest>false</GenerateManifest>
     <PreLinkEventUseInBuild>false</PreLinkEventUseInBuild>
-    <TargetName>ETe.ded</TargetName>
+    <TargetName>ETe-ded</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(SolutionDir)ded\$(Configuration)\</OutDir>
@@ -59,7 +59,7 @@
     <LinkIncremental>false</LinkIncremental>
     <GenerateManifest>true</GenerateManifest>
     <EmbedManifest>true</EmbedManifest>
-    <TargetName>ETe.ded</TargetName>
+    <TargetName>ETe-ded</TargetName>
     <PreLinkEventUseInBuild>false</PreLinkEventUseInBuild>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

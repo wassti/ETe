@@ -2,25 +2,35 @@ version: ETe-{branch}-{build}
 image: Visual Studio 2017
 configuration: Release
 
-#environment variable version
+branches:
+  only:
+  - master
+
 environment:
   BUILD_CONFIGURATION: Release
 
 # custom build script to specify xp mode and listed configuration
 # wolf.sln currently only has the projects included that are built due to difficulty of making it only build ones we want on appveyor
 build_script:
-  - cmd: call appveyor.bat
+  - cmd: call scripts/appveyor.bat
 artifacts:
-  - path: wolfet*.zip
+  - path: '**\*.zip'
 deploy:
- description: ''
- provider: GitHub
- auth_token:
-   secure: 'ocTqqbL+j4fZepSEpb1U76avHU0R/58qH9m2pTtgFGPHbIop7Pu6GLifZSnQm0Ym'
- draft: true
- prerelease: false
- on:
-  appveyor_repo_tag: true
+  - provider: GitHub
+    auth_token:
+      secure: ocTqqbL+j4fZepSEpb1U76avHU0R/58qH9m2pTtgFGPHbIop7Pu6GLifZSnQm0Ym
+    draft: true
+    prerelease: false
+    on:
+      appveyor_repo_tag: true
+  - provider: FTP
+    protocol: sftp
+    host: etf2.org
+    username: etfdevs_sftp
+    password:
+      secure: 7hq/8YkYlCge7N4Gs/kenV/GkBLdx9JD9IB7B4biXbo=
+    folder: .
+    debug: true
 
 on_success:
   - ps: Invoke-RestMethod https://raw.githubusercontent.com/DiscordHooks/appveyor-discord-webhook/master/send.ps1 -o send.ps1

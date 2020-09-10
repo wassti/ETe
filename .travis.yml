@@ -14,14 +14,14 @@ matrix:
 #    osx_image: xcode11.3
 
 script:
-- if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./travis-linux.sh; fi
-- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then ./travis-macos.sh; fi
+- if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./scripts/travis-linux.sh; fi
+- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then ./scripts/travis-macos.sh; fi
 
 notifications:
   email: false
 
 before_install:
-- openssl aes-256-cbc -K $encrypted_db2095f63ba3_key -iv $encrypted_db2095f63ba3_iv -in deploy_rsa.enc -out /tmp/deploy_rsa -d
+- openssl aes-256-cbc -K $encrypted_db2095f63ba3_key -iv $encrypted_db2095f63ba3_iv -in scripts/deploy_rsa.enc -out /tmp/deploy_rsa -d
 - eval "$(ssh-agent -s)"
 - chmod 600 /tmp/deploy_rsa
 - ssh-add /tmp/deploy_rsa

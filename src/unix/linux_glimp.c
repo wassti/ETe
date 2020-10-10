@@ -138,8 +138,8 @@ static cvar_t *in_mouse;
 static cvar_t *in_dgamouse; // user pref for dga mouse
 static cvar_t *in_shiftedKeys; // obey modifiers for certain keys in non-console (comma, numbers, etc)
 
-cvar_t *in_subframe;
-cvar_t *in_nograb; // handy for developers
+static cvar_t *in_subframe;
+static cvar_t *in_nograb; // this is strictly for developers
 
 #ifdef USE_JOYSTICK
 cvar_t   *in_joystick      = NULL;
@@ -830,7 +830,7 @@ void HandleEvents( void )
 					{
 						mwx = window_width/2;
 						mwy = window_height/2;
-						if (t - mouseResetTime > MOUSE_RESET_DELAY )
+						if ( t - mouseResetTime > MOUSE_RESET_DELAY )
 						{
 							Sys_QueEvent( t, SE_MOUSE, mx, my, 0, NULL );
 						}
@@ -1828,9 +1828,22 @@ int qXErrorHandler( Display *dpy, XErrorEvent *ev )
 }
 
 
+static void InitCvars( void )
+{
+	// referenced in GLW_StartDriverAndSetMode() so must be inited there
+	in_nograb = Cvar_Get( "in_nograb", "0", 0 );
+
+	// turn on-off sub-frame timing of X events, referenced in Sys_XTimeToSysTime
+	in_subframe = Cvar_Get( "in_subframe", "1", CVAR_ARCHIVE_ND );
+
+	in_dgamouse = Cvar_Get( "in_dgamouse", "1", CVAR_ARCHIVE_ND );
+	in_shiftedKeys = Cvar_Get( "in_shiftedKeys", "0", CVAR_ARCHIVE_ND );
+
+	in_forceCharset = Cvar_Get( "in_forceCharset", "1", CVAR_ARCHIVE_ND );
+}
+
+
 void *GL_GetProcAddress( const char *symbol );
-
-
 /*
 ** GLimp_Init
 **
@@ -1841,8 +1854,8 @@ void GLimp_Init( glconfig_t *config )
 {
 	InitSig();
 
-	// referenced in GLW_StartDriverAndSetMode() so must be inited there
-	in_nograb = Cvar_Get( "in_nograb", "0", 0 );
+	// initialize variables that may be referenced during window creation/setup
+	InitCvars();
 
 	// set up our custom error handler for X failures
 	XSetErrorHandler( &qXErrorHandler );
@@ -1937,8 +1950,8 @@ void VKimp_Init( glconfig_t *config )
 {
 	InitSig();
 
-	// referenced in GLW_StartDriverAndSetMode() so must be inited there
-	in_nograb = Cvar_Get( "in_nograb", "0", 0 );
+	// initialize variables that may be referenced during window creation/setup
+	InitCvars();
 
 	// set up our custom error handler for X failures
 	XSetErrorHandler( &qXErrorHandler );
@@ -2007,13 +2020,6 @@ void IN_Init( void )
 
 	// mouse variables
 	in_mouse = Cvar_Get( "in_mouse", "1", CVAR_ARCHIVE );
-	in_dgamouse = Cvar_Get( "in_dgamouse", "1", CVAR_ARCHIVE_ND );
-	in_shiftedKeys = Cvar_Get( "in_shiftedKeys", "0", CVAR_ARCHIVE_ND );
-
-	// turn on-off sub-frame timing of X events
-	in_subframe = Cvar_Get( "in_subframe", "1", CVAR_ARCHIVE_ND );
-
-	in_forceCharset = Cvar_Get( "in_forceCharset", "1", CVAR_ARCHIVE_ND );
 
 #ifdef USE_JOYSTICK
 	// bk001130 - from cvs.17 (mkv), joystick variables

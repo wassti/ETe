@@ -33,7 +33,7 @@ option(DYNAMIC_RENDERER "Whether to use modular rendering features (builds as sh
 set(USE_DISCORD OFF)
 
 set(compiler_flags_global -pipe -Wall -fmessage-length=0 -fno-strict-aliasing)
-set(compiler_flags_debug ${compiler_flags_global} -g -Og -D_DEBUG)
+set(compiler_flags_debug ${compiler_flags_global} -g -Og -rdynamic -D_DEBUG)
 set(compiler_flags_relwithdebinfo ${compiler_flags_global} -g -O1)
 set(compiler_flags_release ${compiler_flags_global} -O3 -DNDEBUG -march=i686 -Winline -ffast-math -fomit-frame-pointer -finline-functions -fschedule-insns2)
 

@@ -232,6 +232,8 @@ typedef struct {
 	void ( *FS_WriteFile )( const char *qpath, const void *buffer, int size );
 	qboolean ( *FS_FileExists )( const char *file );
 
+	const char *( *FS_GetCurrentGameDir) ( void );
+
 	// cinematic stuff
 	void	(*CIN_UploadCinematic)( int handle );
 	int		(*CIN_PlayCinematic)( const char *arg0, int xpos, int ypos, int width, int height, int bits );

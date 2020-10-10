@@ -63,7 +63,7 @@ MESSAGE PARSING
 
 int entLastVisible[MAX_CLIENTS];
 
-qboolean isEntVisible( entityState_t *ent ) {
+static qboolean isEntVisible( const entityState_t *ent ) {
 	trace_t tr;
 	vec3_t start, end, temp;
 	vec3_t forward, up, right, right2;

@@ -988,7 +988,7 @@ static void CL_PlayDemo_f( void ) {
 	if ( FS_FOpenFileRead( name, &clc.demofile, qtrue ) == -1 ) 
 	{
 		// drop this time
-		Com_Error( ERR_DROP, "couldn't open %s\n", name );
+		Com_Error( ERR_DROP, "couldn't open %s", name );
 		return;
 	}
 
@@ -1084,8 +1084,10 @@ void CL_ShutdownAll( void ) {
 	// clear sounds
 	S_DisableSounds();
 
+#ifdef USE_CURL
 	// download subsystem
 	DL_Shutdown();
+#endif
 
 	// shutdown VMs
 	CL_ShutdownVMs();
@@ -2122,7 +2124,7 @@ CL_Wolfinfo_f
 */
 static void CL_Wolfinfo_f( void ) {
 	int ofs;
-	const char *gamedir = Cvar_VariableString( "fs_game" );
+	const char *gamedir = FS_GetCurrentGameDir();
 
 	// WOLFINFO cvars are unused in ETF
 	if ( !Q_stricmp( gamedir, "etf" ) )
@@ -3320,16 +3322,10 @@ void CL_WWWDownload( void ) {
 			// but in this case we can't get anything from server
 			// if we just reconnect it's likely we'll get the same disconnected download message, and error out again
 			// this may happen for a regular dl or an auto update
-			const char *error = va( "Download failure while getting '%s'\n", cls.downloadName ); // get the msg before clearing structs
+			const char *error = va( "Download failure while getting '%s'", cls.downloadName ); // get the msg before clearing structs
 			cls.bWWWDlDisconnected = qfalse; // need clearing structs before ERR_DROP, or it goes into endless reload
 			CL_ClearStaticDownload();
-#ifdef __GNUC__
-#pragma GCC diagnostic ignored "-Wformat-security"
-#endif
-			Com_Error( ERR_DROP, error );
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
+			Com_Error( ERR_DROP, "%s", error );
 		} else {
 			// see CL_ParseDownload, same abort strategy
 			Com_Printf( "Download failure while getting '%s'\n", cls.downloadName );
@@ -3599,7 +3595,7 @@ static void CL_Cache_UsedFile_f( void ) {
 	cacheItem_t *item;
 
 	if ( Cmd_Argc() < 2 ) {
-		Com_Error( ERR_DROP, "usedfile without enough parameters\n" );
+		Com_Error( ERR_DROP, "usedfile without enough parameters" );
 		return;
 	}
 
@@ -3609,7 +3605,7 @@ static void CL_Cache_UsedFile_f( void ) {
 	// find the cache group
 	group = CacheGroupFromString( Cmd_Argv( 1 ) );
 	if ( /*group < CACHE_SOUNDS ||*/ group >= CACHE_NUMGROUPS ) {
-		Com_Error( ERR_DROP, "usedfile without a valid cache group\n" );
+		Com_Error( ERR_DROP, "usedfile without a valid cache group" );
 	}
 
 	// see if it's already there
@@ -3637,7 +3633,7 @@ static void CL_Cache_UsedFile_f( void ) {
 
 static void CL_Cache_SetIndex_f( void ) {
 	if ( Cmd_Argc() < 2 ) {
-		Com_Error( ERR_DROP, "setindex needs an index\n" );
+		Com_Error( ERR_DROP, "setindex needs an index" );
 		return;
 	}
 
@@ -3976,6 +3972,7 @@ static void CL_InitRef( void ) {
 	rimp.FS_ListFilesEx = FS_ListFilesEx;
 	//rimp.FS_FileIsInPAK = FS_FileIsInPAK;
 	rimp.FS_FileExists = FS_FileExists;
+	rimp.FS_GetCurrentGameDir = FS_GetCurrentGameDir;
 
 	rimp.Cvar_Get = Cvar_Get;
 	rimp.Cvar_Set = Cvar_Set;
@@ -4476,6 +4473,11 @@ void CL_Init( void ) {
 #endif
 #endif
 	cl_wwwDownload = Cvar_Get( "cl_wwwDownload", "1", CVAR_USERINFO | CVAR_ARCHIVE_ND );
+#ifdef USE_CURL
+	Cvar_CheckRange( cl_wwwDownload, "0", "1", CV_INTEGER );
+#else
+	Cvar_CheckRange( cl_wwwDownload, "0", "0", CV_INTEGER );
+#endif
 
 	cl_profile = Cvar_Get( "cl_profile", "", CVAR_ROM );
 	cl_defaultProfile = Cvar_Get( "cl_defaultProfile", "", CVAR_ROM );

@@ -1845,7 +1845,7 @@ void R_Init( void ) {
 
 	ri.Printf( PRINT_ALL, "----- R_Init -----\n" );
 
-	gamedir = ri.Cvar_VariableString( "fs_game" );
+	gamedir = ri.FS_GetCurrentGameDir();
 	if ( *gamedir ) {
 		modIsETF = ( !Q_stricmp( gamedir, "etf" ) ) ? qtrue : qfalse;
 	}

@@ -869,7 +869,7 @@ const char	*COM_GetExtension( const char *name );
 void	COM_StripExtension(const char *in, char *out, int destsize);
 qboolean COM_CompareExtension(const char *in, const char *ext);
 void	COM_DefaultExtension( char *path, int maxSize, const char *extension );
-void COM_StripFilename( const char *in, char *out );
+void COM_StripFilename( const char *in, char *out, int destSize );
 
 unsigned long Com_GenerateHashValue( const char *fname, const unsigned int size );
 

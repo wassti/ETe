@@ -185,9 +185,9 @@ void COM_DefaultExtension( char *path, int maxSize, const char *extension )
 }
 
 
-void COM_StripFilename( const char *in, char *out ) {
+void COM_StripFilename( const char *in, char *out, int destSize ) {
 	char *end;
-	Q_strncpyz( out, in, strlen( in ) + 1 );
+	Q_strncpyz( out, in, destSize );
 	end = COM_SkipPath( out );
 	*end = 0;
 }

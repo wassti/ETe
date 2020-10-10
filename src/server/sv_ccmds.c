@@ -1430,7 +1430,7 @@ Examine the wolfinfo string
 */
 static void SV_Wolfinfo_f( void ) {
 	const char *info;
-	const char *gamedir = Cvar_VariableString( "fs_game" );
+	const char *gamedir = FS_GetCurrentGameDir();
 
 	// make sure server is running
 	if ( !com_sv_running->integer ) {

@@ -34,6 +34,8 @@ If you have questions concerning this license or the applicable additional terms
 #define MAX_REAL_DLIGHTS	(MAX_DLIGHTS*2)
 #define MAX_LITSURFS		(MAX_DRAWSURFS)
 
+#define MAX_TEXTURE_SIZE	2048 // must be less or equal to 32768
+
 #define USE_TESS_NEEDS_NORMAL
 //#define USE_TESS_NEEDS_ST2
 

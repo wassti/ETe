@@ -702,6 +702,8 @@ static void InitOpenGL( void )
 		// stubbed or broken drivers may have reported 0...
 		if ( glConfig.maxTextureSize <= 0 ) 
 			glConfig.maxTextureSize = 0;
+		else if ( glConfig.maxTextureSize > MAX_TEXTURE_SIZE )
+			glConfig.maxTextureSize = MAX_TEXTURE_SIZE; // ResampleTexture() relies on that maximum
 
 		//ri.Cvar_Set( "r_highQualityVideo", "1" );
 		ri.Cvar_Set( "r_lastValidRenderer", glConfig.renderer_string );

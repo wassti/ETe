@@ -6,7 +6,7 @@ project(ETe C CXX)
 
 # Set a default build type if none was specified
 set(default_build_type "Release")
- 
+
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   message(STATUS "Setting build type to '${default_build_type}' as none was specified.")
   set(CMAKE_BUILD_TYPE "${default_build_type}" CACHE
@@ -14,6 +14,11 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   # Set the possible values of build type for cmake-gui
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS
     "Debug" "Release" "RelWithDebInfo")
+endif()
+
+if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
+    # Ensure debug symbols in backtrace
+    link_libraries("-rdynamic")
 endif()
 
 Include(CheckTypeSize)
@@ -33,9 +38,12 @@ option(DYNAMIC_RENDERER "Whether to use modular rendering features (builds as sh
 set(USE_DISCORD OFF)
 
 set(compiler_flags_global -pipe -Wall -fmessage-length=0 -fno-strict-aliasing)
-set(compiler_flags_debug ${compiler_flags_global} -g -Og -rdynamic -D_DEBUG)
-set(compiler_flags_relwithdebinfo ${compiler_flags_global} -g -O1)
-set(compiler_flags_release ${compiler_flags_global} -O3 -DNDEBUG -march=i686 -Winline -ffast-math -fomit-frame-pointer -finline-functions -fschedule-insns2)
+# debug: explicit -Og, implicit -g -D_DEBUG
+set(compiler_flags_debug ${compiler_flags_global} -Og)
+# relwithdebinfo: implicit -O2 -g -DNDEBUG
+set(compiler_flags_relwithdebinfo ${compiler_flags_global})
+# release: implicit -O3 -DNDEBUG
+set(compiler_flags_release ${compiler_flags_global}  -march=i686 -Winline -ffast-math -fomit-frame-pointer -finline-functions -fschedule-insns2)
 
 set(SRCDIR "${CMAKE_SOURCE_DIR}")
 

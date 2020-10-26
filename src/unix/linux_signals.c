@@ -59,7 +59,7 @@ static void signal_handler( int sig )
 #ifdef _DEBUG
 	if ( sig == SIGSEGV || sig == SIGILL || sig == SIGBUS )
 	{
-		void *syms[10];
+		void *syms[32];
 		const size_t size = backtrace( syms, ARRAY_LEN( syms ) );
 		backtrace_symbols_fd( syms, size, STDERR_FILENO );
 	}

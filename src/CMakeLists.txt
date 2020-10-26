@@ -6,7 +6,9 @@ project(ETe C CXX)
 
 # Set a default build type if none was specified
 set(default_build_type "Release")
- 
+# Ensure debug symbols in backtrace
+link_libraries("-rdynamic")
+
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   message(STATUS "Setting build type to '${default_build_type}' as none was specified.")
   set(CMAKE_BUILD_TYPE "${default_build_type}" CACHE
@@ -33,8 +35,10 @@ option(DYNAMIC_RENDERER "Whether to use modular rendering features (builds as sh
 set(USE_DISCORD OFF)
 
 set(compiler_flags_global -pipe -Wall -fmessage-length=0 -fno-strict-aliasing)
-set(compiler_flags_debug ${compiler_flags_global} -g -Og -rdynamic -D_DEBUG)
-set(compiler_flags_relwithdebinfo ${compiler_flags_global} -g -O1)
+# -g is implicit in Debug & RelWithDebInfo builds
+set(compiler_flags_debug ${compiler_flags_global} -Og -D_DEBUG)
+# O2 by default RelWithDebInfo
+set(compiler_flags_relwithdebinfo ${compiler_flags_global})
 set(compiler_flags_release ${compiler_flags_global} -O3 -DNDEBUG -march=i686 -Winline -ffast-math -fomit-frame-pointer -finline-functions -fschedule-insns2)
 
 set(SRCDIR "${CMAKE_SOURCE_DIR}")

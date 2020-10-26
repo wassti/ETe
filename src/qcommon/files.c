@@ -5232,7 +5232,7 @@ static void FS_CheckIdPaks( void )
 		{
 			Com_Printf("\n\n"
 			"Point Release files are missing. Please\n"
-			"Copy it from your legitimate ET installation or"
+			"Copy it from your legitimate ET installation or\n"
 #ifdef __MACOS__
 			"re-install ET with the 2.60d updates.\n");
 #else
@@ -5244,7 +5244,7 @@ static void FS_CheckIdPaks( void )
 		{
 			Com_Printf("\n\n"
 			"Binary pack file is missing. Please\n"
-			"Copy it from your legitimate ET installation or"
+			"Copy it from your legitimate ET installation or\n"
 #ifdef __MACOS__
 			"re-install ET with the 2.60d updates.\n");
 #else

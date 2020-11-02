@@ -1056,7 +1056,7 @@ qboolean Com_DL_Perform( download_t *dl )
 		{
 			if ( cls.state == CA_CONNECTED )
 			{
-				Com_Error( ERR_DROP, "%s\n", "download error" );
+				Com_Error( ERR_DROP, "download error" );
 			}
 		}
 	}
@@ -1141,7 +1141,7 @@ qboolean DL_Init( void )
 		return qtrue;
 
 	Com_Printf("Loading \"%s\"...", cl_cURLLib->string);
-	if( (cURLLib = Sys_LoadLibrary(cl_cURLLib->string)) == 0 )
+	if( (dl_cURLLib = Sys_LoadLibrary(cl_cURLLib->string)) == 0 )
 	{
 #ifdef _WIN32
 		return qfalse;

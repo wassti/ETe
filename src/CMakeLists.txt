@@ -38,8 +38,8 @@ option(DYNAMIC_RENDERER "Whether to use modular rendering features (builds as sh
 set(USE_DISCORD OFF)
 
 set(compiler_flags_global -pipe -Wall -fmessage-length=0 -fno-strict-aliasing)
-# debug: explicit -Og, implicit -g -D_DEBUG
-set(compiler_flags_debug ${compiler_flags_global} -Og)
+# debug: explicit -Og -D_DEBUG, implicit -g
+set(compiler_flags_debug ${compiler_flags_global} -Og -D_DEBUG)
 # relwithdebinfo: implicit -O2 -g -DNDEBUG
 set(compiler_flags_relwithdebinfo ${compiler_flags_global})
 # release: implicit -O3 -DNDEBUG

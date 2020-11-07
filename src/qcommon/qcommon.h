@@ -1461,7 +1461,7 @@ float Sys_GetCPUSpeed( void );
 #ifdef __linux__
 // TTimo only on linux .. maybe on Mac too?
 // will OR with the existing mode (chmod ..+..)
-void Sys_Chmod( char *file, int mode );
+void Sys_Chmod( const char *file, int mode );
 #endif
 
 // adaptive huffman functions

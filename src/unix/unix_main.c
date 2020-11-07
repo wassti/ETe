@@ -1127,7 +1127,7 @@ void Sys_PrintBinVersion( const char* name )
 chmod OR on a file
 ==================
 */
-void Sys_Chmod( char *file, int mode ) {
+void Sys_Chmod( const char *file, int mode ) {
 	struct stat s_buf;
 	int perm;
 	if ( stat( file, &s_buf ) != 0 ) {

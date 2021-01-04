@@ -804,19 +804,7 @@ qboolean CopyDLLForMod( char **p_fn, const char* gamedir, const char *pwdpath, c
 
 // TTimo - Wolf MP specific, adding .mp. to shared objects
 const char* Sys_GetDLLName( const char *name ) {
-#if defined __i386__
-	return va( "%s.mp.i386.so", name );
-#elif defined __x86_64__
-	return va( "%s.mp.x86_64.so", name );
-#elif defined __ppc__
-	return va( "%s.mp.ppc.so", name );
-#elif defined __axp__
-	return va( "%s.mp.axp.so", name );
-#elif defined __mips__
-	return va( "%s.mp.mips.so", name );
-#else
-#error Unknown arch
-#endif
+	return va( "%s.mp." ARCH_STRING DLL_EXT, name );
 }
 
 void *Sys_LoadDll( const char *name, dllSyscall_t *entryPoint, dllSyscall_t systemcalls )

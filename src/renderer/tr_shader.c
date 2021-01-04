@@ -4410,7 +4410,7 @@ void R_PurgeLightmapShaders( void ) {
 	int j, b, i = 0;
 	shader_t *sh, *shPrev, *next;
 
-	for ( i = 0; i < sizeof( backupHashTable ) / sizeof( backupHashTable[0] ); i++ ) {
+	for ( i = 0; i < (int)ARRAY_LEN(backupHashTable); i++ ) {
 		sh = backupHashTable[i];
 
 		shPrev = NULL;

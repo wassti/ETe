@@ -2327,7 +2327,7 @@ void CL_NextDownload( void )
 					"(sv_allowDownload is %d)\n",
 					clc.sv_allowDownload);
 			}
-			else if(!*clc.sv_dlURL && !*cl_dlURL->string) {
+			else if(!*clc.sv_dlURL && !*cl_dlURL->string && !cl_wwwDownload->integer) {
 				Com_Printf("WARNING: server allows "
 					"download redirection, but does not "
 					"have sv_dlURL set\n");
@@ -4284,7 +4284,7 @@ qboolean CL_GetModeInfo( int *width, int *height, float *windowAspect, int mode,
 
 	// fix unknown desktop resolution
 	if ( mode == -2 && (dw == 0 || dh == 0) )
-		mode = 3;
+		mode = 3; // 640x480
 
 	if ( mode == -2 ) { // desktop resolution
 		*width = dw;

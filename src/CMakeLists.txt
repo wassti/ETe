@@ -30,7 +30,7 @@ endif(CMAKE_SIZEOF_VOID_P EQUAL 8)
 
 option(BUILD_CLIENT "Build the ete client binary" ON)
 option(BUILD_DEDSERVER "Build the ete dedicated server binary" ON)
-option(USE_SDL2 "Whether to use native backends or SDL2" OFF)
+option(USE_SDL2 "Whether to use native backends or SDL2" ON)
 option(USE_SYSTEM_JPEG "Look for and use system jpeg library instead of locally built" ON)
 option(DYNAMIC_RENDERER "Whether to use modular rendering features (builds as shared object instead of library" OFF)
 #option(USE_DISCORD "Use discord rich presence API" OFF)

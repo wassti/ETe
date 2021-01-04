@@ -152,7 +152,7 @@ static void DrawTris( shaderCommands_t *input ) {
 		for ( i = 0 ; i < 4 ; i++ ) {
 			token = COM_Parse( &s );
 			if ( token ) {
-				trisColor[i] = atof( token );
+				trisColor[i] = Q_atof( token );
 			} else {
 				trisColor[i] = 1.f;
 			}

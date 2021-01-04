@@ -99,11 +99,11 @@ qhandle_t R_RegisterMD3(const char *name, model_t *mod)
 			break;
 	}
 
-	if(numLoaded)
+	if ( numLoaded )
 	{
 		// duplicate into higher lod spots that weren't
 		// loaded, in case the user changes r_lodbias on the fly
-		for(lod--; lod >= 0; lod--)
+		for ( lod--; lod >= 0; lod-- )
 		{
 			mod->numLods++;
 			mod->model.md3[lod] = mod->model.md3[lod + 1];
@@ -112,9 +112,7 @@ qhandle_t R_RegisterMD3(const char *name, model_t *mod)
 		return mod->index;
 	}
 
-#ifdef _DEBUG
-	ri.Printf(PRINT_WARNING,"R_RegisterMD3: couldn't load %s\n", name);
-#endif
+	ri.Printf( PRINT_DEVELOPER, S_COLOR_YELLOW "%s: couldn't load %s\n", __func__, name );
 
 	mod->type = MOD_BAD;
 	return 0;
@@ -193,7 +191,7 @@ qhandle_t R_RegisterMDC(const char *name, model_t *mod)
 	}
 
 //#ifdef _DEBUG
-//	ri.Printf(PRINT_WARNING,"R_RegisterMDC: couldn't load %s\n", name);
+//	ri.Printf(PRINT_WARNING, "R_RegisterMDC: couldn't load %s\n", name);
 //#endif
 
 	mod->type = MOD_BAD;
@@ -227,9 +225,9 @@ qhandle_t R_RegisterMDS(const char *name, model_t *mod)
 
 	ri.FS_FreeFile (buf.v);
 	
-	if(!loaded)
+	if ( !loaded )
 	{
-		ri.Printf(PRINT_WARNING,"R_RegisterMDS: couldn't load mds file %s\n", name);
+		ri.Printf( PRINT_WARNING, "%s: couldn't load mds file %s\n", __func__, name );
 		mod->type = MOD_BAD;
 		return 0;
 	}
@@ -264,9 +262,9 @@ qhandle_t R_RegisterMDM(const char *name, model_t *mod)
 
 	ri.FS_FreeFile (buf.v);
 	
-	if(!loaded)
+	if ( !loaded )
 	{
-		ri.Printf(PRINT_WARNING,"R_RegisterMDM: couldn't load mdm file %s\n", name);
+		ri.Printf( PRINT_WARNING, "%s: couldn't load mdm file %s\n", __func__, name );
 		mod->type = MOD_BAD;
 		return 0;
 	}
@@ -301,9 +299,9 @@ qhandle_t R_RegisterMDX(const char *name, model_t *mod)
 
 	ri.FS_FreeFile (buf.v);
 	
-	if(!loaded)
+	if ( !loaded )
 	{
-		ri.Printf(PRINT_WARNING,"R_RegisterMDX: couldn't load mdx file %s\n", name);
+		ri.Printf(PRINT_WARNING, "%s: couldn't load mdx file %s\n", __func__, name );
 		mod->type = MOD_BAD;
 		return 0;
 	}
@@ -336,9 +334,9 @@ qhandle_t R_RegisterIQM(const char *name, model_t *mod)
 
 	ri.FS_FreeFile (buf.v);
 	
-	if(!loaded)
+	if ( !loaded )
 	{
-		ri.Printf(PRINT_WARNING,"R_RegisterIQM: couldn't load iqm file %s\n", name);
+		ri.Printf( PRINT_WARNING, "%s: couldn't load %s\n", __func__, name );
 		mod->type = MOD_BAD;
 		return 0;
 	}

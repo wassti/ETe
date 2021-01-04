@@ -1108,7 +1108,7 @@ void CL_InitInput( void ) {
 	//Cmd_AddCommand ("notebook",IN_Notebook);
 	Cmd_AddCommand( "help",IN_Help );
 
-	cl_nodelta = Cvar_Get( "cl_nodelta", "0", 0 );
+	cl_nodelta = Cvar_Get( "cl_nodelta", "0", CVAR_DEVELOPER );
 	cl_debugMove = Cvar_Get( "cl_debugMove", "0", 0 );
 
 	cl_showSend = Cvar_Get( "cl_showSend", "0", CVAR_TEMP );

@@ -4444,7 +4444,7 @@ float BG_SplineLength( splinePath_t* pSpline ) {
 	float dist = 0;
 //	float tension;
 	vec3_t vec[2];
-	vec3_t lastPoint;
+	vec3_t lastPoint = { 0 };
 	vec3_t result;
 
 	for ( i = 0; i <= 1.f; i += granularity ) {
@@ -5339,4 +5339,93 @@ int Q_vsnprintf( char *dest, size_t size, const char *fmt, va_list argptr ) {
 		return -1;
 	}
 	return ret;
+}
+
+/*
+===========
+BG_CleanName
+============
+*/
+void BG_CleanName( const char *in, char *out, int outSize, const char *blankString ) {
+	int		len, colorlessLen;
+	char	ch;
+	char	*p;
+	int		spaces;
+
+	//save room for trailing null byte
+	outSize--;
+
+	len = 0;
+	colorlessLen = 0;
+	p = out;
+	*p = '\0';
+	spaces = 0;
+
+	while( 1 ) {
+		ch = *in++;
+		if( !ch ) {
+			break;
+		}
+
+		// don't allow leading spaces
+		if( *p == '\0' && ch <= ' ' ) {
+			continue;
+		}
+
+		// check colors
+		if( ch == Q_COLOR_ESCAPE ) {
+			// solo trailing carat is not a color prefix
+			if( !*in ) {
+				break;
+			}
+
+			// don't allow black in a name, period
+			if( ColorIndex(*in) == 0 ) {
+				in++;
+				continue;
+			}
+
+			// make sure room in dest for both chars
+			if( len > outSize - 2 ) {
+				break;
+			}
+
+			*out++ = ch;
+			*out++ = *in++;
+			len += 2;
+			continue;
+		}
+
+		// let's keep it in printable range
+		if ( ch < ' ' || ch > 126 ) {
+			continue;
+		}
+
+		// don't allow too many consecutive spaces
+		if( ch == ' ' ) {
+			spaces++;
+			if( spaces > 2 ) {
+				continue;
+			}
+		}
+		else {
+			spaces = 0;
+		}
+
+		if( len > outSize - 1 ) {
+			break;
+		}
+
+		*out++ = ch;
+		colorlessLen++;
+		len++;
+	}
+	*out = '\0';
+
+	if ( blankString ) {
+		// don't allow empty names
+		if( *p == '\0' || colorlessLen == 0 ) {
+			Q_strncpyz( p, blankString, outSize );
+		}
+	}
 }

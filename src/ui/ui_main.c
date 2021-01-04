@@ -266,14 +266,14 @@ void _UI_MouseEvent( int dx, int dy );
 void _UI_Refresh( int realtime );
 qboolean _UI_IsFullscreen( void );
 
-#if __GNUC__ >= 4
-#pragma GCC visibility push(default)
-#endif
-int vmMain( int command, int arg0, int arg1, int arg2, int arg3, int arg4, int arg5, int arg6, int arg7, int arg8, int arg9, int arg10, int arg11  ) {
-#if __GNUC__ >= 4
-#pragma GCC visibility pop
-#endif
+qboolean intShaderTime = qfalse;
+qboolean linearLight = qfalse;
 
+int dll_com_trapGetValue;
+int dll_trap_R_AddRefEntityToScene2;
+int dll_trap_R_AddLinearLightToScene;
+
+Q_EXPORT intptr_t vmMain( int command, intptr_t arg0, intptr_t arg1, intptr_t arg2, intptr_t arg3, intptr_t arg4, intptr_t arg5, intptr_t arg6 ) {
 	switch ( command ) {
 	case UI_GETAPIVERSION:
 		return UI_API_VERSION;
@@ -1307,7 +1307,7 @@ qboolean Load_Menu( int handle ) {
 			char out[256];
 //			char filename[256];
 
-			COM_StripFilename( token.string, out );
+			COM_StripFilename( token.string, out, sizeof(out) );
 
 			filename = COM_SkipPath( token.string );
 
@@ -3625,7 +3625,7 @@ static qboolean UI_TeamMember_HandleKey( int flags, float *special, int key, qbo
 		// 0 - None
 		// 1 - Human
 		// 2..NumCharacters - Bot
-		char *cvar = va( blue ? "ui_blueteam%i" : "ui_redteam%i", num );
+		const char *cvar = va( blue ? "ui_blueteam%i" : "ui_redteam%i", num );
 		int value = trap_Cvar_VariableValue( cvar );
 
 		if ( key == K_MOUSE2 ) {
@@ -4361,7 +4361,7 @@ void UI_Update( const char *name ) {
 UI_RunMenuScript
 ==============
 */
-void UI_RunMenuScript( char **args ) {
+void UI_RunMenuScript( const char **args ) {
 	const char *name, *name2;
 	char *s;
 	char buff[1024];
@@ -6715,7 +6715,7 @@ void UI_FeederSelection( float feederID, int index ) {
 	} else if ( feederID == FEEDER_CAMPAIGNS || feederID == FEEDER_ALLCAMPAIGNS ) {
 		int actual, campaign, campaignCount;
 		campaign = ( feederID == FEEDER_ALLCAMPAIGNS ) ? ui_currentNetCampaign.integer : ui_currentCampaign.integer;
-		campaignCount = UI_CampaignCount( feederID == FEEDER_CAMPAIGNS );
+		campaignCount = UI_CampaignCount( feederID == FEEDER_CAMPAIGNS ? qtrue : qfalse );
 		if ( uiInfo.campaignList[campaign].campaignCinematic >= 0 ) {
 			trap_CIN_StopCinematic( uiInfo.campaignList[campaign].campaignCinematic );
 			uiInfo.campaignList[campaign].campaignCinematic = -1;
@@ -7080,8 +7080,8 @@ static void UI_ParseTeamInfo(const char *teamFile) {
 GameType_Parse
 ==============
 */
-static qboolean GameType_Parse( char **p, qboolean join ) {
-	char *token;
+static qboolean GameType_Parse( const char **p, qboolean join ) {
+	const char *token;
 
 	token = COM_ParseExt( p, qtrue );
 
@@ -7219,8 +7219,8 @@ static qboolean MapList_Parse( char **p ) {
 #endif
 
 static void UI_ParseGameInfo( const char *teamFile ) {
-	char    *token;
-	char *p;
+	const char    *token;
+	const char *p;
 	char *buff = NULL;
 	// int mode = 0; // TTimo: unused
 
@@ -7387,9 +7387,23 @@ UI_Init
 =================
 */
 void _UI_Init( qboolean inGameLoad ) {
+	char  value[MAX_CVAR_VALUE_STRING];
 	int start, x;
 
 	//uiInfo.inGameLoad = inGameLoad;
+
+	trap_Cvar_VariableStringBuffer( "//trap_GetValue", value, sizeof( value ) );
+	if ( value[0] ) {
+		dll_com_trapGetValue = atoi( value );
+		if ( trap_GetValue( value, sizeof( value ), "trap_R_AddRefEntityToScene2" ) ) {
+			dll_trap_R_AddRefEntityToScene2 = atoi( value );
+			intShaderTime = qtrue;
+		}
+		if ( trap_GetValue( value, sizeof( value ), "trap_R_AddLinearLightToScene_ETE" ) ) {
+			dll_trap_R_AddLinearLightToScene = atoi( value );
+			linearLight = qtrue;
+		}
+	}
 
 	UI_RegisterCvars();
 	UI_InitMemory();
@@ -8437,7 +8451,7 @@ cvarTable_t cvarTable[] = {
 	{ NULL, "cg_crosshairColorAlt", "White", CVAR_ARCHIVE },
 	{ NULL, "cg_coronafardist", "1536", CVAR_ARCHIVE },
 	{ NULL, "cg_wolfparticles", "1", CVAR_ARCHIVE },
-	{ NULL, "g_password", "none", CVAR_USERINFO },
+	{ NULL, "g_password", "none", CVAR_TEMP },
 	{ NULL, "g_antilag", "1", CVAR_SERVERINFO | CVAR_ARCHIVE },
 	{ NULL, "g_warmup", "60", CVAR_ARCHIVE },
 	{ NULL, "g_lms_roundlimit", "3", CVAR_ARCHIVE },

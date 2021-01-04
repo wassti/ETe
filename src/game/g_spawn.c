@@ -445,7 +445,7 @@ void SP_trigger_deathCheck( gentity_t *ent );
 void SP_misc_spawner( gentity_t *ent );
 void SP_props_decor_Scale( gentity_t *ent );
 
-void SP_bot_landminespot_spot( gentity_t *ent );
+/*void SP_bot_landminespot_spot( gentity_t *ent );
 void SP_bot_sniper_spot( gentity_t *ent );
 void SP_bot_attractor( gentity_t *ent );
 void SP_bot_seek_cover_spot( gentity_t *ent );
@@ -453,7 +453,7 @@ void SP_bot_seek_cover_sequence( gentity_t *ent );
 void SP_bot_axis_seek_cover_spot( gentity_t *ent );
 void SP_bot_jump_source( gentity_t *ent );
 void SP_bot_jump_dest( gentity_t *ent );
-void SP_bot_landmine_area( gentity_t *ent );
+void SP_bot_landmine_area( gentity_t *ent );*/
 
 void SP_ai_marker( gentity_t *ent );
 
@@ -667,7 +667,7 @@ spawn_t spawns[] = {
 	{"script_mover", SP_script_mover},
 	{"script_multiplayer", SP_script_multiplayer},
 
-	{"bot_landminespot_spot", SP_bot_landminespot_spot},
+	/*{"bot_landminespot_spot", SP_bot_landminespot_spot},
 	{"bot_sniper_spot", SP_bot_sniper_spot},
 	{"bot_attractor", SP_bot_attractor},
 	{"bot_seek_cover_spot", SP_bot_seek_cover_spot},
@@ -676,7 +676,7 @@ spawn_t spawns[] = {
 	{"bot_jump_source", SP_bot_jump_source},
 	{"bot_jump_dest", SP_bot_jump_dest},
 	{"ai_marker", SP_ai_marker},
-	{"bot_landmine_area", SP_bot_landmine_area},
+	{"bot_landmine_area", SP_bot_landmine_area},*/
 
 	{"func_constructible",   SP_func_constructible},
 	{"func_brushmodel",      SP_func_brushmodel},

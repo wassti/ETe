@@ -130,7 +130,7 @@ static void CG_LoadClientInfo( int clientNum ) {
 
 void CG_ParseTeamXPs( int n ) {
 	int i, j;
-	char* cs = (char*)CG_ConfigString( CS_AXIS_MAPS_XP + n );
+	const char* cs = CG_ConfigString( CS_AXIS_MAPS_XP + n );
 	const char* token;
 
 	for ( i = 0; i < MAX_MAPS_PER_CAMPAIGN; i++ ) {
@@ -1783,8 +1783,8 @@ void CG_Player( centity_t *cent ) {
 	refEntity_t body;
 	refEntity_t head;
 	refEntity_t acc;
-	vec3_t playerOrigin;
-	vec3_t lightorigin;
+	vec3_t playerOrigin = { 0 };
+	vec3_t lightorigin = { 0 };
 	int clientNum,i;
 	int renderfx;
 	qboolean shadow;

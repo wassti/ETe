@@ -52,8 +52,8 @@ static int ui_numArenas;
 UI_ParseInfos
 ===============
 */
-int UI_ParseInfos( char *buf, int max, char *infos[], int totalmax ) {
-	char    *token;
+static int UI_ParseInfos( const char *buf, int max, char *infos[], int totalmax ) {
+	const char    *token;
 	int count;
 	char key[MAX_TOKEN_CHARS];
 	char info[MAX_INFO_STRING];
@@ -89,7 +89,7 @@ int UI_ParseInfos( char *buf, int max, char *infos[], int totalmax ) {
 
 			token = COM_ParseExt( &buf, qfalse );
 			if ( !token[0] ) {
-				strcpy( token, "<NULL>" );
+				token = "<NULL>";
 			}
 			Info_SetValueForKey( info, key, token );
 		}

@@ -30,7 +30,7 @@ If you have questions concerning this license or the applicable additional terms
 #define __UI_LOCAL_H__
 
 #include "../qcommon/q_shared.h"
-#include "../renderer/tr_types.h"
+#include "../renderercommon/tr_types.h"
 #include "ui_public.h"
 #include "keycodes.h"
 #include "../game/bg_public.h"
@@ -1006,7 +1006,7 @@ void UI_SPSkillMenu_Cache( void );
 // ui_syscalls.c
 //
 void            trap_Print( const char *string );
-void            trap_Error( const char *string );
+void            NORETURN trap_Error( const char *string );
 int             trap_Milliseconds( void );
 void            trap_Cvar_Register( vmCvar_t *vmCvar, const char *varName, const char *defaultValue, int flags );
 void            trap_Cvar_Update( vmCvar_t *vmCvar );
@@ -1206,5 +1206,16 @@ void UI_InitGameinfo( void );
 
 const char* UI_DescriptionForCampaign( void );
 const char* UI_NameForCampaign( void );
+
+// extension interface
+extern  qboolean intShaderTime;
+extern  qboolean linearLight;
+
+qboolean trap_GetValue( char *value, int valueSize, const char *key );
+void trap_R_AddRefEntityToScene2( const refEntity_t *re );
+void trap_R_AddLinearLightToScene( const vec3_t start, const vec3_t end, float intensity, float r, float g, float b );
+extern int dll_com_trapGetValue;
+extern int dll_trap_R_AddRefEntityToScene2;
+extern int dll_trap_R_AddLinearLightToScene;
 
 #endif

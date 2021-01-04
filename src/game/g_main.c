@@ -295,7 +295,7 @@ cvarTable_t gameCvarTable[] = {
 	{ &g_log, "g_log", "", CVAR_ARCHIVE, 0, qfalse },
 	{ &g_logSync, "g_logSync", "0", CVAR_ARCHIVE, 0, qfalse },
 
-	{ &g_password, "g_password", "none", CVAR_USERINFO, 0, qfalse },
+	{ &g_password, "g_password", "none", CVAR_TEMP, 0, qfalse },
 	{ &sv_privatepassword, "sv_privatepassword", "", CVAR_TEMP, 0, qfalse },
 	{ &g_banIPs, "g_banIPs", "", CVAR_ARCHIVE, 0, qfalse },
 	// show_bug.cgi?id=500
@@ -468,6 +468,9 @@ qboolean G_SnapshotCallback( int entityNum, int clientNum ) {
 	return qtrue;
 }
 
+// extension interface
+int dll_com_trapGetValue;
+
 /*
 ================
 vmMain
@@ -476,13 +479,7 @@ This is the only way control passes into the module.
 This must be the very first function compiled into the .q3vm file
 ================
 */
-#if __GNUC__ >= 4
-#pragma GCC visibility push(default)
-#endif
-int vmMain( int command, int arg0, int arg1, int arg2, int arg3, int arg4, int arg5, int arg6 ) {
-#if __GNUC__ >= 4
-#pragma GCC visibility pop
-#endif
+Q_EXPORT intptr_t vmMain( int command, intptr_t arg0, intptr_t arg1, intptr_t arg2, intptr_t arg3, intptr_t arg4, intptr_t arg5, intptr_t arg6 ) {
 	switch ( command ) {
 	case GAME_INIT:
 		G_InitGame( arg0, arg1, arg2 );
@@ -491,7 +488,7 @@ int vmMain( int command, int arg0, int arg1, int arg2, int arg3, int arg4, int a
 		G_ShutdownGame( arg0 );
 		return 0;
 	case GAME_CLIENT_CONNECT:
-		return (int)ClientConnect( arg0, arg1, arg2 );
+		return (intptr_t)ClientConnect( arg0, arg1, arg2 );
 	case GAME_CLIENT_THINK:
 		ClientThink( arg0 );
 		return 0;
@@ -513,23 +510,11 @@ int vmMain( int command, int arg0, int arg1, int arg2, int arg3, int arg4, int a
 	case GAME_CONSOLE_COMMAND:
 		return ConsoleCommand();
 	case BOTAI_START_FRAME:
-#ifdef NO_BOT_SUPPORT
 		return 0;
-#else
-		return BotAIStartFrame( arg0 );
-#endif // NO_BOT_SUPPORT
 	case BOT_VISIBLEFROMPOS:
-#ifdef NO_BOT_SUPPORT
 		return qfalse;
-#else
-		return BotVisibleFromPos( (float *)arg0, arg1, (float *)arg2, arg3, arg4 );
-#endif // NO_BOT_SUPPORT
 	case BOT_CHECKATTACKATPOS:
-#ifdef NO_BOT_SUPPORT
 		return qfalse;
-#else
-		return BotCheckAttackAtPos( arg0, arg1, (float *)arg2, arg3, arg4 );
-#endif // NO_BOT_SUPPORT
 	case GAME_SNAPSHOT_CALLBACK:
 		return G_SnapshotCallback( arg0, arg1 );
 	case GAME_MESSAGERECEIVED:
@@ -541,11 +526,13 @@ int vmMain( int command, int arg0, int arg1, int arg2, int arg3, int arg4, int a
 
 void QDECL G_Printf( const char *fmt, ... ) {
 	va_list argptr;
-	char text[1024];
+	char text[BIG_INFO_STRING];
 
 	va_start( argptr, fmt );
 	Q_vsnprintf( text, sizeof( text ), fmt, argptr );
 	va_end( argptr );
+
+	text[4095] = '\0'; // truncate to 1.32b/c max print buffer size
 
 	trap_Printf( text );
 }
@@ -554,7 +541,7 @@ void QDECL G_Printf( const char *fmt, ... ) _attribute( ( format( printf,1,2 ) )
 
 void QDECL G_DPrintf( const char *fmt, ... ) {
 	va_list argptr;
-	char text[1024];
+	char text[BIG_INFO_STRING];
 
 	if ( !g_developer.integer ) {
 		return;
@@ -564,23 +551,27 @@ void QDECL G_DPrintf( const char *fmt, ... ) {
 	Q_vsnprintf( text, sizeof( text ), fmt, argptr );
 	va_end( argptr );
 
+	text[4095] = '\0'; // truncate to 1.32b/c max print buffer size
+
 	trap_Printf( text );
 }
 //bani
 void QDECL G_DPrintf( const char *fmt, ... ) _attribute( ( format( printf,1,2 ) ) );
 
-void QDECL G_Error( const char *fmt, ... ) {
+void NORETURN QDECL G_Error( const char *fmt, ... ) {
 	va_list argptr;
-	char text[1024];
+	char text[BIG_INFO_STRING];
 
 	va_start( argptr, fmt );
 	Q_vsnprintf( text, sizeof( text ), fmt, argptr );
 	va_end( argptr );
 
+	text[4095] = '\0'; // truncate to 1.32b/c max print buffer size
+
 	trap_Error( text );
 }
 //bani
-void QDECL G_Error( const char *fmt, ... ) _attribute( ( format( printf,1,2 ) ) );
+void NORETURN QDECL G_Error( const char *fmt, ... ) _attribute( ( format( printf,1,2 ) ) );
 
 
 #define CH_KNIFE_DIST       48  // from g_weapon.c
@@ -700,7 +691,7 @@ void G_CheckForCursorHints( gentity_t *ent ) {
 	gentity_t   *checkEnt, *traceEnt = 0;
 	playerState_t *ps;
 	int hintType, hintDist, hintVal;
-	qboolean zooming, indirectHit;      // indirectHit means the checkent was not the ent hit by the trace (checkEnt!=traceEnt)
+	qboolean zooming;//, indirectHit;      // indirectHit means the checkent was not the ent hit by the trace (checkEnt!=traceEnt)
 	int trace_contents;                 // DHM - Nerve
 	int numOfIgnoredEnts = 0;
 
@@ -719,7 +710,7 @@ void G_CheckForCursorHints( gentity_t *ent ) {
 	}
 #endif // SAVEGAME_SUPPORT
 
-	indirectHit = qfalse;
+	//indirectHit = qfalse;
 
 	zooming = (qboolean)( ps->eFlags & EF_ZOOMING );
 
@@ -840,7 +831,7 @@ void G_CheckForCursorHints( gentity_t *ent ) {
 			}
 
 			if ( !Q_stricmp( traceEnt->classname, "func_invisible_user" ) ) {
-				indirectHit = qtrue;
+				//indirectHit = qtrue;
 
 				// DHM - Nerve :: Put this back in only in multiplayer
 				if ( traceEnt->s.dmgFlags ) {  // hint icon specified in entity
@@ -1591,12 +1582,19 @@ G_InitGame
 ============
 */
 void G_InitGame( int levelTime, int randomSeed, int restart ) {
+	char value[ MAX_CVAR_VALUE_STRING ];
 	int i;
 	char cs[MAX_INFO_STRING];
 
 	G_Printf( "------- Game Initialization -------\n" );
 	G_Printf( "gamename: %s\n", GAMEVERSION );
 	G_Printf( "gamedate: %s\n", __DATE__ );
+
+		// extension interface
+	trap_Cvar_VariableStringBuffer( "//trap_GetValue", value, sizeof( value ) );
+	if ( value[0] ) {
+		dll_com_trapGetValue = atoi( value );
+	}
 
 	srand( randomSeed );
 
@@ -1836,13 +1834,13 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
 
 	// TAT 11/13/2002
 	//		similarly set up the Server entities
-	InitServerEntities();
+	//InitServerEntities();
 
 	// parse the key/value pairs and spawn gentities
 	G_SpawnEntitiesFromString();
 
 	// TAT 11/13/2002 - entities are spawned, so now we can do setup
-	InitialServerEntitySetup();
+	//InitialServerEntitySetup();
 
 	// Gordon: debris test
 	G_LinkDebris();
@@ -1879,14 +1877,6 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
 	G_Printf( "-----------------------------------\n" );
 
 	trap_PbStat( -1, "INIT", "GAME" ) ;
-
-#ifndef NO_BOT_SUPPORT
-	if ( bot_enable.integer ) {
-		BotAISetup( restart );
-//		BotAILoadMap( restart );
-		G_InitBots( restart );
-	}
-#endif // NO_BOT_SUPPORT
 
 	G_RemapTeamShaders();
 
@@ -1944,12 +1934,6 @@ void G_ShutdownGame( int restart ) {
 
 	// write all the client session data so we can get it back
 	G_WriteSessionData( restart );
-
-#ifndef NO_BOT_SUPPORT
-	if ( bot_enable.integer ) {
-		BotAIShutdown( restart );
-	}
-#endif // NO_BOT_SUPPORT
 }
 
 
@@ -1959,7 +1943,7 @@ void G_ShutdownGame( int restart ) {
 #ifndef GAME_HARD_LINKED
 // this is only here so the functions in q_shared.c and bg_*.c can link
 
-void QDECL Com_Error( errorParm_t level, const char *error, ... ) {
+void NORETURN QDECL Com_Error( errorParm_t level, const char *error, ... ) {
 	va_list argptr;
 	char text[1024];
 
@@ -2301,9 +2285,6 @@ void MoveClientToIntermission( gentity_t *ent ) {
 	ent->s.event = 0;
 	ent->s.events[0] = ent->s.events[1] = ent->s.events[2] = ent->s.events[3] = 0;      // DHM - Nerve
 	ent->r.contents = 0;
-
-	// todo: call bot routine so they can process the transition to intermission (send voice chats, etc)
-	BotMoveToIntermission( ent->s.number );
 }
 
 /*
@@ -2501,26 +2482,23 @@ Print to the logfile with a time stamp if it is open
 */
 void QDECL G_LogPrintf( const char *fmt, ... ) {
 	va_list argptr;
-	char string[1024];
-	int min, tens, sec, l;
+	char string[BIG_INFO_STRING];
+	int min, tsec, sec, len;
 
-	sec = level.time / 1000;
-
+	tsec = level.time / 100;
+	sec = tsec / 10;
+	tsec %= 10;
 	min = sec / 60;
 	sec -= min * 60;
-	tens = sec / 10;
-	sec -= tens * 10;
 
-	Com_sprintf( string, sizeof( string ), "%i:%i%i ", min, tens, sec );
-
-	l = strlen( string );
+	len = Com_sprintf( string, sizeof( string ), "%3i:%02i.%i ", min, sec, tsec );
 
 	va_start( argptr, fmt );
-	Q_vsnprintf( string + l, sizeof( string ) - l, fmt, argptr );
+	Q_vsnprintf( string + len, sizeof( string ) - len, fmt, argptr );
 	va_end( argptr );
 
 	if ( g_dedicated.integer ) {
-		G_Printf( "%s", string + l );
+		G_Printf( "%s", string + len );
 	}
 
 	if ( !level.logFile ) {

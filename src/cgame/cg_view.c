@@ -1366,8 +1366,8 @@ int CG_CalcViewValues( void ) {
 
 //=========================================================================
 
-char* CG_MustParse( char** pString, const char* pErrorMsg ) {
-	char* token = COM_Parse( pString );
+const char* CG_MustParse( const char** pString, const char* pErrorMsg ) {
+	const char* token = COM_Parse( pString );
 	if ( !*token ) {
 		CG_Error( pErrorMsg );
 	}
@@ -1376,10 +1376,10 @@ char* CG_MustParse( char** pString, const char* pErrorMsg ) {
 
 void CG_ParseSkyBox( void ) {
 	int fogStart, fogEnd;
-	char *cstr, *token;
+	const char *cstr, *token;
 	vec4_t fogColor;
 
-	cstr = (char*)CG_ConfigString( CS_SKYBOXORG );
+	cstr = CG_ConfigString( CS_SKYBOXORG );
 
 	if ( !*cstr ) {
 		cg.skyboxEnabled = qfalse;
@@ -1443,7 +1443,7 @@ void CG_ParseTagConnects( void ) {
 }
 
 void CG_ParseTagConnect( int tagNum ) {
-	char *token, *pString = (char*)CG_ConfigString( tagNum ); // Gordon: bleh, i hate that cast away of the const
+	const char *token, *pString = CG_ConfigString( tagNum ); // Gordon: bleh, i hate that cast away of the const
 	int entNum;
 
 	if ( !*pString ) {
@@ -1708,6 +1708,30 @@ qboolean CG_CullPointAndRadius( const vec3_t pt, vec_t radius ) {
 	return( qfalse );
 }
 
+
+/*
+=================
+CG_FirstFrame
+
+Called once on first rendered frame
+=================
+*/
+static void CG_FirstFrame( void )
+{
+	CG_SetConfigValues();
+
+	cgs.voteTime = atoi( CG_ConfigString( CS_VOTE_TIME ) );
+	cgs.voteYes = atoi( CG_ConfigString( CS_VOTE_YES ) );
+	cgs.voteNo = atoi( CG_ConfigString( CS_VOTE_NO ) );
+	Q_strncpyz( cgs.voteString, CG_ConfigString( CS_VOTE_STRING ), sizeof( cgs.voteString ) );
+
+	if ( cgs.voteTime )
+		cgs.voteModified = qtrue;
+	else
+		cgs.voteModified = qfalse;
+}
+
+
 //=========================================================================
 
 extern void CG_SetupDlightstyles( void );
@@ -1828,6 +1852,9 @@ void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView, qboolean demo
 	if ( cg_norender.integer ) {
 		return;
 	}
+
+	if ( cg.clientFrame == 0 )
+		CG_FirstFrame();
 
 	// this counter will be bumped for every valid scene we generate
 	cg.clientFrame++;

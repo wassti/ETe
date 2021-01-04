@@ -169,10 +169,12 @@ typedef enum {
 	UI_CEIL,
 	UI_GETHUNKDATA,
 
+#if !defined(UIDLL) && !defined(CGAMEDLL)
 	// engine extensions
 	UI_R_ADDREFENTITYTOSCENE2,
 	UI_R_ADDLINEARLIGHTTOSCENE,
 	UI_TRAP_GETVALUE = COM_TRAP_GETVALUE,
+#endif
 
 } uiImport_t;
 

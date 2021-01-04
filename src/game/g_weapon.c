@@ -973,15 +973,6 @@ static qboolean TryConstructing( gentity_t *ent ) {
 				return( qtrue );    // likely will come back soon - so override other plier bits anyway
 
 			}
-			// Gordon: are we scripted only?
-			if ( !( ent->spawnflags & CONSTRUCTIBLE_AAS_SCRIPTED ) ) {
-				if ( !( ent->spawnflags & CONSTRUCTIBLE_NO_AAS_BLOCKING ) ) {
-					// RF, if we are blocking AAS areas when built, then clear AAS blocking so we can set it again after the stage has been increased
-					if ( constructible->spawnflags & CONSTRUCTIBLE_BLOCK_PATHS_WHEN_BUILD ) {
-						G_SetAASBlockingEntity( ent, AAS_AREA_ENABLED );
-					}
-				}
-			}
 
 			// swap brushmodels if staged
 			if ( constructible->count2 ) {
@@ -1252,25 +1243,6 @@ static qboolean TryConstructing( gentity_t *ent ) {
 			}
 		}
 
-		// Gordon: are we scripted only?
-		if ( !( ent->spawnflags & CONSTRUCTIBLE_AAS_SCRIPTED ) ) {
-			if ( !( ent->spawnflags & CONSTRUCTIBLE_NO_AAS_BLOCKING ) ) {
-				// RF, a stage has been completed, either enable or disable AAS areas appropriately
-				if ( !( constructible->spawnflags & CONSTRUCTIBLE_BLOCK_PATHS_WHEN_BUILD ) ) {
-					// builing creates AAS paths
-					// Gordon: HACK from ryan
-					//				if( !constructible->count2 || ( constructible->grenadeFired == constructible->count2 ) )
-					{
-						// completely built, enable paths
-						G_SetAASBlockingEntity( constructible, AAS_AREA_ENABLED );
-					}
-				} else {
-					// builing blocks AAS paths
-					G_SetAASBlockingEntity( constructible, AAS_AREA_DISABLED );
-				}
-			}
-		}
-
 		return( qtrue );    // building
 	}
 
@@ -1442,23 +1414,6 @@ void AutoBuildConstruction( gentity_t* constructible ) {
 					trap_LinkEntity( check );
 					break;
 				}
-			}
-		}
-	}
-
-	// Gordon: are we scripted only?
-	if ( !( constructible->spawnflags & CONSTRUCTIBLE_AAS_SCRIPTED ) ) {
-		if ( !( constructible->spawnflags & CONSTRUCTIBLE_NO_AAS_BLOCKING ) ) {
-			// RF, a stage has been completed, either enable or disable AAS areas appropriately
-			if ( !( constructible->spawnflags & CONSTRUCTIBLE_BLOCK_PATHS_WHEN_BUILD ) ) {
-				// builing creates AAS paths
-				if ( !constructible->count2 || ( constructible->grenadeFired == constructible->count2 ) ) {
-					// completely built, enable paths
-					G_SetAASBlockingEntity( constructible, AAS_AREA_ENABLED );
-				}
-			} else {
-				// builing blocks AAS paths
-				G_SetAASBlockingEntity( constructible, AAS_AREA_DISABLED );
 			}
 		}
 	}
@@ -1977,7 +1932,7 @@ evilbanigoto:
 							}
 						}
 
-						// rain - spawnflags 128 = disabled (#309)
+						// rain - spawnflags 128 = disabled
 						if ( !( hit->spawnflags & 128 ) && ( ( ( hit->spawnflags & AXIS_OBJECTIVE ) && ( ent->client->sess.sessionTeam == TEAM_ALLIES ) ) ||
 															 ( ( hit->spawnflags & ALLIED_OBJECTIVE ) && ( ent->client->sess.sessionTeam == TEAM_AXIS ) ) ) ) {
 
@@ -1997,6 +1952,7 @@ evilbanigoto:
 							}
 							//bani - fix #238
 							traceEnt->etpro_misc_1 |= 1;
+							traceEnt->etpro_misc_2  = hit->s.number;
 						}
 //bani
 //						i = num;
@@ -3660,20 +3616,6 @@ void Weapon_Panzerfaust_Fire( gentity_t *ent ) {
 
 //	VectorAdd( m->s.pos.trDelta, ent->client->ps.velocity, m->s.pos.trDelta );	// "real" physics
 }
-
-
-/*
-======================================================================
-
-SPEARGUN
-
-======================================================================
-*/
-/*void Weapon_Speargun_Fire (gentity_t *ent) {
-	gentity_t	*m;
-
-	m = fire_speargun (ent, muzzleEffect, forward);
-}*/
 
 
 /*

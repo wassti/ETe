@@ -31,17 +31,11 @@ If you have questions concerning this license or the applicable additional terms
 // this file is only included when building a dll
 // g_syscalls.asm is included instead when building a qvm
 
-static int ( QDECL * syscall )( int arg, ... ) = ( int ( QDECL * )( int, ... ) ) - 1;
+static dllSyscall_t syscall = (dllSyscall_t)-1;
 
-#if __GNUC__ >= 4
-#pragma GCC visibility push(default)
-#endif
-void dllEntry( int ( QDECL *syscallptr )( int arg,... ) ) {
+Q_EXPORT void dllEntry( dllSyscall_t syscallptr ) {
 	syscall = syscallptr;
 }
-#if __GNUC__ >= 4
-#pragma GCC visibility pop
-#endif
 
 int PASSFLOAT( float x ) {
 	float floatTemp;
@@ -53,8 +47,9 @@ void    trap_Printf( const char *fmt ) {
 	syscall( G_PRINT, fmt );
 }
 
-void    trap_Error( const char *fmt ) {
+void    NORETURN trap_Error( const char *fmt ) {
 	syscall( G_ERROR, fmt );
+	exit( 1 );
 }
 
 int     trap_Milliseconds( void ) {
@@ -971,7 +966,7 @@ int trap_GeneticParentsAndChildSelection( int numranks, float *ranks, int *paren
 	return syscall( BOTLIB_AI_GENETIC_PARENTS_AND_CHILD_SELECTION, numranks, ranks, parent1, parent2, child );
 }
 
-void trap_PbStat( int clientNum, char *category, char *values ) {
+void trap_PbStat( int clientNum, const char *category, const char *values ) {
 	syscall( PB_STAT_REPORT, clientNum, category, values ) ;
 }
 
@@ -981,4 +976,10 @@ void trap_SendMessage( int clientNum, char *buf, int buflen ) {
 
 messageStatus_t trap_MessageStatus( int clientNum ) {
 	return syscall( G_MESSAGESTATUS, clientNum );
+}
+
+// extension interface
+
+qboolean trap_GetValue( char *value, int valueSize, const char *key ) {
+	return syscall( dll_com_trapGetValue, value, valueSize, key );
 }

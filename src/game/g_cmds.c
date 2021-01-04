@@ -28,8 +28,6 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "g_local.h"
 
-void BotDebug( int clientNum );
-void GetBotAutonomies( int clientNum, int *weapAutonomy, int *moveAutonomy );
 qboolean G_IsOnFireteam( int entityNum, fireteamData_t** teamNum );
 
 /*
@@ -279,45 +277,6 @@ int ClientNumberFromString( gentity_t *to, char *s ) {
 
 	CPx( to - g_entities, va( "print \"User [lof]%s [lon]is not on the server\n\"", s ) );
 	return( -1 );
-}
-
-/*
-=================
-Cmd_ListBotGoals_f
-
-=================
-*/
-
-void Cmd_ListBotGoals_f( gentity_t* ent ) {
-	int i;
-	team_t t;
-
-	if ( !CheatsOk( ent ) ) {
-		return;
-	}
-
-	for ( t = TEAM_AXIS; t <= TEAM_ALLIES; t++ ) {
-		gentity_t* list = g_entities, *targ;
-
-		G_Printf( "\n%s bot goals\n=====================\n", ( t == TEAM_AXIS ? "Axis" : "Allies" ) );
-
-
-		for ( i = 0; i < level.num_entities; i++, list++ ) {
-			if ( !list->inuse ) {
-				continue;
-			}
-
-			if ( !( list->aiInactive & ( 1 << t ) ) ) {
-				G_Printf( "%s (%s)", ( list->scriptName ? list->scriptName : ( list->targetname ? list->targetname : "NONE" ) ), list->classname );
-				if ( list->target_ent ) {
-					targ = list->target_ent;
-					G_Printf( " -> " );
-					G_Printf( "%s (%s)", ( targ->scriptName ? targ->scriptName : ( targ->targetname ? targ->targetname : "NONE" ) ), targ->classname );
-				}
-				G_Printf( "\n" );
-			}
-		}
-	}
 }
 
 /*
@@ -682,8 +641,6 @@ void Cmd_Kill_f( gentity_t *ent ) {
 	player_die( ent, ent, ent, ( g_gamestate.integer == GS_PLAYING ) ? 100000 : 135, MOD_SUICIDE );
 }
 
-void BotRecordTeamChange( int client );
-
 void G_TeamDataForString( const char* teamstr, int clientNum, team_t* team, spectatorState_t* sState, int* specClient ) {
 	*sState = SPECTATOR_NOT;
 	if ( !Q_stricmp( teamstr, "follow1" ) ) {
@@ -909,7 +866,6 @@ qboolean SetTeam( gentity_t *ent, char *s, qboolean force, weapon_t w1, weapon_t
 	}
 
 	G_verifyMatchState( oldTeam );
-	BotRecordTeamChange( clientNum );
 
 	// Reset stats when changing teams
 	if ( team != oldTeam ) {
@@ -1207,55 +1163,6 @@ void Cmd_SetClass_f( gentity_t* ent, unsigned int dwCommand, qboolean fValue ) {
 void Cmd_SetWeapons_f( gentity_t* ent, unsigned int dwCommand, qboolean fValue ) {
 }
 
-
-
-// START Mad Doc - TDF
-/*
-=================
-Cmd_TeamBot_f
-=================
-*/
-void Cmd_TeamBot_f( gentity_t *foo ) {
-	char ptype[4], weap[4], fireteam[4];
-	char entNumStr[4];
-	int entNum;
-	char *weapon;
-	char weaponBuf[MAX_INFO_STRING];
-	char userinfo[MAX_INFO_STRING];
-
-	gentity_t *ent;
-
-	trap_Argv( 1, entNumStr, sizeof( entNumStr ) );
-	entNum = atoi( entNumStr );
-
-	ent = g_entities + entNum;
-
-	trap_Argv( 3, ptype, sizeof( ptype ) );
-	trap_Argv( 4, weap, sizeof( weap ) );
-	trap_Argv( 5, fireteam, sizeof( fireteam ) );
-
-
-
-	ent->client->sess.latchPlayerType = atoi( ptype );
-	ent->client->sess.latchPlayerWeapon = atoi( weap );
-	ent->client->sess.latchPlayerWeapon2 = 0;
-	ent->client->sess.playerType = atoi( ptype );
-	ent->client->sess.playerWeapon = atoi( weap );
-
-	// remove any weapon info from the userinfo, so SetWolfSpawnWeapons() doesn't reset the weapon as that
-	trap_GetUserinfo( entNum, userinfo, sizeof( userinfo ) );
-
-	weapon = Info_ValueForKey( userinfo, "pWeapon" );
-	if ( weapon[0] ) {
-		Q_strncpyz( weaponBuf, weapon, sizeof( weaponBuf ) );
-		Info_RemoveKey( userinfo, "pWeapon" );
-		trap_SetUserinfo( entNum, userinfo );
-	}
-
-	SetWolfSpawnWeapons( ent->client );
-}
-
-// END Mad Doc - TDF
 /*
 =================
 Cmd_Follow_f
@@ -1557,8 +1464,6 @@ void Cmd_Say_f( gentity_t *ent, int mode, qboolean arg0 ) {
 	G_Say( ent, NULL, mode, ConcatArgs( ( ( arg0 ) ? 0 : 1 ) ) );
 }
 
-extern void BotRecordVoiceChat( int client, int destclient, const char *id, int mode, qboolean noResponse );
-
 // NERVE - SMF
 void G_VoiceTo( gentity_t *ent, gentity_t *other, int mode, const char *id, qboolean voiceonly ) {
 	int color;
@@ -1609,10 +1514,6 @@ void G_VoiceTo( gentity_t *ent, gentity_t *other, int mode, const char *id, qboo
 		color = COLOR_GREEN;
 		cmd = "vchat";
 	}
-
-	// RF, record this chat so bots can parse them
-	// bots respond with voiceonly, so we check for this so they dont keep responding to responses
-	BotRecordVoiceChat( ent->s.number, other->s.number, id, mode, voiceonly == 2 );
 
 	if ( voiceonly == 2 ) {
 		voiceonly = qfalse;
@@ -2411,29 +2312,6 @@ void Cmd_SetCameraOrigin_f( gentity_t *ent ) {
 	}
 }
 
-extern gentity_t *BotFindEntityForName( char *name );
-
-/*
-==============
-Cmd_InterruptCamera_f
-==============
-*/
-void Cmd_InterruptCamera_f( gentity_t *ent ) {
-	gentity_t *player;
-
-	if ( g_gametype.integer != GT_SINGLE_PLAYER && g_gametype.integer != GT_COOP ) {
-		return;
-	}
-
-	player = BotFindEntityForName( "player" );
-
-	if ( !player ) {
-		return;
-	}
-
-	G_Script_ScriptEvent( player, "trigger", "cameraInterrupt" );
-}
-
 extern vec3_t playerMins;
 extern vec3_t playerMaxs;
 
@@ -2980,54 +2858,6 @@ void Cmd_SetSpawnPoint_f( gentity_t* ent ) {
 	}
 }
 
-/*
-============
-Cmd_SetSniperSpot_f
-============
-*/
-void Cmd_SetSniperSpot_f( gentity_t *clent ) {
-	gentity_t *spot;
-
-	vmCvar_t cvar_mapname;
-	char filename[MAX_QPATH];
-	fileHandle_t f;
-	char buf[1024];
-
-	if ( !g_cheats.integer ) {
-		return;
-	}
-	if ( !trap_Cvar_VariableIntegerValue( "cl_running" ) ) {
-		return;                                                 // only allow locally playing client
-	}
-	if ( clent->s.number != 0 ) {
-		return;                         // only allow locally playing client
-
-	}
-	// drop a sniper spot here
-	spot = G_Spawn();
-	spot->classname = "bot_sniper_spot";
-	VectorCopy( clent->r.currentOrigin, spot->s.origin );
-	VectorCopy( clent->client->ps.viewangles, spot->s.angles );
-	spot->aiTeam = clent->client->sess.sessionTeam;
-
-	// output to text file
-	trap_Cvar_Register( &cvar_mapname, "mapname", "", CVAR_SERVERINFO | CVAR_ROM );
-
-	Com_sprintf( filename, sizeof( filename ), "maps/%s.botents", cvar_mapname.string );
-	if ( trap_FS_FOpenFile( filename, &f, FS_APPEND ) < 0 ) {
-		G_Error( "Cmd_SetSniperSpot_f: cannot open %s for writing", filename );
-	}
-
-	Com_sprintf( buf, sizeof( buf ), "{\n\"classname\" \"%s\"\n\"origin\" \"%.3f %.3f %.3f\"\n\"angles\" \"%.2f %.2f %.2f\"\n\"aiTeam\" \"%i\"\n}\n\n", spot->classname, spot->s.origin[0], spot->s.origin[1], spot->s.origin[2], spot->s.angles[0], spot->s.angles[1], spot->s.angles[2], spot->aiTeam );
-	trap_FS_Write( buf, strlen( buf ), f );
-
-	trap_FS_FCloseFile( f );
-
-	G_Printf( "dropped sniper spot\n" );
-
-	return;
-}
-
 void G_PrintAccuracyLog( gentity_t *ent );
 
 /*
@@ -3299,75 +3129,6 @@ void Cmd_UnIgnore_f( gentity_t* ent ) {
 
 /*
 =================
-Cmd_SwapPlacesWithBot_f
-=================
-*/
-void Cmd_SwapPlacesWithBot_f( gentity_t *ent, int botNum ) {
-	gentity_t *botent;
-	gclient_t cl, *client;
-	clientPersistant_t saved;
-	clientSession_t sess;
-	int persistant[MAX_PERSISTANT];
-	//
-	client = ent->client;
-	//
-	botent = &g_entities[botNum];
-	if ( !botent->client ) {
-		return;
-	}
-	// if this bot is dead
-	if ( botent->health <= 0 && ( botent->client->ps.pm_flags & PMF_LIMBO ) ) {
-		trap_SendServerCommand( ent - g_entities, "print \"Bot is in limbo mode, cannot swap places.\n\"" );
-		return;
-	}
-	//
-	if ( client->sess.sessionTeam != botent->client->sess.sessionTeam ) {
-		trap_SendServerCommand( ent - g_entities, "print \"Bot is on different team, cannot swap places.\n\"" );
-		return;
-	}
-	//
-	// copy the client information
-	cl = *botent->client;
-	//
-	G_DPrintf( "Swapping places: %s in for %s\n", ent->client->pers.netname, botent->client->pers.netname );
-	// kill the bot
-	botent->flags &= ~FL_GODMODE;
-	botent->client->ps.stats[STAT_HEALTH] = botent->health = 0;
-	player_die( botent, ent, ent, 100000, MOD_SWAP_PLACES );
-	// make sure they go into limbo mode right away, and dont show a corpse
-	limbo( botent, qfalse );
-	// respawn the player
-	ent->client->ps.pm_flags &= ~PMF_LIMBO; // JPW NERVE turns off limbo
-	// copy the location
-	VectorCopy( cl.ps.origin, ent->s.origin );
-	VectorCopy( cl.ps.viewangles, ent->s.angles );
-	// copy session data, so we spawn in as the same class
-	// save items
-	saved = client->pers;
-	sess = client->sess;
-	memcpy( persistant, ent->client->ps.persistant, sizeof( persistant ) );
-	// give them the right weapons/etc
-	*client = cl;
-	client->sess = sess;
-	client->sess.playerType = ent->client->sess.latchPlayerType = cl.sess.playerType;
-	client->sess.playerWeapon = ent->client->sess.latchPlayerWeapon = cl.sess.playerWeapon;
-	client->sess.playerWeapon2 = ent->client->sess.latchPlayerWeapon2 = cl.sess.playerWeapon2;
-	// spawn them in
-	ClientSpawn( ent, qtrue );
-	// restore items
-	client->pers = saved;
-	memcpy( ent->client->ps.persistant, persistant, sizeof( persistant ) );
-	client->ps = cl.ps;
-	client->ps.clientNum = ent->s.number;
-	ent->health = client->ps.stats[STAT_HEALTH];
-	SetClientViewAngle( ent, cl.ps.viewangles );
-	// make sure they dont respawn immediately after they die
-	client->pers.lastReinforceTime = 0;
-}
-
-
-/*
-=================
 ClientCommand
 =================
 */
@@ -3508,8 +3269,6 @@ void ClientCommand( int clientNum ) {
 
 	if ( Q_stricmp( cmd, "give" ) == 0 ) {
 		Cmd_Give_f( ent );
-	} else if ( Q_stricmp( cmd, "listbotgoals" ) == 0 ) {
-		Cmd_ListBotGoals_f( ent );
 	} else if ( Q_stricmp( cmd, "god" ) == 0 ) {
 		Cmd_God_f( ent );
 	} else if ( Q_stricmp( cmd, "nofatigue" ) == 0 ) {
@@ -3532,14 +3291,10 @@ void ClientCommand( int clientNum ) {
 		Cmd_StopCamera_f( ent );
 	} else if ( Q_stricmp( cmd, "setCameraOrigin" ) == 0 ) {
 		Cmd_SetCameraOrigin_f( ent );
-	} else if ( Q_stricmp( cmd, "cameraInterrupt" ) == 0 ) {
-		Cmd_InterruptCamera_f( ent );
 	} else if ( Q_stricmp( cmd, "setviewpos" ) == 0 ) {
 		Cmd_SetViewpos_f( ent );
 	} else if ( Q_stricmp( cmd, "setspawnpt" ) == 0 ) {
 		Cmd_SetSpawnPoint_f( ent );
-	} else if ( Q_stricmp( cmd, "setsniperspot" ) == 0 ) {
-		Cmd_SetSniperSpot_f( ent );
 //	} else if (Q_stricmp (cmd, "waypoint") == 0) {
 //		Cmd_SetWayPoint_f( ent );
 //	} else if (Q_stricmp (cmd, "clearwaypoint") == 0) {

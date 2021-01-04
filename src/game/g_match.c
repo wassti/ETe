@@ -87,7 +87,7 @@ void G_loadMatchGame( void ) {
 
 
 // Simple alias for sure-fire print :)
-void G_printFull( char *str, gentity_t *ent ) {
+void G_printFull( const char *str, gentity_t *ent ) {
 	if ( ent != NULL ) {
 		CP( va( "print \"%s\n\"", str ) );
 		CP( va( "cp \"%s\n\"", str ) );
@@ -402,7 +402,7 @@ unsigned int G_weapStatIndex_MOD( unsigned int iWeaponMOD ) {
 
 
 // Generates weapon stat info for given ent
-char *G_createStats( gentity_t *refEnt ) {
+const char *G_createStats( gentity_t *refEnt ) {
 	unsigned int i, dwWeaponMask = 0, dwSkillPointMask = 0;
 	char strWeapInfo[MAX_STRING_CHARS] = {0};
 	char strSkillInfo[MAX_STRING_CHARS] = {0};

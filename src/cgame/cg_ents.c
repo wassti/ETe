@@ -142,7 +142,7 @@ void CG_AddLightstyle( centity_t *cent ) {
 	int r, g, b;
 	int stringlength;
 	float offset;
-	int offsetwhole;
+	//int offsetwhole;
 	int otime;
 	int lastch, nextch;
 
@@ -163,7 +163,7 @@ void CG_AddLightstyle( centity_t *cent ) {
 	cent->dl_time = cg.time;
 
 	offset = ( (float)otime ) / LS_FRAMETIME;
-	offsetwhole = (int)offset;
+	//offsetwhole = (int)offset;
 
 	cent->dl_backlerp += offset;
 
@@ -2572,7 +2572,7 @@ CG_AddEntityToTag
 */
 qboolean CG_AddEntityToTag( centity_t *cent ) {
 	centity_t           *centParent;
-	entityState_t       *sParent;
+	//entityState_t       *sParent;
 	refEntity_t ent;
 
 	// event-only entities will have been dealt with already
@@ -2593,7 +2593,7 @@ qboolean CG_AddEntityToTag( centity_t *cent ) {
 	}
 
 	centParent =    &cg_entities[cent->tagParent];
-	sParent =       &centParent->currentState;
+	//sParent =       &centParent->currentState;
 
 	// if parent isn't visible, then don't draw us
 	if ( !centParent->currentValid ) {
@@ -2763,6 +2763,12 @@ void CG_AttachBitsToTank( centity_t* tank, refEntity_t* mg42base, refEntity_t* m
 		mg42gun->hModel = cgs.media.hMountedMG42;
 	}
 
+	// entity was not received yet, ignore
+	if (tank->currentState.number == 0)
+	{
+		return;
+	}
+
 	if ( !CG_AddCEntity_Filter( tank ) ) {
 		return;
 	}
@@ -2791,12 +2797,24 @@ void CG_AttachBitsToTank( centity_t* tank, refEntity_t* mg42base, refEntity_t* m
 		VectorCopy( playerangles, angles );
 		angles[PITCH] = 0;
 
-		for ( i = 0; i < MAX_CLIENTS; i++ ) {
-			// Gordon: is this entity mounted on a tank, and attached to _OUR_ turret entity (which could be us)
-			if ( cg_entities[i].currentValid && cg_entities[i].currentState.eFlags & EF_MOUNTEDTANK && cg_entities[i].tagParent == tank - cg_entities ) {
-				angles[YAW] -= tank->lerpAngles[YAW];
-				angles[PITCH] -= tank->lerpAngles[PITCH];
-				break;
+		// thirdperson tank bugfix
+		if ((cg.snap->ps.eFlags & EF_MOUNTEDTANK)
+		    && cg_entities[cg.snap->ps.clientNum].tagParent
+		    == tank - cg_entities)
+		{
+
+			angles[YAW]   -= tank->lerpAngles[YAW];
+			angles[PITCH] -= tank->lerpAngles[PITCH];
+		}
+		else
+		{
+			for ( i = 0; i < MAX_CLIENTS; i++ ) {
+				// Gordon: is this entity mounted on a tank, and attached to _OUR_ turret entity (which could be us)
+				if ( cg_entities[i].currentValid && (cg_entities[i].currentState.eFlags & EF_MOUNTEDTANK) && cg_entities[i].tagParent == tank - cg_entities ) {
+					angles[YAW] -= tank->lerpAngles[YAW];
+					angles[PITCH] -= tank->lerpAngles[PITCH];
+					break;
+				}
 			}
 		}
 

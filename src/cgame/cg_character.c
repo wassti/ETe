@@ -87,7 +87,7 @@ CG_ParseHudHeadConfig
 ======================
 */
 static qboolean CG_ParseHudHeadConfig( const char *filename, animation_t* hha ) {
-	char        *text_p;
+	const char        *text_p;
 	int len;
 	int i;
 	float fps;
@@ -102,6 +102,7 @@ static qboolean CG_ParseHudHeadConfig( const char *filename, animation_t* hha ) 
 
 	if ( len >= sizeof( bigTextBuffer ) - 1 ) {
 		CG_Printf( "File %s too long\n", filename );
+		trap_FS_FCloseFile(f);
 		return qfalse;
 	}
 
@@ -112,6 +113,7 @@ static qboolean CG_ParseHudHeadConfig( const char *filename, animation_t* hha ) 
 	// parse the text
 	text_p = bigTextBuffer;
 
+	COM_BeginParseSession("CG_ParseHudHeadConfig");
 	for ( i = 0 ; i < MAX_HD_ANIMATIONS ; i++ ) {
 		token = COM_Parse( &text_p );   // first frame
 		if ( !token ) {
@@ -164,14 +166,14 @@ CG_CalcMoveSpeeds
 ==================
 */
 static void CG_CalcMoveSpeeds( bg_character_t *character ) {
-	char            *tags[2] = {"tag_footleft", "tag_footright"};
-	vec3_t oldPos[2];
+	const char            *tags[2] = {"tag_footleft", "tag_footright"};
+	vec3_t oldPos[2] = { 0 };
 	refEntity_t refent;
 	animation_t     *anim;
 	int i, j, k;
 	float totalSpeed;
 	int numSpeed;
-	int lastLow, low;
+	int /*lastLow, */low;
 	orientation_t o[2];
 
 	memset( &refent, 0, sizeof( refent ) );
@@ -186,7 +188,7 @@ static void CG_CalcMoveSpeeds( bg_character_t *character ) {
 		}
 
 		totalSpeed = 0;
-		lastLow = -1;
+		//lastLow = -1;
 		numSpeed = 0;
 
 		// for each frame
@@ -226,7 +228,7 @@ static void CG_CalcMoveSpeeds( bg_character_t *character ) {
 			for ( k = 0; k < 2; k++ ) {
 				VectorCopy( o[k].origin, oldPos[k] );
 			}
-			lastLow = low;
+			//lastLow = low;
 		}
 
 		// record the speed
@@ -262,6 +264,7 @@ static qboolean CG_ParseAnimationFiles( bg_character_t *character, const char *a
 	}
 	if ( len >= sizeof( bigTextBuffer ) - 1 ) {
 		CG_Printf( "File %s is too long\n", filename );
+		trap_FS_FCloseFile(f);
 		return qfalse;
 	}
 	trap_FS_Read( bigTextBuffer, len, f );
@@ -305,7 +308,7 @@ static qboolean CG_CheckForExistingAnimModelInfo( const char *animationGroup, co
 	} else {
 		*animModelInfo = firstFree;
 		// clear the structure out ready for use
-		memset( *animModelInfo, 0, sizeof( *animModelInfo ) );
+		memset( *animModelInfo, 0, sizeof( **animModelInfo ) );
 	}
 
 	// qfalse signifies that we need to parse the information from the script files
@@ -334,7 +337,7 @@ static qboolean CG_RegisterAcc( const char *modelName, int *model, const char* s
 }
 
 typedef struct {
-	char        *type;
+	const char        *type;
 	accType_t index;
 } acc_t;
 
@@ -365,7 +368,7 @@ CG_RegisterCharacter
 */
 qboolean CG_RegisterCharacter( const char *characterFile, bg_character_t *character ) {
 	bg_characterDef_t characterDef;
-	char *filename;
+	const char *filename;
 	char buf[MAX_QPATH];
 	char accessoryname[MAX_QPATH];
 	int i;
@@ -467,7 +470,7 @@ bg_character_t *CG_CharacterForClientinfo( clientInfo_t *ci, centity_t *cent ) {
 		}
 	}
 
-	if ( cent && cent->currentState.powerups & ( 1 << PW_OPS_DISGUISED ) ) {
+	if ( cent && (cent->currentState.powerups & ( 1 << PW_OPS_DISGUISED ) ) ) {
 		team = ci->team == TEAM_AXIS ? TEAM_ALLIES : TEAM_AXIS;
 
 		cls = ( cent->currentState.powerups >> PW_OPS_CLASS_1 ) & 7;

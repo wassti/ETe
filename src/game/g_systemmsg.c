@@ -109,6 +109,7 @@ void G_SendSystemMessage( sysMsg_t message, int team ) {
 	}
 }
 
+#if 0
 void G_CheckForNeededClasses( void ) {
 	qboolean playerClasses[NUM_PLAYER_CLASSES - 1][2];
 	int i, team, cnt;
@@ -235,3 +236,4 @@ void G_CheckMenDown( void ) {
 		G_SendSystemMessage( SM_LOST_MEN, TEAM_ALLIES );
 	}
 }
+#endif

@@ -909,11 +909,11 @@ CG_ParseWeaponConfig
 ======================
 */
 static qboolean CG_ParseWeaponConfig( const char *filename, weaponInfo_t *wi ) {
-	char        *text_p, *prev;
+	const char        *text_p, *prev;
 	int len;
 	int i;
 	float fps;
-	char        *token;
+	const char        *token;
 	qboolean newfmt = qfalse;       //----(SA)
 	char text[20000];
 	fileHandle_t f;
@@ -4665,6 +4665,11 @@ void CG_FireWeapon( centity_t *cent ) {
 		return;
 	}
 	weap = &cg_weapons[ ent->weapon ];
+
+	if ( ent->number >= 0 && ent->number < MAX_CLIENTS && cent != &cg.predictedPlayerEntity ) {
+		// point from external event to client entity
+		cent = &cg_entities[ ent->number ];
+	}
 
 	if ( cent->currentState.clientNum == cg.snap->ps.clientNum ) {
 		cg.lastFiredWeapon = ent->weapon;   //----(SA)	added

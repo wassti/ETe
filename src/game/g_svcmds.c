@@ -958,7 +958,7 @@ void Svcmd_ListCampaigns_f( void ) {
 
 // ydnar: modified from maddoc sp func
 extern void ReviveEntity( gentity_t *ent, gentity_t *traceEnt );
-extern int FindClientByName( char *name );
+extern int FindClientByName( const char *name );
 
 void Svcmd_RevivePlayer( char *name ) {
 	int clientNum;
@@ -1332,10 +1332,10 @@ qboolean    ConsoleCommand( void ) {
 		return qtrue;
 	}
 
-	if ( Q_stricmp( cmd, "spawnbot" ) == 0 ) {
+	/*if ( Q_stricmp( cmd, "spawnbot" ) == 0 ) {
 		Svcmd_SpawnBot();
 		return qtrue;
-	}
+	}*/
 
 
 // START - Mad Doc - TDF

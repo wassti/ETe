@@ -204,6 +204,21 @@ void Cvar_VariableStringBufferSafe( const char *var_name, char *buffer, int bufs
 
 /*
 ============
+Cvar_LatchedVariableString
+============
+*/
+const char *Cvar_LatchedVariableString( const char *var_name ) {
+	cvar_t *var;
+	
+	var = Cvar_FindVar (var_name);
+	if (!var)
+		return "";
+	return var->latchedString ? var->latchedString : var->string;
+}
+
+
+/*
+============
 Cvar_LatchedVariableStringBuffer
 ============
 */

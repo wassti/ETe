@@ -4739,7 +4739,7 @@ void Field_CompleteCommand( char *cmd, qboolean doCommands, qboolean doCvars )
 				if ( cmd[0] == '/' || cmd[0] == '\\' )
 					cmd++;
 				Cmd_TokenizeString( cmd );
-				Field_CompleteCvarValue( Cvar_VariableString( Cmd_Argv( 0 ) ), Cmd_Argv( 1 ) );
+				Field_CompleteCvarValue( Cvar_LatchedVariableString( Cmd_Argv( 0 ) ), Cmd_Argv( 1 ) );
 			}
 		}
 	}

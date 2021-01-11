@@ -205,7 +205,7 @@ float R_ProcessLightmap( byte **pic, int in_padding, int width, int height, byte
 
 
 #define LIGHTMAP_SIZE 128
-static const imgFlags_t lightmapFlags = IMGFLAG_LIGHTMAP | IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE;
+static const imgFlags_t lightmapFlags = IMGFLAG_NOSCALE | IMGFLAG_LIGHTMAP | IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE;
 //static int lightmapWidth;
 //static int lightmapHeight;
 

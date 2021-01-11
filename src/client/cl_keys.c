@@ -737,6 +737,9 @@ void CL_KeyDownEvent( int key, unsigned time )
 		}
 	}
 
+	// send the bound action
+	Key_ParseBinding( key, qtrue, time, bypassMenu );
+
 	// distribute the key down event to the apropriate handler
 	if ( Key_GetCatcher() & KEYCATCH_CONSOLE ) {
 		if ( !onlybinds ) {
@@ -760,9 +763,6 @@ void CL_KeyDownEvent( int key, unsigned time )
 		if ( !onlybinds ) {
 			Console_Key( key );
 		}
-	} else {
-		// send the bound action
-		Key_ParseBinding( key, qtrue, time, bypassMenu );
 	}
 }
 

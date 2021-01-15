@@ -1,5 +1,7 @@
 # ETe
 
+[![Discord Shield](https://discord.com/api/guilds/253600486219972608/widget.png?style=shield)](https://discord.com/channels/253600486219972608/401475882897899523)
+
 This is a modern Wolfenstein: Enemy Territory engine aimed to be fast, secure and compatible with many existing ET mods and etmain.
 It is based on the Quake3e engine which itself is based on the last non-SDL source dump of ioquake3 with latest upstream fixes applied. Several common fixes from upstream [ET:Legacy](https://github.com/etlegacy/etlegacy) also are applied as needed for security.
 
@@ -102,7 +104,7 @@ Several options available for linux builds with CMake:
 
 `BUILD_DEDSERVER=ON` - build dedicated server executable, enabled by default
 
-`USE_SDL2=OFF` - use SDL2 backend for video, audio, input subsystems, disabled by default but recommended
+`USE_SDL2=ON` - use SDL2 backend for video, audio, input subsystems
 
 `USE_SYSTEM_JPEG=ON` - use current system JPEG-turbo library, enabled by default
 

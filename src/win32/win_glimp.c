@@ -742,7 +742,7 @@ static qboolean GLW_CreateWindow( int width, int height, int colorbits, qboolean
 
 		Com_sprintf( windowTitle, sizeof(windowTitle), "%s ( %s )", cl_title, ARCH_STRING );
 
-		g_wv.hWnd = CreateWindowEx( exstyle, TEXT(CLIENT_WINDOW_CLASS), AtoW(windowTitle "),
+		g_wv.hWnd = CreateWindowEx( exstyle, TEXT(CLIENT_WINDOW_CLASS), AtoW(windowTitle),
 			 stylebits, x, y, w, h, NULL, NULL, g_wv.hInstance,  NULL );
 
 		if ( !g_wv.hWnd )

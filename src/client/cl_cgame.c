@@ -1202,7 +1202,7 @@ void CL_UpdateLevelHunkUsage( void ) {
 	if ( handle < 0 ) {
 		Com_Error( ERR_DROP, "cannot write to hunkusage.dat, check disk full\n" );
 	}
-	Com_sprintf( outstr, sizeof( outstr ), "%s %i\n", cl.mapname, memusage );
+	Com_sprintf( outstr, sizeof( outstr ), "\"%s\" %i\n", cl.mapname, memusage );
 	FS_Write( outstr, strlen( outstr ), handle );
 	FS_FCloseFile( handle );
 

@@ -60,7 +60,7 @@ Original ioquake3 renderer, not available and unlikely to be ported
 
 ## Build Instructions
 
-### windows/msvc 
+### windows/msvc
 
 Install Visual Studio Community Edition 2017 or later and compile all projects from solution
 

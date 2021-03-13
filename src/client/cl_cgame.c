@@ -1224,6 +1224,7 @@ void CL_InitCGame( void ) {
 	const char          *info;
 	const char          *mapname;
 	int t1, t2;
+	const char *gamedir = FS_GetCurrentGameDir();
 
 	t1 = Sys_Milliseconds();
 
@@ -1242,11 +1243,16 @@ void CL_InitCGame( void ) {
 	}
 	cls.state = CA_LOADING;
 
-	// init for this gamestate
-	// use the lastExecutedServerCommand instead of the serverCommandSequence
-	// otherwise server commands sent just before a gamestate are dropped
-	//bani - added clc.demoplaying, since some mods need this at init time, and drawactiveframe is too late for them
-	VM_Call( cgvm, 4, CG_INIT, clc.serverMessageSequence, clc.lastExecutedServerCommand, clc.clientNum, clc.demoplaying );
+	if ( !Q_stricmp( gamedir, "legacy" ) ) {
+		VM_Call( cgvm, 7, CG_INIT, clc.serverMessageSequence, clc.lastExecutedServerCommand, clc.clientNum, clc.demoplaying, qfalse, NULL, 0 );
+	}
+	else {
+		// init for this gamestate
+		// use the lastExecutedServerCommand instead of the serverCommandSequence
+		// otherwise server commands sent just before a gamestate are dropped
+		//bani - added clc.demoplaying, since some mods need this at init time, and drawactiveframe is too late for them
+		VM_Call( cgvm, 4, CG_INIT, clc.serverMessageSequence, clc.lastExecutedServerCommand, clc.clientNum, clc.demoplaying );
+	}
 
 	// reset any CVAR_CHEAT cvars registered by cgame
 	if ( !clc.demoplaying && !cl_connectedToCheatServer )

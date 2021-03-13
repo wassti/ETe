@@ -4034,33 +4034,6 @@ static void CL_InitRef( void ) {
 	Cvar_Set( "cl_paused", "0" );
 }
 
-// RF, trap manual client damage commands so users can't issue them manually
-void CL_ClientDamageCommand( void ) {
-	// do nothing
-}
-
-// NERVE - SMF
-/*void CL_startSingleplayer_f( void ) {
-#if defined(__linux__)
-	Sys_StartProcess( "./wolfsp.x86", qtrue );
-#else
-	Sys_StartProcess( "WolfSP.exe", qtrue );
-#endif
-}*/
-
-// NERVE - SMF
-// fretn unused
-#if 0
-void CL_buyNow_f( void ) {
-	Sys_OpenURL( "http://www.activision.com/games/wolfenstein/purchase.html", qtrue );
-}
-
-// NERVE - SMF
-void CL_singlePlayLink_f( void ) {
-	Sys_OpenURL( "http://www.activision.com/games/wolfenstein/home.html", qtrue );
-}
-#endif
-
 #if !defined( __MACOS__ )
 void CL_SaveTranslations_f( void ) {
 	CL_SaveTransTable( "scripts/translation.cfg", qfalse );
@@ -4651,15 +4624,6 @@ void CL_Init( void ) {
 	Cmd_AddCommand( "SaveNewTranslations", CL_SaveNewTranslations_f );   // NERVE - SMF - localization
 	Cmd_AddCommand( "LoadTranslations", CL_LoadTranslations_f );     // NERVE - SMF - localization
 #endif
-	// NERVE - SMF - don't do this in multiplayer
-	// RF, add this command so clients can't bind a key to send client damage commands to the server
-//	Cmd_AddCommand ("cld", CL_ClientDamageCommand );
-
-//	Cmd_AddCommand ( "startSingleplayer", CL_startSingleplayer_f );		// NERVE - SMF
-//	fretn - unused
-//	Cmd_AddCommand ( "buyNow", CL_buyNow_f );							// NERVE - SMF
-//	Cmd_AddCommand ( "singlePlayLink", CL_singlePlayLink_f );			// NERVE - SMF
-
 	Cmd_AddCommand( "setRecommended", CL_SetRecommended_f );
 
 	//bani - we eat these commands to prevent exploits

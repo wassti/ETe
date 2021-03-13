@@ -847,13 +847,14 @@ static void S_Base_MainStartSoundEx( vec3_t origin, int entityNum, int entchanne
 				}
 				if (chosen == -1)
 				{
-					//Com_Printf("S_Base_MainStartSoundEx WARNING: dropping sound\n");
+					Com_DPrintf(S_COLOR_YELLOW "S_StartSound: No more channels free for %s\n", sfx->soundName);
 					return;
 				}
 			}
 		}
 		ch            = &s_channels[chosen];
 		ch->allocTime = sfx->lastTimeUsed;
+		Com_DPrintf(S_COLOR_YELLOW "S_StartSound: No more channels free for %s, dropping earliest sound: %s\n", sfx->soundName, ch->thesfx->soundName);
 	}
 
 	if (origin)

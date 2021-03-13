@@ -995,6 +995,9 @@ MISC
 ==============================================================
 */
 
+// customizable client window title
+extern char cl_title[ MAX_CVAR_VALUE_STRING ];
+
 extern	int	CPU_Flags;
 
 // x86 flags

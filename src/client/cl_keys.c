@@ -108,7 +108,7 @@ static void Field_VariableSizeDraw( field_t *edit, int x, int y, int width, int 
 		for ( i = 0; i < prestep + 1; i++, s++ ) {
 			if ( Q_IsColorString( s ) ) {
 				curColor = *(s+1);
-				s++;						
+				s++;
 			}
 		}
 		// scroll marker
@@ -246,7 +246,7 @@ static void Field_KeyDownEvent( field_t *edit, int key ) {
 	switch ( key ) {
 		case K_DEL:
 			if ( edit->cursor < len ) {
-				memmove( edit->buffer + edit->cursor, 
+				memmove( edit->buffer + edit->cursor,
 					edit->buffer + edit->cursor + 1, len - edit->cursor );
 			}
 			break;
@@ -318,7 +318,7 @@ static void Field_CharEvent( field_t *edit, int ch ) {
 
 	if ( ch == 'h' - 'a' + 1 )	{	// ctrl-h is backspace
 		if ( edit->cursor > 0 ) {
-			memmove( edit->buffer + edit->cursor - 1, 
+			memmove( edit->buffer + edit->cursor - 1,
 				edit->buffer + edit->cursor, len + 1 - edit->cursor );
 			edit->cursor--;
 			if ( edit->cursor < edit->scroll )
@@ -348,7 +348,7 @@ static void Field_CharEvent( field_t *edit, int ch ) {
 		return;
 	}
 
-	if ( key_overstrikeMode ) {	
+	if ( key_overstrikeMode ) {
 		// - 2 to leave room for the leading slash and trailing \0
 		if ( edit->cursor == MAX_EDIT_LINE - 2 )
 			return;
@@ -359,7 +359,7 @@ static void Field_CharEvent( field_t *edit, int ch ) {
 		if ( len == MAX_EDIT_LINE - 2 ) {
 			return; // all full
 		}
-		memmove( edit->buffer + edit->cursor + 1, 
+		memmove( edit->buffer + edit->cursor + 1,
 			edit->buffer + edit->cursor, len + 1 - edit->cursor );
 		edit->buffer[edit->cursor] = ch;
 		edit->cursor++;
@@ -403,7 +403,7 @@ static void Console_Key( int key ) {
 		con.acLength = 0;
 
 		// if not in the game explicitly prepend a slash if needed
-		if ( cls.state != CA_ACTIVE 
+		if ( cls.state != CA_ACTIVE
 			&& g_consoleField.buffer[0] != '\0'
 			&& g_consoleField.buffer[0] != '\\'
 			&& g_consoleField.buffer[0] != '/' ) {
@@ -456,7 +456,6 @@ static void Console_Key( int key ) {
 		 ( key >= K_KP_SLASH && key <= K_KP_PLUS ) || ( key >= K_KP_STAR && key <= K_KP_EQUALS ) ) {
 		con.acLength = 0;
 	}
-
 
 	// command history (ctrl-p ctrl-n for unix style)
 
@@ -662,7 +661,7 @@ void CL_KeyDownEvent( int key, unsigned time )
 	//----(SA)	end
 
 	// keys can still be used for bound actions
-	if ( ( key < 128 || key == K_MOUSE1 ) 
+	if ( ( key < 128 || key == K_MOUSE1 )
 		&& ( clc.demoplaying || cls.state == CA_CINEMATIC ) && Key_GetCatcher( ) == 0 ) {
 
 		if ( Cvar_VariableIntegerValue( "com_cameraMode" ) == 0 ) {
@@ -845,7 +844,7 @@ void CL_CharEvent( int key )
 	if ( key == 127 )
 		return;
 
-	// distribute the key down event to the apropriate handler
+	// distribute the key down event to the appropriate handler
 	if ( Key_GetCatcher( ) & KEYCATCH_CONSOLE )
 	{
 		Field_CharEvent( &g_consoleField, key );
@@ -858,7 +857,7 @@ void CL_CharEvent( int key )
 	{
 		VM_Call( cgvm, 2, CG_KEY_EVENT, key | K_CHAR_FLAG, qtrue );
 	}
-	else if ( Key_GetCatcher( ) & KEYCATCH_MESSAGE ) 
+	else if ( Key_GetCatcher( ) & KEYCATCH_MESSAGE )
 	{
 		Field_CharEvent( &chatField, key );
 	}

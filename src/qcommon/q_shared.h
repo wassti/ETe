@@ -860,7 +860,8 @@ float DistanceFromVectorSquared( vec3_t p, vec3_t lp1, vec3_t lp2 );
 
 //=============================================
 
-float Com_Clamp( float min, float max, float value );
+float Com_ClampFloat( float min, float max, float value );
+int Com_ClampInt( int min, int max, int value );
 
 qboolean COM_SuffixCompare( const char *in, const char *suffixStr );
 
@@ -1101,37 +1102,39 @@ default values.
 ==========================================================
 */
 
-#define CVAR_ARCHIVE        1   // set to cause it to be saved to vars.rc
+#define CVAR_ARCHIVE        0x0001   // set to cause it to be saved to vars.rc
 								// used for system variables, not for player
 								// specific configurations
-#define CVAR_USERINFO       2   // sent to server on connect or change
-#define CVAR_SERVERINFO     4   // sent in response to front end requests
-#define CVAR_SYSTEMINFO     8   // these cvars will be duplicated on all clients
-#define CVAR_INIT           16  // don't allow change from console at all,
+#define CVAR_USERINFO       0x0002   // sent to server on connect or change
+#define CVAR_SERVERINFO     0x0004   // sent in response to front end requests
+#define CVAR_SYSTEMINFO     0x0008   // these cvars will be duplicated on all clients
+#define CVAR_INIT           0x0010  // don't allow change from console at all,
 								// but can be set from the command line
-#define CVAR_LATCH          32  // will only change when C code next does
+#define CVAR_LATCH          0x0020  // will only change when C code next does
 								// a Cvar_Get(), so it can't be changed
 								// without proper initialization.  modified
 								// will be set, even though the value hasn't
 								// changed yet
-#define CVAR_ROM            64  // display only, cannot be set by user at all
-#define CVAR_USER_CREATED   128 // created by a set command
-#define CVAR_TEMP           256 // can be set even when cheats are disabled, but is not archived
-#define CVAR_CHEAT          512 // can not be changed if cheats are disabled
-#define CVAR_NORESTART      1024    // do not clear when a cvar_restart is issued
-#define CVAR_WOLFINFO       2048    // DHM - NERVE :: Like userinfo, but for wolf multiplayer info
+#define CVAR_ROM            0x0040  // display only, cannot be set by user at all
+#define CVAR_USER_CREATED   0x0080 // created by a set command
+#define CVAR_TEMP           0x0100 // can be set even when cheats are disabled, but is not archived
+#define CVAR_CHEAT          0x0200 // can not be changed if cheats are disabled
+#define CVAR_NORESTART      0x0400    // do not clear when a cvar_restart is issued
+#define CVAR_WOLFINFO       0x0800    // DHM - NERVE :: Like userinfo, but for wolf multiplayer info
 
-#define CVAR_UNSAFE         4096    // ydnar: unsafe system cvars (renderer, sound settings, anything that might cause a crash)
-#define CVAR_SERVERINFO_NOUPDATE        8192    // gordon: WONT automatically send this to clients, but server browsers will see it
+#define CVAR_UNSAFE         0x1000    // ydnar: unsafe system cvars (renderer, sound settings, anything that might cause a crash)
+#define CVAR_SERVERINFO_NOUPDATE        0x2000    // gordon: WONT automatically send this to clients, but server browsers will see it
 
-#define CVAR_SERVER_CREATED	16384	// cvar was created by a server the client connected to.
-#define CVAR_VM_CREATED		32768	// cvar was created exclusively in one of the VMs.
-#define CVAR_PROTECTED		65536	// prevent modifying this var from VMs or the server
+#define CVAR_SERVER_CREATED	0x4000	// cvar was created by a server the client connected to.
+#define CVAR_VM_CREATED		0x8000	// cvar was created exclusively in one of the VMs.
+#define CVAR_PROTECTED		0x10000	// prevent modifying this var from VMs or the server
 
-#define CVAR_NODEFAULT		131072	// do not write to config if matching with default value
+#define CVAR_NODEFAULT		0x20000	// do not write to config if matching with default value
 
-#define CVAR_PRIVATE		262144	// can't be read from VM
-#define CVAR_DEVELOPER		524288	// can be set only in developer mode
+#define CVAR_PRIVATE		0x40000	// can't be read from VM
+
+#define CVAR_DEVELOPER		0x80000	// can be set only in developer mode
+#define CVAR_NOTABCOMPLETE	0x100000 // no tab completion in console
 
 #define CVAR_ARCHIVE_ND		(CVAR_ARCHIVE | CVAR_NODEFAULT)
 

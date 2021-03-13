@@ -263,14 +263,14 @@ int Cvar_Flags(const char *var_name)
 Cvar_CommandCompletion
 ============
 */
-void Cvar_CommandCompletion(void (*callback)(const char *s))
+void Cvar_CommandCompletion( void (*callback)(const char *s) )
 {
-	cvar_t		*cvar;
-	
-	for(cvar = cvar_vars; cvar; cvar = cvar->next)
-	{
-		if(cvar->name)
-			callback(cvar->name);
+	const cvar_t *cvar;
+
+	for ( cvar = cvar_vars; cvar; cvar = cvar->next ) {
+		if ( cvar->name && ( cvar->flags & CVAR_NOTABCOMPLETE ) == 0 ) {
+			callback( cvar->name );
+		}
 	}
 }
 
@@ -846,9 +846,9 @@ cvar_t *Cvar_Set2( const char *var_name, const char *value, qboolean force ) {
 	
 	Z_Free (var->string);	// free the old value string
 	
-	var->string = CopyString(value);
-	var->value = Q_atof (var->string);
-	var->integer = atoi (var->string);
+	var->string = CopyString( value );
+	var->value = Q_atof( var->string );
+	var->integer = atoi( var->string );
 
 	return var;
 }
@@ -1527,6 +1527,7 @@ void Cvar_WriteVariables( fileHandle_t f )
 			continue;
 
 		if ( var->flags & CVAR_ARCHIVE ) {
+			int len;
 			// write the latched value, even if it hasn't taken effect yet
 			value = var->latchedString ? var->latchedString : var->string;
 			if ( strlen( var->name ) + strlen( value ) + strLength > sizeof( buffer ) ) {
@@ -1538,11 +1539,11 @@ void Cvar_WriteVariables( fileHandle_t f )
 				continue;
 			}
 			if ( var->flags & CVAR_UNSAFE )
-				Com_sprintf( buffer, sizeof( buffer ), "seta %s \"%s\"" " unsafe" Q_NEWLINE, var->name, value );
+				len = Com_sprintf( buffer, sizeof( buffer ), "seta %s \"%s\"" " unsafe" Q_NEWLINE, var->name, value );
 			else
-				Com_sprintf( buffer, sizeof( buffer ), "seta %s \"%s\"" Q_NEWLINE, var->name, value );
+				len = Com_sprintf( buffer, sizeof( buffer ), "seta %s \"%s\"" Q_NEWLINE, var->name, value );
 
-			FS_Write( buffer, strlen( buffer ), f );
+			FS_Write( buffer, len, f );
 		}
 	}
 }
@@ -1557,6 +1558,12 @@ static void Cvar_List_f( void ) {
 	cvar_t	*var;
 	int		i;
 	char	*match;
+
+	// sort to get more predictable output
+	if ( cvar_sort ) {
+		cvar_sort = qfalse;
+		Cvar_Sort();
+	}
 
 	if ( Cmd_Argc() > 1 ) {
 		match = Cmd_Argv( 1 );
@@ -1639,6 +1646,12 @@ static void Cvar_ListModified_f( void ) {
 	int		totalModified;
 	const char *value;
 	const char *match;
+
+	// sort to get more predictable output
+	if ( cvar_sort ) {
+		cvar_sort = qfalse;
+		Cvar_Sort();
+	}
 
 	if ( Cmd_Argc() > 1 ) {
 		match = Cmd_Argv( 1 );

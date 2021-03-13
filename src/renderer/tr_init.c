@@ -36,6 +36,8 @@ int			gl_clamp_mode;	// GL_CLAMP or GL_CLAMP_TO_EGGE
 
 glstate_t	glState;
 
+glstatic_t	gls;
+
 static void GfxInfo( void );
 static void VarInfo( void );
 static void GL_SetDefaultState( void );
@@ -74,6 +76,7 @@ cvar_t	*r_dlightSpecColor;
 cvar_t	*r_dlightScale;
 cvar_t	*r_dlightIntensity;
 #endif
+cvar_t	*r_dlightSaturation;
 cvar_t	*r_vbo;
 cvar_t	*r_fbo;
 cvar_t	*r_hdr;
@@ -207,9 +210,6 @@ cvar_t  *r_maxpolys;
 int max_polys;
 cvar_t  *r_maxpolyverts;
 int max_polyverts;
-
-int		captureWidth;
-int		captureHeight;
 
 static const char *gl_extensions = NULL;
 
@@ -719,10 +719,34 @@ static void InitOpenGL( void )
 		if ( glConfig.numTextureUnits && max_bind_units > 0 )
 			glConfig.numTextureUnits = max_bind_units;
 
-		captureWidth = glConfig.vidWidth;
-		captureHeight = glConfig.vidHeight;
+		gls.windowWidth = glConfig.vidWidth;
+		gls.windowHeight = glConfig.vidHeight;
 
-		ri.CL_SetScaling( 1.0, captureWidth, captureHeight );
+		gls.captureWidth = glConfig.vidWidth;
+		gls.captureHeight = glConfig.vidHeight;
+
+		ri.CL_SetScaling( 1.0, gls.captureWidth, gls.captureHeight );
+
+		if ( r_fbo->integer && qglGenProgramsARB && qglGenFramebuffers )
+		{
+			if ( r_renderScale->integer )
+			{
+				glConfig.vidWidth = r_renderWidth->integer;
+				glConfig.vidHeight = r_renderHeight->integer;
+			}
+
+			gls.captureWidth = glConfig.vidWidth;
+			gls.captureHeight = glConfig.vidHeight;
+
+			ri.CL_SetScaling( 1.0, gls.captureWidth, gls.captureHeight );
+
+			if ( r_ext_supersample->integer )
+			{
+				glConfig.vidWidth *= 2;
+				glConfig.vidHeight *= 2;
+				ri.CL_SetScaling( 2.0, gls.captureWidth, gls.captureHeight );
+			}
+		}
 
 		QGL_InitARB();
 
@@ -738,6 +762,12 @@ static void InitOpenGL( void )
 
 		// print info
 		GfxInfo();
+
+		gls.initTime = ri.Milliseconds();
+	}
+	else
+	{
+		QGL_SetRenderScale( qfalse );
 	}
 
 	VarInfo();
@@ -1479,13 +1509,13 @@ static void GfxInfo( void )
 			fs = fsstrings[0];
 	}
 
-	if ( windowAdjusted )
+	if ( glConfig.vidWidth != gls.windowWidth || glConfig.vidHeight != gls.windowHeight )
 	{
-		ri.Printf( PRINT_ALL, "RENDER: %d x %d, MODE: %d, %d x %d %s hz:", glConfig.vidWidth, glConfig.vidHeight, mode, windowWidth, windowHeight, fs );
+		ri.Printf( PRINT_ALL, "RENDER: %d x %d, MODE: %d, %d x %d %s hz:", glConfig.vidWidth, glConfig.vidHeight, mode, gls.windowWidth, gls.windowHeight, fs );
 	}
-	else 
+	else
 	{
-		ri.Printf( PRINT_ALL, "MODE: %d, %d x %d %s hz:", mode, windowWidth, windowHeight, fs );
+		ri.Printf( PRINT_ALL, "MODE: %d, %d x %d %s hz:", mode, gls.windowWidth, gls.windowHeight, fs );
 	}
 
 	if ( glConfig.displayFrequency )
@@ -1622,6 +1652,8 @@ static void R_Register( void )
 	// archived variables that can change at any time
 	//
 	r_lodCurveError = ri.Cvar_Get( "r_lodCurveError", "250", CVAR_ARCHIVE_ND );
+	ri.Cvar_CheckRange( r_lodCurveError, "-1", "8192", CV_FLOAT );
+	ri.Cvar_SetDescription( r_lodCurveError, "Level of detail error on curved surface grids." );
 	r_lodbias = ri.Cvar_Get( "r_lodbias", "0", CVAR_ARCHIVE_ND );
 	r_znear = ri.Cvar_Get( "r_znear", "3", CVAR_CHEAT );  // ydnar: changed it to 3 (from 4) because of lean/fov cheats
 	ri.Cvar_CheckRange( r_znear, "0.001", "200", CV_FLOAT );
@@ -1656,6 +1688,9 @@ static void R_Register( void )
 	r_dlightIntensity = ri.Cvar_Get( "r_dlightIntensity", "1.0", CVAR_ARCHIVE_ND );
 	ri.Cvar_CheckRange( r_dlightIntensity, "0.1", "1", CV_FLOAT );
 #endif // USE_PMLIGHT
+	r_dlightSaturation = ri.Cvar_Get( "r_dlightSaturation", "1", CVAR_ARCHIVE_ND );
+	ri.Cvar_CheckRange( r_dlightSaturation, "0", "1", CV_FLOAT );
+
 	r_ext_multisample = ri.Cvar_Get( "r_ext_multisample", "0", CVAR_ARCHIVE_ND );
 	ri.Cvar_CheckRange( r_ext_multisample, "0", "8", CV_INTEGER );
 	ri.Cvar_SetGroup( r_ext_multisample, CVG_RENDERER );
@@ -1987,14 +2022,18 @@ static void RE_Shutdown( refShutdownCode_t code ) {
 
 		VBO_Cleanup();
 
-		ri.GLimp_Shutdown( code == REF_UNLOAD_DLL ? qtrue: qfalse );
+		
 
 		R_ClearSymTables();
 
-		Com_Memset( &glConfig, 0, sizeof( glConfig ) );
-		gl_extensions = NULL;
-		gl_version = 0;
 		Com_Memset( &glState, 0, sizeof( glState ) );
+
+		if ( code != REF_KEEP_WINDOW ) {
+			ri.GLimp_Shutdown( code == REF_UNLOAD_DLL ? qtrue : qfalse );
+			Com_Memset( &glConfig, 0, sizeof( glConfig ) );
+			gl_extensions = NULL;
+			gl_version = 0;
+		}
 
 		// Ridah, release the virtual memory
 		R_Hunk_End();

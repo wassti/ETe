@@ -29,19 +29,18 @@ If you have questions concerning this license or the applicable additional terms
 // q_shared.c -- stateless support routines that are included in each code dll
 #include "q_shared.h"
 
-// os x game bundles have no standard library links, and the defines are not always defined!
-
-#ifdef MACOS_X
-int qmax( int x, int y ) {
-	return ( ( ( x ) > ( y ) ) ? ( x ) : ( y ) );
+float Com_ClampFloat( float min, float max, float value ) {
+	if ( value < min ) {
+		return min;
+	}
+	if ( value > max ) {
+		return max;
+	}
+	return value;
 }
 
-int qmin( int x, int y ) {
-	return ( ( ( x ) < ( y ) ) ? ( x ) : ( y ) );
-}
-#endif
 
-float Com_Clamp( float min, float max, float value ) {
+int Com_ClampInt( int min, int max, int value ) {
 	if ( value < min ) {
 		return min;
 	}
@@ -1006,7 +1005,7 @@ __reswitch:
 			str++;
 		}
 		if ( c != '\0' ) {
-			str++; // skip enging '"'
+			str++; // skip ending '"'
 		} else {
 			// FIXME: unterminated quoted string?
 		}

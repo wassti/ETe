@@ -805,10 +805,10 @@ qboolean CopyDLLForMod( char **p_fn, const char* gamedir, const char *pwdpath, c
 // TTimo - Wolf MP specific, adding .mp. to shared objects
 #ifdef __APPLE__
 const char *Sys_GetDLLName( const char *name ) {
-	#ifdef arm64
-		return va( "%s_%s_mac.%s" name, ARCH_STRING, REN_DLL_EXT );
+	#if arm64
+		return va( "%s_%s_mac.%s", name, ARCH_STRING, REN_DLL_EXT );
 	#else
-		return va( "%s_mac" name );
+		return va( "%s_mac", name );
 	#endif
 }
 #else

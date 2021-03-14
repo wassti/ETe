@@ -80,6 +80,7 @@ jobs:
         #arch: [x86, x86_64]
         arch: [x86]
         cc: [gcc]
+        cxx: [g++]
         config: [Release]
         include:
           - config: Release
@@ -118,6 +119,6 @@ jobs:
       if: matrix.cc == 'gcc' && matrix.config == 'Release'
       with:
         name: linux-${{ matrix.arch }}
-        path: bin
+        path: src/bin
         if-no-files-found: error
         retention-days: 5

@@ -5138,6 +5138,7 @@ static void FS_Startup( void ) {
 }
 
 
+#if 0
 static void FS_PrintSearchPaths( void )
 {
 	searchpath_t *path = fs_searchpaths;
@@ -5152,6 +5153,7 @@ static void FS_PrintSearchPaths( void )
 		path = path->next;
 	}
 }
+#endif
 
 
 /*

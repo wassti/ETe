@@ -81,6 +81,8 @@ check_type_size("void*" CMAKE_SIZEOF_VOID_P)
 	endif()
 #endif()
 
+message("Configured for ${CMAKE_SYSTEM_PROCESSOR}")
+
 option(BUILD_CLIENT "Build the ete client binary" ON)
 option(BUILD_DEDSERVER "Build the ete dedicated server binary" ON)
 option(USE_SDL2 "Whether to use native backends or SDL2" ON)

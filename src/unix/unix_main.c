@@ -806,10 +806,11 @@ qboolean CopyDLLForMod( char **p_fn, const char* gamedir, const char *pwdpath, c
 #ifdef __APPLE__
 const char *Sys_GetDLLName( const char *name ) {
 	#ifdef arm64
-		return va( "%s_%s_mac.%s" ARCH_STRING, name, DLL_EXT );
+		return va( "%s_%s_mac.%s" name, ARCH_STRING, REN_DLL_EXT );
 	#else
 		return va( "%s_mac" name );
 	#endif
+}
 #else
 const char *Sys_GetDLLName( const char *name ) {
 	return va( "%s.mp." ARCH_STRING DLL_EXT, name );

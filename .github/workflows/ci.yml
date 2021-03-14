@@ -88,10 +88,8 @@ jobs:
             rule: install
           - arch: x86
             use_sdl: true
-            toolchain_file: ../cmake/toolchains/linux-i686.cmake
-          #- arch: x86_64
-          #  use_sdl: true
-          #  toolchain_file:
+          - arch: x86_64
+            use_sdl: true
 
     steps:
     - name: Install tools
@@ -115,9 +113,9 @@ jobs:
         cd bin
 
         if [ ${{ matrix.arch }} == "x86" ]; then
-          cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=${{ matrix.config }} -DUSE_SDL2=${{ matrix.use_sdl }} -DCMAKE_TOOLCHAIN_FILE=${{ matrix.toolchain_file }}
+          cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=${{ matrix.config }} -DUSE_SDL2=${{ matrix.use_sdl }} -DBUILD_ETMAIN_MOD=TRUE -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchains/linux-i686.cmake
         else
-          cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=${{ matrix.config }} -DUSE_SDL2=${{ matrix.use_sdl }}
+          cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=${{ matrix.config }} -DUSE_SDL2=${{ matrix.use_sdl }} -DBUILD_ETMAIN_MOD=TRUE
         fi
         cmake --build . --config ${{ matrix.config }}
     - uses: actions/upload-artifact@v2
@@ -158,7 +156,7 @@ jobs:
         mkdir bin
         cd bin
 
-        cmake .. -DCMAKE_BUILD_TYPE=${{ matrix.config }} -DUSE_SDL2=TRUE
+        cmake .. -DCMAKE_BUILD_TYPE=${{ matrix.config }} -DUSE_SDL2=TRUE -DBUILD_ETMAIN_MOD=TRUE
         cmake --build . --config ${{ matrix.config }}
     - uses: actions/upload-artifact@v2
       if: matrix.cc == 'clang' && matrix.config == 'Release'

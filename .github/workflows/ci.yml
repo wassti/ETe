@@ -50,19 +50,22 @@ jobs:
       with:
         submodules: recursive
 
-    - name: Build
-      run: |
-        mkdir bin
+    - name: Create Binary Directory
+      working-directory: ${{github.workspace}}/src
+      run: cmake -E make_directory ${{github.workspace}}/src/bin
 
-        msbuild src\wolfded.vcxproj -m -p:PlatformToolset=v141_xp,Configuration=${{ matrix.config }},Platform=${{ matrix.platform }}
+    - name: Build
+      working-directory: ${{github.workspace}}/src
+      run: |
+        msbuild wolfded.vcxproj -m -p:PlatformToolset=v141_xp,Configuration=${{ matrix.config }},Platform=${{ matrix.platform }}
         
-        copy src\ded\Release\ETe-ded.exe bin\ETe-ded${{ matrix.suffix }}.exe
+        copy ded\Release\ETe-ded.exe bin\ETe-ded${{ matrix.suffix }}.exe
         
-        msbuild src\renderer\renderer.vcxproj -m -p:PlatformToolset=v141_xp,Configuration=${{ matrix.config }},Platform=${{ matrix.platform }}
+        msbuild renderer\renderer.vcxproj -m -p:PlatformToolset=v141_xp,Configuration=${{ matrix.config }},Platform=${{ matrix.platform }}
         
-        msbuild src\wolf.vcxproj -m -p:PlatformToolset=v141_xp,Configuration=${{ matrix.config }},Platform=${{ matrix.platform }},UseWasapi=USE_WASAPI=0
+        msbuild wolf.vcxproj -m -p:PlatformToolset=v141_xp,Configuration=${{ matrix.config }},Platform=${{ matrix.platform }},UseWasapi=USE_WASAPI=0
         
-        copy src\Release\ETe.exe bin\ETe${{ matrix.suffix }}.exe
+        copy Release\ETe.exe bin\ETe${{ matrix.suffix }}.exe
     - uses: actions/upload-artifact@v2
       if: ${{ matrix.config == 'Release' }}
       with:

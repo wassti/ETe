@@ -51,8 +51,8 @@ jobs:
         submodules: recursive
 
     - name: Create Binary Directory
-      working-directory: ${{github.workspace}}/src
-      run: cmake -E make_directory ${{github.workspace}}/src/bin
+      working-directory: ${{github.workspace}}
+      run: cmake -E make_directory ${{github.workspace}}/bin
 
     - name: Build
       working-directory: ${{github.workspace}}/src
@@ -66,8 +66,8 @@ jobs:
     - name: Copy outputs to Binary Directory
       working-directory: ${{github.workspace}}/src
       run: |
-          copy ded\Release\ETe-ded.exe bin\ETe-ded${{ matrix.suffix }}.exe
-          copy Release\ETe.exe bin\ETe${{ matrix.suffix }}.exe
+          copy ded\Release\ETe-ded.exe ${{github.workspace}}\bin\ETe-ded${{ matrix.suffix }}.exe
+          copy Release\ETe.exe ${{github.workspace}}\bin\ETe${{ matrix.suffix }}.exe
 
     - uses: actions/upload-artifact@v2
       if: ${{ matrix.config == 'Release' }}

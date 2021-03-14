@@ -1956,6 +1956,7 @@ void	R_SkinList_f( void ) {
 }
 
 // Ridah, utility for automatically cropping and numbering a bunch of images in a directory
+#if 0
 /*
 =============
 SaveTGA
@@ -2008,6 +2009,7 @@ void SaveTGA( char *name, byte **pic, int width, int height ) {
 	ri.Hunk_FreeTempMemory( outbuf );
 
 }
+#endif
 
 /*
 =============
@@ -2061,7 +2063,7 @@ SaveTGAAlpha
 	ri.Hunk_FreeTempMemory( outbuf );
 
 }*/
-
+#if 0
 /*
 ==============
 R_CropImage
@@ -2094,6 +2096,7 @@ R_CropImages_f
 void R_CropImages_f( void ) {
 }
 // done.
+#endif
 
 //==========================================================================================
 // Ridah, caching system

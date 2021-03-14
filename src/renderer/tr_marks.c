@@ -282,6 +282,7 @@ R_OldMarkFragments
 
 =================
 */
+#if 0
 int R_OldMarkFragments( int numPoints, const vec3_t *points, const vec3_t projection,
 						int maxPoints, vec3_t pointBuffer, int maxFragments, markFragment_t *fragmentBuffer ) {
 	int numsurfaces, numPlanes;
@@ -527,6 +528,7 @@ int R_OldMarkFragments( int numPoints, const vec3_t *points, const vec3_t projec
 	}
 	return returnedFragments;
 }
+#endif
 
 /*
 =================

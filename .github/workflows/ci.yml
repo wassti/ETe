@@ -122,3 +122,41 @@ jobs:
         path: src/bin
         if-no-files-found: error
         retention-days: 5
+
+  macos-x86:
+    name: ${{ matrix.config }} macOS x86_64
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86_64]
+        cc: [clang]
+        cxx: [clang++]
+        config: [Release]
+        include:
+          - config: Release
+            rule: install
+
+    steps:
+    - name: Install tools
+      run: brew install coreutils sdl2
+
+    - uses: actions/checkout@v2
+      with:
+        submodules: recursive
+
+    - name: Build
+      run: |
+        cd src
+        mkdir bin
+        cd bin
+
+        cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=${{ matrix.config }} -DUSE_SDL2=TRUE
+        cmake --build . --config ${{ matrix.config }}
+    - uses: actions/upload-artifact@v2
+      if: matrix.cc == 'clang' && matrix.config == 'Release'
+      with:
+        name: macos-${{ matrix.arch }}
+        path: src/bin
+        if-no-files-found: error
+        retention-days: 5

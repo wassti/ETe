@@ -36,13 +36,22 @@ check_type_size("void*" CMAKE_SIZEOF_VOID_P)
 #		set(WIN64 FALSE)
 #	endif()
 #else()
-#	if(APPLE)
-#		set(LIB_SUFFIX "_mac")
-#	else()
+	if(APPLE)
+		set(LIB_SUFFIX "_mac")
+	else()
 		set(LIB_SUFFIX ".mp.")
-#	endif()
+	endif()
+
+    if(APPLE)
+        set(DLL_EXT ".dylib")
+    elseif(NOT WIN32)
+        set(DLL_EXT ".so")
+    else()
+        set(DLL_EXT ".dll")
+    endif()
 
     set(X86 OFF)
+    set(X86_64 OFF)
     set(ARM32 OFF)
     set(ARM64 OFF)
     if(CMAKE_SYSTEM_PROCESSOR MATCHES "^arm")
@@ -60,8 +69,9 @@ check_type_size("void*" CMAKE_SIZEOF_VOID_P)
 			set(Architecture "i386")
 #		endif()
 	elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^x86.64$")
-		set(X86 ON)
-		set(Architecture "i386")
+        #set(X86 ON)
+        set(X86_64 ON)
+		set(Architecture "x86_64")
 	elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "powerpc")
 		set(Architecture "ppc")
 	elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "powerpc64")
@@ -81,13 +91,23 @@ option(BUILD_ETMAIN_MOD "Build cgame/qagame/ui modules for etmain" OFF)
 
 set(USE_DISCORD OFF)
 
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 set(compiler_flags_global -pipe -Wall -fmessage-length=0 -fno-strict-aliasing)
+else()
+set(compiler_flags_global -pipe -Wall -fmessage-length=0 -fno-strict-aliasing)
+endif()
 # debug: explicit -Og -D_DEBUG, implicit -g
 set(compiler_flags_debug ${compiler_flags_global} -Og -D_DEBUG)
 # relwithdebinfo: implicit -O2 -g -DNDEBUG
 set(compiler_flags_relwithdebinfo ${compiler_flags_global})
 # release: implicit -O3 -DNDEBUG
-set(compiler_flags_release ${compiler_flags_global}  -march=i686 -Winline -ffast-math -fomit-frame-pointer -finline-functions -fschedule-insns2)
+if(APPLE AND X86_64)
+set(compiler_flags_release ${compiler_flags_global})
+elseif(X86_64)
+set(compiler_flags_release ${compiler_flags_global})
+else()
+set(compiler_flags_release ${compiler_flags_global} -march=i686 -Winline -ffast-math -fomit-frame-pointer -finline-functions -fschedule-insns2)
+endif()
 
 set(SRCDIR "${CMAKE_SOURCE_DIR}")
 
@@ -505,7 +525,7 @@ set_target_properties(${RENDERER_PREFIX}_opengl PROPERTIES PREFIX "")
 
 if(DYNAMIC_RENDERER)
     target_compile_definitions(${RENDERER_PREFIX}_opengl PUBLIC "USE_RENDERER_DLOPEN" "RENDERER_PREFIX=\"${RENDERER_PREFIX}\"")
-    set_target_properties(${RENDERER_PREFIX}_opengl PROPERTIES SUFFIX "_x86.so") #NOTE changeme when multi-platform and multi-arch support is added
+    set_target_properties(${RENDERER_PREFIX}_opengl PROPERTIES SUFFIX "_${Architecture}${DLL_EXT}")
     target_link_libraries(${RENDERER_PREFIX}_opengl PRIVATE ${CMAKE_DL_LIBS} "m")
 endif(DYNAMIC_RENDERER)
 
@@ -632,7 +652,7 @@ if(BUILD_ETMAIN_MOD)
                 $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:RELWITHDEBINFO>>:${compiler_flags_relwithdebinfo} -w>
     )
     set_target_properties(cgame PROPERTIES PREFIX "")
-    set_target_properties(cgame PROPERTIES SUFFIX "${LIB_SUFFIX}${Architecture}.so") #NOTE changeme when multi-platform and multi-arch support is added
+    set_target_properties(cgame PROPERTIES SUFFIX "${LIB_SUFFIX}${Architecture}${DLL_EXT}") #NOTE changeme when multi-platform and multi-arch support is added
     target_compile_definitions(cgame PUBLIC "CGAMEDLL")
     target_link_libraries(cgame PRIVATE ${CMAKE_DL_LIBS} "m")
 
@@ -646,7 +666,7 @@ if(BUILD_ETMAIN_MOD)
                 $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:RELWITHDEBINFO>>:${compiler_flags_relwithdebinfo} -w>
     )
     set_target_properties(qagame PROPERTIES PREFIX "")
-    set_target_properties(qagame PROPERTIES SUFFIX "${LIB_SUFFIX}${Architecture}.so") #NOTE changeme when multi-platform and multi-arch support is added
+    set_target_properties(qagame PROPERTIES SUFFIX "${LIB_SUFFIX}${Architecture}${DLL_EXT}") #NOTE changeme when multi-platform and multi-arch support is added
     target_compile_definitions(qagame PUBLIC "GAMEDLL" "NO_BOT_SUPPORT")
     target_link_libraries(qagame PRIVATE ${CMAKE_DL_LIBS} "m")
 
@@ -660,7 +680,7 @@ if(BUILD_ETMAIN_MOD)
                 $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:RELWITHDEBINFO>>:${compiler_flags_relwithdebinfo} -w>
     )
     set_target_properties(ui PROPERTIES PREFIX "")
-    set_target_properties(ui PROPERTIES SUFFIX "${LIB_SUFFIX}${Architecture}.so") #NOTE changeme when multi-platform and multi-arch support is added
+    set_target_properties(ui PROPERTIES SUFFIX "${LIB_SUFFIX}${Architecture}${DLL_EXT}") #NOTE changeme when multi-platform and multi-arch support is added
     target_compile_definitions(ui PUBLIC "UIDLL")
     target_link_libraries(ui PRIVATE ${CMAKE_DL_LIBS} "m")
 

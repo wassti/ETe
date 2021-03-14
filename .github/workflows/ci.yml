@@ -56,13 +56,13 @@ jobs:
 
         msbuild src\wolfded.vcxproj -m -p:PlatformToolset=v141_xp,Configuration=${{ matrix.config }},Platform=${{ matrix.platform }}
         
-        copy src\ded\Release\ETe.ded.exe bin\ete.ded${{ matrix.suffix }}.exe
+        copy src\ded\Release\ETe-ded.exe bin\ETe-ded${{ matrix.suffix }}.exe
         
         msbuild src\renderer\renderer.vcxproj -m -p:PlatformToolset=v141_xp,Configuration=${{ matrix.config }},Platform=${{ matrix.platform }}
         
         msbuild src\wolf.vcxproj -m -p:PlatformToolset=v141_xp,Configuration=${{ matrix.config }},Platform=${{ matrix.platform }},UseWasapi=USE_WASAPI=0
         
-        copy src\Release\ETe.exe bin\ete${{ matrix.suffix }}.exe
+        copy src\Release\ETe.exe bin\ETe${{ matrix.suffix }}.exe
     - uses: actions/upload-artifact@v2
       if: ${{ matrix.config == 'Release' }}
       with:
@@ -96,7 +96,7 @@ jobs:
         if [ ${{ matrix.arch }} == "x86" ]; then
           sudo dpkg --add-architecture i386
           sudo apt-get -qq update
-          sudo apt-get -y install gcc-multilib ninja-build libglib2.0-dev:i386 libgl1-mesa-dev:i386 libasound2-dev:i386 libpulse-dev:i386 libjpeg-dev:i386 libsdl2-dev:i386 libcurl4-openssl-dev:i386
+          sudo apt-get -y install gcc-multilib g++-multilib ninja-build libglib2.0-dev:i386 libgl1-mesa-dev:i386 libasound2-dev:i386 libpulse-dev:i386 libjpeg-dev:i386 libsdl2-dev:i386 libcurl4-openssl-dev:i386
         else
           sudo apt-get -qq update
           sudo apt-get -y install ninja-build libglib2.0-dev libgl1-mesa-dev libasound2-dev libpulse-dev libjpeg-dev libsdl2-dev libcurl4-openssl-dev

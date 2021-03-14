@@ -268,10 +268,12 @@ qboolean _UI_IsFullscreen( void );
 
 qboolean intShaderTime = qfalse;
 qboolean linearLight = qfalse;
+qboolean removeCommand = qfalse;
 
 int dll_com_trapGetValue;
 int dll_trap_R_AddRefEntityToScene2;
 int dll_trap_R_AddLinearLightToScene;
+int dll_trap_RemoveCommand;
 
 Q_EXPORT intptr_t vmMain( int command, intptr_t arg0, intptr_t arg1, intptr_t arg2, intptr_t arg3, intptr_t arg4, intptr_t arg5, intptr_t arg6 ) {
 	switch ( command ) {
@@ -7402,6 +7404,10 @@ void _UI_Init( qboolean inGameLoad ) {
 		if ( trap_GetValue( value, sizeof( value ), "trap_R_AddLinearLightToScene_ETE" ) ) {
 			dll_trap_R_AddLinearLightToScene = atoi( value );
 			linearLight = qtrue;
+		}
+		if ( trap_GetValue( value, sizeof( value ), "trap_RemoveCommand" ) ) {
+			dll_trap_RemoveCommand = atoi( value );
+			removeCommand = qtrue;
 		}
 	}
 

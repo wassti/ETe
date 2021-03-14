@@ -151,7 +151,7 @@ jobs:
         mkdir bin
         cd bin
 
-        cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=${{ matrix.config }} -DUSE_SDL2=TRUE
+        cmake .. -DCMAKE_BUILD_TYPE=${{ matrix.config }} -DUSE_SDL2=TRUE
         cmake --build . --config ${{ matrix.config }}
     - uses: actions/upload-artifact@v2
       if: matrix.cc == 'clang' && matrix.config == 'Release'

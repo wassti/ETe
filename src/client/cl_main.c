@@ -6179,9 +6179,12 @@ CL_TranslateString
 =======================
 */
 void CL_TranslateString( const char *string, char *dest_buffer ) {
-	int i, count, currentLanguage;
+#if !defined(__APPLE__) && !defined(__APPLE_CC__)
+	int i, count;
 	trans_t *t;
 	qboolean newline = qfalse;
+#endif
+	int currentLanguage;
 	char *buf;
 
 	buf = dest_buffer;

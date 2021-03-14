@@ -1,6 +1,6 @@
 # ETe
 
-[![Discord Shield](https://discord.com/api/guilds/253600486219972608/widget.png?style=shield)](https://discord.com/channels/253600486219972608/401475882897899523)
+[![build](https://github.com/etfdevs/ETe/actions/workflows/ci.yml/badge.svg)](https://github.com/etfdevs/ETe/actions/workflows/ci.yml) * [![Discord Shield](https://discord.com/api/guilds/253600486219972608/widget.png?style=shield)](https://discord.com/channels/253600486219972608/401475882897899523)
 
 This is a modern Wolfenstein: Enemy Territory engine aimed to be fast, secure and compatible with many existing ET mods and etmain.
 It is based on the Quake3e engine which itself is based on the last non-SDL source dump of ioquake3 with latest upstream fixes applied. Several common fixes from upstream [ET:Legacy](https://github.com/etlegacy/etlegacy) also are applied as needed for security.

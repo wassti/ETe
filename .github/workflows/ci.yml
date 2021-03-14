@@ -1,0 +1,122 @@
+name: build
+
+on:
+  # Run on pushes to tags, the "master" branch, and PR's
+  push:
+    tags-ignore:
+    branches:
+      - master
+    paths-ignore:
+      - '**.md'
+      - '*.txt'
+      - '.gitignore'
+      - 'docs/*'
+  pull_request:
+    paths-ignore:
+      - '**.md'
+      - '*.txt'
+      - '.gitignore'
+      - 'docs/*'
+
+  workflow_dispatch:
+
+jobs:
+  windows-msvc:
+    name: ${{ matrix.config }} Windows ${{ matrix.arch }}
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        #arch: [arm64, x86, x64]
+        #arch: [x86, x64]
+        arch: [x86]
+        config: [Release]
+        include:
+         # - arch: arm64
+         #   platform: ARM64
+         #   suffix: .arm64
+
+          - arch: x86
+            platform: Win32
+
+          #- arch: x64
+          #  platform: x64
+          #  suffix: .x86_64
+
+    steps:
+    - uses: microsoft/setup-msbuild@v1.0.2
+
+    - uses: actions/checkout@v2
+      with:
+        submodules: recursive
+
+    - name: Build
+      run: |
+        mkdir bin
+
+        msbuild src\wolfded.vcxproj -m -p:TargetName=ete.ded,PlatformToolset=v141_xp,Configuration=${{ matrix.config }},Platform=${{ matrix.platform }}
+        
+        copy src\ded\Release\ETe.ded.exe bin\ete.ded${{ matrix.suffix }}.exe
+        
+        msbuild src\renderer\renderer.vcxproj -m -p:PlatformToolset=v141_xp,Configuration=${{ matrix.config }},Platform=${{ matrix.platform }}
+        
+        msbuild src\wolf.vcxproj -m -p:TargetName=ete,PlatformToolset=v141_xp,Configuration=${{ matrix.config }},Platform=${{ matrix.platform }},UseWasapi=USE_WASAPI=0
+        
+        copy src\Release\ETe.exe bin\ete${{ matrix.suffix }}.exe
+    - uses: actions/upload-artifact@v2
+      if: ${{ matrix.config == 'Release' }}
+      with:
+        name: windows-${{ matrix.arch }}
+        path: bin
+        if-no-files-found: error
+        retention-days: 5
+
+  ubuntu-x86:
+    name: ${{ matrix.config }} Ubuntu ${{ matrix.arch }}
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86, x86_64]
+        cc: [gcc]
+        config: [Release]
+        include:
+          - config: Release
+            rule: install
+          - arch: x86
+            use_sdl: true
+            toolchain_file: 
+          - arch: x86_64
+            use_sdl: true
+            toolchain_file: ../cmake/toolchains/linux-i686.cmake
+
+    steps:
+    - name: Install tools
+      run: |
+        if [ ${{ matrix.arch }} == "x86" ]; then
+          sudo dpkg --add-architecture i386
+          sudo apt-get -qq update
+          sudo apt-get -y install gcc-multilib ninja-build libglib2.0-dev:i386 libgl1-mesa-dev:i386 libasound2-dev:i386 libpulse-dev:i386 libjpeg-dev:i386 libsdl2-dev:i386 libcurl4-openssl-dev:i386
+        else
+          sudo apt-get -qq update
+          sudo apt-get -y install ninja-build libglib2.0-dev libgl1-mesa-dev libasound2-dev libpulse-dev libjpeg-dev libsdl2-dev libcurl4-openssl-dev
+        fi
+    - uses: actions/checkout@v2
+      with:
+        submodules: recursive
+
+    - name: Build
+      run: |
+        cd src
+        mkdir bin
+        cd bin
+
+        cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=${{ matrix.config }} -DUSE_SDL2=${{ matrix.use_sdl }} -DCMAKE_TOOLCHAIN_FILE=${{ matrix.toolchain_file }}
+        cmake --build . --config ${{ matrix.config }}
+    - uses: actions/upload-artifact@v2
+      if: matrix.cc == 'gcc' && matrix.config == 'Release'
+      with:
+        name: linux-${{ matrix.arch }}
+        path: bin
+        if-no-files-found: error
+        retention-days: 5

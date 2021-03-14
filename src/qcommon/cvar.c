@@ -453,6 +453,8 @@ cvar_t *Cvar_Get( const char *var_name, const char *var_value, int flags ) {
 	
 	if(var)
 	{
+		int vm_created = (flags & CVAR_VM_CREATED);
+
 		//if ( ( var->flags & CVAR_USERINFO ) || ( flags & CVAR_USERINFO ) )
 		//	var->validator = CV_USERINFO;
 
@@ -461,12 +463,12 @@ cvar_t *Cvar_Get( const char *var_name, const char *var_value, int flags ) {
 		// Make sure the game code cannot mark engine-added variables as gamecode vars
 		if(var->flags & CVAR_VM_CREATED)
 		{
-			if(!(flags & CVAR_VM_CREATED))
+			if ( !vm_created )
 				var->flags &= ~CVAR_VM_CREATED;
 		}
 		else if (!(var->flags & CVAR_USER_CREATED))
 		{
-			if(flags & CVAR_VM_CREATED)
+			if ( vm_created )
 				flags &= ~CVAR_VM_CREATED;
 		}
 
@@ -489,19 +491,30 @@ cvar_t *Cvar_Get( const char *var_name, const char *var_value, int flags ) {
 				var->latchedString = CopyString(var_value);
 			}
 		}
-		
+
 		// Make sure servers cannot mark engine-added variables as SERVER_CREATED
-		if(var->flags & CVAR_SERVER_CREATED)
+		if ( var->flags & CVAR_SERVER_CREATED )
 		{
-			if(!(flags & CVAR_SERVER_CREATED))
+			if ( !( flags & CVAR_SERVER_CREATED ) ) {
+				// reset server-created flag
 				var->flags &= ~CVAR_SERVER_CREATED;
+				if ( vm_created ) {
+					// reset to state requested by local VM module
+					var->flags &= ~CVAR_ROM;
+					Z_Free( var->resetString );
+					var->resetString = CopyString( var_value );
+					if ( var->latchedString )
+						Z_Free( var->latchedString );
+					var->latchedString = CopyString( var_value );
+				}
+			}
 		}
 		else
 		{
-			if(flags & CVAR_SERVER_CREATED)
+			if ( flags & CVAR_SERVER_CREATED )
 				flags &= ~CVAR_SERVER_CREATED;
 		}
-		
+
 		var->flags |= flags;
 
 		// only allow one non-empty reset string without a warning

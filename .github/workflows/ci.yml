@@ -77,7 +77,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        arch: [x86, x86_64]
+        #arch: [x86, x86_64]
+        arch: [x86]
         cc: [gcc]
         config: [Release]
         include:
@@ -86,9 +87,9 @@ jobs:
           - arch: x86
             use_sdl: true
             toolchain_file: ../cmake/toolchains/linux-i686.cmake
-          - arch: x86_64
-            use_sdl: true
-            toolchain_file:
+          #- arch: x86_64
+          #  use_sdl: true
+          #  toolchain_file:
 
     steps:
     - name: Install tools

@@ -5138,6 +5138,22 @@ static void FS_Startup( void ) {
 }
 
 
+static void FS_PrintSearchPaths( void )
+{
+	searchpath_t *path = fs_searchpaths;
+
+	Com_Printf( "\nSearch paths:\n" );
+
+	while ( path )
+	{
+		if ( path->dir && path->policy == DIR_STATIC )
+			Com_Printf( " * %s\n", path->dir->path );
+
+		path = path->next;
+	}
+}
+
+
 /*
 ===================
 FS_CheckIdPaks
@@ -5150,13 +5166,12 @@ ET media pak0.pk3, you'll want to remove this function
 #if 0
 static void FS_CheckIdPaks( void )
 {
-	searchpath_t	*path;
+	searchpath_t *path;
+	const char* pakBasename;
 	unsigned foundPak = 0;
 
-	for( path = fs_searchpaths; path; path = path->next )
+	for ( path = fs_searchpaths; path; path = path->next )
 	{
-		const char* pakBasename;
-
 		if ( !path->pack )
 			continue;
 
@@ -5168,6 +5183,8 @@ static void FS_CheckIdPaks( void )
 		{
 			if( (unsigned int)path->pack->checksum != pak_checksums[pakBasename[3]-'0'] )
 			{
+				FS_PrintSearchPaths();
+
 				if(pakBasename[3] == '0')
 				{
 					Com_Printf("\n\n"
@@ -5203,6 +5220,8 @@ static void FS_CheckIdPaks( void )
 		{
 			if( (unsigned int)path->pack->checksum != mpbin_checksum )
 			{
+				FS_PrintSearchPaths();
+
 				Com_Printf("\n\n"
 					"**************************************************\n"
 					"ERROR: mp_bin.pk3 is present but its checksum (%u)\n"
@@ -5224,6 +5243,8 @@ static void FS_CheckIdPaks( void )
 
 	if((foundPak & 0xF) != 0xF )
 	{
+		FS_PrintSearchPaths();
+
 		if((foundPak&1) != 1 )
 		{
 			Com_Printf("\n\n"

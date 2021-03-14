@@ -2360,7 +2360,7 @@ void *R_Hunk_Alloc( size_t size ) {
 	size = PAD( size, 32 );
 
 	if ( cursize+size > R_HUNK_SIZE ) {
-		ri.Error( ERR_DROP, "R_Hunk_Alloc overflow (%u bytes > %u bytes)", (unsigned int)cursize+size, R_HUNK_SIZE );
+		ri.Error( ERR_DROP, "R_Hunk_Alloc overflow (%zu bytes > %zu bytes)", cursize+size, R_HUNK_SIZE );
 	}
 
 #ifdef _WIN32

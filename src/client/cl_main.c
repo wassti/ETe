@@ -2627,9 +2627,6 @@ print OOB are the only messages we handle markups in
   to 256 chars.
 ===================
 */
-#ifdef __GNUC__
-#pragma GCC diagnostic ignored "-Wformat-security"
-#endif
 static qboolean CL_PrintPacket( const netadr_t *from, msg_t *msg ) {
 	const char *s = NULL;
 	qboolean fromserver = NET_CompareAdr( from, &clc.serverAddress );
@@ -2647,27 +2644,25 @@ static qboolean CL_PrintPacket( const netadr_t *from, msg_t *msg ) {
 	if ( !Q_stricmpn( s, "[err_dialog]", 12 ) ) {
 		Q_strncpyz( clc.serverMessage, s + 12, sizeof( clc.serverMessage ) );
 		// Cvar_Set("com_errorMessage", clc.serverMessage );
-		Com_Error( ERR_DROP, clc.serverMessage );
+		Com_Error( ERR_DROP, "%s", clc.serverMessage );
 	} else if ( !Q_stricmpn( s, "[err_prot]", 10 ) )       {
 		Q_strncpyz( clc.serverMessage, s + 10, sizeof( clc.serverMessage ) );
 		// Cvar_Set("com_errorMessage", CL_TranslateStringBuf( PROTOCOL_MISMATCH_ERROR_LONG ) );
-		Com_Error( ERR_DROP, CL_TranslateStringBuf( PROTOCOL_MISMATCH_ERROR_LONG ) );
+		Com_Error( ERR_DROP, "%s", CL_TranslateStringBuf( PROTOCOL_MISMATCH_ERROR_LONG ) );
 	} else if ( !Q_stricmpn( s, "[err_update]", 12 ) )       {
 		Q_strncpyz( clc.serverMessage, s + 12, sizeof( clc.serverMessage ) );
-		Com_Error( ERR_AUTOUPDATE, clc.serverMessage );
+		Com_Error( ERR_AUTOUPDATE, "%s", clc.serverMessage );
 	} else if ( fromserver && !Q_stricmpn( s, "ET://", 5 ) )       { // fretn
 		Q_strncpyz( clc.serverMessage, s, sizeof( clc.serverMessage ) );
 		Cvar_Set( "com_errorMessage", clc.serverMessage );
-		Com_Error( ERR_DROP, clc.serverMessage );
+		Com_Error( ERR_DROP, "%s", clc.serverMessage );
 	} else {
 		Q_strncpyz( clc.serverMessage, s, sizeof( clc.serverMessage ) );
 	}
 	Com_Printf( "%s", clc.serverMessage );
 	return fromserver;
 }
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
+
 
 /*
 ===================
@@ -6323,13 +6318,7 @@ CL_OpenURLForCvar
 */
 void CL_OpenURL( const char *url ) {
 	if ( !url || !strlen( url ) ) {
-#ifdef __GNUC__
-#pragma GCC diagnostic ignored "-Wformat-security"
-#endif
-		Com_Printf( CL_TranslateStringBuf( "invalid/empty URL\n" ) );
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
+		Com_Printf( "%s", CL_TranslateStringBuf( "invalid/empty URL\n" ) );
 		return;
 	}
 	Sys_OpenURL( url, qtrue );

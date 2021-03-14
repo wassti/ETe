@@ -5203,7 +5203,7 @@ static void FS_CheckIdPaks( void )
 						"**************************************************\n"
 						"ERROR: pak%d.pk3 is present but its checksum (%u)\n"
 						"is not correct. Please re-install Wolfenstein: Enemy Territory \n"
-#ifdef __MACOS__
+#if defined(__APPLE__) || defined(__APPLE_CC__)
 						"v2.60d pk3 files\n"
 #else
 						"v2.60b pk3 files\n"
@@ -5228,7 +5228,7 @@ static void FS_CheckIdPaks( void )
 					"**************************************************\n"
 					"ERROR: mp_bin.pk3 is present but its checksum (%u)\n"
 					"is not correct. Please re-install Wolfenstein: Enemy Territory \n"
-#ifdef __MACOS__
+#if defined(__APPLE__) || defined(__APPLE_CC__)
 					"v2.60d pk3 files\n"
 #else
 					"v2.60b pk3 files\n"
@@ -5259,7 +5259,7 @@ static void FS_CheckIdPaks( void )
 			Com_Printf("\n\n"
 			"Point Release files are missing. Please\n"
 			"Copy it from your legitimate ET installation or\n"
-#ifdef __MACOS__
+#if defined(__APPLE__) || defined(__APPLE_CC__)
 			"re-install ET with the 2.60d updates.\n");
 #else
 			"re-install ET with the 2.60b updates.\n");
@@ -5272,7 +5272,7 @@ static void FS_CheckIdPaks( void )
 			Com_Printf("\n\n"
 			"Binary pack file is missing. Please\n"
 			"Copy it from your legitimate ET installation or\n"
-#ifdef __MACOS__
+#if defined(__APPLE__) || defined(__APPLE_CC__)
 			"re-install ET with the 2.60d updates.\n");
 #else
 			"re-install ET with the 2.60b updates.\n");

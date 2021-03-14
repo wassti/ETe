@@ -615,7 +615,7 @@ float Q_exp2f( float f );
 // fast float to int conversion
 #if id386 && !( ( defined __linux__ || defined __FreeBSD__ || defined __GNUC__ ) && ( defined __i386__ ) ) // rb010123
 long myftol( float f );
-#elif defined( __MACOS__ )
+#elif defined(__APPLE__) || defined(__APPLE_CC__)
 #define myftol( x ) (long)( x )
 #else
 extern long int lrintf( float x );
@@ -1926,7 +1926,7 @@ typedef enum _flag_status {
 
 // NERVE - SMF - localization
 typedef enum {
-#ifndef __MACOS__   //DAJ USA
+#if !defined(__APPLE__) && !defined(__APPLE_CC__)   //DAJ USA
 	LANGUAGE_FRENCH = 0,
 	LANGUAGE_GERMAN,
 	LANGUAGE_ITALIAN,

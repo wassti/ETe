@@ -4034,7 +4034,7 @@ static void CL_InitRef( void ) {
 	Cvar_Set( "cl_paused", "0" );
 }
 
-#if !defined( __MACOS__ )
+#if !defined(__APPLE__) && !defined(__APPLE_CC__)
 void CL_SaveTranslations_f( void ) {
 	CL_SaveTransTable( "scripts/translation.cfg", qfalse );
 }
@@ -4619,7 +4619,7 @@ void CL_Init( void ) {
 	Cmd_AddCommand( "updatehunkusage", CL_UpdateLevelHunkUsage );
 	Cmd_AddCommand( "updatescreen", SCR_UpdateScreen );
 	// done.
-#ifndef __MACOS__  //DAJ USA
+#if !defined(__APPLE__) && !defined(__APPLE_CC__)  //DAJ USA
 	Cmd_AddCommand( "SaveTranslations", CL_SaveTranslations_f );     // NERVE - SMF - localization
 	Cmd_AddCommand( "SaveNewTranslations", CL_SaveNewTranslations_f );   // NERVE - SMF - localization
 	Cmd_AddCommand( "LoadTranslations", CL_LoadTranslations_f );     // NERVE - SMF - localization
@@ -4651,7 +4651,7 @@ void CL_Init( void ) {
 	Cvar_Get( "cl_guid", "", CVAR_USERINFO | CVAR_ROM | CVAR_PROTECTED );
 	CL_UpdateGUID();
 
-#ifndef __MACOS__  //DAJ USA
+#if !defined(__APPLE__) && !defined(__APPLE_CC__)  //DAJ USA
 	CL_InitTranslation();       // NERVE - SMF - localization
 #endif
 
@@ -5688,7 +5688,7 @@ static void CL_ShowIP_f( void ) {
 #define MAX_VA_STRING       32000
 #define MAX_TRANS_STRING    4096
 
-#ifndef __MACOS__   //DAJ USA
+#if !defined(__APPLE__) && !defined(__APPLE_CC__)   //DAJ USA
 typedef struct trans_s {
 	char original[MAX_TRANS_STRING];
 	char translated[MAX_LANGUAGES][MAX_TRANS_STRING];
@@ -6200,7 +6200,7 @@ void CL_TranslateString( const char *string, char *dest_buffer ) {
 		strcpy( buf, string );
 		return;
 	}
-#if !defined( __MACOS__ )
+#if !defined(__APPLE__) && !defined(__APPLE_CC__)
 	// ignore newlines
 	if ( string[strlen( string ) - 1] == '\n' ) {
 		newline = qtrue;

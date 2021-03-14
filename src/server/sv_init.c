@@ -284,7 +284,7 @@ SV_BoundMaxClients
 */
 static void SV_BoundMaxClients( int minimum ) {
 	// get the current maxclients value
-#ifdef __MACOS__
+#if defined(__APPLE__) || defined(__APPLE_CC__)
 	Cvar_Get( "sv_maxclients", "16", 0 );         //DAJ HOG
 #else
 	Cvar_Get( "sv_maxclients", "20", 0 );         // NERVE - SMF - changed to 20 from 8

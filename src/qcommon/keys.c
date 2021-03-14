@@ -249,7 +249,7 @@ static const keyname_t keynames[] =
 };
 
 #ifndef DEDICATED
-#ifndef __MACOS__
+#if !defined(__APPLE__) && !defined(__APPLE_CC__)
 static const keyname_t keynames_d[] =    //deutsch
 {
 	{"TAB", K_TAB},
@@ -1026,7 +1026,7 @@ const char *Key_KeynumToString( int keynum, qboolean bTranslate ) {
 
 	kn = keynames;    //init to english
 #ifndef DEDICATED
-#ifndef __MACOS__   //DAJ USA
+#if !defined(__APPLE__) && !defined(__APPLE_CC__)  //DAJ USA
 	if ( bTranslate ) {
 		if ( cl_language->integer - 1 == LANGUAGE_FRENCH ) {
 			kn = keynames_f;  //use french

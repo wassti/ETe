@@ -837,7 +837,7 @@ image_t *R_CreateImage( const char *name, const char *name2, byte *pic, int widt
 		flags |= IMGFLAG_NO_COMPRESSION;
 	}
 #endif
-#if __MACOS__
+#if defined(__APPLE__) || defined(__APPLE_CC__)
 	// LBO 2/8/05. Work around apparent bug in OSX. Some mipmap textures draw incorrectly when
 	// texture compression is enabled. Examples include brick edging on fueldump level appearing
 	// bluish-green from a distance.

@@ -1521,7 +1521,7 @@ void Com_GetHunkInfo( int* hunkused, int* hunkexpected );
 // ui.mp.i386.so
 #define SYS_DLLNAME_UI "ui.mp." ARCH_STRING DLL_EXT
 
-#elif __MACOS__
+#elif defined(__APPLE__) || defined(__APPLE_CC__)
 
 #ifdef _DEBUG
 // qagame_d_mac

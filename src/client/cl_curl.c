@@ -1452,11 +1452,11 @@ dlStatus_t DL_DownloadLoop( void ) {
 
 	if ( msg->data.result != CURLE_OK ) {
 		code = dl_curl_easy_getinfo( msg->easy_handle, CURLINFO_RESPONSE_CODE, &code );
-#ifdef __MACOS__ // ���
-		err = "unknown curl error.";
-#else
+//#ifdef __MACOS__ // ���
+//		err = "unknown curl error.";
+//#else
 		err = dl_curl_easy_strerror( msg->data.result );
-#endif
+//#endif
 	} else {
 		err = NULL;
 	}

@@ -4366,7 +4366,7 @@ void Controls_SetConfig( qboolean restart ) {
 		}
 	}
 
-#if !defined( __MACOS__ )
+#if !defined(__APPLE__) && !defined(__APPLE_CC__)
 	if ( restart ) {
 		DC->executeText( EXEC_APPEND, "in_restart\n" );
 	}

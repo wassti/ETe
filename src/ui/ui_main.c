@@ -4795,7 +4795,7 @@ void UI_RunMenuScript( const char **args ) {
 						Com_Printf( "%s", trap_TranslateString( "Favorite list full\n" ) );
 					} else {
 						// successfully added
-						Com_Printf( "%s", trap_TranslateString( "Added favorite server %s\n" ), addr );
+						Com_Printf( trap_TranslateString( "Added favorite server %s\n" ), addr );
 					}
 				}
 			}
@@ -4828,7 +4828,7 @@ void UI_RunMenuScript( const char **args ) {
 						Com_Printf( "%s", trap_TranslateString( "Favorite list full\n" ) );
 					} else {
 						// successfully added
-						Com_Printf( "%s", trap_TranslateString( "Added favorite server %s\n" ), addr );
+						Com_Printf( trap_TranslateString( "Added favorite server %s\n" ), addr );
 					}
 				}
 			}
@@ -4854,7 +4854,7 @@ void UI_RunMenuScript( const char **args ) {
 					Com_Printf( "%s", trap_TranslateString( "Favorite list full\n" ) );
 				} else {
 					// successfully added
-					Com_Printf( "%s", trap_TranslateString( "Added favorite server %s\n" ), addr );
+					Com_Printf( trap_TranslateString( "Added favorite server %s\n" ), addr );
 				}
 			}
 		} else if ( Q_stricmp( name, "orders" ) == 0 ) {

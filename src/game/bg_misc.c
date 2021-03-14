@@ -3837,7 +3837,7 @@ void BG_GetMarkDir( const vec3_t dir, const vec3_t normal, vec3_t out ) {
 }
 
 
-char *eventnames[] = {
+const char *eventnames[] = {
 	"EV_NONE",
 	"EV_FOOTSTEP",
 	"EV_FOOTSTEP_METAL",

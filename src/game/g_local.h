@@ -1568,7 +1568,6 @@ extern vmCvar_t g_scriptDebug;
 extern vmCvar_t g_userAim;
 extern vmCvar_t g_developer;
 
-extern vmCvar_t g_footstepAudibleRange;
 // JPW NERVE multiplayer
 extern vmCvar_t g_redlimbotime;
 extern vmCvar_t g_bluelimbotime;

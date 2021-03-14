@@ -310,6 +310,8 @@ vmCvar_t cl_wavefilename;
 vmCvar_t cl_waveoffset;
 vmCvar_t cg_recording_statusline;
 
+vmCvar_t cg_fovAdjust;
+
 typedef struct {
 	vmCvar_t    *vmCvar;
 	char        *cvarName;
@@ -318,7 +320,7 @@ typedef struct {
 	int modificationCount;
 } cvarTable_t;
 
-cvarTable_t cvarTable[] = {
+static cvarTable_t cvarTable[] = {
 	{ &cg_ignore, "cg_ignore", "0", 0 },  // used for debugging
 	{ &cg_autoswitch, "cg_autoswitch", "2", CVAR_ARCHIVE },
 	{ &cg_drawGun, "cg_drawGun", "1", CVAR_ARCHIVE },
@@ -359,9 +361,9 @@ cvarTable_t cvarTable[] = {
 	{ &cg_markTime, "cg_marktime", "20000", CVAR_ARCHIVE },
 	{ &cg_lagometer, "cg_lagometer", "0", CVAR_ARCHIVE },
 	{ &cg_railTrailTime, "cg_railTrailTime", "400", CVAR_ARCHIVE  },
-	{ &cg_gun_x, "cg_gunX", "0", CVAR_CHEAT },
-	{ &cg_gun_y, "cg_gunY", "0", CVAR_CHEAT },
-	{ &cg_gun_z, "cg_gunZ", "0", CVAR_CHEAT },
+	{ &cg_gun_x, "cg_gunX", "0", CVAR_ARCHIVE },
+	{ &cg_gun_y, "cg_gunY", "0", CVAR_ARCHIVE },
+	{ &cg_gun_z, "cg_gunZ", "0", CVAR_ARCHIVE },
 	{ &cg_centertime, "cg_centertime", "5", CVAR_CHEAT },     // DHM - Nerve :: changed from 3 to 5
 	{ &cg_runpitch, "cg_runpitch", "0.002", CVAR_ARCHIVE},
 	{ &cg_runroll, "cg_runroll", "0.005", CVAR_ARCHIVE },
@@ -526,9 +528,11 @@ cvarTable_t cvarTable[] = {
 	{ &cl_wavefilename, "cl_wavefilename", "", CVAR_ROM },
 	{ &cl_waveoffset, "cl_waveoffset", "0", CVAR_ROM },
 	{ &cg_recording_statusline, "cg_recording_statusline", "9", CVAR_ARCHIVE },
+
+	{ &cg_fovAdjust, "cg_fovAdjust", "0", CVAR_ARCHIVE },
 };
 
-int cvarTableSize = sizeof( cvarTable ) / sizeof( cvarTable[0] );
+static const int cvarTableSize = (int)ARRAY_LEN( cvarTable );
 qboolean cvarsLoaded = qfalse;
 void CG_setClientFlags( void );
 
@@ -559,7 +563,7 @@ void CG_RegisterCvars( void ) {
 
 	// see if we are also running the server on this machine
 	trap_Cvar_VariableStringBuffer( "sv_running", var, sizeof( var ) );
-	cgs.localServer = atoi( var );
+	cgs.localServer = atoi( var ) != 0 ? qtrue : qfalse;
 
 	// Gordon: um, here, why?
 	CG_setClientFlags();

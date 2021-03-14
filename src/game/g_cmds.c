@@ -178,8 +178,8 @@ char    *ConcatArgs( int start ) {
 	c = trap_Argc();
 	for ( i = start ; i < c ; i++ ) {
 		trap_Argv( i, arg, sizeof( arg ) );
-		tlen = strlen( arg );
-		if ( len + tlen >= MAX_STRING_CHARS - 1 ) {
+		tlen = (int)strlen( arg );
+		if ( len + tlen >= sizeof(line) - 1 ) {
 			break;
 		}
 		memcpy( line + len, arg, tlen );
@@ -190,7 +190,7 @@ char    *ConcatArgs( int start ) {
 		}
 	}
 
-	line[len] = 0;
+	line[len] = '\0';
 
 	return line;
 }
@@ -286,35 +286,22 @@ Cmd_Give_f
 Give items to a client
 ==================
 */
-void Cmd_Give_f( gentity_t *ent ) {
-	char        *name, *amt;
-//	gitem_t		*it;
+void G_Give( gentity_t *ent, const char *name, const char *args ) {
 	int i;
-	qboolean give_all;
-//	gentity_t		*it_ent;
-//	trace_t		trace;
+	qboolean give_all = qfalse;
 	int amount;
 	qboolean hasAmount = qfalse;
 
-	if ( !CheatsOk( ent ) ) {
-		return;
+	if ( !Q_stricmp( name, "all" ) ) {
+		give_all = qtrue;
 	}
 
 	//----(SA)	check for an amount (like "give health 30")
-	amt = ConcatArgs( 2 );
-	if ( *amt ) {
+	if ( *args ) {
 		hasAmount = qtrue;
 	}
-	amount = atoi( amt );
+	amount = atoi( args );
 	//----(SA)	end
-
-	name = ConcatArgs( 1 );
-
-	if ( Q_stricmp( name, "all" ) == 0 ) {
-		give_all = qtrue;
-	} else {
-		give_all = qfalse;
-	}
 
 	if ( Q_stricmpn( name, "skill", 5 ) == 0 ) {
 		if ( hasAmount ) {
@@ -332,7 +319,7 @@ void Cmd_Give_f( gentity_t *ent ) {
 		return;
 	}
 
-	if ( Q_stricmpn( name, "medal", 5 ) == 0 ) {
+	if ( !Q_stricmp( name, "medal" ) ) {
 		for ( i = 0; i < SK_NUM_SKILLS; i++ ) {
 			if ( !ent->client->sess.medals[i] ) {
 				ent->client->sess.medals[i] = 1;
@@ -342,7 +329,7 @@ void Cmd_Give_f( gentity_t *ent ) {
 		return;
 	}
 
-	if ( give_all || Q_stricmpn( name, "health", 6 ) == 0 ) {
+	if ( give_all || !Q_stricmp( name, "health" ) ) {
 		//----(SA)	modified
 		if ( amount ) {
 			ent->health += amount;
@@ -372,7 +359,7 @@ void Cmd_Give_f( gentity_t *ent ) {
 		return;
 	}*/
 
-	if ( give_all || Q_stricmp( name, "weapons" ) == 0 ) {
+	if ( give_all || !Q_stricmp( name, "weapons" ) ) {
 		for ( i = 0; i < WP_NUM_WEAPONS; i++ ) {
 			if ( BG_WeaponInWolfMP( i ) ) {
 				COM_BitSet( ent->client->ps.weapons, i );
@@ -384,7 +371,7 @@ void Cmd_Give_f( gentity_t *ent ) {
 		}
 	}
 
-	if ( give_all || Q_stricmpn( name, "ammo", 4 ) == 0 ) {
+	if ( give_all || !Q_stricmp( name, "ammo" ) ) {
 		if ( amount ) {
 			if ( ent->client->ps.weapon
 				 && ent->client->ps.weapon != WP_SATCHEL && ent->client->ps.weapon != WP_SATCHEL_DET
@@ -406,44 +393,72 @@ void Cmd_Give_f( gentity_t *ent ) {
 
 	//	"give allammo <n>" allows you to give a specific amount of ammo to /all/ weapons while
 	//	allowing "give ammo <n>" to only give to the selected weap.
-	if ( Q_stricmpn( name, "allammo", 7 ) == 0 && amount ) {
+	if ( !Q_stricmp( name, "allammo" ) && amount ) {
 		for ( i = 1 ; i < WP_NUM_WEAPONS; i++ )
 			Add_Ammo( ent, i, amount, qtrue );
-
-		if ( !give_all ) {
-			return;
-		}
+		return;
 	}
 
 	//---- (SA) Wolf keys
-	if ( give_all || Q_stricmp( name, "keys" ) == 0 ) {
+	if ( give_all || !Q_stricmp( name, "keys" ) ) {
 		ent->client->ps.stats[STAT_KEYS] = ( 1 << KEY_NUM_KEYS ) - 2;
 		if ( !give_all ) {
 			return;
 		}
 	}
 	//---- (SA) end
+}
 
-	// spawn a specific item right on the player
-	/*if ( !give_all ) {
-		it = BG_FindItem (name);
-		if (!it) {
-			return;
-		}
 
-		it_ent = G_Spawn();
-		VectorCopy( ent->r.currentOrigin, it_ent->s.origin );
-		it_ent->classname = it->classname;
-		G_SpawnItem (it_ent, it);
-		FinishSpawningItem(it_ent );
-		memset( &trace, 0, sizeof( trace ) );
-		it_ent->active = qtrue;
-		Touch_Item (it_ent, ent, &trace);
-		it_ent->active = qfalse;
-		if (it_ent->inuse) {
-			G_FreeEntity( it_ent );
-		}
-	}*/
+void Cmd_Give_f( gentity_t *ent )
+{
+	char name[MAX_TOKEN_CHARS] = {0};
+
+	if ( !CheatsOk( ent ) ) {
+		return;
+	}
+
+	trap_Argv( 1, name, sizeof( name ) );
+	G_Give( ent, name, ConcatArgs( 2 ) );
+}
+
+void Cmd_GiveOther_f( gentity_t *ent )
+{
+	char		name[MAX_TOKEN_CHARS] = {0};
+	int			i;
+	char		otherindex[MAX_TOKEN_CHARS];
+	gentity_t	*otherEnt = NULL;
+
+	if ( !CheatsOk( ent ) ) {
+		return;
+	}
+
+	if ( trap_Argc () < 3 ) {
+		trap_SendServerCommand( ent-g_entities, "print \"Usage: giveother <player id> <givestring>\n\"" );
+		return;
+	}
+
+	trap_Argv( 1, otherindex, sizeof( otherindex ) );
+	i = ClientNumberFromString( ent, otherindex/*, qfalse*/ );
+	if ( i == -1 ) {
+		return;
+	}
+
+	otherEnt = &g_entities[i];
+	if ( !otherEnt->inuse || !otherEnt->client ) {
+		return;
+	}
+
+	if ( otherEnt->health <= 0 )
+	{
+		// Intentionally displaying for the command user
+		trap_SendServerCommand( ent - g_entities, va( "print \"You must be alive to use this command.\n\"" ) );
+		return;
+	}
+
+	trap_Argv( 2, name, sizeof( name ) );
+
+	G_Give( otherEnt, name, ConcatArgs( 3 ) );
 }
 
 

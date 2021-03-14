@@ -127,7 +127,6 @@ vmCvar_t g_developer;
 
 vmCvar_t g_userAim;
 
-vmCvar_t g_footstepAudibleRange;
 // JPW NERVE multiplayer reinforcement times
 vmCvar_t g_redlimbotime;
 vmCvar_t g_bluelimbotime;
@@ -237,7 +236,7 @@ cvarTable_t gameCvarTable[] = {
 	{ NULL, "gamename", GAMEVERSION, CVAR_SERVERINFO | CVAR_ROM, 0, qfalse  },
 	{ NULL, "gamedate", __DATE__, CVAR_ROM, 0, qfalse  },
 	{ &g_restarted, "g_restarted", "0", CVAR_ROM, 0, qfalse  },
-	{ NULL, "sv_mapname", "", CVAR_SERVERINFO | CVAR_ROM, 0, qfalse  },
+	{ NULL, "mapname", "", CVAR_SERVERINFO | CVAR_ROM, 0, qfalse  },
 
 	// latched vars
 	{ &g_gametype, "g_gametype", "4", CVAR_SERVERINFO | CVAR_LATCH, 0, qfalse  },     // Arnout: default to GT_WOLF_CAMPAIGN
@@ -311,7 +310,6 @@ cvarTable_t gameCvarTable[] = {
 	{ &g_needpass, "g_needpass", "0", CVAR_SERVERINFO | CVAR_ROM, 0, qtrue },
 	{ &g_balancedteams, "g_balancedteams", "0", CVAR_SERVERINFO | CVAR_ROM, 0, qtrue },
 	{ &g_forcerespawn, "g_forcerespawn", "0", 0, 0, qtrue },
-	{ &g_forcerespawn, "g_forcerespawn", "0", 0, 0, qtrue },
 	{ &g_inactivity, "g_inactivity", "0", 0, 0, qtrue },
 	{ &g_debugMove, "g_debugMove", "0", 0, 0, qfalse },
 	{ &g_debugDamage, "g_debugDamage", "0", CVAR_CHEAT, 0, qfalse },
@@ -344,8 +342,6 @@ cvarTable_t gameCvarTable[] = {
 	{ &g_smoothClients, "g_smoothClients", "1", 0, 0, qfalse },
 	{ &pmove_fixed, "pmove_fixed", "0", CVAR_SYSTEMINFO, 0, qfalse },
 	{ &pmove_msec, "pmove_msec", "8", CVAR_SYSTEMINFO, 0, qfalse },
-
-	{ &g_footstepAudibleRange, "g_footstepAudibleRange", "256", CVAR_CHEAT, 0, qfalse },
 
 	{ &g_scriptName, "g_scriptName", "", CVAR_CHEAT, 0, qfalse },
 
@@ -448,7 +444,7 @@ cvarTable_t gameCvarTable[] = {
 };
 
 // bk001129 - made static to avoid aliasing
-static int gameCvarTableSize = sizeof( gameCvarTable ) / sizeof( gameCvarTable[0] );
+static const int gameCvarTableSize = (int)ARRAY_LEN( gameCvarTable );
 
 
 void G_InitGame( int levelTime, int randomSeed, int restart );

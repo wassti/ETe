@@ -2251,6 +2251,8 @@ extern vmCvar_t cl_wavefilename;
 extern vmCvar_t cl_waveoffset;
 extern vmCvar_t cg_recording_statusline;
 
+extern vmCvar_t cg_fovAdjust;
+
 //
 // cg_main.c
 //

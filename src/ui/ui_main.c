@@ -1417,7 +1417,7 @@ static const char *handicapValues[] = {"None","95","90","85","80","75","70","65"
 static void UI_DrawHandicap( rectDef_t *rect, float scale, vec4_t color, int textStyle ) {
 	int i, h;
 
-	h = Com_Clamp( 5, 100, trap_Cvar_VariableValue( "handicap" ) );
+	h = Com_ClampInt( 5, 100, trap_Cvar_VariableValue( "handicap" ) );
 	i = 20 - h / 5;
 
 	Text_Paint( rect->x, rect->y, scale, color, handicapValues[i], 0, 0, textStyle );
@@ -2701,7 +2701,7 @@ static int UI_OwnerDrawWidth( int ownerDraw, float scale ) {
 
 	switch ( ownerDraw ) {
 	case UI_HANDICAP:
-		h = Com_Clamp( 5, 100, trap_Cvar_VariableValue( "handicap" ) );
+		h = Com_ClampInt( 5, 100, trap_Cvar_VariableValue( "handicap" ) );
 		i = 20 - h / 5;
 		s = handicapValues[i];
 		break;
@@ -3427,7 +3427,7 @@ qboolean UI_OwnerDrawVisible( int flags ) {
 static qboolean UI_Handicap_HandleKey( int flags, float *special, int key ) {
 	if ( key == K_MOUSE1 || key == K_MOUSE2 || key == K_ENTER || key == K_KP_ENTER ) {
 		int h;
-		h = Com_Clamp( 5, 100, trap_Cvar_VariableValue( "handicap" ) );
+		h = Com_ClampInt( 5, 100, trap_Cvar_VariableValue( "handicap" ) );
 		if ( key == K_MOUSE2 ) {
 			h -= 5;
 		} else {
@@ -4393,8 +4393,8 @@ void UI_RunMenuScript( const char **args ) {
 			trap_Cvar_Set( "cg_thirdPerson", "0" );
 			trap_Cvar_Set( "cg_cameraOrbit", "0" );
 			trap_Cvar_Set( "ui_singlePlayerActive", "0" );
-			trap_Cvar_SetValue( "dedicated", Com_Clamp( 0, 2, ui_dedicated.integer ) );
-			trap_Cvar_SetValue( "g_gametype", Com_Clamp( 0, 8, ui_netGameType.integer ) );
+			trap_Cvar_SetValue( "dedicated", Com_ClampInt( 0, 2, ui_dedicated.integer ) );
+			trap_Cvar_SetValue( "g_gametype", Com_ClampInt( 0, GT_MAX_GAME_TYPE-1, ui_netGameType.integer ) );
 
 			if ( ui_netGameType.integer == GT_WOLF_CAMPAIGN ) {
 				trap_Cmd_ExecuteText( EXEC_APPEND, va( "wait ; wait ; map %s\n", uiInfo.campaignList[ui_currentNetMap.integer].mapInfos[0]->mapLoadName ) );
@@ -8556,7 +8556,7 @@ cvarTable_t cvarTable[] = {
 	{ &ui_autoredirect, "ui_autoredirect", "0", CVAR_ARCHIVE },
 };
 
-int cvarTableSize = sizeof( cvarTable ) / sizeof( cvarTable[0] );
+static const int cvarTableSize = (int)ARRAY_LEN( cvarTable );
 
 
 /*

@@ -67,7 +67,9 @@ jobs:
       if: ${{ matrix.config == 'Release' }}
       with:
         name: windows-${{ matrix.arch }}
-        path: bin
+        path: |
+          bin/*.exe
+          bin/*.dll
         if-no-files-found: error
         retention-days: 5
 
@@ -119,7 +121,9 @@ jobs:
       if: matrix.cc == 'gcc' && matrix.config == 'Release'
       with:
         name: linux-${{ matrix.arch }}
-        path: src/bin
+        path: |
+          src/bin/ete*.${{ matrix.arch }}
+          src/bin/*.so
         if-no-files-found: error
         retention-days: 5
 
@@ -157,6 +161,9 @@ jobs:
       if: matrix.cc == 'clang' && matrix.config == 'Release'
       with:
         name: macos-${{ matrix.arch }}
-        path: src/bin
+        path: |
+          src/bin/ete*.${{ matrix.arch }}
+          src/bin/*.dylib
+          src/bin/*_mac
         if-no-files-found: error
         retention-days: 5

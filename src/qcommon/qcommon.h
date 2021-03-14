@@ -1462,7 +1462,7 @@ void Sys_OpenURL( const char *url, qboolean doexit );                       // N
 int Sys_GetHighQualityCPU();
 float Sys_GetCPUSpeed( void );
 
-#ifdef __linux__
+#ifndef _WIN32
 // TTimo only on linux .. maybe on Mac too?
 // will OR with the existing mode (chmod ..+..)
 void Sys_Chmod( const char *file, int mode );

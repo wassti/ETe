@@ -54,13 +54,13 @@ jobs:
       run: |
         mkdir bin
 
-        msbuild src\wolfded.vcxproj -m -p:TargetName=ete.ded,PlatformToolset=v141_xp,Configuration=${{ matrix.config }},Platform=${{ matrix.platform }}
+        msbuild src\wolfded.vcxproj -m -p:PlatformToolset=v141_xp,Configuration=${{ matrix.config }},Platform=${{ matrix.platform }}
         
         copy src\ded\Release\ETe.ded.exe bin\ete.ded${{ matrix.suffix }}.exe
         
         msbuild src\renderer\renderer.vcxproj -m -p:PlatformToolset=v141_xp,Configuration=${{ matrix.config }},Platform=${{ matrix.platform }}
         
-        msbuild src\wolf.vcxproj -m -p:TargetName=ete,PlatformToolset=v141_xp,Configuration=${{ matrix.config }},Platform=${{ matrix.platform }},UseWasapi=USE_WASAPI=0
+        msbuild src\wolf.vcxproj -m -p:PlatformToolset=v141_xp,Configuration=${{ matrix.config }},Platform=${{ matrix.platform }},UseWasapi=USE_WASAPI=0
         
         copy src\Release\ETe.exe bin\ete${{ matrix.suffix }}.exe
     - uses: actions/upload-artifact@v2

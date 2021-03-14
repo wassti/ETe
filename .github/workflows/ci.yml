@@ -85,10 +85,10 @@ jobs:
             rule: install
           - arch: x86
             use_sdl: true
-            toolchain_file: 
+            toolchain_file: ../cmake/toolchains/linux-i686.cmake
           - arch: x86_64
             use_sdl: true
-            toolchain_file: ../cmake/toolchains/linux-i686.cmake
+            toolchain_file:
 
     steps:
     - name: Install tools

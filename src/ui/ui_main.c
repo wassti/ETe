@@ -143,7 +143,7 @@ void Menu_ShowItemByName( menuDef_t *menu, const char *p, qboolean bShow );
 // TTimo
 static char translated_yes[4], translated_no[4];
 
-typedef struct {
+/*typedef struct {
 	const char  *name;
 	int items;
 } playerType_t;
@@ -156,7 +156,7 @@ static playerType_t playerTypes[] = {
 	{ "player_window_covertops", PT_KNIFE | PT_PISTOL | PT_GRENADES }
 };
 
-int numPlayerTypes = sizeof( playerTypes ) / sizeof( playerTypes[0] );
+int numPlayerTypes = sizeof( playerTypes ) / sizeof( playerTypes[0] );*/
 
 /*typedef struct {
 	int			weapindex;
@@ -4789,13 +4789,13 @@ void UI_RunMenuScript( const char **args ) {
 					res = trap_LAN_AddServer( AS_FAVORITES, name, addr );
 					if ( res == 0 ) {
 						// server already in the list
-						Com_Printf( trap_TranslateString( "Favorite already in list\n" ) );
+						Com_Printf( "%s", trap_TranslateString( "Favorite already in list\n" ) );
 					} else if ( res == -1 )     {
 						// list full
-						Com_Printf( trap_TranslateString( "Favorite list full\n" ) );
+						Com_Printf( "%s", trap_TranslateString( "Favorite list full\n" ) );
 					} else {
 						// successfully added
-						Com_Printf( trap_TranslateString( "Added favorite server %s\n" ), addr );
+						Com_Printf( "%s", trap_TranslateString( "Added favorite server %s\n" ), addr );
 					}
 				}
 			}
@@ -4822,13 +4822,13 @@ void UI_RunMenuScript( const char **args ) {
 					res = trap_LAN_AddServer( AS_FAVORITES, name, addr );
 					if ( res == 0 ) {
 						// server already in the list
-						Com_Printf( trap_TranslateString( "Favorite already in list\n" ) );
+						Com_Printf( "%s", trap_TranslateString( "Favorite already in list\n" ) );
 					} else if ( res == -1 )     {
 						// list full
-						Com_Printf( trap_TranslateString( "Favorite list full\n" ) );
+						Com_Printf( "%s", trap_TranslateString( "Favorite list full\n" ) );
 					} else {
 						// successfully added
-						Com_Printf( trap_TranslateString( "Added favorite server %s\n" ), addr );
+						Com_Printf( "%s", trap_TranslateString( "Added favorite server %s\n" ), addr );
 					}
 				}
 			}
@@ -4848,13 +4848,13 @@ void UI_RunMenuScript( const char **args ) {
 				res = trap_LAN_AddServer( AS_FAVORITES, name, addr );
 				if ( res == 0 ) {
 					// server already in the list
-					Com_Printf( trap_TranslateString( "Favorite already in list\n" ) );
+					Com_Printf( "%s", trap_TranslateString( "Favorite already in list\n" ) );
 				} else if ( res == -1 )     {
 					// list full
-					Com_Printf( trap_TranslateString( "Favorite list full\n" ) );
+					Com_Printf( "%s", trap_TranslateString( "Favorite list full\n" ) );
 				} else {
 					// successfully added
-					Com_Printf( trap_TranslateString( "Added favorite server %s\n" ), addr );
+					Com_Printf( "%s", trap_TranslateString( "Added favorite server %s\n" ), addr );
 				}
 			}
 		} else if ( Q_stricmp( name, "orders" ) == 0 ) {

@@ -2255,19 +2255,16 @@ const char *Info_ValueForKeyToken( const char *key )
 ===================
 Info_NextPair
 
-Used to itterate through all the key/value pairs in an info string
-Return qfalse if we discover the infostring is invalid
+Used to iterate through all the key/value pairs in an info string
 ===================
 */
-qboolean Info_NextPair( const char **head, char *key, char *value ) {
+const char *Info_NextPair( const char *s, char *key, char *value ) {
 	char	*o;
-	const char	*s;
-
-	s = *head;
 
 	if ( *s == '\\' ) {
 		s++;
 	}
+
 	key[0] = '\0';
 	value[0] = '\0';
 
@@ -2275,19 +2272,12 @@ qboolean Info_NextPair( const char **head, char *key, char *value ) {
 	while ( *s != '\\' ) {
 		if ( !*s ) {
 			*o = '\0';
-			*head = s;
-			return qtrue;
+			return s;
 		}
 		*o++ = *s++;
 	}
 	*o = '\0';
 	s++;
-
-	// If they key is empty at this point with a slash after it
-	// then this is considered invalid, possibly an attempt at hacked userinfo strings
-	if ( !key[0] ) {
-		return qfalse;
-	}
 
 	o = value;
 	while ( *s != '\\' && *s ) {
@@ -2295,9 +2285,7 @@ qboolean Info_NextPair( const char **head, char *key, char *value ) {
 	}
 	*o = '\0';
 
-	*head = s;
-
-	return qtrue;
+	return s;
 }
 
 

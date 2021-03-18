@@ -627,7 +627,7 @@ const char *Cvar_LatchedVariableString( const char *var_name );
 void    Cvar_LatchedVariableStringBuffer( const char *var_name, char *buffer, int bufsize );
 // Gordon: returns the latched value if there is one, else the normal one, empty string if not defined as usual
 
-int		Cvar_Flags(const char *var_name);
+unsigned Cvar_Flags( const char *var_name );
 // returns CVAR_NONEXISTENT if cvar doesn't exist or the flags of that particular CVAR.
 
 void	Cvar_CommandCompletion( void(*callback)(const char *s) );

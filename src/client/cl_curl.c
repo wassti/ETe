@@ -82,7 +82,7 @@ static void *GPA(const char *str)
 	else
 	{
 		Com_DPrintf("Loaded symbol %s (0x%p)\n", str, rv);
-        return rv;
+		return rv;
 	}
 }
 #endif /* USE_CURL_DLOPEN */
@@ -438,7 +438,7 @@ void CL_cURL_PerformDownload( void )
 }
 
 
-/*  
+/*
 ==================================
 
 Common CURL downloading functions
@@ -454,12 +454,12 @@ stristr
 case-insensitive sub-string search
 ==================================
 */
-const char* stristr( const char *source, const char *target ) 
+const char* stristr( const char *source, const char *target )
 {
 	const char *p0, *p1, *p2, *pn;
 	char c1, c2;
 
-	if ( *target == '\0' )  
+	if ( *target == '\0' )
 	{
 		return source;
 	}
@@ -467,19 +467,19 @@ const char* stristr( const char *source, const char *target )
 	pn = source;
 	p1 = source;
 	p2 = target;
-	
+
 	while ( *++p2 )
 	{
-	    pn++;
+		pn++;
 	}
 
 	while ( *pn != '\0' ) 
 	{
 
-    	p0 = p1;
-	    p2 = target;
+		p0 = p1;
+		p2 = target;
 
-    	while ( (c1 = *p1) != '\0' && (c2 = *p2) != '\0' )
+		while ( (c1 = *p1) != '\0' && (c2 = *p2) != '\0' )
 		{
 				if ( c1 <= 'Z' && c1 >= 'A' )
 					c1 += ('a' - 'A');
@@ -487,7 +487,7 @@ const char* stristr( const char *source, const char *target )
 				if ( c2 <= 'Z' && c2 >= 'A' )
 					c2 += ('a' - 'A');
 
-				if ( c1 != c2 ) 
+				if ( c1 != c2 )
 				{
 					break;
 				}
@@ -496,24 +496,25 @@ const char* stristr( const char *source, const char *target )
 				p2++;
 		}
 
-		if ( *p2 == '\0' )  
+		if ( *p2 == '\0' )
 		{
 			return p0;
 		}
 
 		p1 = p0 + 1;
-	    pn++;
-  }
+		pn++;
+	}
 
-  return NULL;
+	return NULL;
 }
+
 
 /*
 ==================================
 replace1
 ==================================
 */
-int replace1( const char src, const char dst, char *str ) 
+int replace1( const char src, const char dst, char *str )
 {
 	int count;
 
@@ -522,9 +523,9 @@ int replace1( const char src, const char dst, char *str )
 
 	count = 0;
 
-	while ( *str != '\0' ) 
+	while ( *str != '\0' )
 	{
-		if ( *str == src )	
+		if ( *str == src )
 		{
 			*str = dst;
 			count++;
@@ -665,9 +666,9 @@ Com_DL_Cleanup
 */
 void Com_DL_Cleanup( download_t *dl )
 {
-	if( dl->cURLM ) 
+	if( dl->cURLM )
 	{
-		if ( dl->cURL ) 
+		if ( dl->cURL )
 		{
 			dl->func.multi_remove_handle( dl->cURLM, dl->cURL );
 			dl->func.easy_cleanup( dl->cURL );
@@ -676,12 +677,12 @@ void Com_DL_Cleanup( download_t *dl )
 		dl->cURLM = NULL;
 		dl->cURL = NULL;
 	}
-	else if( dl->cURL ) 
+	else if( dl->cURL )
 	{
 		dl->func.easy_cleanup( dl->cURL );
 		dl->cURL = NULL;
 	}
-	if ( dl->fHandle != FS_INVALID_HANDLE ) 
+	if ( dl->fHandle != FS_INVALID_HANDLE )
 	{
 		FS_FCloseFile( dl->fHandle );
 		dl->fHandle = FS_INVALID_HANDLE;
@@ -736,7 +737,7 @@ static int Com_DL_CallbackProgress( void *data, double dltotal, double dlnow, do
 {
 	double percentage, speed;
 	download_t *dl = (download_t *)data;
-	
+
 	dl->Size = (int)dltotal;
 	dl->Count = (int)dlnow;
 
@@ -781,7 +782,7 @@ static size_t Com_DL_CallbackWrite( void *ptr, size_t size, size_t nmemb, void *
 	{
 		if ( !CL_ValidPakSignature( ptr, size*nmemb ) ) 
 		{
-			Com_Printf( S_COLOR_YELLOW "Com_DL_CallbackWrite(): invalid pak signature for %s.\n", 
+			Com_Printf( S_COLOR_YELLOW "Com_DL_CallbackWrite(): invalid pak signature for %s.\n",
 				dl->Name );
 			return (size_t)-1;
 		}
@@ -823,14 +824,14 @@ qboolean Com_DL_ValidFileName( const char *fileName )
 Com_DL_HeaderCallback
 =================
 */
-static size_t Com_DL_HeaderCallback( void *ptr, size_t size, size_t nmemb, void *userdata ) 
+static size_t Com_DL_HeaderCallback( void *ptr, size_t size, size_t nmemb, void *userdata )
 {
 	char name[MAX_OSPATH];
 	char header[1024], *s, quote, *d;
 	download_t *dl;
 	int len;
 
-	if ( size*nmemb >= sizeof( header ) ) 
+	if ( size*nmemb >= sizeof( header ) )
 	{
 		Com_Printf( S_COLOR_RED "Com_DL_HeaderCallback: header is too large." );
 		return (size_t)-1;
@@ -846,7 +847,7 @@ static size_t Com_DL_HeaderCallback( void *ptr, size_t size, size_t nmemb, void 
 	s = (char*)stristr( header, "content-disposition:" );
 	if ( s ) 
 	{
-		s += 20; // strlen( "content-disposition:" )	
+		s += 20; // strlen( "content-disposition:" )
 		s = (char*)stristr( s, "filename=" );
 		if ( s ) 
 		{
@@ -857,7 +858,7 @@ static size_t Com_DL_HeaderCallback( void *ptr, size_t size, size_t nmemb, void 
 			replace1( '\n', '\0', s );
 
 			// prevent overflow
-			if ( strlen( s ) >= sizeof( name ) ) 
+			if ( strlen( s ) >= sizeof( name ) )
 				s[ sizeof( name ) - 1 ] = '\0';
 
 			if ( *s == '\'' || *s == '"' )
@@ -885,7 +886,7 @@ static size_t Com_DL_HeaderCallback( void *ptr, size_t size, size_t nmemb, void 
 			strcpy( dl->Name, name );
 		}
 	}
-	
+
 	return size*nmemb;
 }
 
@@ -911,7 +912,7 @@ qboolean Com_DL_Begin( download_t *dl, const char *localName, const char *remote
 
 	if ( !Com_DL_Init( dl ) ) 
 	{
-		Com_Printf( S_COLOR_YELLOW "Error initializing cURL library\n" );		
+		Com_Printf( S_COLOR_YELLOW "Error initializing cURL library\n" );
 		return qfalse;
 	}
 
@@ -972,7 +973,7 @@ qboolean Com_DL_Begin( download_t *dl, const char *localName, const char *remote
 	}
 
 	Com_sprintf( dl->TempName, sizeof( dl->TempName ), 
-		"%s/%s.%08x.tmp", dl->gameDir, dl->Name, rand() | (rand() << 16) );
+		"%s%c%s.%08x.tmp", dl->gameDir, PATH_SEP, dl->Name, rand() | (rand() << 16) );
 
 	if ( com_developer->integer )
 		dl->func.easy_setopt( dl->cURL, CURLOPT_VERBOSE, 1 );
@@ -999,9 +1000,9 @@ qboolean Com_DL_Begin( download_t *dl, const char *localName, const char *remote
 
 	dl->cURLM = dl->func.multi_init();
 
-	if ( !dl->cURLM ) 
+	if ( !dl->cURLM )
 	{
-		Com_DL_Cleanup( dl );	
+		Com_DL_Cleanup( dl );
 		Com_Printf( S_COLOR_RED "Com_DL_Begin: multi_init() failed\n" );
 		return qfalse;
 	}
@@ -1029,7 +1030,7 @@ qboolean Com_DL_Begin( download_t *dl, const char *localName, const char *remote
 
 qboolean Com_DL_Perform( download_t *dl )
 {
-	char name[MAX_OSPATH];
+	char name[ sizeof( dl->TempName ) ];
 	CURLMcode res;
 	CURLMsg *msg;
 	long code;
@@ -1115,7 +1116,7 @@ qboolean Com_DL_Perform( download_t *dl )
 		{
 			if ( cls.state == CA_CONNECTED )
 			{
-				Com_Error( ERR_DROP, "download error" );
+				Com_Error( ERR_DROP, "%s", "download error" );
 			}
 		}
 	}

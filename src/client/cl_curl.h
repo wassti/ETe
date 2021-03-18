@@ -166,9 +166,9 @@ void DL_Cleanup( void );
 
 typedef struct download_s {
 	char		URL[MAX_OSPATH];
-	char		TempName[MAX_OSPATH+4];
 	char		Name[MAX_OSPATH];
 	char		gameDir[MAX_OSPATH];
+	char		TempName[MAX_OSPATH*2 + 14]; // gameDir + PATH_SEP + Name + ".00000000.tmp"
 	char		progress[MAX_OSPATH+64];
 	CURL		*cURL;
 	CURLM		*cURLM;

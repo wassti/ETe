@@ -298,7 +298,7 @@ typedef int		clipHandle_t;
 #define	MAX_INFO_KEY		1024
 #define	MAX_INFO_VALUE		1024
 
-#define MAX_USERINFO_LENGTH (MAX_INFO_STRING-13-19) // incl. length of 'connect ""' or 'userinfo ""' and '\ip\255.255.255.255' key on server side and reserving one byte to avoid q3msgboom
+#define MAX_USERINFO_LENGTH (MAX_INFO_STRING-13) // incl. length of 'connect ""' or 'userinfo ""' and reserving one byte to avoid q3msgboom
 													
 #define	BIG_INFO_STRING		8192  // used for system info key only
 #define	BIG_INFO_KEY		  8192

@@ -48,7 +48,7 @@ If you have questions concerning this license or the applicable additional terms
 #endif
 
 //bani
-#ifdef __GNUC__
+#if defined(__GNUC__) || defined(__clang__)
 #define _attribute( x ) __attribute__( x )
 #else
 #define _attribute( x )

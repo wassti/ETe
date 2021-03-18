@@ -75,7 +75,7 @@ If you have questions concerning this license or the applicable additional terms
 
 #define DEMOEXT	"dm_"			// standard demo extension
 
-#if defined _WIN32 && !defined __GNUC__
+#ifdef _MSC_VER
 
 #pragma warning(disable : 4018) // signed/unsigned mismatch
 #pragma warning(disable : 4032)
@@ -100,14 +100,14 @@ If you have questions concerning this license or the applicable additional terms
 #pragma warning(disable : 4220) // varargs matches remaining parameters
 #endif
 
-//Ignore __attribute__ on non-gcc platforms
-#ifndef __GNUC__
+//Ignore __attribute__ on non-gcc/clang platforms
+#if !defined(__GNUC__) && !defined(__clang__)
 #ifndef __attribute__
 #define __attribute__(x)
 #endif
 #endif
 
-#ifdef __GNUC__
+#if defined(__GNUC__) || defined(__clang__)
 #define UNUSED_VAR __attribute__((unused))
 #else
 #define UNUSED_VAR
@@ -119,11 +119,13 @@ If you have questions concerning this license or the applicable additional terms
 #define Q_EXPORT __global
 #elif ((__GNUC__ >= 3) && (!__EMX__) && (!sun))
 #define Q_EXPORT __attribute__((visibility("default")))
+#elif (defined(__clang__))
+#define Q_EXPORT __attribute__((visibility("default")))
 #else
 #define Q_EXPORT
 #endif
 
-#if defined(__GNUC__)
+#if defined(__GNUC__) || defined(__clang__)
 #define NORETURN __attribute__((noreturn))
 #define NORETURN_PTR __attribute__((noreturn))
 #elif defined(_MSC_VER)
@@ -135,7 +137,7 @@ If you have questions concerning this license or the applicable additional terms
 #define NORETURN_PTR /* nothing */
 #endif
 
-#if defined(__GNUC__)
+#if defined(__GNUC__) || defined(__clang__)
 #define FORMAT_PRINTF(x, y) __attribute__((format (printf, x, y)))
 #else
 #define FORMAT_PRINTF(x, y) /* nothing */
@@ -228,10 +230,10 @@ typedef enum { qfalse = 0, qtrue = 1 } qboolean;
 
 typedef union floatint_u
 {
-	int i;
-	unsigned int u;
+	int32_t i;
+	uint32_t u;
 	float f;
-	byte b[sizeof(int)];
+	byte b[sizeof(int32_t)];
 }
 floatint_t;
 
@@ -245,7 +247,7 @@ typedef int		clipHandle_t;
 
 #define PADP(base, alignment)	((void *) PAD((intptr_t) (base), (alignment)))
 
-#ifdef __GNUC__
+#if defined(__GNUC__) || defined(__clang__)
 #define QALIGN(x) __attribute__((aligned(x)))
 #else
 #define QALIGN(x)
@@ -259,7 +261,6 @@ typedef int		clipHandle_t;
 #define     SND_NOCUT           0x010   // Don't cut off.  Always let finish (overridden by SND_CUTOFF_ALL)
 #define     SND_NO_ATTENUATION  0x020   // don't attenuate (even though the sound is in voice channel, for example)
 
-
 #ifndef NULL
 #define NULL ((void *)0)
 #endif
@@ -267,6 +268,7 @@ typedef int		clipHandle_t;
 #define	MAX_QINT			0x7fffffff
 #define	MIN_QINT			(-MAX_QINT-1)
 
+// fixme: remove this
 // TTimo gcc: was missing, added from Q3 source
 #ifndef max
 #define max( x, y ) ( ( ( x ) > ( y ) ) ? ( x ) : ( y ) )
@@ -353,7 +355,7 @@ typedef enum {
 
 // parameters to the main Error routine
 typedef enum {
-	ERR_FATAL,                  // exit the entire game with a popup window
+	ERR_FATAL = 0,                  // exit the entire game with a popup window
 	ERR_VID_FATAL,              // exit the entire game with a popup window and doesn't delete profile.pid
 	ERR_DROP,                   // print to console and disconnect from game
 	ERR_SERVERDISCONNECT,       // don't kill server

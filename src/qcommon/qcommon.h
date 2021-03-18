@@ -32,8 +32,8 @@ If you have questions concerning this license or the applicable additional terms
 #include <sys/types.h>
 #include "../qcommon/cm_public.h"
 
-//Ignore __attribute__ on non-gcc platforms
-#ifndef __GNUC__
+//Ignore __attribute__ on non-gcc/clang platforms
+#if !defined(__GNUC__) && !defined(__clang__)
 #ifndef __attribute__
 #define __attribute__(x)
 #endif
@@ -41,7 +41,7 @@ If you have questions concerning this license or the applicable additional terms
 
 /* C99 defines __func__ */
 #if __STDC_VERSION__ < 199901L 
-#if __GNUC__ >= 2 || _MSC_VER >= 1300 
+#if __GNUC__ >= 2 || _MSC_VER >= 1300 || defined(__clang__)
 #define __func__ __FUNCTION__ 
 #else 
 #define __func__ "(unknown)" 

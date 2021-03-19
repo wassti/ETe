@@ -268,13 +268,6 @@ typedef int		clipHandle_t;
 #define	MAX_QINT			0x7fffffff
 #define	MIN_QINT			(-MAX_QINT-1)
 
-// fixme: remove this
-// TTimo gcc: was missing, added from Q3 source
-#ifndef max
-#define max( x, y ) ( ( ( x ) > ( y ) ) ? ( x ) : ( y ) )
-#define min( x, y ) ( ( ( x ) < ( y ) ) ? ( x ) : ( y ) )
-#endif
-
 #define	MAX_UINT			((unsigned)(~0))
 
 #define ARRAY_LEN(x)		(sizeof(x) / sizeof(*(x)))

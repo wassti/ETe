@@ -155,7 +155,7 @@ jobs:
 
     steps:
     - name: Install tools
-      run: brew install coreutils sdl2
+      run: brew install coreutils ninja sdl2
 
     - uses: actions/checkout@v2
       with:
@@ -167,7 +167,7 @@ jobs:
 
     - name: Configure CMake
       working-directory: ${{github.workspace}}/src/bin
-      run: cmake .. -DCMAKE_BUILD_TYPE=${{ matrix.config }} -DUSE_SDL2=TRUE -DBUILD_ETMAIN_MOD=TRUE
+      run: cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=${{ matrix.config }} -DUSE_SDL2=TRUE -DBUILD_ETMAIN_MOD=TRUE
 
     - name: Build
       working-directory: ${{github.workspace}}/src/bin

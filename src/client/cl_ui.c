@@ -35,9 +35,6 @@ extern botlib_export_t *botlib_export;
 
 vm_t *uivm = NULL;
 
-// ydnar: can we put this in a header, pls?
-void Key_GetBindingByString( const char* binding, int* key1, int* key2 );
-
 
 /*
 ====================
@@ -728,34 +725,6 @@ static void CL_GetClipboardData( char *buf, int buflen ) {
 	Q_strncpyz( buf, cbd, buflen );
 
 	Z_Free( cbd );
-}
-
-
-/*
-====================
-Key_KeynumToStringBuf
-====================
-*/
-void Key_KeynumToStringBuf( int keynum, char *buf, int buflen ) {
-	Q_strncpyz( buf, Key_KeynumToString( keynum, qtrue ), buflen );
-}
-
-
-/*
-====================
-Key_GetBindingBuf
-====================
-*/
-void Key_GetBindingBuf( int keynum, char *buf, int buflen ) {
-	const char *value;
-
-	value = Key_GetBinding( keynum );
-	if ( value ) {
-		Q_strncpyz( buf, value, buflen );
-	}
-	else {
-		*buf = '\0';
-	}
 }
 
 

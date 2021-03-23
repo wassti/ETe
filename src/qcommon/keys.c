@@ -1061,6 +1061,21 @@ const char *Key_KeynumToString( int keynum, qboolean bTranslate ) {
 	return tinystr;
 }
 
+
+/*
+====================
+Key_KeynumToStringBuf
+
+Only used by cl_cgame and cl_ui for trap interface
+====================
+*/
+#ifndef DEDICATED
+void Key_KeynumToStringBuf( int keynum, char *buf, int buflen ) {
+	Q_strncpyz( buf, Key_KeynumToString( keynum, qtrue ), buflen );
+}
+#endif
+
+
 // ENSI CHECKME do we need the hash binds from ET?
 
 /*
@@ -1099,6 +1114,26 @@ const char *Key_GetBinding( int keynum ) {
 
 	return keys[ keynum ].binding;
 }
+
+
+/*
+====================
+Key_GetBindingBuf
+====================
+*/
+#ifndef DEDICATED
+void Key_GetBindingBuf( int keynum, char *buf, int buflen ) {
+	const char *value;
+
+	value = Key_GetBinding( keynum );
+	if ( value ) {
+		Q_strncpyz( buf, value, buflen );
+	}
+	else {
+		*buf = '\0';
+	}
+}
+#endif
 
 
 // binding MUST be lower case

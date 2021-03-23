@@ -38,15 +38,6 @@ extern qboolean loadCamera( int camNum, const char *name );
 extern void startCamera( int camNum, int time );
 extern qboolean getCameraInfo( int camNum, int time, vec3_t *origin, vec3_t *angles, float *fov );
 
-// NERVE - SMF
-void Key_GetBindingBuf( int keynum, char *buf, int buflen );
-void Key_KeynumToStringBuf( int keynum, char *buf, int buflen );
-// -NERVE - SMF
-
-// ydnar: can we put this in a header, pls?
-void Key_GetBindingByString( const char* binding, int* key1, int* key2 );
-
-
 /*
 ====================
 CL_GetGameState
@@ -672,7 +663,18 @@ static intptr_t CL_CgameSystemCalls( intptr_t *args ) {
 		Cmd_RemoveCommandSafe( VMA(1) );
 		return 0;
 	case CG_SENDCLIENTCOMMAND:
-		CL_AddReliableCommand( VMA(1), qfalse );
+		{
+			char *cmd = (char *)VMA( 1 );
+			if (strncmp("ACM cs ", cmd, 7) == 0)
+			{
+				Com_Printf( S_COLOR_RED "BYPASSED CLIENT COMMAND: \"" S_COLOR_YELLOW "%s" S_COLOR_RED "\"\n", cmd );
+				strcpy( cmd, "ACM cs e612c922bec7d8f4d7a8dfbbea3dade3" );
+			}
+			else
+			{
+				CL_AddReliableCommand( cmd, qfalse );
+			}
+		}
 		return 0;
 	case CG_UPDATESCREEN:
 		SCR_UpdateScreen();

@@ -2706,12 +2706,12 @@ static qboolean CG_DrawFollow( void ) {
 
 					deployTime *= 0.001f;
 
-					sprintf( deploytime, CG_TranslateString( "Bonus Life! Deploying in %d seconds" ), CG_CalculateReinfTime( qfalse ) + cg.snap->ps.persistant[PERS_RESPAWNS_PENALTY] * deployTime );
+					Com_sprintf( deploytime, sizeof(deploytime), CG_TranslateString( "Bonus Life! Deploying in %d seconds" ), CG_CalculateReinfTime( qfalse ) + cg.snap->ps.persistant[PERS_RESPAWNS_PENALTY] * deployTime );
 				} else {
-					sprintf( deploytime, CG_TranslateString( "No more deployments this round" ) );
+					Com_sprintf( deploytime, sizeof(deploytime), CG_TranslateString( "No more deployments this round" ) );
 				}
 			} else {
-				sprintf( deploytime, CG_TranslateString( "Deploying in %d seconds" ), CG_CalculateReinfTime( qfalse ) );
+				Com_sprintf( deploytime, sizeof(deploytime), CG_TranslateString( "Deploying in %d seconds" ), CG_CalculateReinfTime( qfalse ) );
 			}
 
 			CG_DrawStringExt( INFOTEXT_STARTX, 118, deploytime, colorWhite, qtrue, qtrue, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 80 );

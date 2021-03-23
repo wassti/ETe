@@ -87,7 +87,7 @@ void MSG_Uncompressed( msg_t *buf );
 // copy a msg_t in case we need to store it as is for a bit
 // (as I needed this to keep an msg_t from a static var for later use)
 // sets data buffer as MSG_Init does prior to do the copy
-void MSG_Copy(msg_t *buf, byte *data, int length, msg_t *src);
+void MSG_Copy(msg_t *buf, byte *data, int length, const msg_t *src);
 
 struct usercmd_s;
 struct entityState_s;

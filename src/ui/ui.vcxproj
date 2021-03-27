@@ -42,6 +42,9 @@
   <PropertyGroup>
     <_ProjectFileVersion>15.0.26419.1</_ProjectFileVersion>
   </PropertyGroup>
+  <PropertyGroup>
+    <XPDeprecationWarning>false</XPDeprecationWarning>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>.\Release\</OutDir>
     <IntDir>.\Release\</IntDir>
@@ -150,8 +153,8 @@
     <ClCompile Include="..\game\bg_campaign.c" />
     <ClCompile Include="..\game\bg_classes.c" />
     <ClCompile Include="..\game\bg_misc.c" />
-    <ClCompile Include="..\game\q_math.c" />
-    <ClCompile Include="..\game\q_shared.c" />
+    <ClCompile Include="..\qcommon\q_math.c" />
+    <ClCompile Include="..\qcommon\q_shared.c" />
     <ClCompile Include="ui_atoms.c" />
     <ClCompile Include="ui_gameinfo.c" />
     <ClCompile Include="ui_loadpanel.c" />
@@ -225,10 +228,10 @@
     <ClInclude Include="..\..\etmain\ui\menudef.h" />
     <ClInclude Include="..\..\etmain\ui\menumacros.h" />
     <ClInclude Include="..\..\main\ui\menudef.h" />
-    <ClInclude Include="..\cgame\tr_types.h" />
+    <ClInclude Include="..\renderercommon\tr_types.h" />
     <ClInclude Include="..\game\bg_classes.h" />
     <ClInclude Include="..\game\bg_public.h" />
-    <ClInclude Include="..\game\q_shared.h" />
+    <ClInclude Include="..\qcommon\q_shared.h" />
     <ClInclude Include="..\game\surfaceflags.h" />
     <ClInclude Include="keycodes.h" />
     <ClInclude Include="ui_local.h" />

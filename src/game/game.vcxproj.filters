@@ -156,10 +156,10 @@
     <ClCompile Include="g_weapon.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="q_math.c">
+    <ClCompile Include="..\qcommon\q_math.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="q_shared.c">
+    <ClCompile Include="..\qcommon\q_shared.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -190,7 +190,7 @@
     <ClInclude Include="g_team.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="q_shared.h">
+    <ClInclude Include="..\qcommon\q_shared.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="surfaceflags.h">

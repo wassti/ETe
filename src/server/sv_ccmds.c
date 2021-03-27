@@ -1063,6 +1063,11 @@ void SV_TempBanNetAddress( const netadr_t *address, int length ) {
 	int oldesttime = 0;
 	int oldest = -1;
 
+	// local and bots cannot be banned
+	if ( address->type <= NA_LOOPBACK ) {
+		return;
+	}
+
 	for ( i = 0; i < MAX_TEMPBAN_ADDRESSES; i++ ) {
 		if ( !svs.tempBanAddresses[ i ].endtime || svs.tempBanAddresses[ i ].endtime < svs.time ) {
 			// found a free slot
@@ -1084,6 +1089,11 @@ void SV_TempBanNetAddress( const netadr_t *address, int length ) {
 
 qboolean SV_TempBanIsBanned( const netadr_t *address ) {
 	int i;
+
+	// local and bots cannot be banned
+	if ( address->type <= NA_LOOPBACK ) {
+		return qfalse;
+	}
 
 	for ( i = 0; i < MAX_TEMPBAN_ADDRESSES; i++ ) {
 		if ( svs.tempBanAddresses[ i ].endtime && svs.tempBanAddresses[ i ].endtime > svs.time ) {

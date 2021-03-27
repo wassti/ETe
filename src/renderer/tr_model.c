@@ -35,7 +35,7 @@ If you have questions concerning this license or the applicable additional terms
 // Ridah
 static qboolean R_LoadMDC( model_t *mod, int lod, void *buffer, const char *mod_name );
 // done.
-static qboolean R_LoadMD3( model_t *mod, int lod, void *buffer, const char *name );
+static qboolean R_LoadMD3( model_t *mod, int lod, void *buffer, int fileSize, const char *name );
 static qboolean R_LoadMDS( model_t *mod, void *buffer, const char *name );
 static qboolean R_LoadMDM( model_t *mod, void *buffer, const char *name );
 static qboolean R_LoadMDX( model_t *mod, void *buffer, const char *name );
@@ -48,13 +48,14 @@ R_RegisterMD3
 qhandle_t R_RegisterMD3(const char *name, model_t *mod)
 {
 	union {
-		unsigned *u;
+		uint32_t *u;
 		void *v;
 	} buf;
 	int			lod;
-	int			ident;
+	uint32_t	ident;
 	qboolean	loaded = qfalse;
 	int			numLoaded;
+	int			fileSize;
 	char filename[MAX_QPATH], namebuf[MAX_QPATH+20];
 	char *fext, defex[] = "md3";
 
@@ -78,19 +79,25 @@ qhandle_t R_RegisterMD3(const char *name, model_t *mod)
 		else
 			Com_sprintf(namebuf, sizeof(namebuf), "%s.%s", filename, fext);
 
-		ri.FS_ReadFile( namebuf, &buf.v );
-		if(!buf.u)
+		fileSize = ri.FS_ReadFile( namebuf, &buf.v );
+		if ( !buf.v )
 			continue;
-		
-		ident = LittleLong(* (unsigned *) buf.u);
-		if (ident == MD3_IDENT)
-			loaded = R_LoadMD3(mod, lod, buf.u, name);
-		else
-			ri.Printf(PRINT_WARNING,"R_RegisterMD3: unknown fileid for %s\n", name);
-		
-		ri.FS_FreeFile(buf.v);
 
-		if(loaded)
+		if ( fileSize < sizeof( md3Header_t ) ) {
+			ri.Printf( PRINT_WARNING, "%s: truncated header for %s\n", __func__, name );
+			ri.FS_FreeFile( buf.v );
+			break;
+		}
+		
+		ident = LittleLong( *buf.u );
+		if ( ident == MD3_IDENT )
+			loaded = R_LoadMD3( mod, lod, buf.v, fileSize, name );
+		else
+			ri.Printf( PRINT_WARNING,"%s: unknown fileid for %s\n", __func__, name );
+		
+		ri.FS_FreeFile( buf.v );
+
+		if ( loaded )
 		{
 			mod->numLods++;
 			numLoaded++;
@@ -1224,9 +1231,9 @@ static qboolean R_LoadMDC( model_t *mod, int lod, void *buffer, const char *mod_
 R_LoadMD3
 =================
 */
-static qboolean R_LoadMD3( model_t *mod, int lod, void *buffer, const char *mod_name ) {
+static qboolean R_LoadMD3( model_t *mod, int lod, void *buffer, int fileSize, const char *mod_name ) {
 	int i, j;
-	md3Header_t         *pinmodel;
+	md3Header_t         *pinmodel, *hdr;
 	md3Frame_t          *frame;
 	md3Surface_t        *surf;
 	md3Shader_t         *shader;
@@ -1242,30 +1249,59 @@ static qboolean R_LoadMD3( model_t *mod, int lod, void *buffer, const char *mod_
 
 	version = LittleLong( pinmodel->version );
 	if ( version != MD3_VERSION ) {
-		ri.Printf( PRINT_WARNING, "R_LoadMD3: %s has wrong version (%i should be %i)\n",
-				   mod_name, version, MD3_VERSION );
+		ri.Printf( PRINT_WARNING, "%s: %s has wrong version (%i should be %i)\n", __func__, mod_name, version, MD3_VERSION );
+		return qfalse;
+	}
+
+	size = LittleLong( pinmodel->ofsEnd );
+
+	if ( size > fileSize ) {
+		ri.Printf( PRINT_WARNING, "%s: %s has corrupted header\n", __func__, mod_name );
 		return qfalse;
 	}
 
 	mod->type = MOD_MESH;
-	size = LittleLong( pinmodel->ofsEnd );
 	mod->dataSize += size;
 	mod->model.md3[lod] = ri.Hunk_Alloc( size, h_low );
 
-	memcpy( mod->model.md3[lod], buffer, LittleLong( pinmodel->ofsEnd ) );
+	memcpy( mod->model.md3[lod], buffer, size );
 
-	LL( mod->model.md3[lod]->ident );
-	LL( mod->model.md3[lod]->version );
-	LL( mod->model.md3[lod]->numFrames );
-	LL( mod->model.md3[lod]->numTags );
-	LL( mod->model.md3[lod]->numSurfaces );
-	LL( mod->model.md3[lod]->ofsFrames );
-	LL( mod->model.md3[lod]->ofsTags );
-	LL( mod->model.md3[lod]->ofsSurfaces );
-	LL( mod->model.md3[lod]->ofsEnd );
+	hdr = mod->model.md3[lod];
 
-	if ( mod->model.md3[lod]->numFrames < 1 ) {
-		ri.Printf( PRINT_WARNING, "R_LoadMD3: %s has no frames\n", mod_name );
+	LL( hdr->ident );
+	LL( hdr->version );
+	LL( hdr->numFrames );
+	LL( hdr->numTags );
+	LL( hdr->numSurfaces );
+	LL( hdr->ofsFrames );
+	LL( hdr->ofsTags );
+	LL( hdr->ofsSurfaces );
+	LL( hdr->ofsEnd );
+
+	if ( hdr->numFrames < 1 ) {
+		ri.Printf( PRINT_WARNING, "%s: %s has no frames\n", __func__, mod_name );
+		return qfalse;
+	}
+
+	if ( hdr->ofsFrames > size || hdr->ofsTags > size || hdr->ofsSurfaces > size ) {
+		ri.Printf( PRINT_WARNING, "%s: %s has corrupted header\n", __func__, mod_name );
+		return qfalse;
+	}
+	if ( (unsigned)( hdr->numFrames | hdr->numTags | hdr->numSkins ) > (1 << 20) ) {
+		ri.Printf( PRINT_WARNING, "%s: %s has corrupted header\n", __func__, mod_name );
+		return qfalse;
+	}
+
+	if ( hdr->ofsFrames + hdr->numFrames * sizeof( md3Frame_t ) > fileSize ) {
+		ri.Printf( PRINT_WARNING, "%s: %s has corrupted header\n", __func__, mod_name );
+		return qfalse;
+	}
+	if ( hdr->ofsTags + hdr->numTags * hdr->numFrames * sizeof( md3Tag_t ) > fileSize ) {
+		ri.Printf( PRINT_WARNING, "%s: %s has corrupted header\n", __func__, mod_name );
+		return qfalse;
+	}
+	if ( hdr->ofsSurfaces + ( hdr->numSurfaces ? 1 : 0 ) * sizeof( md3Surface_t ) > fileSize ) {
+		ri.Printf( PRINT_WARNING, "%s: %s has corrupted header\n", __func__, mod_name );
 		return qfalse;
 	}
 
@@ -1274,8 +1310,8 @@ static qboolean R_LoadMD3( model_t *mod, int lod, void *buffer, const char *mod_
 	}
 
 	// swap all the frames
-	frame = ( md3Frame_t * )( (byte *)mod->model.md3[lod] + mod->model.md3[lod]->ofsFrames );
-	for ( i = 0 ; i < mod->model.md3[lod]->numFrames ; i++, frame++ ) {
+	frame = ( md3Frame_t * )( (byte *)hdr + hdr->ofsFrames );
+	for ( i = 0 ; i < hdr->numFrames ; i++, frame++ ) {
 		frame->radius = LittleFloat( frame->radius );
 		if ( fixRadius ) {
 			frame->radius = 256;
@@ -1304,8 +1340,10 @@ static qboolean R_LoadMD3( model_t *mod, int lod, void *buffer, const char *mod_
 	}
 
 	// swap all the tags
-	tag = ( md3Tag_t * )( (byte *)mod->model.md3[lod] + mod->model.md3[lod]->ofsTags );
-	for ( i = 0 ; i < mod->model.md3[lod]->numTags * mod->model.md3[lod]->numFrames ; i++, tag++ ) {
+	tag = ( md3Tag_t * )( (byte *)hdr + hdr->ofsTags );
+	for ( i = 0 ; i < hdr->numTags * hdr->numFrames ; i++, tag++ ) {
+		// zero-terminate tag name
+		tag->name[sizeof( tag->name ) - 1] = '\0';
 		for ( j = 0 ; j < 3 ; j++ ) {
 			tag->origin[j] = LittleFloat( tag->origin[j] );
 			tag->axis[0][j] = LittleFloat( tag->axis[0][j] );
@@ -1315,8 +1353,8 @@ static qboolean R_LoadMD3( model_t *mod, int lod, void *buffer, const char *mod_
 	}
 
 	// swap all the surfaces
-	surf = ( md3Surface_t * )( (byte *)mod->model.md3[lod] + mod->model.md3[lod]->ofsSurfaces );
-	for ( i = 0 ; i < mod->model.md3[lod]->numSurfaces ; i++ ) {
+	surf = ( md3Surface_t * )( (byte *)hdr + hdr->ofsSurfaces );
+	for ( i = 0 ; i < hdr->numSurfaces ; i++ ) {
 
 		LL( surf->ident );
 		LL( surf->flags );
@@ -1330,21 +1368,49 @@ static qboolean R_LoadMD3( model_t *mod, int lod, void *buffer, const char *mod_
 		LL( surf->ofsXyzNormals );
 		LL( surf->ofsEnd );
 
+		if ( surf->ofsEnd > fileSize || (((byte*)surf - (byte*)hdr) + surf->ofsEnd) > fileSize ) {
+			ri.Printf( PRINT_WARNING, "%s: %s has corrupted surface header\n", __func__, mod_name );
+			return qfalse;
+		}
+		if ( surf->ofsTriangles > fileSize || surf->ofsShaders > fileSize || surf->ofsSt > fileSize || surf->ofsXyzNormals > fileSize ) {
+			ri.Printf( PRINT_WARNING, "%s: %s has corrupted surface header\n", __func__, mod_name );
+			return qfalse;
+		}
+		if ( surf->ofsTriangles + surf->numTriangles * sizeof( md3Triangle_t ) > fileSize ) {
+			ri.Printf( PRINT_WARNING, "%s: %s has corrupted surface header\n", __func__, mod_name );
+			return qfalse;
+		}
+		if ( surf->ofsShaders + surf->numShaders * sizeof( md3Shader_t ) > fileSize || surf->numShaders > (1<<20) ) {
+			ri.Printf( PRINT_WARNING, "%s: %s has corrupted surface header\n", __func__, mod_name );
+			return qfalse;
+		}
+		if ( surf->ofsSt + surf->numVerts * sizeof( md3St_t ) > fileSize ) {
+			ri.Printf( PRINT_WARNING, "%s: %s has corrupted surface header\n", __func__, mod_name );
+			return qfalse;
+		}
+		if ( surf->ofsXyzNormals + surf->numVerts * sizeof( md3XyzNormal_t ) > fileSize ) {
+			ri.Printf( PRINT_WARNING, "%s: %s has corrupted surface header\n", __func__, mod_name );
+			return qfalse;
+		}
+
 		if ( surf->numVerts >= SHADER_MAX_VERTEXES ) {
-			ri.Printf(PRINT_WARNING, "R_LoadMD3: %s has more than %i verts on %s (%i).\n",
+			ri.Printf(PRINT_WARNING, "%s: %s has more than %i verts on %s (%i).\n", __func__,
 				mod_name, SHADER_MAX_VERTEXES - 1, surf->name[0] ? surf->name : "a surface",
 				surf->numVerts );
 			return qfalse;
 		}
 		if ( surf->numTriangles*3 >= SHADER_MAX_INDEXES ) {
-			ri.Printf(PRINT_WARNING, "R_LoadMD3: %s has more than %i triangles on %s (%i).\n",
+			ri.Printf(PRINT_WARNING, "%s: %s has more than %i triangles on %s (%i).\n", __func__,
 				mod_name, ( SHADER_MAX_INDEXES / 3 ) - 1, surf->name[0] ? surf->name : "a surface",
 				surf->numTriangles );
 			return qfalse;
 		}
-	
+
 		// change to surface identifier
 		surf->ident = SF_MD3;
+
+		// zero-terminate surface name
+		surf->name[sizeof( surf->name ) - 1] = '\0';
 
 		// lowercase the surface name so skin compares are faster
 		Q_strlwr( surf->name );
@@ -1352,14 +1418,17 @@ static qboolean R_LoadMD3( model_t *mod, int lod, void *buffer, const char *mod_
 		// strip off a trailing _1 or _2
 		// this is a crutch for q3data being a mess
 		j = strlen( surf->name );
-		if ( j > 2 && surf->name[j - 2] == '_' ) {
-			surf->name[j - 2] = 0;
+		if ( j > 2 && surf->name[j-2] == '_' ) {
+			surf->name[j-2] = 0;
 		}
 
 		// register the shaders
-		shader = ( md3Shader_t * )( (byte *)surf + surf->ofsShaders );
+		shader = (md3Shader_t *) ( (byte *)surf + surf->ofsShaders );
 		for ( j = 0 ; j < surf->numShaders ; j++, shader++ ) {
-			shader_t    *sh;
+			shader_t	*sh;
+
+			// zero-terminate shader name
+			shader->name[sizeof( shader->name ) - 1] = '\0';
 
 			sh = R_FindShader( shader->name, LIGHTMAP_NONE, qtrue );
 			if ( sh->defaultShader ) {

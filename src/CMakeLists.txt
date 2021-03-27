@@ -81,6 +81,10 @@ check_type_size("void*" CMAKE_SIZEOF_VOID_P)
 	endif()
 #endif()
 
+if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+    link_libraries("-Wl,--hash-style=both")
+endif()
+
 message("Configured for ${CMAKE_SYSTEM_PROCESSOR}")
 
 option(BUILD_CLIENT "Build the ete client binary" ON)

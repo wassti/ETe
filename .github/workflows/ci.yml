@@ -63,11 +63,20 @@ jobs:
 
         msbuild wolf.vcxproj -m -p:PlatformToolset=v141_xp,Configuration=${{ matrix.config }},Platform=${{ matrix.platform }},UseWasapi=USE_WASAPI=0
 
+        msbuild game\game.vcxproj -m -p:PlatformToolset=v141_xp,Configuration=${{ matrix.config }},Platform=${{ matrix.platform }}
+        
+        msbuild ui\ui.vcxproj -m -p:PlatformToolset=v141_xp,Configuration=${{ matrix.config }},Platform=${{ matrix.platform }}
+        
+        msbuild cgame\cgame.vcxproj -m -p:PlatformToolset=v141_xp,Configuration=${{ matrix.config }},Platform=${{ matrix.platform }}
+
     - name: Copy outputs to Binary Directory
       working-directory: ${{github.workspace}}/src
       run: |
           copy ded\Release\ETe-ded.exe ${{github.workspace}}\bin\ETe-ded${{ matrix.suffix }}.exe
           copy Release\ETe.exe ${{github.workspace}}\bin\ETe${{ matrix.suffix }}.exe
+          copy Release\qagame_mp_x86.dll ${{github.workspace}}\bin\
+          copy Release\ui_mp_x86.dll ${{github.workspace}}\bin\
+          copy Release\cgame_mp_x86.dll ${{github.workspace}}\bin\
 
     - uses: actions/upload-artifact@v2
       if: ${{ matrix.config == 'Release' }}

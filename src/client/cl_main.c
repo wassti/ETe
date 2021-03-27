@@ -2490,7 +2490,7 @@ static void CL_CheckForResend( void ) {
 	case CA_CONNECTING:
 		// requesting a challenge .. IPv6 users always get in as authorize server supports no ipv6.
 		// The challenge request shall be followed by a client challenge so no malicious server can hijack this connection.
-		NET_OutOfBandPrint( NS_CLIENT, &clc.serverAddress, "getchallenge %d", clc.challenge );
+		NET_OutOfBandPrint( NS_CLIENT, &clc.serverAddress, "getchallenge %d %s", clc.challenge, GAMENAME_FOR_MASTER );
 		break;
 
 	case CA_CHALLENGING:

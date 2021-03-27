@@ -766,6 +766,9 @@ void *QDECL Sys_LoadDll( const char *name, dllSyscall_t *entryPoint, dllSyscall_
 #if !defined( DEDICATED )
 	qboolean	unpack = qfalse;
 #endif
+#ifdef _DEBUG
+	TCHAR currpath[ MAX_OSPATH ];
+#endif
 
 	Q_strncpyz( filename, Sys_GetDLLName( name ), sizeof( filename ) );
 
@@ -778,7 +781,7 @@ void *QDECL Sys_LoadDll( const char *name, dllSyscall_t *entryPoint, dllSyscall_
 	fn = filename;
 
 #ifdef _DEBUG
-	if ( GetCurrentDirectory( currpath, ARRAY_LEN( currpath ) ) < ARRAY_LEN( currpath ) ) {
+	if ( GetCurrentDirectory( ARRAY_LEN( currpath ), currpath ) < ARRAY_LEN( currpath ) ) {
 		fn = FS_BuildOSPath( WtoA( currpath ), gamedir, filename );
 		libHandle = LoadLibrary( AtoW( filename ) );
 	} else

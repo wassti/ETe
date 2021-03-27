@@ -414,6 +414,7 @@ typedef struct shader_s {
 
 #ifdef USE_PMLIGHT
 	int			lightingStage;
+	int			lightingBundle;
 #endif
 	qboolean	isStaticShader;
 	int			svarsSize;

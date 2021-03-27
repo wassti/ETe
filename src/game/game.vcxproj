@@ -147,23 +147,11 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\botai\ai_cmd.c" />
-    <ClCompile Include="..\botai\ai_dmgoal_mp.c" />
-    <ClCompile Include="..\botai\ai_dmnet_mp.c" />
-    <ClCompile Include="..\botai\ai_dmq3.c" />
-    <ClCompile Include="..\botai\ai_main.c" />
-    <ClCompile Include="..\botai\ai_script.c" />
-    <ClCompile Include="..\botai\ai_script_actions.c" />
-    <ClCompile Include="..\botai\ai_team.c" />
     <ClCompile Include="bg_animation.c" />
     <ClCompile Include="bg_animgroup.c" />
     <ClCompile Include="bg_campaign.c" />
     <ClCompile Include="bg_character.c" />
     <ClCompile Include="bg_classes.c" />
-    <ClCompile Include="bg_lib.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="bg_misc.c" />
     <ClCompile Include="bg_pmove.c" />
     <ClCompile Include="bg_slidemove.c" />
@@ -173,7 +161,6 @@
     <ClCompile Include="g_active.c" />
     <ClCompile Include="g_alarm.c" />
     <ClCompile Include="g_antilag.c" />
-    <ClCompile Include="g_bot.c" />
     <ClCompile Include="g_buddy_list.c" />
     <ClCompile Include="g_character.c" />
     <ClCompile Include="g_client.c" />
@@ -192,14 +179,12 @@
     <ClCompile Include="g_multiview.c" />
     <ClCompile Include="g_props.c" />
     <ClCompile Include="g_referee.c" />
-    <ClCompile Include="g_save.c" />
     <ClCompile Include="g_script.c" />
     <ClCompile Include="g_script_actions.c" />
     <ClCompile Include="g_session.c" />
     <ClCompile Include="g_spawn.c" />
     <ClCompile Include="g_stats.c" />
     <ClCompile Include="g_svcmds.c" />
-    <ClCompile Include="g_sv_entities.c" />
     <ClCompile Include="g_syscalls.c" />
     <ClCompile Include="g_systemmsg.c" />
     <ClCompile Include="g_target.c" />

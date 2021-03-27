@@ -478,7 +478,7 @@ if(BUILD_ETMAIN_MOD)
         "ui/ui_players.c"
         "ui/ui_shared.c"
         "ui/ui_syscalls.c"
-        "ui/ui_util.c"
+        #"ui/ui_util.c"
         "game/bg_campaign.c"
         "game/bg_classes.c"
         "game/bg_misc.c"

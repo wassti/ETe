@@ -152,7 +152,7 @@ NameToAFunc
 ===============
 */
 static unsigned NameToAFunc( const char *funcname )
-{	
+{
 	if ( !Q_stricmp( funcname, "GT0" ) )
 	{
 		return GLS_ATEST_GT_0;
@@ -262,6 +262,7 @@ static int NameToDstBlendMode( const char *name )
 	ri.Printf( PRINT_WARNING, "WARNING: unknown blend mode '%s' in shader '%s', substituting GL_ONE\n", name, shader.name );
 	return GLS_DSTBLEND_ONE;
 }
+
 
 /*
 ===============
@@ -819,7 +820,7 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 
 			// parse up to MAX_IMAGE_ANIMATIONS animations
 			while ( 1 ) {
-				int		num;
+				int num;
 
 				token = COM_ParseExt( text, qfalse );
 				if ( !token[0] ) {
@@ -1190,7 +1191,7 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 
 				stage->bundle[0].tcGen = TCGEN_VECTOR;
 			}
-			else 
+			else
 			{
 				ri.Printf( PRINT_WARNING, "WARNING: unknown texgen parm in shader '%s'\n", shader.name );
 			}
@@ -1349,7 +1350,7 @@ static void ParseDeform( const char **text ) {
 
 	if ( !Q_stricmpn( token, "text", 4 ) ) {
 		int		n;
-		
+
 		n = token[4] - '0';
 		if ( n < 0 || n > 7 ) {
 			n = 0;
@@ -1389,6 +1390,7 @@ static void ParseDeform( const char **text ) {
 
 	if ( !Q_stricmp( token, "wave" ) )
 	{
+		float f;
 		token = COM_ParseExt( text, qfalse );
 		if ( token[0] == 0 )
 		{
@@ -1396,9 +1398,10 @@ static void ParseDeform( const char **text ) {
 			return;
 		}
 
-		if ( Q_atof( token ) != 0.0 )
+		f = Q_atof( token );
+		if ( f != 0.0f )
 		{
-			ds->deformationSpread = 1.0f / Q_atof( token );
+			ds->deformationSpread = 1.0f / f;
 		}
 		else
 		{
@@ -1503,7 +1506,6 @@ static void ParseSkyParms( const char **text ) {
 		shader.sky.cloudHeight = 512.0;
 	}
 	R_InitSkyTexCoords( shader.sky.cloudHeight );
-
 
 	// innerbox
 	token = COM_ParseExt( text, qfalse );
@@ -1644,7 +1646,6 @@ static const infoParm_t infoParms[] = {
 	{"monsterslickeast", 0, SURF_MONSLICK_E,0},
 	{"monsterslicksouth",    0, SURF_MONSLICK_S,0},
 	{"monsterslickwest", 0, SURF_MONSLICK_W,0}
-
 };
 
 
@@ -1744,7 +1745,7 @@ static qboolean ParseCondition( const char **text, resultType *res )
 			ri.Printf( PRINT_WARNING, "WARNING: expecting lvalue for condition in shader %s\n", shader.name );
 			return qfalse;
 		}
-	
+
 		Q_strncpyz( lval_str, token, sizeof( lval_str ) );
 		lval_type = com_tokentype;
 
@@ -1766,18 +1767,18 @@ static qboolean ParseCondition( const char **text, resultType *res )
 
 			// read next token, expect '||', '&&' or ')', allow newlines
 			/*token =*/ COM_ParseComplex( text, qtrue );
-		} 
-		else if ( com_tokentype == TK_SCOPE_CLOSE || com_tokentype == TK_OR || com_tokentype == TK_AND ) 
+		}
+		else if ( com_tokentype == TK_SCOPE_CLOSE || com_tokentype == TK_OR || com_tokentype == TK_AND )
 		{
 			// no r-value, assume 'not zero' comparison
 			op = TK_NEQ;
 		}
-		else 
+		else
 		{
 			ri.Printf( PRINT_WARNING, "WARNING: unexpected operator '%s' for comparison in shader %s\n", token, shader.name );
 			return qfalse;
 		}
-		
+
 		str = qfalse;
 
 		if ( lval_type == TK_QUOTED ) {
@@ -1829,7 +1830,7 @@ static qboolean ParseCondition( const char **text, resultType *res )
 			r |= r0;
 		else
 			r &= r0;
-			
+
 		if ( com_tokentype == TK_OR ) {
 			rm = maskOR;
 			continue;
@@ -1850,7 +1851,7 @@ static qboolean ParseCondition( const char **text, resultType *res )
 
 	if ( res )
 		*res = r ? res_true : res_false;
-	
+
 	return qtrue;
 }
 
@@ -2410,7 +2411,7 @@ static collapse_t collapse[] = {
 #endif
 };
 
-static const size_t numCollapse = ARRAY_LEN( collapse );
+static const int numCollapse = (int)ARRAY_LEN( collapse );
 
 /*
 ================
@@ -2467,7 +2468,7 @@ static qboolean CollapseMultitexture( shaderStage_t *st0, shaderStage_t *st1, in
 	}
 
 	// nothing found
-	if ( i == (int)numCollapse ) {
+	if ( i == numCollapse ) {
 		return qfalse;
 	}
 

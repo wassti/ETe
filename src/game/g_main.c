@@ -54,7 +54,7 @@ vmCvar_t g_fraglimit;
 vmCvar_t g_timelimit;
 vmCvar_t g_friendlyFire;
 vmCvar_t g_password;
-vmCvar_t sv_privatepassword;
+vmCvar_t g_privatepassword;
 vmCvar_t g_maxclients;
 vmCvar_t g_maxGameClients;
 vmCvar_t g_minGameClients;          // NERVE - SMF
@@ -91,7 +91,7 @@ vmCvar_t g_swapteams;
 // -NERVE - SMF
 
 vmCvar_t g_restarted;
-vmCvar_t g_log;
+vmCvar_t g_logFile;
 vmCvar_t g_logSync;
 vmCvar_t g_podiumDist;
 vmCvar_t g_podiumDrop;
@@ -291,11 +291,11 @@ cvarTable_t gameCvarTable[] = {
 	{ &g_swapteams, "g_swapteams", "0", CVAR_ROM, 0, qfalse, qtrue },
 	// -NERVE - SMF
 
-	{ &g_log, "g_log", "", CVAR_ARCHIVE, 0, qfalse },
+	{ &g_logFile, "g_log", "", CVAR_ARCHIVE, 0, qfalse },
 	{ &g_logSync, "g_logSync", "0", CVAR_ARCHIVE, 0, qfalse },
 
 	{ &g_password, "g_password", "none", CVAR_TEMP, 0, qfalse },
-	{ &sv_privatepassword, "sv_privatepassword", "", CVAR_TEMP, 0, qfalse },
+	{ &g_privatepassword, "sv_privatepassword", "", CVAR_TEMP, 0, qfalse },
 	{ &g_banIPs, "g_banIPs", "", CVAR_ARCHIVE, 0, qfalse },
 	// show_bug.cgi?id=500
 	{ &g_filterBan, "g_filterBan", "1", CVAR_ARCHIVE, 0, qfalse },
@@ -1739,14 +1739,14 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
 
 	G_DebugOpenSkillLog();
 
-	if ( g_log.string[0] ) {
+	if ( g_logFile.string[0] ) {
 		if ( g_logSync.integer ) {
-			trap_FS_FOpenFile( g_log.string, &level.logFile, FS_APPEND_SYNC );
+			trap_FS_FOpenFile( g_logFile.string, &level.logFile, FS_APPEND_SYNC );
 		} else {
-			trap_FS_FOpenFile( g_log.string, &level.logFile, FS_APPEND );
+			trap_FS_FOpenFile( g_logFile.string, &level.logFile, FS_APPEND );
 		}
 		if ( !level.logFile ) {
-			G_Printf( "WARNING: Couldn't open logfile: %s\n", g_log.string );
+			G_Printf( "WARNING: Couldn't open logfile: %s\n", g_logFile.string );
 		} else {
 			G_LogPrintf( "------------------------------------------------------------\n" );
 			G_LogPrintf( "InitGame: %s\n", cs );
@@ -1939,7 +1939,7 @@ void G_ShutdownGame( int restart ) {
 #ifndef GAME_HARD_LINKED
 // this is only here so the functions in q_shared.c and bg_*.c can link
 
-void NORETURN QDECL Com_Error( errorParm_t level, const char *error, ... ) {
+void NORETURN QDECL Com_Error( errorParm_t code, const char *error, ... ) {
 	va_list argptr;
 	char text[1024];
 
@@ -2558,7 +2558,6 @@ void LogExit( const char *string ) {
 
 	// NERVE - SMF
 	if ( g_gametype.integer == GT_WOLF_STOPWATCH ) {
-		char cs[MAX_STRING_CHARS];
 		int winner, defender;
 
 		trap_GetConfigstring( CS_MULTI_INFO, cs, sizeof( cs ) );
@@ -2588,7 +2587,6 @@ void LogExit( const char *string ) {
 	}
 	// -NERVE - SMF
 	else if ( g_gametype.integer == GT_WOLF_CAMPAIGN ) {
-		char cs[MAX_STRING_CHARS];
 		int winner;
 		int highestskillpoints, highestskillpointsclient, j, teamNum;
 

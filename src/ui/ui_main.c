@@ -3996,7 +3996,7 @@ static void UI_LoadProfiles() {
 			if ( uiInfo.profileIndex == -1 ) {
 				Q_CleanStr( token.string );
 				Q_CleanDirName( token.string );
-				if ( !Q_stricmp( token.string, cl_profile.string ) ) {
+				if ( !Q_stricmp( token.string, ui_cl_profile.string ) ) {
 					int j;
 
 					uiInfo.profileIndex = i;
@@ -4246,7 +4246,7 @@ qboolean UI_CheckExecKey( int key ) {
 	}
 
 	if ( !menu ) {
-		if ( cl_bypassMouseInput.integer ) {
+		if ( ui_cl_bypassMouseInput.integer ) {
 			if ( !trap_Key_GetCatcher() ) {
 				trap_Cvar_Set( "cl_bypassMouseInput", "0" );
 			}
@@ -5061,25 +5061,25 @@ void UI_RunMenuScript( const char **args ) {
 			fileHandle_t f;
 
 			// delete profile.pid from current profile
-			if ( trap_FS_FOpenFile( va( "profiles/%s/profile.pid", cl_profile.string ), &f, FS_READ ) >= 0 ) {
+			if ( trap_FS_FOpenFile( va( "profiles/%s/profile.pid", ui_cl_profile.string ), &f, FS_READ ) >= 0 ) {
 				trap_FS_FCloseFile( f );
-				trap_FS_Delete( va( "profiles/%s/profile.pid", cl_profile.string ) );
+				trap_FS_Delete( va( "profiles/%s/profile.pid", ui_cl_profile.string ) );
 			}
 		} else if ( Q_stricmp( name, "applyProfile" ) == 0 ) {
-			Q_strncpyz( cl_profile.string, ui_profile.string, sizeof( cl_profile.string ) );
-			Q_CleanStr( cl_profile.string );
-			Q_CleanDirName( cl_profile.string );
-			trap_Cvar_Set( "cl_profile", cl_profile.string );
+			Q_strncpyz( ui_cl_profile.string, ui_profile.string, sizeof( ui_cl_profile.string ) );
+			Q_CleanStr( ui_cl_profile.string );
+			Q_CleanDirName( ui_cl_profile.string );
+			trap_Cvar_Set( "cl_profile", ui_cl_profile.string );
 		} else if ( Q_stricmp( name, "setDefaultProfile" ) == 0 ) {
 			fileHandle_t f;
 
-			Q_strncpyz( cl_defaultProfile.string, ui_profile.string, sizeof( cl_profile.string ) );
-			Q_CleanStr( cl_defaultProfile.string );
-			Q_CleanDirName( cl_defaultProfile.string );
-			trap_Cvar_Set( "cl_defaultProfile", cl_defaultProfile.string );
+			Q_strncpyz( ui_cl_defaultProfile.string, ui_profile.string, sizeof( ui_cl_profile.string ) );
+			Q_CleanStr( ui_cl_defaultProfile.string );
+			Q_CleanDirName( ui_cl_defaultProfile.string );
+			trap_Cvar_Set( "cl_defaultProfile", ui_cl_defaultProfile.string );
 
 			if ( trap_FS_FOpenFile( "profiles/defaultprofile.dat", &f, FS_WRITE ) >= 0 ) {
-				trap_FS_Write( va( "\"%s\"", cl_defaultProfile.string ), strlen( cl_defaultProfile.string ) + 2, f );
+				trap_FS_Write( va( "\"%s\"", ui_cl_defaultProfile.string ), strlen( ui_cl_defaultProfile.string ) + 2, f );
 				trap_FS_FCloseFile( f );
 			}
 		} else if ( Q_stricmp( name, "deleteProfile" ) == 0 ) {
@@ -5090,14 +5090,14 @@ void UI_RunMenuScript( const char **args ) {
 			Q_CleanDirName( buff );
 
 			// can't delete active profile
-			if ( Q_stricmp( buff, cl_profile.string ) ) {
-				if ( !Q_stricmp( buff, cl_defaultProfile.string ) ) {
+			if ( Q_stricmp( buff, ui_cl_profile.string ) ) {
+				if ( !Q_stricmp( buff, ui_cl_defaultProfile.string ) ) {
 					// if deleting the default profile, set the default to the current active profile
 					fileHandle_t f;
 
-					trap_Cvar_Set( "cl_defaultProfile", cl_profile.string );
+					trap_Cvar_Set( "cl_defaultProfile", ui_cl_profile.string );
 					if ( trap_FS_FOpenFile( "profiles/defaultprofile.dat", &f, FS_WRITE ) >= 0 ) {
-						trap_FS_Write( va( "\"%s\"", cl_profile.string ), strlen( cl_profile.string ) + 2, f );
+						trap_FS_Write( va( "\"%s\"", ui_cl_profile.string ), strlen( ui_cl_profile.string ) + 2, f );
 						trap_FS_FCloseFile( f );
 					}
 				}
@@ -5145,7 +5145,7 @@ void UI_RunMenuScript( const char **args ) {
 				}
 
 				if ( trap_FS_FOpenFile( va( "profiles/%s/servercache.dat", buff ), &f, FS_WRITE ) >= 0 ) {
-					if ( ( len = trap_FS_FOpenFile( va( "profiles/%s/servercache.dat", cl_profile.string ), &f2, FS_READ ) ) >= 0 ) {
+					if ( ( len = trap_FS_FOpenFile( va( "profiles/%s/servercache.dat", ui_cl_profile.string ), &f2, FS_READ ) ) >= 0 ) {
 						int i;
 
 						for ( i = 0; i < len; i++ ) {
@@ -5159,7 +5159,7 @@ void UI_RunMenuScript( const char **args ) {
 					trap_FS_FCloseFile( f );
 				}
 
-				if ( !Q_stricmp( uiprofile, cl_defaultProfile.string ) ) {
+				if ( !Q_stricmp( uiprofile, ui_cl_defaultProfile.string ) ) {
 					// if renaming the default profile, set the default to the new profile
 					trap_Cvar_Set( "cl_defaultProfile", buff );
 					if ( trap_FS_FOpenFile( "profiles/defaultprofile.dat", &f, FS_WRITE ) >= 0 ) {
@@ -5169,7 +5169,7 @@ void UI_RunMenuScript( const char **args ) {
 				}
 
 				// if renaming the active profile, set active to new name
-				if ( !Q_stricmp( uiprofile, cl_profile.string ) ) {
+				if ( !Q_stricmp( uiprofile, ui_cl_profile.string ) ) {
 					trap_Cvar_Set( "cl_profile", buff );
 				}
 
@@ -6583,13 +6583,13 @@ const char *UI_FeederItemText( float feederID, int index, int column, qhandle_t 
 			Q_CleanStr( buff );
 			Q_CleanDirName( buff );
 
-			if ( !Q_stricmp( buff, cl_profile.string ) ) {
-				if ( !Q_stricmp( buff, cl_defaultProfile.string ) ) {
+			if ( !Q_stricmp( buff, ui_cl_profile.string ) ) {
+				if ( !Q_stricmp( buff, ui_cl_defaultProfile.string ) ) {
 					return( va( "^7(Default) %s", uiInfo.profileList[index].name ) );
 				} else {
 					return( va( "^7%s", uiInfo.profileList[index].name ) );
 				}
-			} else if ( !Q_stricmp( buff, cl_defaultProfile.string ) ) {
+			} else if ( !Q_stricmp( buff, ui_cl_defaultProfile.string ) ) {
 				return( va( "(Default) %s", uiInfo.profileList[index].name ) );
 			} else {
 				return uiInfo.profileList[index].name;
@@ -7606,7 +7606,7 @@ void _UI_KeyEvent( int key, qboolean down ) {
 				trap_Key_ClearStates();
 			}
 
-			if ( cl_bypassMouseInput.integer ) {
+			if ( ui_cl_bypassMouseInput.integer ) {
 				if ( !trap_Key_GetCatcher() ) {
 					trap_Cvar_Set( "cl_bypassMouseInput", 0 );
 				}
@@ -7699,7 +7699,7 @@ void _UI_SetActiveMenu( uiMenuCommand_t menu ) {
 			//Menus_ActivateByName( "background_1", qtrue );
 			Menus_ActivateByName( "backgroundmusic", qtrue );    // Arnout: not nice, but best way to do it - putting the music in it's own menudef
 																 // makes sure it doesn't get restarted every time you reach the main menu
-			if ( !cl_profile.string[0] ) {
+			if ( !ui_cl_profile.string[0] ) {
 				//Menus_ActivateByName( "profilelogin", qtrue );
 				// FIXME: initial profile popup
 				// FIXED: handled in opener now
@@ -8286,8 +8286,8 @@ vmCvar_t ui_glCustom;    // JPW NERVE missing from q3ta
 
 vmCvar_t g_gameType;
 
-vmCvar_t cl_profile;
-vmCvar_t cl_defaultProfile;
+vmCvar_t ui_cl_profile;
+vmCvar_t ui_cl_defaultProfile;
 vmCvar_t ui_profile;
 vmCvar_t ui_currentNetCampaign;
 vmCvar_t ui_currentCampaign;
@@ -8303,7 +8303,7 @@ vmCvar_t cg_crosshairAlphaAlt;
 vmCvar_t cg_crosshairSize;
 // OSP
 
-vmCvar_t cl_bypassMouseInput;
+vmCvar_t ui_cl_bypassMouseInput;
 
 //bani
 vmCvar_t ui_autoredirect;
@@ -8464,8 +8464,8 @@ cvarTable_t cvarTable[] = {
 	{ NULL, "g_lms_matchlimit", "2", CVAR_ARCHIVE },
 	{ NULL, "g_lms_followTeamOnly", "1", CVAR_ARCHIVE },
 	{ NULL, "g_heavyWeaponRestriction", "100", CVAR_ARCHIVE | CVAR_SERVERINFO },
-	{ &cl_profile, "cl_profile", "", CVAR_ROM },
-	{ &cl_defaultProfile, "cl_defaultProfile", "", CVAR_ROM },
+	{ &ui_cl_profile, "cl_profile", "", CVAR_ROM },
+	{ &ui_cl_defaultProfile, "cl_defaultProfile", "", CVAR_ROM },
 	{ &ui_profile, "ui_profile", "", CVAR_ROM },
 	{ &ui_currentCampaign, "ui_currentCampaign", "0", CVAR_ARCHIVE },
 	{ &ui_currentNetCampaign, "ui_currentNetCampaign", "0", CVAR_ARCHIVE },
@@ -8544,7 +8544,7 @@ cvarTable_t cvarTable[] = {
 	{ NULL, "ui_sensitivity", "", CVAR_ARCHIVE },
 	{ NULL, "ui_profile_mousePitch", "", CVAR_ARCHIVE },
 
-	{ &cl_bypassMouseInput, "cl_bypassMouseInput", "0", CVAR_TEMP },
+	{ &ui_cl_bypassMouseInput, "cl_bypassMouseInput", "0", CVAR_TEMP },
 
 	{ NULL,     "g_oldCampaign",         "",      CVAR_ROM, },
 	{ NULL,     "g_currentCampaign",     "",      CVAR_WOLFINFO | CVAR_ROM, },

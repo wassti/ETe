@@ -33,7 +33,7 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "snd_local.h" // fretn
 
-cvar_t  *cl_wavefilerecord;
+//cvar_t  *cl_wavefilerecord;
 cvar_t  *cl_noprint;
 cvar_t  *cl_debugMove;
 cvar_t  *cl_motd;
@@ -4401,7 +4401,7 @@ void CL_Init( void ) {
 	cl_timeout = Cvar_Get( "cl_timeout", "200", 0 );
 	Cvar_CheckRange( cl_timeout, "5", NULL, CV_INTEGER );
 
-	cl_wavefilerecord = Cvar_Get( "cl_wavefilerecord", "0", CVAR_TEMP );
+	//cl_wavefilerecord = Cvar_Get( "cl_wavefilerecord", "0", CVAR_TEMP );
 
 	cl_autoNudge = Cvar_Get( "cl_autoNudge", "0", CVAR_TEMP );
 	Cvar_CheckRange( cl_autoNudge, "0", "1", CV_FLOAT );

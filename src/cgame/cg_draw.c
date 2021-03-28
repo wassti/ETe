@@ -4239,7 +4239,7 @@ void CG_DrawDemoRecording( void ) {
 	char demostatus[128];
 	char wavestatus[128];
 
-	if ( !cl_demorecording.integer && !cl_waverecording.integer ) {
+	if ( !cg_demorecording.integer && !cg_waverecording.integer ) {
 		return;
 	}
 
@@ -4247,14 +4247,14 @@ void CG_DrawDemoRecording( void ) {
 		return;
 	}
 
-	if ( cl_demorecording.integer ) {
-		Com_sprintf( demostatus, sizeof( demostatus ), " demo %s: %ik ", cl_demofilename.string, cl_demooffset.integer / 1024 );
+	if ( cg_demorecording.integer ) {
+		Com_sprintf( demostatus, sizeof( demostatus ), " demo %s: %ik ", cg_demofilename.string, cg_demooffset.integer / 1024 );
 	} else {
 		strncpy( demostatus, "", sizeof( demostatus ) );
 	}
 
-	if ( cl_waverecording.integer ) {
-		Com_sprintf( wavestatus, sizeof( demostatus ), " audio %s: %ik ", cl_wavefilename.string, cl_waveoffset.integer / 1024 );
+	if ( cg_waverecording.integer ) {
+		Com_sprintf( wavestatus, sizeof( demostatus ), " audio %s: %ik ", cg_wavefilename.string, cg_waveoffset.integer / 1024 );
 	} else {
 		strncpy( wavestatus, "", sizeof( wavestatus ) );
 	}

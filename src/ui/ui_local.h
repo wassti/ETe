@@ -129,8 +129,8 @@ extern vmCvar_t ui_isSpectator;
 
 extern vmCvar_t g_gameType;
 
-extern vmCvar_t cl_profile;
-extern vmCvar_t cl_defaultProfile;
+extern vmCvar_t ui_cl_profile;
+extern vmCvar_t ui_cl_defaultProfile;
 extern vmCvar_t ui_profile;
 extern vmCvar_t ui_currentNetCampaign;
 extern vmCvar_t ui_currentCampaign;
@@ -143,7 +143,7 @@ extern vmCvar_t cg_crosshairColor;
 extern vmCvar_t cg_crosshairColorAlt;
 extern vmCvar_t cg_crosshairSize;
 
-extern vmCvar_t cl_bypassMouseInput;
+extern vmCvar_t ui_cl_bypassMouseInput;
 
 //bani
 extern vmCvar_t ui_autoredirect;

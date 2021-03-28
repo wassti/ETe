@@ -235,7 +235,7 @@ vmCvar_t cg_bluelimbotime;
 
 vmCvar_t cg_antilag;
 
-vmCvar_t developer;
+vmCvar_t cg_developer;
 
 // OSP
 vmCvar_t authLevel;
@@ -301,13 +301,13 @@ vmCvar_t cg_drawFireteamOverlay;
 vmCvar_t cg_drawSmallPopupIcons;
 
 //bani - demo recording cvars
-vmCvar_t cl_demorecording;
-vmCvar_t cl_demofilename;
-vmCvar_t cl_demooffset;
+vmCvar_t cg_demorecording;
+vmCvar_t cg_demofilename;
+vmCvar_t cg_demooffset;
 //bani - wav recording cvars
-vmCvar_t cl_waverecording;
-vmCvar_t cl_wavefilename;
-vmCvar_t cl_waveoffset;
+vmCvar_t cg_waverecording;
+vmCvar_t cg_wavefilename;
+vmCvar_t cg_waveoffset;
 vmCvar_t cg_recording_statusline;
 
 vmCvar_t cg_fovAdjust;
@@ -456,7 +456,7 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_popupLimboMenu, "cg_popupLimboMenu", "1", CVAR_ARCHIVE },
 	{ &cg_descriptiveText, "cg_descriptiveText", "1", CVAR_ARCHIVE },
 	{ &cg_antilag, "g_antilag", "1", 0 },
-	{ &developer, "developer", "0", CVAR_CHEAT },
+	{ &cg_developer, "developer", "0", CVAR_CHEAT },
 	{ &cf_wstats, "cf_wstats", "1.2", CVAR_ARCHIVE },
 	{ &cf_wtopshots, "cf_wtopshots", "1.0", CVAR_ARCHIVE },
 	//{ &cg_announcer, "cg_announcer", "1", CVAR_ARCHIVE },
@@ -520,13 +520,13 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_drawSmallPopupIcons, "cg_drawSmallPopupIcons", "0", CVAR_ARCHIVE },
 
 	//bani - demo recording cvars
-	{ &cl_demorecording, "cl_demorecording", "0", CVAR_ROM },
-	{ &cl_demofilename, "cl_demofilename", "", CVAR_ROM },
-	{ &cl_demooffset, "cl_demooffset", "0", CVAR_ROM },
+	{ &cg_demorecording, "cl_demorecording", "0", CVAR_ROM },
+	{ &cg_demofilename, "cl_demofilename", "", CVAR_ROM },
+	{ &cg_demooffset, "cl_demooffset", "0", CVAR_ROM },
 	//bani - wav recording cvars
-	{ &cl_waverecording, "cl_waverecording", "0", CVAR_ROM },
-	{ &cl_wavefilename, "cl_wavefilename", "", CVAR_ROM },
-	{ &cl_waveoffset, "cl_waveoffset", "0", CVAR_ROM },
+	{ &cg_waverecording, "cl_waverecording", "0", CVAR_ROM },
+	{ &cg_wavefilename, "cl_wavefilename", "", CVAR_ROM },
+	{ &cg_waveoffset, "cl_waveoffset", "0", CVAR_ROM },
 	{ &cg_recording_statusline, "cg_recording_statusline", "9", CVAR_ARCHIVE },
 
 	{ &cg_fovAdjust, "cg_fovAdjust", "0", CVAR_ARCHIVE },
@@ -710,7 +710,7 @@ void NORETURN QDECL CG_Error( const char *msg, ... ) {
 #ifndef CGAME_HARD_LINKED
 // this is only here so the functions in q_shared.c and bg_*.c can link (FIXME)
 
-void NORETURN QDECL Com_Error( errorParm_t level, const char *error, ... ) {
+void NORETURN QDECL Com_Error( errorParm_t code, const char *error, ... ) {
 	va_list argptr;
 	char text[1024];
 
@@ -2636,7 +2636,7 @@ Will perform callbacks to make the loading info screen update.
 */
 #ifdef _DEBUG
 #define DEBUG_INITPROFILE_INIT int elapsed, dbgTime = trap_Milliseconds();
-#define DEBUG_INITPROFILE_EXEC( f ) if ( developer.integer ) { CG_Printf( "^5%s passed in %i msec\n", f, elapsed = trap_Milliseconds() - dbgTime );  dbgTime += elapsed; }
+#define DEBUG_INITPROFILE_EXEC( f ) if ( cg_developer.integer ) { CG_Printf( "^5%s passed in %i msec\n", f, elapsed = trap_Milliseconds() - dbgTime );  dbgTime += elapsed; }
 #endif // _DEBUG
 void CG_Init( int serverMessageNum, int serverCommandSequence, int clientNum, qboolean demoPlayback ) {
 	char  value[MAX_CVAR_VALUE_STRING];

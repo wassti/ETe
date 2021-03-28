@@ -1505,7 +1505,7 @@ extern int saveGamePending;
 
 extern vmCvar_t g_gametype;
 
-extern vmCvar_t g_log;
+extern vmCvar_t g_logFile;
 extern vmCvar_t g_dedicated;
 extern vmCvar_t g_cheats;
 extern vmCvar_t g_maxclients;               // allow this many total, including spectators
@@ -1517,7 +1517,7 @@ extern vmCvar_t g_fraglimit;
 extern vmCvar_t g_timelimit;
 extern vmCvar_t g_friendlyFire;
 extern vmCvar_t g_password;
-extern vmCvar_t sv_privatepassword;
+extern vmCvar_t g_privatepassword;
 extern vmCvar_t g_gravity;
 extern vmCvar_t g_speed;
 extern vmCvar_t g_knockback;

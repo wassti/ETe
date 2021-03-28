@@ -841,7 +841,7 @@ void UI_LoadCampaigns( void ) {
 	}
 
 	// Load the campaign save
-	BG_LoadCampaignSave( va( "profiles/%s/campaign.dat", cl_profile.string ), &uiInfo.campaignStatus, cl_profile.string );
+	BG_LoadCampaignSave( va( "profiles/%s/campaign.dat", ui_cl_profile.string ), &uiInfo.campaignStatus, ui_cl_profile.string );
 
 	for ( i = 0; i < uiInfo.campaignCount; i++ ) {
 		// generate hash for campaign shortname

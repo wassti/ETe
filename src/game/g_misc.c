@@ -1393,7 +1393,6 @@ void aagun_think( gentity_t *self ) {
 
 	if ( owner->client ) {
 		vec3_t dang;
-		int i;
 
 		VectorSubtract( self->r.currentOrigin, owner->r.currentOrigin, vec );
 

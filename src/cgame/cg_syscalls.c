@@ -722,7 +722,7 @@ void trap_TranslateString( const char *string, char *buf ) {
 // Media register functions
 #ifdef _DEBUG
 #define DEBUG_REGISTERPROFILE_INIT int dbgTime = trap_Milliseconds();
-#define DEBUG_REGISTERPROFILE_EXEC( f,n ) if ( developer.integer ) {CG_Printf( "%s : loaded %s in %i msec\n", f, n, trap_Milliseconds() - dbgTime );}
+#define DEBUG_REGISTERPROFILE_EXEC( f,n ) if ( cg_developer.integer ) {CG_Printf( "%s : loaded %s in %i msec\n", f, n, trap_Milliseconds() - dbgTime );}
 sfxHandle_t trap_S_RegisterSound( const char *sample, qboolean compressed ) {
 	sfxHandle_t snd;
 	DEBUG_REGISTERPROFILE_INIT

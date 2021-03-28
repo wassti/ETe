@@ -2181,7 +2181,7 @@ extern vmCvar_t cg_descriptiveText;
 
 extern vmCvar_t cg_antilag;
 
-extern vmCvar_t developer;
+extern vmCvar_t cg_developer;
 
 // OSP
 extern vmCvar_t authLevel;
@@ -2243,12 +2243,12 @@ extern vmCvar_t cg_fastSolids;
 extern vmCvar_t cg_instanttapout;
 
 // bani - demo recording cvars
-extern vmCvar_t cl_demorecording;
-extern vmCvar_t cl_demofilename;
-extern vmCvar_t cl_demooffset;
-extern vmCvar_t cl_waverecording;
-extern vmCvar_t cl_wavefilename;
-extern vmCvar_t cl_waveoffset;
+extern vmCvar_t cg_demorecording;
+extern vmCvar_t cg_demofilename;
+extern vmCvar_t cg_demooffset;
+extern vmCvar_t cg_waverecording;
+extern vmCvar_t cg_wavefilename;
+extern vmCvar_t cg_waveoffset;
 extern vmCvar_t cg_recording_statusline;
 
 extern vmCvar_t cg_fovAdjust;

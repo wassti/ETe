@@ -60,7 +60,7 @@ void QDECL Com_DPrintf( const char *fmt, ... ) {
 }
 // jpw
 
-void NORETURN QDECL Com_Error( errorParm_t level, const char *error, ... ) {
+void NORETURN QDECL Com_Error( errorParm_t code, const char *error, ... ) {
 	va_list argptr;
 	char text[1024];
 

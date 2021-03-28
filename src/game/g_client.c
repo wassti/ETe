@@ -1308,7 +1308,7 @@ qboolean ClientUserinfoChanged( int clientNum ) {
 	}
 
 #ifndef DEBUG_STATS
-	if ( g_developer.integer || *g_log.string || g_dedicated.integer )
+	if ( g_developer.integer || *g_logFile.string || g_dedicated.integer )
 #endif
 	{
 		G_Printf( "Userinfo: %s\n", userinfo );
@@ -1535,7 +1535,7 @@ const char *ClientConnect( int clientNum, qboolean firstTime, qboolean isBot ) {
 		// check for a password
 		value = Info_ValueForKey( userinfo, "password" );
 		if ( g_password.string[0] && Q_stricmp( g_password.string, "none" ) && strcmp( g_password.string, value ) != 0 ) {
-			if ( !sv_privatepassword.string[ 0 ] || strcmp( sv_privatepassword.string, value ) ) {
+			if ( !g_privatepassword.string[ 0 ] || strcmp( g_privatepassword.string, value ) ) {
 				return "Invalid password";
 			}
 		}

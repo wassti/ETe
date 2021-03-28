@@ -935,7 +935,7 @@ static int CG_CalcFov( void ) {
 		fov_x = 90;
 	} else {
 		fov_x = cg_fov.value;
-		if ( !developer.integer ) {
+		if ( !cg_developer.integer ) {
 			if ( fov_x < 90 ) {
 				fov_x = 90;
 			} else if ( fov_x > 160 ) {
@@ -943,7 +943,7 @@ static int CG_CalcFov( void ) {
 			}
 		}
 
-		if ( !cg.renderingThirdPerson || developer.integer ) {
+		if ( !cg.renderingThirdPerson || cg_developer.integer ) {
 			// account for zooms
 			if ( cg.zoomval ) {
 				zoomFov = cg.zoomval;   // (SA) use user scrolled amount

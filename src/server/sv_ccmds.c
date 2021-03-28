@@ -184,10 +184,10 @@ static void SV_Map_f( void ) {
 		return;
 	}
 
-	if ( g_gameType->latchedString )
-		sv_cachedGametype = atoi(g_gameType->latchedString);
+	if ( sv_gameType->latchedString )
+		sv_cachedGametype = atoi(sv_gameType->latchedString);
 	else
-		sv_cachedGametype = g_gameType->integer;
+		sv_cachedGametype = sv_gameType->integer;
 
 	Cvar_Set( "gamestate", va( "%i", GS_INITIALIZE ) );       // NERVE - SMF - reset gamestate on map/devmap
 

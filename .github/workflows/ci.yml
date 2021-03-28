@@ -154,7 +154,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        arch: [x86_64, aarch64]
+        arch: [x86_64]
         cc: [clang]
         cxx: [clang++]
         config: [Release]
@@ -164,7 +164,7 @@ jobs:
 
     steps:
     - name: Install tools
-      run: brew install coreutils ninja sdl2 --universal
+      run: brew install coreutils ninja sdl2
 
     - uses: actions/checkout@v2
       with:
@@ -176,12 +176,7 @@ jobs:
 
     - name: Configure CMake
       working-directory: ${{github.workspace}}/src/bin
-      run: |
-        if [ ${{ matrix.arch }} == "aarch64" ]; then
-          cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=${{ matrix.config }} -DUSE_SDL2=TRUE -DBUILD_ETMAIN_MOD=TRUE -CMAKE_OSX_ARCHITECTURES="arm64"
-        else
-          cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=${{ matrix.config }} -DUSE_SDL2=TRUE -DBUILD_ETMAIN_MOD=TRUE
-        fi
+      run: cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=${{ matrix.config }} -DUSE_SDL2=TRUE -DBUILD_ETMAIN_MOD=TRUE
 
     - name: Build
       working-directory: ${{github.workspace}}/src/bin

@@ -33,7 +33,7 @@ If you have questions concerning this license or the applicable additional terms
 #define LL( x ) x = LittleLong( x )
 
 // Ridah
-static qboolean R_LoadMDC( model_t *mod, int lod, void *buffer, const char *mod_name );
+static qboolean R_LoadMDC( model_t *mod, int lod, void *buffer, int fileSize, const char *mod_name );
 // done.
 static qboolean R_LoadMD3( model_t *mod, int lod, void *buffer, int fileSize, const char *name );
 static qboolean R_LoadMDS( model_t *mod, void *buffer, const char *name );
@@ -133,13 +133,14 @@ R_RegisterMDC
 qhandle_t R_RegisterMDC(const char *name, model_t *mod)
 {
 	union {
-		unsigned *u;
+		uint32_t *u;
 		void *v;
 	} buf;
 	int			lod;
 	int			ident;
 	qboolean	loaded = qfalse;
 	int			numLoaded;
+	int			fileSize;
 	char filename[MAX_QPATH], namebuf[MAX_QPATH+20];
 	char *fext, defex[] = "mdc";
 
@@ -163,17 +164,23 @@ qhandle_t R_RegisterMDC(const char *name, model_t *mod)
 		else
 			Com_sprintf(namebuf, sizeof(namebuf), "%s.%s", filename, fext);
 
-		ri.FS_ReadFile( namebuf, &buf.v );
-		if(!buf.u)
+		fileSize = ri.FS_ReadFile( namebuf, &buf.v );
+		if ( !buf.u )
 			continue;
+
+		if ( fileSize < sizeof( mdcHeader_t ) ) {
+			ri.Printf( PRINT_WARNING, "%s: truncated header for %s\n", __func__, name );
+			ri.FS_FreeFile( buf.v );
+			break;
+		}
 		
-		ident = LittleLong(* (unsigned *) buf.u);
-		if (ident == MDC_IDENT)
-			loaded = R_LoadMDC(mod, lod, buf.u, name);
+		ident = LittleLong( *buf.u );
+		if ( ident == MDC_IDENT )
+			loaded = R_LoadMDC( mod, lod, buf.u, fileSize, name );
 		else
-			ri.Printf(PRINT_WARNING,"R_RegisterMDC: unknown fileid for %s\n", name);
+			ri.Printf( PRINT_WARNING,"%s: unknown fileid for %s\n", __func__, name);
 		
-		ri.FS_FreeFile(buf.v);
+		ri.FS_FreeFile( buf.v );
 
 		if(loaded)
 		{
@@ -1023,9 +1030,9 @@ static qboolean R_MDC_ConvertMD3( model_t *mod, int lod, const char *mod_name ) 
 R_LoadMDC
 =================
 */
-static qboolean R_LoadMDC( model_t *mod, int lod, void *buffer, const char *mod_name ) {
+static qboolean R_LoadMDC( model_t *mod, int lod, void *buffer, int fileSize, const char *mod_name ) {
 	int i, j;
-	mdcHeader_t         *pinmodel;
+	mdcHeader_t         *pinmodel, *hdr;
 	md3Frame_t          *frame;
 	mdcSurface_t        *surf;
 	md3Shader_t         *shader;
@@ -1034,58 +1041,101 @@ static qboolean R_LoadMDC( model_t *mod, int lod, void *buffer, const char *mod_
 	md3XyzNormal_t      *xyz;
 	mdcXyzCompressed_t  *xyzComp;
 	mdcTag_t            *tag;
+	mdcTagName_t		*tagName;
 	short               *ps;
 	int version;
 	int size;
+	qboolean fixRadius = qfalse;
 
 	pinmodel = (mdcHeader_t *)buffer;
 
 	version = LittleLong( pinmodel->version );
 	if ( version != MDC_VERSION ) {
-		ri.Printf( PRINT_WARNING, "R_LoadMDC: %s has wrong version (%i should be %i)\n",
-				   mod_name, version, MDC_VERSION );
+		ri.Printf( PRINT_WARNING, "%s: %s has wrong version (%i should be %i)\n", __func__, mod_name, version, MDC_VERSION );
+		return qfalse;
+	}
+
+	size = LittleLong( pinmodel->ofsEnd );
+
+	if ( size > fileSize ) {
+		ri.Printf( PRINT_WARNING, "%s: %s has corrupted header\n", __func__, mod_name );
 		return qfalse;
 	}
 
 	mod->type = MOD_MDC;
-	size = LittleLong( pinmodel->ofsEnd );
 	mod->dataSize += size;
 	mod->model.mdc[lod] = ri.Hunk_Alloc( size, h_low );
 
 	memcpy( mod->model.mdc[lod], buffer, LittleLong( pinmodel->ofsEnd ) );
 
-	LL( mod->model.mdc[lod]->ident );
-	LL( mod->model.mdc[lod]->version );
-	LL( mod->model.mdc[lod]->numFrames );
-	LL( mod->model.mdc[lod]->numTags );
-	LL( mod->model.mdc[lod]->numSurfaces );
-	LL( mod->model.mdc[lod]->ofsFrames );
-	LL( mod->model.mdc[lod]->ofsTagNames );
-	LL( mod->model.mdc[lod]->ofsTags );
-	LL( mod->model.mdc[lod]->ofsSurfaces );
-	LL( mod->model.mdc[lod]->ofsEnd );
-	LL( mod->model.mdc[lod]->flags );
-	LL( mod->model.mdc[lod]->numSkins );
+	hdr = mod->model.mdc[lod];
 
+	LL( hdr->ident );
+	LL( hdr->version );
+	LL( hdr->numFrames );
+	LL( hdr->numTags );
+	LL( hdr->numSurfaces );
+	LL( hdr->ofsFrames );
+	LL( hdr->ofsTagNames );
+	LL( hdr->ofsTags );
+	LL( hdr->ofsSurfaces );
+	LL( hdr->ofsEnd );
+	LL( hdr->flags );
+	LL( hdr->numSkins );
 
-	if ( mod->model.mdc[lod]->numFrames < 1 ) {
-		ri.Printf( PRINT_WARNING, "R_LoadMDC: %s has no frames\n", mod_name );
+	if ( hdr->numFrames < 1 ) {
+		ri.Printf( PRINT_WARNING, "%s: %s has no frames\n", __func__, mod_name );
 		return qfalse;
 	}
 
+	if ( hdr->numFrames < 1 ) {
+		ri.Printf( PRINT_WARNING, "%s: %s has no frames\n", __func__, mod_name );
+		return qfalse;
+	}
+
+	if ( hdr->ofsFrames > size || hdr->ofsTags > size || hdr->ofsSurfaces > size ) {
+		ri.Printf( PRINT_WARNING, "%s: %s has corrupted header\n", __func__, mod_name );
+		return qfalse;
+	}
+	if ( (unsigned)( hdr->numFrames | hdr->numTags | hdr->numSkins ) > (1 << 20) ) {
+		ri.Printf( PRINT_WARNING, "%s: %s has corrupted header\n", __func__, mod_name );
+		return qfalse;
+	}
+
+	if ( hdr->ofsFrames + hdr->numFrames * sizeof( md3Frame_t ) > fileSize ) {
+		ri.Printf( PRINT_WARNING, "%s: %s has corrupted header\n", __func__, mod_name );
+		return qfalse;
+	}
+	if ( hdr->ofsTagNames + hdr->numTags * sizeof( mdcTagName_t ) > fileSize ) {
+		ri.Printf( PRINT_WARNING, "%s: %s has corrupted header\n", __func__, mod_name );
+		return qfalse;
+	}
+	if ( hdr->ofsTags + hdr->numTags * hdr->numFrames * sizeof( mdcTag_t ) > fileSize ) {
+		ri.Printf( PRINT_WARNING, "%s: %s has corrupted header\n", __func__, mod_name );
+		return qfalse;
+	}
+	if ( hdr->ofsSurfaces + ( hdr->numSurfaces ? 1 : 0 ) * sizeof( mdcSurface_t ) > fileSize ) {
+		ri.Printf( PRINT_WARNING, "%s: %s has corrupted header\n", __func__, mod_name );
+		return qfalse;
+	}
+
+	if ( strstr( mod->name,"sherman" ) || strstr( mod->name, "mg42" ) ) {
+		fixRadius = qtrue;
+	}
+
 	// swap all the frames
-	frame = ( md3Frame_t * )( (byte *)mod->model.mdc[lod] + mod->model.mdc[lod]->ofsFrames );
-	for ( i = 0 ; i < mod->model.mdc[lod]->numFrames ; i++, frame++ ) {
+	frame = ( md3Frame_t * )( (byte *)hdr + hdr->ofsFrames );
+	for ( i = 0 ; i < hdr->numFrames ; i++, frame++ ) {
 		frame->radius = LittleFloat( frame->radius );
-		if ( strstr( mod->name,"sherman" ) || strstr( mod->name, "mg42" ) ) {
+		if ( fixRadius ) {
 			frame->radius = 256;
 			for ( j = 0 ; j < 3 ; j++ ) {
 				frame->bounds[0][j] = 128;
 				frame->bounds[1][j] = -128;
 				frame->localOrigin[j] = LittleFloat( frame->localOrigin[j] );
 			}
-		} else
-		{
+		}
+		else {
 			for ( j = 0 ; j < 3 ; j++ ) {
 				frame->bounds[0][j] = LittleFloat( frame->bounds[0][j] );
 				frame->bounds[1][j] = LittleFloat( frame->bounds[1][j] );
@@ -1095,19 +1145,25 @@ static qboolean R_LoadMDC( model_t *mod, int lod, void *buffer, const char *mod_
 	}
 
 	// swap all the tags
-	tag = ( mdcTag_t * )( (byte *)mod->model.mdc[lod] + mod->model.mdc[lod]->ofsTags );
-	if ( LittleLong( 1 ) != 1 ) {
-		for ( i = 0 ; i < mod->model.mdc[lod]->numTags * mod->model.mdc[lod]->numFrames ; i++, tag++ ) {
+	tag = ( mdcTag_t * )( (byte *)hdr + hdr->ofsTags );
+	//if ( LittleLong( 1 ) != 1 ) {
+		for ( i = 0 ; i < hdr->numTags * hdr->numFrames ; i++, tag++ ) {
 			for ( j = 0 ; j < 3 ; j++ ) {
 				tag->xyz[j] = LittleShort( tag->xyz[j] );
 				tag->angles[j] = LittleShort( tag->angles[j] );
 			}
 		}
+	//}
+
+	tagName = ( mdcTagName_t * )( (byte *)hdr + hdr->ofsTagNames );
+	for ( i = 0 ; i < hdr->numTags ; i++, tagName++ ) {
+		// zero-terminate tag name
+		tagName->name[sizeof( tagName->name ) - 1] = '\0';
 	}
 
 	// swap all the surfaces
-	surf = ( mdcSurface_t * )( (byte *)mod->model.mdc[lod] + mod->model.mdc[lod]->ofsSurfaces );
-	for ( i = 0 ; i < mod->model.mdc[lod]->numSurfaces ; i++ ) {
+	surf = ( mdcSurface_t * )( (byte *)hdr + hdr->ofsSurfaces );
+	for ( i = 0 ; i < hdr->numSurfaces ; i++ ) {
 
 		LL( surf->ident );
 		LL( surf->flags );
@@ -1125,14 +1181,52 @@ static qboolean R_LoadMDC( model_t *mod, int lod, void *buffer, const char *mod_
 		LL( surf->ofsFrameCompFrames );
 		LL( surf->ofsEnd );
 
+		if ( surf->ofsEnd > fileSize || (((byte*)surf - (byte*)hdr) + surf->ofsEnd) > fileSize ) {
+			ri.Printf( PRINT_WARNING, "%s: %s has corrupted surface header\n", __func__, mod_name );
+			return qfalse;
+		}
+		if ( surf->ofsTriangles > fileSize || surf->ofsShaders > fileSize || surf->ofsSt > fileSize || surf->ofsXyzNormals > fileSize
+				|| surf->ofsXyzCompressed > fileSize || surf->ofsFrameBaseFrames > fileSize || surf->ofsFrameCompFrames > fileSize ) {
+			ri.Printf( PRINT_WARNING, "%s: %s has corrupted surface header\n", __func__, mod_name );
+			return qfalse;
+		}
+		if ( surf->ofsTriangles + surf->numTriangles * sizeof( md3Triangle_t ) > fileSize ) {
+			ri.Printf( PRINT_WARNING, "%s: %s has corrupted surface header\n", __func__, mod_name );
+			return qfalse;
+		}
+		if ( surf->ofsShaders + surf->numShaders * sizeof( md3Shader_t ) > fileSize || surf->numShaders > (1<<20) ) {
+			ri.Printf( PRINT_WARNING, "%s: %s has corrupted surface header\n", __func__, mod_name );
+			return qfalse;
+		}
+		if ( surf->ofsSt + surf->numVerts * sizeof( md3St_t ) > fileSize ) {
+			ri.Printf( PRINT_WARNING, "%s: %s has corrupted surface header\n", __func__, mod_name );
+			return qfalse;
+		}
+		if ( surf->ofsXyzNormals + surf->numVerts *surf->numBaseFrames * sizeof( md3XyzNormal_t ) > fileSize ) {
+			ri.Printf( PRINT_WARNING, "%s: %s has corrupted surface header\n", __func__, mod_name );
+			return qfalse;
+		}
+		if ( surf->ofsXyzCompressed + surf->numVerts *surf->numCompFrames * sizeof( mdcXyzCompressed_t ) > fileSize ) {
+			ri.Printf( PRINT_WARNING, "%s: %s has corrupted surface header\n", __func__, mod_name );
+			return qfalse;
+		}
+		if ( surf->ofsFrameBaseFrames + hdr->numFrames * sizeof( short ) > fileSize ) {
+			ri.Printf( PRINT_WARNING, "%s: %s has corrupted surface header\n", __func__, mod_name );
+			return qfalse;
+		}
+		if ( surf->ofsFrameCompFrames + hdr->numFrames * sizeof( short ) > fileSize ) {
+			ri.Printf( PRINT_WARNING, "%s: %s has corrupted surface header\n", __func__, mod_name );
+			return qfalse;
+		}
+
 		if ( surf->numVerts >= SHADER_MAX_VERTEXES ) {
-			ri.Printf(PRINT_WARNING, "R_LoadMDC: %s has more than %i verts on %s (%i).\n",
+			ri.Printf(PRINT_WARNING, "%s: %s has more than %i verts on %s (%i).\n", __func__,
 				mod_name, SHADER_MAX_VERTEXES - 1, surf->name[0] ? surf->name : "a surface",
 				surf->numVerts );
 			return qfalse;
 		}
 		if ( surf->numTriangles*3 >= SHADER_MAX_INDEXES ) {
-			ri.Printf(PRINT_WARNING, "R_LoadMDC: %s has more than %i triangles on %s (%i).\n",
+			ri.Printf(PRINT_WARNING, "%s: %s has more than %i triangles on %s (%i).\n", __func__,
 				mod_name, ( SHADER_MAX_INDEXES / 3 ) - 1, surf->name[0] ? surf->name : "a surface",
 				surf->numTriangles );
 			return qfalse;
@@ -1143,6 +1237,9 @@ static qboolean R_LoadMDC( model_t *mod, int lod, void *buffer, const char *mod_
 
 		// lowercase the surface name so skin compares are faster
 		Q_strlwr( surf->name );
+
+		// zero-terminate surface name
+		surf->name[sizeof( surf->name ) - 1] = '\0';
 
 		// strip off a trailing _1 or _2
 		// this is a crutch for q3data being a mess
@@ -1155,6 +1252,9 @@ static qboolean R_LoadMDC( model_t *mod, int lod, void *buffer, const char *mod_
 		shader = ( md3Shader_t * )( (byte *)surf + surf->ofsShaders );
 		for ( j = 0 ; j < surf->numShaders ; j++, shader++ ) {
 			shader_t    *sh;
+
+			// zero-terminate shader name
+			shader->name[sizeof( shader->name ) - 1] = '\0';
 
 			sh = R_FindShader( shader->name, LIGHTMAP_NONE, qtrue );
 			if ( sh->defaultShader ) {
@@ -1202,14 +1302,14 @@ static qboolean R_LoadMDC( model_t *mod, int lod, void *buffer, const char *mod_
 
 			// swap the frameBaseFrames
 			ps = ( short * )( (byte *)surf + surf->ofsFrameBaseFrames );
-			for ( j = 0; j < mod->model.mdc[lod]->numFrames; j++, ps++ )
+			for ( j = 0; j < hdr->numFrames; j++, ps++ )
 			{
 				*ps = LittleShort( *ps );
 			}
 
 			// swap the frameCompFrames
 			ps = ( short * )( (byte *)surf + surf->ofsFrameCompFrames );
-			for ( j = 0; j < mod->model.mdc[lod]->numFrames; j++, ps++ )
+			for ( j = 0; j < hdr->numFrames; j++, ps++ )
 			{
 				*ps = LittleShort( *ps );
 			}
@@ -1329,8 +1429,8 @@ static qboolean R_LoadMD3( model_t *mod, int lod, void *buffer, int fileSize, co
 				frame->bounds[1][j] = -128;
 				frame->localOrigin[j] = LittleFloat( frame->localOrigin[j] );
 			}
-		} else
-		{
+		}
+		else {
 			for ( j = 0 ; j < 3 ; j++ ) {
 				frame->bounds[0][j] = LittleFloat( frame->bounds[0][j] );
 				frame->bounds[1][j] = LittleFloat( frame->bounds[1][j] );

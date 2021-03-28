@@ -213,8 +213,8 @@ MDC file format
 // 2 - changed tag structure so it only lists the names once
 
 typedef struct {
-	unsigned int ofsVec;                    // offset direction from the last base frame
-//	unsigned short	ofsVec;
+	uint32_t ofsVec;                    // offset direction from the last base frame
+//	uint16_t	ofsVec;
 } mdcXyzCompressed_t;
 
 typedef struct {
@@ -242,51 +242,51 @@ typedef struct {
 ** frameCompFrames	sizeof( short ) * numFrames (-1 if frame is a baseFrame)
 */
 typedef struct {
-	int ident;                  //
+	int32_t ident;                  //
 
 	char name[MAX_QPATH];       // polyset name
 
-	int flags;
-	int numCompFrames;          // all surfaces in a model should have the same
-	int numBaseFrames;          // ditto
+	int32_t flags;
+	int32_t numCompFrames;          // all surfaces in a model should have the same
+	int32_t numBaseFrames;          // ditto
 
-	int numShaders;             // all surfaces in a model should have the same
-	int numVerts;
+	int32_t numShaders;             // all surfaces in a model should have the same
+	int32_t numVerts;
 
-	int numTriangles;
-	int ofsTriangles;
+	int32_t numTriangles;
+	uint32_t ofsTriangles;
 
-	int ofsShaders;             // offset from start of md3Surface_t
-	int ofsSt;                  // texture coords are common for all frames
-	int ofsXyzNormals;          // numVerts * numBaseFrames
-	int ofsXyzCompressed;       // numVerts * numCompFrames
+	uint32_t ofsShaders;             // offset from start of md3Surface_t
+	uint32_t ofsSt;                  // texture coords are common for all frames
+	uint32_t ofsXyzNormals;          // numVerts * numBaseFrames
+	uint32_t ofsXyzCompressed;       // numVerts * numCompFrames
 
-	int ofsFrameBaseFrames;     // numFrames
-	int ofsFrameCompFrames;     // numFrames
+	uint32_t ofsFrameBaseFrames;     // numFrames
+	uint32_t ofsFrameCompFrames;     // numFrames
 
-	int ofsEnd;                 // next surface follows
+	uint32_t ofsEnd;                 // next surface follows
 } mdcSurface_t;
 
 typedef struct {
-	int ident;
-	int version;
+	int32_t ident;
+	int32_t version;
 
 	char name[MAX_QPATH];           // model name
 
-	int flags;
+	uint32_t flags;
 
-	int numFrames;
-	int numTags;
-	int numSurfaces;
+	int32_t numFrames;
+	int32_t numTags;
+	int32_t numSurfaces;
 
-	int numSkins;
+	int32_t numSkins;
 
-	int ofsFrames;                  // offset for first frame, stores the bounds and localOrigin
-	int ofsTagNames;                // numTags
-	int ofsTags;                    // numFrames * numTags
-	int ofsSurfaces;                // first surface, others follow
+	uint32_t ofsFrames;                  // offset for first frame, stores the bounds and localOrigin
+	uint32_t ofsTagNames;                // numTags
+	uint32_t ofsTags;                    // numFrames * numTags
+	uint32_t ofsSurfaces;                // first surface, others follow
 
-	int ofsEnd;                     // end of file
+	uint32_t ofsEnd;                     // end of file
 } mdcHeader_t;
 // done.
 

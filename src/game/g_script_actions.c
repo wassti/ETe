@@ -3277,7 +3277,7 @@ qboolean G_ScriptAction_SetState( gentity_t *ent, char *params ) {
 
 		if ( !target ) {
 			if ( !found ) {
-				G_Printf( "^1Warning: setstate called and no entities found\n" );
+				G_Printf( "^1Warning: setstate(%s, %s) called and no entities found\n", name, state );
 			}
 			break;
 		}

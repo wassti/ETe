@@ -1445,7 +1445,7 @@ void CG_LimboPanel_RenderObjectiveText( panel_button_t* button ) {
 		}
 	}
 
-	while ( ( s = strchr( buffer, '*' ) ) ) {
+	while ( ( s = strchr( buffer, '*' ) ) != NULL ) {
 		*s = '\n';
 	}
 
@@ -1883,7 +1883,7 @@ void CG_LimboPanel_WeaponPanel_DrawWeapon( rectDef_t* rect, weapon_t weap, qbool
 		CG_DrawPicST( x2, y2, w, h, s0, t0, s1, t1, shader );
 
 		if ( disabled ) {
-			vec4_t clr = { 1.f, 1.f, 1.f, 0.6f };
+			Vector4Set( clr, 1.f, 1.f, 1.f, 0.6f );
 
 			trap_R_SetColor( clr );
 			CG_DrawPic( x2, y2 + 4 + ( h - 16 ) * 0.5f, w, 16, cgs.media.limboWeaponCardOOS );

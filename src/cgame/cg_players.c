@@ -1372,8 +1372,8 @@ static void CG_PlayerSprites( centity_t *cent ) {
 	}
 
 	{
-		fireteamData_t* ft;
-		if ( ( ft = CG_IsOnFireteam( cent->currentState.number ) ) ) {
+		fireteamData_t* ft = CG_IsOnFireteam( cent->currentState.number );
+		if ( ft ) {
 			if ( ft == CG_IsOnFireteam( cg.clientNum ) && cgs.clientinfo[ cent->currentState.number ].selected ) {
 				CG_PlayerFloatSprite( cent, cgs.media.fireteamicons[ft->ident], 56 );
 			}
@@ -2080,7 +2080,8 @@ void CG_Player( centity_t *cent ) {
 	// add the head
 	//
 
-	if ( !( head.hModel = character->hudhead ) ) {
+	head.hModel = character->hudhead;
+	if ( head.hModel == 0 ) {
 		return;
 	}
 	head.customSkin = character->hudheadskin;

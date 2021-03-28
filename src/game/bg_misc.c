@@ -3541,7 +3541,8 @@ void BG_EvaluateTrajectory( const trajectory_t *tr, int atTime, vec3_t result, q
 		VectorMA( v, -phase * 0.5 * deltaTime * deltaTime, result, result );
 		break;
 	case TR_SPLINE:
-		if ( !( pSpline = BG_GetSplineData( splinePath, &backwards ) ) ) {
+		pSpline = BG_GetSplineData( splinePath, &backwards );
+		if ( !pSpline ) {
 			return;
 		}
 
@@ -3638,7 +3639,8 @@ void BG_EvaluateTrajectory( const trajectory_t *tr, int atTime, vec3_t result, q
 
 		break;
 	case TR_LINEAR_PATH:
-		if ( !( pSpline = BG_GetSplineData( splinePath, &backwards ) ) ) {
+		pSpline = BG_GetSplineData( splinePath, &backwards );
+		if ( !pSpline ) {
 			return;
 		}
 

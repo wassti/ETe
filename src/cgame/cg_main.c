@@ -1278,7 +1278,6 @@ qboolean CG_RegisterClientModelname( bg_playerclass_t* classInfo );
 void WM_RegisterWeaponTypeShaders();
 
 static void CG_RegisterGraphics( void ) {
-	char name[1024];
 	int i;
 	static char     *sb_nums[11] = {
 		"gfx/2d/numbers/zero_32b",
@@ -1716,8 +1715,9 @@ static void CG_RegisterGraphics( void ) {
 
 	for ( i = 0; i < MAX_LOCKER_DEBRIS; i++ )
 	{
-		Com_sprintf( name, sizeof( name ), "models/mapobjects/debris/personal%i.md3", i + 1 );
-		cgs.media.shardJunk[i] = trap_R_RegisterModel( name );
+		char shardName[MAX_QPATH];
+		Com_sprintf( shardName, sizeof( shardName ), "models/mapobjects/debris/personal%i.md3", i + 1 );
+		cgs.media.shardJunk[i] = trap_R_RegisterModel( shardName );
 	}
 
 	memset( cg_items, 0, sizeof( cg_items ) );

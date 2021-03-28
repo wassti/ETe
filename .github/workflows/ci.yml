@@ -164,7 +164,7 @@ jobs:
 
     steps:
     - name: Install tools
-      run: brew install coreutils ninja sdl2
+      run: brew install coreutils ninja sdl2 jpeg-turbo curl
 
     - uses: actions/checkout@v2
       with:

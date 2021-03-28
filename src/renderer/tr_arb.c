@@ -471,7 +471,6 @@ static const char *ARB_BuildDlightFP( char *program, int programIndex )
 	// qboolean directional = qfalse;
 	qboolean abslight = qfalse;
 
-
 	program[0] = '\0';
 
 	switch ( programIndex ) {

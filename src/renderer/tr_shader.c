@@ -2520,6 +2520,7 @@ static qboolean CollapseMultitexture( shaderStage_t *st0, shaderStage_t *st1, in
 	st0->mtEnv = collapse[i].multitextureEnv;
 	st0->stateBits &= ~GLS_BLEND_BITS;
 	st0->stateBits |= collapse[i].multitextureBlend;
+	st0->tessFlags |= TESS_ST1;
 
 	//
 	// move down subsequent shaders
@@ -3058,17 +3059,17 @@ static shader_t *FinishShader( void ) {
 				if(!stages[index].active)
 					break;
 			}
-			
+
 			if(index < MAX_SHADER_STAGES)
 				memmove(pStage, pStage + 1, sizeof(*pStage) * (index - stage));
 			else
 			{
 				if(stage + 1 < MAX_SHADER_STAGES)
 					memmove(pStage, pStage + 1, sizeof(*pStage) * (index - stage - 1));
-				
+
 				Com_Memset(&stages[index - 1], 0, sizeof(*stages));
 			}
-			
+
 			continue;
 		}
 
@@ -3135,7 +3136,7 @@ static shader_t *FinishShader( void ) {
 
 			colorBlend = qtrue;
 		}
-		
+
 		stage++;
 	}
 
@@ -3179,15 +3180,9 @@ static shader_t *FinishShader( void ) {
 		}
 	}
 
-	//
-	// if we are using permedia hw,	 never use a lightmap texture
-	//
-	// NERVE - SMF - temp fix, terrain is having problems with lighting collapse
-	/*if ( 0 && ( stage > 1 && ( glConfig.hardwareType == GLHW_PERMEDIA2 ) ) ) {
-		VertexLightingCollapse();
-		stage = 1;
-		hasLightmapStage = qfalse;
-	}*/
+	for ( i = 0; i < stage; i++ ) {
+		stages[i].tessFlags = TESS_ST0;
+	}
 
 	//
 	// look for multitexture potential

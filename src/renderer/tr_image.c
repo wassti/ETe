@@ -31,6 +31,8 @@ If you have questions concerning this license or the applicable additional terms
 static byte			 s_intensitytable[256];
 static unsigned char s_gammatable[256];
 
+static unsigned char s_gammatable_linear[256];
+
 GLint	gl_filter_min = GL_LINEAR_MIPMAP_NEAREST;
 GLint	gl_filter_max = GL_LINEAR;
 
@@ -348,7 +350,7 @@ static void R_LightScaleTexture( byte *in, int inwidth, int inheight, qboolean o
 
 	if ( only_gamma )
 	{
-		if ( !glConfig.deviceSupportsGamma )
+		if ( !glConfig.deviceSupportsGamma && !fboEnabled )
 		{
 			int		i, c;
 			byte	*p;
@@ -373,7 +375,7 @@ static void R_LightScaleTexture( byte *in, int inwidth, int inheight, qboolean o
 
 		c = inwidth*inheight;
 
-		if ( glConfig.deviceSupportsGamma )
+		if ( glConfig.deviceSupportsGamma || fboEnabled )
 		{
 			for (i=0 ; i<c ; i++, p+=4)
 			{
@@ -1134,7 +1136,7 @@ image_t	*R_FindImageFile( const char *name, imgFlags_t flags )
 		if ( !(flags & IMGFLAG_NO_COMPRESSION) )
 			flags |= IMGFLAG_NO_COMPRESSION;
 	}
-	
+
 	if ( tr.mapLoading && r_mapGreyScale->value > 0 ) {
 		byte *img;
 		int i;
@@ -1435,7 +1437,7 @@ void R_SetColorMappings( void ) {
 	// setup the overbright lighting
 	// negative value will force gamma in windowed mode
 	tr.overbrightBits = abs( r_overBrightBits->integer );
-	if ( !glConfig.deviceSupportsGamma )
+	if ( !glConfig.deviceSupportsGamma && !fboEnabled )
 		tr.overbrightBits = 0;		// need hardware gamma for overbright
 
 	// never overbright in windowed mode
@@ -1487,9 +1489,11 @@ void R_SetColorMappings( void ) {
 		s_intensitytable[i] = j;
 	}
 
-	if ( glConfig.deviceSupportsGamma && !fboEnabled )
-	{
-		ri.GLimp_SetGamma( s_gammatable, s_gammatable, s_gammatable );
+	if ( glConfig.deviceSupportsGamma ) {
+		if ( fboEnabled )
+			ri.GLimp_SetGamma( s_gammatable_linear, s_gammatable_linear, s_gammatable_linear );
+		else
+			ri.GLimp_SetGamma( s_gammatable, s_gammatable, s_gammatable );
 	}
 }
 
@@ -1500,6 +1504,12 @@ R_InitImages
 ===============
 */
 void R_InitImages( void ) {
+
+	// initialize linear gamma table before setting color mappings for the first time
+	int i;
+
+	for ( i = 0; i < 256; i++ )
+		s_gammatable_linear[i] = (unsigned char)i;
 
 	Com_Memset( hashTable, 0, sizeof( hashTable ) );
 

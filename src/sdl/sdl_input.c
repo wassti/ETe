@@ -47,16 +47,16 @@ static cvar_t *in_joystickThreshold;
 static cvar_t *in_joystickNo;
 static cvar_t *in_joystickUseAnalog;
 
-static cvar_t *j_pitch;
-static cvar_t *j_yaw;
-static cvar_t *j_forward;
-static cvar_t *j_side;
-static cvar_t *j_up;
-static cvar_t *j_pitch_axis;
-static cvar_t *j_yaw_axis;
-static cvar_t *j_forward_axis;
-static cvar_t *j_side_axis;
-static cvar_t *j_up_axis;
+cvar_t *j_pitch;
+cvar_t *j_yaw;
+cvar_t *j_forward;
+cvar_t *j_side;
+cvar_t *j_up;
+cvar_t *j_pitch_axis;
+cvar_t *j_yaw_axis;
+cvar_t *j_forward_axis;
+cvar_t *j_side_axis;
+cvar_t *j_up_axis;
 #endif
 
 #define Com_QueueEvent Sys_QueEvent
@@ -309,6 +309,8 @@ static keyNum_t IN_TranslateSDLToQ3Key( SDL_Keysym *keysym, qboolean down )
 			case SDLK_KP_PLUS:      key = K_KP_PLUS;       break;
 			case SDLK_KP_MINUS:     key = K_KP_MINUS;      break;
 			case SDLK_KP_DIVIDE:    key = K_KP_SLASH;      break;
+
+			case SDLK_KP_EQUALS:    key = K_KP_EQUALS;     break;
 
 			case SDLK_MODE:         key = K_MODE;          break;
 			case SDLK_HELP:         key = K_HELP;          break;

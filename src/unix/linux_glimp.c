@@ -355,6 +355,7 @@ static char *XLateKey( XKeyEvent *ev, int *key )
   case XK_Num_Lock: *key = K_KP_NUMLOCK; break;
   case XK_Caps_Lock: *key = K_CAPSLOCK; break;
   case XK_Scroll_Lock: *key = K_SCROLLOCK; break;
+  case XK_KP_Equal: *key = K_KP_EQUALS; break;
   case XK_backslash: *key = '\\'; break;
 
   default:

@@ -677,7 +677,7 @@ static void InitOpenGL( void )
 	//		- r_ignorehwgamma
 	//		- r_gamma
 	//
-	
+
 	if ( glConfig.vidWidth == 0 )
 	{
 		const char *err;
@@ -700,7 +700,7 @@ static void InitOpenGL( void )
 		glConfig.maxTextureSize = max_texture_size;
 
 		// stubbed or broken drivers may have reported 0...
-		if ( glConfig.maxTextureSize <= 0 ) 
+		if ( glConfig.maxTextureSize <= 0 )
 			glConfig.maxTextureSize = 0;
 		else if ( glConfig.maxTextureSize > MAX_TEXTURE_SIZE )
 			glConfig.maxTextureSize = MAX_TEXTURE_SIZE; // ResampleTexture() relies on that maximum
@@ -768,6 +768,22 @@ static void InitOpenGL( void )
 	else
 	{
 		QGL_SetRenderScale( qfalse );
+	}
+
+	if ( !qglViewport ) // might happen after REF_KEEP_WINDOW
+	{
+		const char *err = R_ResolveSymbols( core_procs, ARRAY_LEN( core_procs ) );
+		if ( err )
+			ri.Error( ERR_FATAL, "Error resolving core OpenGL function '%s'", err );
+
+		R_InitExtensions();
+
+		QGL_InitARB();
+
+		// print info
+		GfxInfo();
+
+		gls.initTime = ri.Milliseconds();
 	}
 
 	VarInfo();
@@ -2021,8 +2037,6 @@ static void RE_Shutdown( refShutdownCode_t code ) {
 		QGL_DoneARB();
 
 		VBO_Cleanup();
-
-		
 
 		R_ClearSymTables();
 

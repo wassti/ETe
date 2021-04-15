@@ -580,7 +580,7 @@ void Weapon_Syringe( gentity_t *ent ) {
 					ent->client->sess.aWeaponStats[WS_SYRINGE].hits++;
 				}
 				if ( ent && ent->client ) {
-					G_LogPrintf( "Medic_Revive: %d %d\n", ent - g_entities, traceEnt - g_entities );                // OSP
+					G_LogPrintf( "Medic_Revive: %d %d\n", (int)(ent - g_entities), (int)(traceEnt - g_entities) );                // OSP
 
 				}
 				if ( !traceEnt->isProp ) { // Gordon: flag for if they were teamkilled or not
@@ -1526,7 +1526,7 @@ void Weapon_Engineer( gentity_t *ent ) {
 				traceEnt->health = MG42_MULTIPLAYER_HEALTH;
 			}
 
-			G_LogPrintf( "Repair: %d\n", ent - g_entities );    // OSP
+			G_LogPrintf( "Repair: %d\n", (int)(ent - g_entities) );    // OSP
 
 			if ( traceEnt->sound3to2 != ent->client->sess.sessionTeam ) {
 				AddScore( ent, WOLF_REPAIR_BONUS ); // JPW NERVE props to the E for the fixin'
@@ -1946,7 +1946,7 @@ evilbanigoto:
 							if ( !( hit->spawnflags & OBJECTIVE_DESTROYED ) ) {
 								AddScore( traceEnt->parent, WOLF_DYNAMITE_PLANT ); // give drop score to guy who dropped it
 								if ( traceEnt->parent && traceEnt->parent->client ) {
-									G_LogPrintf( "Dynamite_Plant: %d\n", traceEnt->parent - g_entities );   // OSP
+									G_LogPrintf( "Dynamite_Plant: %d\n", (int)(traceEnt->parent - g_entities) );   // OSP
 								}
 								traceEnt->parent = ent; // give explode score to guy who armed it
 							}

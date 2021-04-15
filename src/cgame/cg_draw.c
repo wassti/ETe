@@ -2708,7 +2708,7 @@ static qboolean CG_DrawFollow( void ) {
 
 					Com_sprintf( deploytime, sizeof(deploytime), CG_TranslateString( "Bonus Life! Deploying in %d seconds" ), CG_CalculateReinfTime( qfalse ) + cg.snap->ps.persistant[PERS_RESPAWNS_PENALTY] * deployTime );
 				} else {
-					Com_sprintf( deploytime, sizeof(deploytime), CG_TranslateString( "No more deployments this round" ) );
+					Com_sprintf( deploytime, sizeof(deploytime), "%s", CG_TranslateString( "No more deployments this round" ) );
 				}
 			} else {
 				Com_sprintf( deploytime, sizeof(deploytime), CG_TranslateString( "Deploying in %d seconds" ), CG_CalculateReinfTime( qfalse ) );

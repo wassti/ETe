@@ -36,14 +36,11 @@ Q_EXPORT void dllEntry( dllSyscall_t syscallptr ) {
 	syscall = syscallptr;
 }
 
-/*int PASSFLOAT( float x ) {
-	float	floatTemp;
-	floatTemp = x;
-	return *(int *)&floatTemp;
-}*/
-
-
-#define PASSFLOAT( x ) ( *(int*)&x )
+int PASSFLOAT( float x ) {
+	floatint_t fi;
+	fi.f = x;
+	return fi.i;
+}
 
 void trap_PumpEventLoop( void ) {
 	if ( !cgs.initing ) {

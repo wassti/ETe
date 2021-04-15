@@ -38,9 +38,9 @@ Q_EXPORT void dllEntry( dllSyscall_t syscallptr ) {
 }
 
 int PASSFLOAT( float x ) {
-	float floatTemp;
-	floatTemp = x;
-	return *(int *)&floatTemp;
+	floatint_t fi;
+	fi.f = x;
+	return fi.i;
 }
 
 void    trap_Printf( const char *fmt ) {
@@ -405,9 +405,9 @@ void trap_AAS_PresenceTypeBoundingBox( int presencetype, vec3_t mins, vec3_t max
 }
 
 float trap_AAS_Time( void ) {
-	int temp;
-	temp = syscall( BOTLIB_AAS_TIME );
-	return ( *(float*)&temp );
+	floatint_t temp;
+	temp.i = syscall( BOTLIB_AAS_TIME );
+	return temp.f;
 }
 
 // Ridah, multiple AAS files
@@ -669,15 +669,15 @@ void trap_BotFreeCharacter( int character ) {
 }
 
 float trap_Characteristic_Float( int character, int index ) {
-	int temp;
-	temp = syscall( BOTLIB_AI_CHARACTERISTIC_FLOAT, character, index );
-	return ( *(float*)&temp );
+	floatint_t temp;
+	temp.i = syscall( BOTLIB_AI_CHARACTERISTIC_FLOAT, character, index );
+	return temp.f;
 }
 
 float trap_Characteristic_BFloat( int character, int index, float min, float max ) {
-	int temp;
-	temp = syscall( BOTLIB_AI_CHARACTERISTIC_BFLOAT, character, index, PASSFLOAT( min ), PASSFLOAT( max ) );
-	return ( *(float*)&temp );
+	floatint_t temp;
+	temp.i = syscall( BOTLIB_AI_CHARACTERISTIC_BFLOAT, character, index, PASSFLOAT( min ), PASSFLOAT( max ) );
+	return temp.f;
 }
 
 int trap_Characteristic_Integer( int character, int index ) {
@@ -847,9 +847,9 @@ int trap_BotGetMapLocationGoal( char *name, void /* struct bot_goal_s */ *goal )
 }
 
 float trap_BotAvoidGoalTime( int goalstate, int number ) {
-	int temp;
-	temp = syscall( BOTLIB_AI_AVOID_GOAL_TIME, goalstate, number );
-	return ( *(float*)&temp );
+	floatint_t temp;
+	temp.i = syscall( BOTLIB_AI_AVOID_GOAL_TIME, goalstate, number );
+	return temp.f;
 }
 
 void trap_BotInitLevelItems( void ) {

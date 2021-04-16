@@ -1495,10 +1495,10 @@ void Menu_TransitionItemByName( menuDef_t *menu, const char *p, rectDef_t rectFr
 			item->window.offsetTime = time;
 			memcpy( &item->window.rectClient, &rectFrom, sizeof( rectDef_t ) );
 			memcpy( &item->window.rectEffects, &rectTo, sizeof( rectDef_t ) );
-			item->window.rectEffects2.x = abs( rectTo.x - rectFrom.x ) / amt;
-			item->window.rectEffects2.y = abs( rectTo.y - rectFrom.y ) / amt;
-			item->window.rectEffects2.w = abs( rectTo.w - rectFrom.w ) / amt;
-			item->window.rectEffects2.h = abs( rectTo.h - rectFrom.h ) / amt;
+			item->window.rectEffects2.x = fabs( rectTo.x - rectFrom.x ) / amt;
+			item->window.rectEffects2.y = fabs( rectTo.y - rectFrom.y ) / amt;
+			item->window.rectEffects2.w = fabs( rectTo.w - rectFrom.w ) / amt;
+			item->window.rectEffects2.h = fabs( rectTo.h - rectFrom.h ) / amt;
 			Item_UpdatePosition( item );
 		}
 	}
@@ -4914,13 +4914,9 @@ void Item_ListBox_Paint( itemDef_t *item ) {
 
 
 void Item_OwnerDraw_Paint( itemDef_t *item ) {
-	menuDef_t *parent;
-
 	if ( item == NULL ) {
 		return;
 	}
-
-	parent = (menuDef_t*)item->parent;
 
 	if ( DC->ownerDrawItem ) {
 		vec4_t color, lowLight;

@@ -312,6 +312,12 @@ void G_addStatsHeadShot( gentity_t *attacker, int mod ) {
 //
 // FIXME: Remove everything that maps to WS_MAX to save space
 //
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wenum-conversion"
+#endif /* __clang__ */
+
 static const weap_ws_convert_t aWeapMOD[MOD_NUM_MODS] = {
 	{ MOD_UNKNOWN,              WS_MAX },
 	{ MOD_MACHINEGUN,           WS_MG42 },
@@ -388,6 +394,10 @@ static const weap_ws_convert_t aWeapMOD[MOD_NUM_MODS] = {
 	{ MOD_SWITCHTEAM,           WS_MAX }
 
 };
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 
 // Get right stats index based on weapon mod

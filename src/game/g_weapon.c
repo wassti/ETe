@@ -1185,7 +1185,7 @@ static qboolean TryConstructing( gentity_t *ent ) {
 				{
 					gentity_t* tent = NULL;
 					while ( ( tent = G_Find( tent, FOFS( target ), constructible->targetname ) ) != NULL ) {
-						if ( ( tent->s.eType == ET_OID_TRIGGER ) ) {
+						if ( tent->s.eType == ET_OID_TRIGGER ) {
 							e->parent = tent;
 						}
 					}
@@ -1349,7 +1349,7 @@ void AutoBuildConstruction( gentity_t* constructible ) {
 			e->s.eType = ET_EXPLOSIVE_INDICATOR;
 
 			while ( ( tent = G_Find( tent, FOFS( target ), constructible->targetname ) ) != NULL ) {
-				if ( ( tent->s.eType == ET_OID_TRIGGER ) ) {
+				if ( tent->s.eType == ET_OID_TRIGGER ) {
 					if ( tent->spawnflags & 8 ) {
 						e->s.eType = ET_TANK_INDICATOR;
 					}
@@ -1360,7 +1360,7 @@ void AutoBuildConstruction( gentity_t* constructible ) {
 			{
 				gentity_t* tent = NULL;
 				while ( ( tent = G_Find( tent, FOFS( target ), constructible->targetname ) ) != NULL ) {
-					if ( ( tent->s.eType == ET_OID_TRIGGER ) ) {
+					if ( tent->s.eType == ET_OID_TRIGGER ) {
 						e->parent = tent;
 					}
 				}
@@ -1840,7 +1840,7 @@ evilbanigoto:
 						continue;
 					}
 
-					if ( ( hit->s.eType == ET_OID_TRIGGER ) ) {
+					if ( hit->s.eType == ET_OID_TRIGGER ) {
 						if ( !( hit->spawnflags & ( AXIS_OBJECTIVE | ALLIED_OBJECTIVE ) ) ) {
 							continue;
 						}
@@ -1911,7 +1911,7 @@ evilbanigoto:
 					if ( !( hit->r.contents & CONTENTS_TRIGGER ) ) {
 						continue;
 					}
-					if ( ( hit->s.eType == ET_OID_TRIGGER ) ) {
+					if ( hit->s.eType == ET_OID_TRIGGER ) {
 
 						if ( !( hit->spawnflags & ( AXIS_OBJECTIVE | ALLIED_OBJECTIVE ) ) ) {
 							continue;
@@ -2017,7 +2017,7 @@ evilbanigoto:
 								 hit->s.teamNum && ( hit->s.teamNum == ent->client->sess.sessionTeam ) ) { // ==, as it's inverse
 								AddScore( traceEnt->parent, WOLF_DYNAMITE_PLANT ); // give drop score to guy who dropped it
 								if ( traceEnt->parent && traceEnt->parent->client ) {
-									G_LogPrintf( "Dynamite_Plant: %d\n", traceEnt->parent - g_entities );   // OSP
+									G_LogPrintf( "Dynamite_Plant: %d\n", (int)(traceEnt->parent - g_entities) );   // OSP
 								}
 								traceEnt->parent = ent; // give explode score to guy who armed it
 							}
@@ -2077,7 +2077,7 @@ evilbanigoto:
 						if ( !( hit->r.contents & CONTENTS_TRIGGER ) ) {
 							continue;
 						}
-						if ( ( hit->s.eType == ET_OID_TRIGGER ) ) {
+						if ( hit->s.eType == ET_OID_TRIGGER ) {
 
 							if ( !( hit->spawnflags & ( AXIS_OBJECTIVE | ALLIED_OBJECTIVE ) ) ) {
 								continue;
@@ -2183,7 +2183,7 @@ evilbanigoto:
 								if ( hit->s.teamNum == TEAM_AXIS && ( !scored ) ) {
 									AddScore( ent,WOLF_DYNAMITE_DIFFUSE );
 									if ( ent && ent->client ) {
-										G_LogPrintf( "Dynamite_Diffuse: %d\n", ent - g_entities );                  // OSP
+										G_LogPrintf( "Dynamite_Diffuse: %d\n", (int)(ent - g_entities) );                  // OSP
 									}
 									G_AddSkillPoints( ent, SK_EXPLOSIVES_AND_CONSTRUCTION, 6.f );
 									G_DebugAddSkillPoints( ent, SK_EXPLOSIVES_AND_CONSTRUCTION, 6.f, "defusing enemy dynamite" );
@@ -2203,7 +2203,7 @@ evilbanigoto:
 								if ( hit->s.teamNum == TEAM_ALLIES && ( !scored ) ) {
 									AddScore( ent,WOLF_DYNAMITE_DIFFUSE );
 									if ( ent && ent->client ) {
-										G_LogPrintf( "Dynamite_Diffuse: %d\n", ent - g_entities );                  // OSP
+										G_LogPrintf( "Dynamite_Diffuse: %d\n", (int)(ent - g_entities) );                  // OSP
 									}
 									G_AddSkillPoints( ent, SK_EXPLOSIVES_AND_CONSTRUCTION, 6.f );
 									G_DebugAddSkillPoints( ent, SK_EXPLOSIVES_AND_CONSTRUCTION, 6.f, "defusing enemy dynamite" );

@@ -36,9 +36,9 @@ If you have questions concerning this license or the applicable additional terms
 static qboolean R_LoadMDC( model_t *mod, int lod, void *buffer, int fileSize, const char *mod_name );
 // done.
 static qboolean R_LoadMD3( model_t *mod, int lod, void *buffer, int fileSize, const char *name );
-static qboolean R_LoadMDS( model_t *mod, void *buffer, const char *name );
-static qboolean R_LoadMDM( model_t *mod, void *buffer, const char *name );
-static qboolean R_LoadMDX( model_t *mod, void *buffer, const char *name );
+static qboolean R_LoadMDS( model_t *mod, void *buffer, int fileSize, const char *name );
+static qboolean R_LoadMDM( model_t *mod, void *buffer, int fileSize, const char *name );
+static qboolean R_LoadMDX( model_t *mod, void *buffer, int fileSize, const char *name );
 
 /*
 ====================
@@ -93,7 +93,7 @@ qhandle_t R_RegisterMD3(const char *name, model_t *mod)
 		if ( ident == MD3_IDENT )
 			loaded = R_LoadMD3( mod, lod, buf.v, fileSize, name );
 		else
-			ri.Printf( PRINT_WARNING,"%s: unknown fileid for %s\n", __func__, name );
+			ri.Printf( PRINT_WARNING, "%s: unknown fileid for %s\n", __func__, name );
 		
 		ri.FS_FreeFile( buf.v );
 
@@ -220,22 +220,32 @@ R_RegisterMDS
 qhandle_t R_RegisterMDS(const char *name, model_t *mod)
 {
 	union {
-		unsigned *u;
+		uint32_t *u;
 		void *v;
 	} buf;
-	int	ident;
+	uint32_t	ident;
 	qboolean loaded = qfalse;
+	int fileSize;
 
-	ri.FS_ReadFile(name, (void **) &buf.v);
-	if(!buf.u)
+	fileSize = ri.FS_ReadFile( name, &buf.v );
+	if( !buf.v )
 	{
 		mod->type = MOD_BAD;
 		return 0;
 	}
+
+	if ( fileSize < sizeof( mdsHeader_t ) ) {
+		mod->type = MOD_BAD;
+		ri.Printf( PRINT_WARNING, "%s: truncated header for %s\n", __func__, name );
+		ri.FS_FreeFile( buf.v );
+		return 0;
+	}
 	
-	ident = LittleLong(*(unsigned *)buf.u);
-	if(ident == MDS_IDENT)
-		loaded = R_LoadMDS(mod, buf.u, name);
+	ident = LittleLong( *buf.u );
+	if ( ident == MDS_IDENT )
+		loaded = R_LoadMDS( mod, buf.u, fileSize, name );
+	else
+		ri.Printf( PRINT_WARNING, "%s: unknown fileid for %s\n", __func__, name );
 
 	ri.FS_FreeFile (buf.v);
 	
@@ -257,22 +267,32 @@ R_RegisterMDM
 qhandle_t R_RegisterMDM(const char *name, model_t *mod)
 {
 	union {
-		unsigned *u;
+		uint32_t *u;
 		void *v;
 	} buf;
-	int	ident;
+	uint32_t	ident;
 	qboolean loaded = qfalse;
+	int fileSize;
 
-	ri.FS_ReadFile(name, (void **) &buf.v);
-	if(!buf.u)
+	fileSize = ri.FS_ReadFile(name, &buf.v);
+	if(!buf.v)
 	{
 		mod->type = MOD_BAD;
 		return 0;
 	}
+
+	if ( fileSize < sizeof( mdmHeader_t ) ) {
+		mod->type = MOD_BAD;
+		ri.Printf( PRINT_WARNING, "%s: truncated header for %s\n", __func__, name );
+		ri.FS_FreeFile( buf.v );
+		return 0;
+	}
 	
-	ident = LittleLong(*(unsigned *)buf.u);
-	if(ident == MDM_IDENT)
-		loaded = R_LoadMDM(mod, buf.u, name);
+	ident = LittleLong( *buf.u );
+	if( ident == MDM_IDENT )
+		loaded = R_LoadMDM( mod, buf.u, fileSize, name );
+	else
+		ri.Printf( PRINT_WARNING, "%s: unknown fileid for %s\n", __func__, name );
 
 	ri.FS_FreeFile (buf.v);
 	
@@ -294,22 +314,32 @@ R_RegisterMDX
 qhandle_t R_RegisterMDX(const char *name, model_t *mod)
 {
 	union {
-		unsigned *u;
+		uint32_t *u;
 		void *v;
 	} buf;
-	int	ident;
+	uint32_t	ident;
 	qboolean loaded = qfalse;
+	int fileSize;
 
-	ri.FS_ReadFile(name, (void **) &buf.v);
-	if(!buf.u)
+	fileSize = ri.FS_ReadFile(name, &buf.v);
+	if(!buf.v)
 	{
 		mod->type = MOD_BAD;
 		return 0;
 	}
-	
-	ident = LittleLong(*(unsigned *)buf.u);
-	if(ident == MDX_IDENT)
-		loaded = R_LoadMDX(mod, buf.u, name);
+
+	if ( fileSize < sizeof( mdxHeader_t ) ) {
+		mod->type = MOD_BAD;
+		ri.Printf( PRINT_WARNING, "%s: truncated header for %s\n", __func__, name );
+		ri.FS_FreeFile( buf.v );
+		return 0;
+	}
+
+	ident = LittleLong( *buf.u );
+	if ( ident == MDX_IDENT )
+		loaded = R_LoadMDX( mod, buf.u, fileSize, name );
+	else
+		ri.Printf( PRINT_WARNING, "%s: unknown fileid for %s\n", __func__, name );
 
 	ri.FS_FreeFile (buf.v);
 	
@@ -331,20 +361,20 @@ R_RegisterIQM
 qhandle_t R_RegisterIQM(const char *name, model_t *mod)
 {
 	union {
-		unsigned *u;
+		uint32_t *u;
 		void *v;
 	} buf;
 	qboolean loaded = qfalse;
-	int filesize;
+	int fileSize;
 
-	filesize = ri.FS_ReadFile(name, (void **) &buf.v);
-	if(!buf.u)
+	fileSize = ri.FS_ReadFile(name, &buf.v);
+	if(!buf.v)
 	{
 		mod->type = MOD_BAD;
 		return 0;
 	}
-	
-	loaded = R_LoadIQM(mod, buf.u, filesize, name);
+
+	loaded = R_LoadIQM( mod, buf.u, fileSize, name );
 
 	ri.FS_FreeFile (buf.v);
 	
@@ -1583,7 +1613,7 @@ static qboolean R_LoadMD3( model_t *mod, int lod, void *buffer, int fileSize, co
 R_LoadMDS
 =================
 */
-static qboolean R_LoadMDS( model_t *mod, void *buffer, const char *mod_name ) {
+static qboolean R_LoadMDS( model_t *mod, void *buffer, int fileSize, const char *mod_name ) {
 	int i, j, k;
 	mdsHeader_t         *pinmodel, *mds;
 	mdsFrame_t          *frame;
@@ -1784,7 +1814,7 @@ static qboolean R_LoadMDS( model_t *mod, void *buffer, const char *mod_name ) {
 R_LoadMDM
 =================
 */
-static qboolean R_LoadMDM( model_t *mod, void *buffer, const char *mod_name ) {
+static qboolean R_LoadMDM( model_t *mod, void *buffer, int fileSize, const char *mod_name ) {
 	int i, j, k;
 	mdmHeader_t         *pinmodel, *mdm;
 //    mdmFrame_t			*frame;
@@ -1984,7 +2014,7 @@ static qboolean R_LoadMDM( model_t *mod, void *buffer, const char *mod_name ) {
 R_LoadMDX
 =================
 */
-static qboolean R_LoadMDX( model_t *mod, void *buffer, const char *mod_name ) {
+static qboolean R_LoadMDX( model_t *mod, void *buffer, int fileSize, const char *mod_name ) {
 	int i, j;
 	mdxHeader_t                 *pinmodel, *mdx;
 	mdxFrame_t                  *frame;

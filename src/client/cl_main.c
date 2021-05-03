@@ -6316,8 +6316,15 @@ void CL_TrackCvarChanges( qboolean force ) {
 	}
 #endif
 	if ( force || Cvar_CheckGroup( CVG_CLDOWNLOAD ) ) {
+		if ( cl_wwwDownload->integer != 0 && (cl_allowDownload->integer & DLF_NO_UDP) ) {
+			int newValue = (cl_allowDownload->integer & ~DLF_NO_UDP);
+			Com_Printf( S_COLOR_YELLOW "WARNING: cl_wwwDownload 1 requires cl_allowDownload without %d\n"
+						"Setting cl_allowDownload to %d\n", DLF_NO_UDP, newValue );
+			Cvar_SetIntegerValue( "cl_allowDownload", newValue );
+		}
+
 		if ( cl_wwwDownload->integer != 0 && !(cl_allowDownload->integer & DLF_NO_REDIRECT) ) {
-			int newValue = cl_allowDownload->integer | DLF_NO_REDIRECT;
+			int newValue = (cl_allowDownload->integer | DLF_NO_REDIRECT);
 			Com_Printf( S_COLOR_YELLOW "WARNING: cl_allowDownload %d is not compatible with cl_wwwDownload 1\n"
 						"Setting cl_allowDownload to %d\n", cl_allowDownload->integer, newValue );
 			Cvar_SetIntegerValue( "cl_allowDownload", newValue );

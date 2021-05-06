@@ -85,9 +85,9 @@ Q_EXPORT intptr_t vmMain( int command, intptr_t arg0, intptr_t arg1, intptr_t ar
 		CG_KeyEvent( arg0, arg1 );
 		return 0;
 	case CG_MOUSE_EVENT:
+		CG_MouseEvent( arg0, arg1 );
 		cgDC.cursorx = cgs.cursorX;
 		cgDC.cursory = cgs.cursorY;
-		CG_MouseEvent( arg0, arg1 );
 		return 0;
 	case CG_EVENT_HANDLING:
 		CG_EventHandling( arg0, qtrue );

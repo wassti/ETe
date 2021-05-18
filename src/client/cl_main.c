@@ -1251,10 +1251,7 @@ if it doesn't exist
 static void CL_GenerateETKey(void)
 {
 	int          len = 0;
-	char         buff[ETKEY_SIZE];
 	fileHandle_t f;
-
-	buff[0] = '\0';
 
 	len = FS_SV_FOpenFileRead(BASEGAME "/" ETKEY_FILE, &f);
 	FS_FCloseFile(f);
@@ -1268,13 +1265,15 @@ static void CL_GenerateETKey(void)
 		time_t    tt;
 		struct tm *t;
 		int       last;
+		char      buff[ETKEY_SIZE];
 
+		buff[0] = '\0';
 		tt = time(NULL);
 		t  = localtime(&tt);
 		srand(Sys_Milliseconds());
 		last = rand() % 9999;
 
-		Com_sprintf(buff, sizeof(buff), "0000001002%04i%02i%02i%02i%02i%02i%04i", t->tm_year, t->tm_mon, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, last);
+		Com_sprintf(buff, sizeof(buff), "0000001002%04i%02i%02i%02i%02i%02i%03i", t->tm_year, t->tm_mon, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, last);
 
 		f = FS_SV_FOpenFileWrite(BASEGAME "/" ETKEY_FILE);
 		if (!f)

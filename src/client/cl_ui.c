@@ -852,11 +852,11 @@ static intptr_t CL_UISystemCalls( intptr_t *args ) {
 		return FloatAsInt( Cvar_VariableValue( VMA(1) ) );
 
 	case UI_CVAR_VARIABLESTRINGBUFFER:
-		Cvar_VariableStringBufferSafe( VMA(1), VMA(2), args[3], CVAR_PRIVATE );
+		Cvar_VariableStringBufferSafe( VMA(1), VMA(2), args[3], uivm->privateFlag );
 		return 0;
 
 	case UI_CVAR_LATCHEDVARIABLESTRINGBUFFER:
-		Cvar_LatchedVariableStringBufferSafe( VMA(1), VMA(2), args[3], CVAR_PRIVATE );
+		Cvar_LatchedVariableStringBufferSafe( VMA(1), VMA(2), args[3], uivm->privateFlag );
 		return 0;
 
 	case UI_CVAR_SETVALUE:

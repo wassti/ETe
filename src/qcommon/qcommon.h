@@ -590,10 +590,10 @@ cvar_t *Cvar_Get( const char *var_name, const char *value, int flags );
 // that allows variables to be unarchived without needing bitflags
 // if value is "", the value will not override a previously set value.
 
-void	Cvar_Register( vmCvar_t *vmCvar, const char *varName, const char *defaultValue, int flags );
+void	Cvar_Register( vmCvar_t *vmCvar, const char *varName, const char *defaultValue, int flags, int privateFlag );
 // basically a slightly modified Cvar_Get for the interpreted modules
 
-void	Cvar_Update( vmCvar_t *vmCvar );
+void	Cvar_Update( vmCvar_t *vmCvar, int privateFlag );
 // updates an interpreted modules' version of a cvar
 
 void 	Cvar_Set( const char *var_name, const char *value );
@@ -625,6 +625,7 @@ void	Cvar_VariableStringBufferSafe( const char *var_name, char *buffer, int bufs
 // returns an empty string if not defined
 const char *Cvar_LatchedVariableString( const char *var_name );
 void    Cvar_LatchedVariableStringBuffer( const char *var_name, char *buffer, int bufsize );
+void	Cvar_LatchedVariableStringBufferSafe( const char *var_name, char *buffer, int bufsize, int flag );
 // Gordon: returns the latched value if there is one, else the normal one, empty string if not defined as usual
 
 unsigned Cvar_Flags( const char *var_name );

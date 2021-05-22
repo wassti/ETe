@@ -646,10 +646,10 @@ static intptr_t CL_CgameSystemCalls( intptr_t *args ) {
 	case CG_MILLISECONDS:
 		return Sys_Milliseconds();
 	case CG_CVAR_REGISTER:
-		Cvar_Register( VMA(1), VMA(2), VMA(3), args[4] );
+		Cvar_Register( VMA(1), VMA(2), VMA(3), args[4], cgvm->privateFlag );
 		return 0;
 	case CG_CVAR_UPDATE:
-		Cvar_Update( VMA(1) );
+		Cvar_Update( VMA(1), cgvm->privateFlag );
 		return 0;
 	case CG_CVAR_SET:
 		Cvar_SetSafe( VMA(1), VMA(2) );
@@ -658,7 +658,7 @@ static intptr_t CL_CgameSystemCalls( intptr_t *args ) {
 		Cvar_VariableStringBufferSafe( VMA(1), VMA(2), args[3], CVAR_PRIVATE );
 		return 0;
 	case CG_CVAR_LATCHEDVARIABLESTRINGBUFFER:
-		Cvar_LatchedVariableStringBuffer( VMA(1), VMA(2), args[3] );
+		Cvar_LatchedVariableStringBufferSafe( VMA(1), VMA(2), args[3], CVAR_PRIVATE );
 		return 0;
 	case CG_ARGC:
 		return Cmd_Argc();

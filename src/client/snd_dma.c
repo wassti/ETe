@@ -263,7 +263,7 @@ static void S_ChannelFree( channel_t *v )
  * @brief S_ChannelMalloc
  * @return
  */
-static channel_t* S_ChannelMalloc( void )
+static channel_t* S_ChannelMalloc( int allocTime )
 {
 	channel_t *v;
 	if (freelist == NULL) {
@@ -271,7 +271,7 @@ static channel_t* S_ChannelMalloc( void )
 	}
 	v = freelist;
 	freelist = *(channel_t **)freelist;
-	v->allocTime = Com_Milliseconds();
+	v->allocTime = allocTime;
 	return v;
 }
 
@@ -717,7 +717,7 @@ static void S_Base_MainStartSoundEx( vec3_t origin, int entityNum, int entchanne
 		Com_Printf( "%i : %s\n", s_paintedtime, sfx->soundName );
 	}
 
-	time = Com_Milliseconds();
+	time = s_soundtime; // Com_Milliseconds();
 
 	// borrowed from cnq3
 	// a UNIQUE entity starting the same sound twice in a frame is either a bug,
@@ -804,7 +804,7 @@ static void S_Base_MainStartSoundEx( vec3_t origin, int entityNum, int entchanne
 
 	sfx->lastTimeUsed = time;
 
-	ch = S_ChannelMalloc();
+	ch = S_ChannelMalloc( time );
 	if (!ch)
 	{
 		int oldest = sfx->lastTimeUsed;
@@ -1256,7 +1256,7 @@ void S_AddLoopSounds (void) {
 
 	numLoopChannels = 0;
 
-	time = Com_Milliseconds();
+	time = s_soundtime; // Com_Milliseconds();
 
 	loopFrame++;
 	for ( i = 0 ; i < numLoopSounds; i++) {
@@ -1647,11 +1647,17 @@ static void S_GetSoundtime( void )
 	if ( CL_VideoRecording() )
 	{
 		fps = MIN( cl_aviFrameRate->value, 1000.0f );
-		frameDuration = MAX( dma.speed / fps, 1.0f ) + clc.aviSoundFrameRemainder;
+		frameDuration = MAX( (float) dma.speed / fps, 1.0f ) + clc.aviSoundFrameRemainder;
 
 		msec = (int)frameDuration;
 		s_soundtime += msec;
 		clc.aviSoundFrameRemainder = frameDuration - msec;
+
+		// use same offset as in game
+		s_paintedtime = s_soundtime + s_mixOffset->value * dma.speed;
+
+		// render exactly one frame of audio data
+		clc.aviFrameEndTime = s_paintedtime + MAX( (float) dma.speed / fps, 1.0f ) + clc.aviSoundFrameRemainder;
 		return;
 	}
 
@@ -1727,8 +1733,8 @@ static void S_Update_( int msec ) {
 		& ~(dma.submission_chunk-1);
 
 	// never mix more than the complete buffer
-	if ( endtime - s_soundtime > dma.fullsamples ) {
-		endtime = s_soundtime + dma.fullsamples;
+	if ( endtime - s_paintedtime > dma.fullsamples ) {
+		endtime = s_paintedtime + dma.fullsamples;
 	}
 
 	// add raw data from streamed samples
@@ -2309,7 +2315,8 @@ void S_FreeOldestSound( void ) {
 	sfx_t	*sfx;
 	sndBuffer	*buffer, *nbuffer;
 
-	oldest = Com_Milliseconds();
+	oldest = s_soundtime; // Com_Milliseconds();
+
 	used = 0;
 
 	for ( i = 1 ; i < s_numSfx ; i++ ) {

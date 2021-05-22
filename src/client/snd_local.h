@@ -209,6 +209,7 @@ extern	channel_t   s_channels[MAX_CHANNELS];
 extern	channel_t   loop_channels[MAX_CHANNELS];
 extern	int		numLoopChannels;
 
+extern	int		s_soundtime;
 extern	int		s_paintedtime;
 extern	vec3_t	listener_forward;
 extern	vec3_t	listener_right;

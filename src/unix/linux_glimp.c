@@ -82,8 +82,8 @@ If you have questions concerning this license or the applicable additional terms
 
 #define WINDOW_CLASS_NAME   "Enemy Territory"
 
-int gl_NormalFontBase = 0;
-static qboolean fontbase_init = qfalse;
+//int gl_NormalFontBase = 0;
+//static qboolean fontbase_init = qfalse;
 
 typedef enum
 {
@@ -2161,7 +2161,7 @@ char *Sys_GetClipboardData( void )
 }
 
 int GLimp_NormalFontBase( void ) {
-    return gl_NormalFontBase;
+    return 0; //gl_NormalFontBase;
 }
 
 /*

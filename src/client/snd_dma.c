@@ -50,6 +50,7 @@ void S_Base_StopAllSounds(void);
 void S_StopStreamingSound(int stream);
 void S_FreeStreamingSound(int stream);
 void S_UpdateStreamingSounds(void);
+static void S_memoryLoad( sfx_t *sfx );
 
 streamingSound_t streamingSounds[MAX_STREAMING_SOUNDS];
 static vec3_t entityPositions[MAX_GENTITIES];
@@ -528,7 +529,7 @@ static void S_Base_BeginRegistration( void ) {
 	}
 }
 
-void S_memoryLoad( sfx_t *sfx ) {
+static void S_memoryLoad( sfx_t *sfx ) {
 
 	// load the sound file
 	if ( !S_LoadSound ( sfx ) ) {
@@ -2315,7 +2316,9 @@ void S_FreeOldestSound( void ) {
 	sfx_t	*sfx;
 	sndBuffer	*buffer, *nbuffer;
 
-	oldest = s_soundtime; // Com_Milliseconds();
+	// all sounds may be loaded with (s_soundtime + 1) at this moment
+	// so we need to trigger match condition at least once
+	oldest = s_soundtime + 2; // Com_Milliseconds();
 
 	used = 0;
 

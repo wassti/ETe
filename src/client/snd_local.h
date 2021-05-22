@@ -265,11 +265,9 @@ qboolean S_LoadSound( sfx_t *sfx );
 void		SND_free(sndBuffer *v);
 sndBuffer*	SND_malloc( void );
 void		SND_setup( void );
-void		SND_shutdown(void);
+void		SND_shutdown( void );
 
 void S_PaintChannels(int endtime);
-
-void S_memoryLoad(sfx_t *sfx);
 
 // spatializes a channel
 void S_Spatialize(channel_t *ch);

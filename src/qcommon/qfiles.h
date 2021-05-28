@@ -337,7 +337,7 @@ typedef struct {
 
 	int32_t minLod;
 
-	uint32_t ofsHeader;                  // this will be a negative number
+	int32_t ofsHeader;                  // this will be a negative number
 
 	int32_t numVerts;
 	uint32_t ofsVerts;
@@ -474,7 +474,7 @@ typedef struct {
 
 	int32_t minLod;
 
-	uint32_t ofsHeader;                  // this will be a negative number
+	int32_t ofsHeader;                  // this will be a negative number
 
 	int32_t numVerts;
 	uint32_t ofsVerts;

@@ -694,6 +694,11 @@ if(BUILD_ETMAIN_MOD)
     target_compile_definitions(ui PUBLIC "UIDLL")
     target_link_libraries(ui PRIVATE ${CMAKE_DL_LIBS} "m")
 
+    add_custom_target(create_etmain_pak ALL
+        COMMAND ${CMAKE_COMMAND} -E tar "cfv" "mp_bina.pk3" --format=zip $<TARGET_FILE:cgame> $<TARGET_FILE:ui>
+        DEPENDS cgame ui
+    )
+
 endif(BUILD_ETMAIN_MOD)
 
 if(BUILD_DEDSERVER)
@@ -717,5 +722,8 @@ endif(DYNAMIC_RENDERER)
 if(BUILD_ETMAIN_MOD)
     install(TARGETS cgame qagame ui
             LIBRARY DESTINATION "${CMAKE_INSTALL_PREFIX}/etmain"
+    )
+    install(FILES "${CMAKE_BINARY_DIR}/mp_bina.pk3"
+            DESTINATION "${CMAKE_INSTALL_PREFIX}/etmain"
     )
 endif(BUILD_ETMAIN_MOD)

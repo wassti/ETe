@@ -145,6 +145,7 @@ jobs:
         path: |
           src/bin/ete*.${{ matrix.arch }}
           src/bin/*.so
+          src/bin/*.pk3
         if-no-files-found: error
         retention-days: 5
 
@@ -190,5 +191,6 @@ jobs:
           src/bin/ete*.${{ matrix.arch }}
           src/bin/*.dylib
           src/bin/*_mac
+          src/bin/*.pk3
         if-no-files-found: error
         retention-days: 5

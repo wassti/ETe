@@ -94,6 +94,7 @@ option(USE_SYSTEM_JPEG "Look for and use system jpeg library instead of locally 
 option(DYNAMIC_RENDERER "Whether to use modular rendering features (builds as shared object instead of library" OFF)
 #option(USE_DISCORD "Use discord rich presence API" OFF)
 option(BUILD_ETMAIN_MOD "Build cgame/qagame/ui modules for etmain" OFF)
+option(ENABLE_SPLINES "Splines code" ON)
 
 set(USE_DISCORD OFF)
 
@@ -499,6 +500,7 @@ target_compile_options(botlib
 target_include_directories(botlib PUBLIC "${SRCDIR}/botlib ${SRCDIR}/qcommon")
 target_compile_definitions(botlib PUBLIC "BOTLIB")
 
+if(ENABLE_SPLINES)
 add_library(splines STATIC "${splines_files}")
 target_compile_options(splines
     PRIVATE $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:DEBUG>>:${compiler_flags_debug} -w>
@@ -510,6 +512,7 @@ target_compile_options(splines
 )
 target_include_directories(splines PUBLIC "${SRCDIR}/splines")
 #target_link_libraries(splines PRIVATE "libstdc++")
+endif(ENABLE_SPLINES)
 
 set(RENDERER_PREFIX "ete")
 if(DYNAMIC_RENDERER)
@@ -623,11 +626,14 @@ if(BUILD_CLIENT)
         target_include_directories(ete PRIVATE ${JPEG_INCLUDE_DIRS})
         target_link_libraries(ete PRIVATE ${JPEG_LIBRARIES})
     endif()
-    if(DYNAMIC_RENDERER)
-    target_link_libraries(ete PUBLIC botlib splines)
-    else()
-    target_link_libraries(ete PUBLIC botlib splines ${RENDERER_PREFIX}_opengl)
-    endif(DYNAMIC_RENDERER)
+    target_link_libraries(ete PUBLIC botlib)
+    if(ENABLE_SPLINES)
+    target_compile_definitions(ete PUBLIC "ENABLE_SPLINES")
+        target_link_libraries(ete PUBLIC splines)
+    endif()
+    if(NOT DYNAMIC_RENDERER)
+        target_link_libraries(ete PUBLIC ${RENDERER_PREFIX}_opengl)
+    endif(NOT DYNAMIC_RENDERER)
 endif(BUILD_CLIENT)
 
 if(BUILD_DEDSERVER)

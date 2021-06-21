@@ -341,7 +341,7 @@ jobs:
 
       - name: Generate the pk3
         run: |
-          zip -rvj mp_bina.pk3 linux-x86/*.so linux-x86_64/*.so macos-x86_64/*.dylib macos-x86_64/*_mac windows-x86/*.dll -x \qagame*.*
+          zip -rvj mp_bina.pk3 linux-x86/*.so linux-x86_64/*.so macos-x86_64/*.dylib windows-x86/*.dll -x qagame*.so -x qagame*.dll -x qagame*.dylib
 
       - uses: actions/upload-artifact@v2
         with:

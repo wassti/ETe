@@ -515,30 +515,32 @@ target_include_directories(splines PUBLIC "${SRCDIR}/splines")
 endif(ENABLE_SPLINES)
 
 set(RENDERER_PREFIX "ete")
-if(DYNAMIC_RENDERER)
-    add_library(${RENDERER_PREFIX}_opengl SHARED "${renderer_files}")
-else()
-    add_library(${RENDERER_PREFIX}_opengl STATIC "${renderer_files}")
-endif(DYNAMIC_RENDERER)
+if(BUILD_CLIENT)
+    if(DYNAMIC_RENDERER)
+        add_library(${RENDERER_PREFIX}_opengl SHARED "${renderer_files}")
+    else()
+        add_library(${RENDERER_PREFIX}_opengl STATIC "${renderer_files}")
+    endif(DYNAMIC_RENDERER)
 
-target_compile_options(${RENDERER_PREFIX}_opengl
-    PRIVATE $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:DEBUG>>:${compiler_flags_debug}>
-            $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:RELEASE>>:${compiler_flags_release}>
-            $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:RELWITHDEBINFO>>:${compiler_flags_relwithdebinfo}>
-            $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:DEBUG>>:${compiler_flags_debug}>
-            $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:RELEASE>>:${compiler_flags_release}>
-            $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:RELWITHDEBINFO>>:${compiler_flags_relwithdebinfo}>
-)
+    target_compile_options(${RENDERER_PREFIX}_opengl
+        PRIVATE $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:DEBUG>>:${compiler_flags_debug}>
+                $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:RELEASE>>:${compiler_flags_release}>
+                $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:RELWITHDEBINFO>>:${compiler_flags_relwithdebinfo}>
+                $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:DEBUG>>:${compiler_flags_debug}>
+                $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:RELEASE>>:${compiler_flags_release}>
+                $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:RELWITHDEBINFO>>:${compiler_flags_relwithdebinfo}>
+    )
 
-set_target_properties(${RENDERER_PREFIX}_opengl PROPERTIES PREFIX "")
+    set_target_properties(${RENDERER_PREFIX}_opengl PROPERTIES PREFIX "")
 
-if(DYNAMIC_RENDERER)
-    target_compile_definitions(${RENDERER_PREFIX}_opengl PUBLIC "USE_RENDERER_DLOPEN" "RENDERER_PREFIX=\"${RENDERER_PREFIX}\"")
-    set_target_properties(${RENDERER_PREFIX}_opengl PROPERTIES SUFFIX "_${Architecture}${DLL_EXT}")
-    target_link_libraries(${RENDERER_PREFIX}_opengl PRIVATE ${CMAKE_DL_LIBS} "m")
-endif(DYNAMIC_RENDERER)
+    if(DYNAMIC_RENDERER)
+        target_compile_definitions(${RENDERER_PREFIX}_opengl PUBLIC "USE_RENDERER_DLOPEN" "RENDERER_PREFIX=\"${RENDERER_PREFIX}\"")
+        set_target_properties(${RENDERER_PREFIX}_opengl PROPERTIES SUFFIX "_${Architecture}${DLL_EXT}")
+        target_link_libraries(${RENDERER_PREFIX}_opengl PRIVATE ${CMAKE_DL_LIBS} "m")
+    endif(DYNAMIC_RENDERER)
 
-target_include_directories(${RENDERER_PREFIX}_opengl PUBLIC "${SRCDIR}/renderer ${SRCDIR}/renderercommon ${SRCDIR}/qcommon")
+    target_include_directories(${RENDERER_PREFIX}_opengl PUBLIC "${SRCDIR}/renderer ${SRCDIR}/renderercommon ${SRCDIR}/qcommon")
+endif(BUILD_CLIENT)
 
 set(core_client_files
     "${client_files}"

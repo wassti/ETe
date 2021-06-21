@@ -170,9 +170,9 @@ jobs:
       working-directory: ${{github.workspace}}/src/bin
       run: |
         if [ ${{ matrix.arch }} == "x86" ]; then
-          cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=${{ matrix.config }} -DUSE_SDL2=${{ matrix.use_sdl }} -DBUILD_ETMAIN_MOD=FALSE -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchains/linux-i686.cmake
+          cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=${{ matrix.config }} -DUSE_SDL2=${{ matrix.use_sdl }} -DBUILD_ETMAIN_MOD=OFF -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchains/linux-i686.cmake
         else
-          cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=${{ matrix.config }} -DUSE_SDL2=${{ matrix.use_sdl }} -DBUILD_ETMAIN_MOD=FALSE
+          cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=${{ matrix.config }} -DUSE_SDL2=${{ matrix.use_sdl }} -DBUILD_ETMAIN_MOD=OFF
         fi
 
     - name: Build
@@ -216,7 +216,7 @@ jobs:
 
     - name: Configure CMake
       working-directory: ${{github.workspace}}/src/bin
-      run: cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=${{ matrix.config }} -DUSE_SDL2=TRUE -DBUILD_ETMAIN_MOD=FALSE
+      run: cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=${{ matrix.config }} -DUSE_SDL2=TRUE -DBUILD_ETMAIN_MOD=OFF
 
     - name: Build
       working-directory: ${{github.workspace}}/src/bin
@@ -268,9 +268,9 @@ jobs:
       working-directory: ${{github.workspace}}/src/bin
       run: |
         if [ ${{ matrix.arch }} == "x86" ]; then
-          cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=${{ matrix.config }} -DBUILD_DEDSERVER=FALSE -DBUILD_CLIENT=FALSE -DBUILD_ETMAIN_MOD=TRUE -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchains/linux-i686.cmake
+          cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=${{ matrix.config }} -DBUILD_DEDSERVER=OFF -DBUILD_CLIENT=OFF -DBUILD_ETMAIN_MOD=ON -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchains/linux-i686.cmake
         else
-          cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=${{ matrix.config }} -DBUILD_DEDSERVER=FALSE -DBUILD_CLIENT=FALSE -DBUILD_ETMAIN_MOD=TRUE
+          cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=${{ matrix.config }} -DBUILD_DEDSERVER=OFF -DBUILD_CLIENT=OFF -DBUILD_ETMAIN_MOD=ON
         fi
 
     - name: Build

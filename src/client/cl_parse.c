@@ -397,8 +397,8 @@ static void CL_ParseSnapshot( msg_t *msg ) {
 
 	if ( newSnap.areabytes > sizeof(newSnap.areamask) )
 	{
-		Com_Error( ERR_DROP,"CL_ParseSnapshot: Invalid size %d for areamask", newSnap.areabytes );
-		return;
+		//Com_Error( ERR_DROP,"CL_ParseSnapshot: Invalid size %d for areamask", newSnap.areabytes );
+		//return;
 	}
 
 	MSG_ReadData( msg, &newSnap.areamask, newSnap.areabytes );

@@ -3728,7 +3728,7 @@ void Com_Init( char *commandLine ) {
 
 	// bani: init pid
 	s = va( "%d", Sys_GetPID() );
-	com_pid = Cvar_Get( "com_pid", s, CVAR_ROM );
+	com_pid = Cvar_Get( "com_pid", s, CVAR_ROM | CVAR_PROTECTED );
 
 	// done early so bind command exists
 	Com_InitKeyCommands();

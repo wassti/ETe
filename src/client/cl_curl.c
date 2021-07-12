@@ -1341,6 +1341,15 @@ void DL_Cleanup(void)
 */
 static size_t DL_cb_FWriteFile( void *ptr, size_t size, size_t nmemb, void *stream ) {
 	FILE *file = (FILE*)stream;
+	long pos = ftell( file );
+	if ( pos == 0 ) {
+		if ( !CL_ValidPakSignature( ptr, size*nmemb ) ) 
+		{
+			Com_Printf( S_COLOR_YELLOW "DL_cb_FWriteFile(): invalid pak signature for %s.\n",
+				Cvar_VariableString("cl_downloadName") );
+			return (size_t)-1;
+		}
+	}
 	return fwrite( ptr, size, nmemb, file );
 }
 

@@ -46,7 +46,7 @@ static image_t*        hashTable[FILE_HASH_SIZE];
 #define R_IMAGE_BUFFER_SIZE     ( 512 * 512 * 4 )     // 512 x 512 x 32bit
 
 int imageBufferSize[BUFFER_MAX_TYPES] = {0,0,0,0};
-void        *imageBufferPtr[BUFFER_MAX_TYPES] = {NULL,NULL,NULL};
+void        *imageBufferPtr[BUFFER_MAX_TYPES] = {NULL,NULL,NULL,NULL};
 
 void *R_GetImageBuffer( int size, bufferMemType_t bufferType ) {
 	if ( imageBufferSize[bufferType] < R_IMAGE_BUFFER_SIZE && size <= imageBufferSize[bufferType] ) {
@@ -1691,7 +1691,7 @@ qboolean RE_GetSkinModel( qhandle_t skinid, const char *type, char *name ) {
 	skin_t  *skin;
 
 	skin = tr.skins[skinid];
-	hash = MSG_HashKey( (char *)type, strlen( type ) );
+	hash = MSG_HashKey( type, strlen( type ) );
 
 	for ( i = 0; i < skin->numModels; i++ ) {
 		if ( hash != skin->models[i]->hash ) {

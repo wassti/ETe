@@ -260,7 +260,7 @@ static size_t CL_cURL_CallbackWrite( void *buffer, size_t size, size_t nmemb, vo
 }
 
 
-CURLcode qcurl_easy_setopt_warn(CURL *curl, CURLoption option, ...)
+/*CURLcode qcurl_easy_setopt_warn(CURL *curl, CURLoption option, ...)
 {
 	CURLcode result;
 
@@ -284,7 +284,7 @@ CURLcode qcurl_easy_setopt_warn(CURL *curl, CURLoption option, ...)
 	va_end(argp);
 
 	return result;
-}
+}*/
 
 static void CL_cURL_CloseDownload( void ) 
 {

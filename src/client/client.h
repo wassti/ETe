@@ -508,9 +508,6 @@ extern	cvar_t	*cl_autoRecordDemo;
 extern	cvar_t	*cl_discordRichPresence;
 #endif
 
-//bani
-extern qboolean sv_cheats;
-
 extern	cvar_t	*com_maxfps;
 
 extern	cvar_t	*vid_xpos;

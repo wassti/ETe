@@ -545,7 +545,7 @@ void CL_SystemInfoChanged( qboolean onlyGame ) {
 	}
 
 	s = Info_ValueForKey( systemInfo, "sv_cheats" );
-	cl_connectedToCheatServer = sv_cheats = atoi( s );
+	cl_connectedToCheatServer = atoi( s );
 	if ( !cl_connectedToCheatServer ) {
 		Cvar_SetCheatState();
 	}

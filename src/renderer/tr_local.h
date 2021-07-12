@@ -1541,7 +1541,7 @@ extern cvar_t	*r_renderWidth;
 extern cvar_t	*r_renderHeight;
 extern cvar_t	*r_renderScale;
 
-extern cvar_t	*r_dlightBacks;			// dlight non-facing surfaces for continuity
+//extern cvar_t	*r_dlightBacks;			// dlight non-facing surfaces for continuity
 
 extern cvar_t  *r_norefresh;            // bypasses the ref rendering
 extern cvar_t  *r_drawentities;         // disable/enable entity rendering

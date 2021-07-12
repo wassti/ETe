@@ -94,7 +94,7 @@ cvar_t	*r_renderWidth;
 cvar_t	*r_renderHeight;
 cvar_t	*r_renderScale;
 
-cvar_t	*r_dlightBacks;
+//cvar_t	*r_dlightBacks;
 
 cvar_t	*r_lodbias;
 cvar_t	*r_lodscale;
@@ -618,7 +618,7 @@ static void R_InitExtensions( void )
 		if ( err )
 		{
 			ri.Printf( PRINT_WARNING, "Error resolving ARB program function '%s'\n", err );
-			qglGenProgramsARB = NULL; // indicates presense of ARB shaders functionality
+			qglGenProgramsARB = NULL; // indicates presence of ARB shaders functionality
 		}
 		else
 		{
@@ -632,7 +632,7 @@ static void R_InitExtensions( void )
 		if ( err )
 		{
 			ri.Printf( PRINT_WARNING, "Error resolving VBO function '%s'\n", err );
-			qglBindBufferARB = NULL; // indicates presense of VBO functionality
+			qglBindBufferARB = NULL; // indicates presence of VBO functionality
 		}
 		else
 		{
@@ -646,7 +646,7 @@ static void R_InitExtensions( void )
 		if ( err )
 		{
 			ri.Printf( PRINT_WARNING, "Error resolving FBO function '%s'\n", err );
-			qglGenFramebuffers = NULL; // indicates presense of FBO functionality
+			qglGenFramebuffers = NULL; // indicates presence of FBO functionality
 		}
 		else
 		{
@@ -799,7 +799,7 @@ GL_CheckErrors
 ==================
 */
 void GL_CheckErrors( void ) {
-    int		err;
+    GLenum err;
     const char *s;
     char buf[32];
 
@@ -830,7 +830,7 @@ void GL_CheckErrors( void ) {
             s = "GL_OUT_OF_MEMORY";
             break;
         default:
-            Com_sprintf( buf, sizeof(buf), "%i", err);
+            Com_sprintf( buf, sizeof(buf), "0x%x", err );
             s = buf;
             break;
     }
@@ -1733,7 +1733,7 @@ static void R_Register( void )
 	r_bloom_reflection = ri.Cvar_Get( "r_bloom_reflection", "0", CVAR_ARCHIVE_ND );
 	ri.Cvar_CheckRange( r_bloom_reflection, "-4", "4", CV_FLOAT );
 
-	r_dlightBacks = ri.Cvar_Get( "r_dlightBacks", "1", CVAR_ARCHIVE_ND );
+	//r_dlightBacks = ri.Cvar_Get( "r_dlightBacks", "1", CVAR_ARCHIVE_ND );
 	r_finish = ri.Cvar_Get( "r_finish", "0", CVAR_ARCHIVE_ND );
 	r_textureMode = ri.Cvar_Get( "r_textureMode", "GL_LINEAR_MIPMAP_NEAREST", CVAR_ARCHIVE );
 	ri.Cvar_SetGroup( r_textureMode, CVG_RENDERER );
@@ -1802,6 +1802,7 @@ static void R_Register( void )
 	r_debugSurface = ri.Cvar_Get( "r_debugSurface", "0", CVAR_CHEAT );
 	r_nobind = ri.Cvar_Get( "r_nobind", "0", CVAR_CHEAT );
 	r_showtris = ri.Cvar_Get( "r_showtris", "0", CVAR_CHEAT );
+	ri.Cvar_CheckRange( r_showtris, "0", "3", CV_INTEGER );
 	r_trisColor = ri.Cvar_Get( "r_trisColor", "1.0 1.0 1.0 1.0", CVAR_ARCHIVE_ND );
 	r_showsky = ri.Cvar_Get( "r_showsky", "0", 0 );
 	r_shownormals = ri.Cvar_Get( "r_shownormals", "0", CVAR_CHEAT );
@@ -1891,7 +1892,7 @@ R_Init
 ===============
 */
 void R_Init( void ) {
-	int	err;
+	GLenum	err;
 	int i;
 	byte *ptr;
 	const char *gamedir;

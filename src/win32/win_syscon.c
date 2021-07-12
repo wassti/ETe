@@ -436,6 +436,10 @@ static LRESULT WINAPI BufferWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM
 	
 	case WM_CONTEXTMENU:
 		return 0;
+
+	// allow copy with Ctrl+C
+	case WM_COPY:
+		return DefWindowProc( hWnd, uMsg, wParam, lParam );
 	}
 
 	return CallWindowProc( (WNDPROC) s_wcd.SysBufferWndProc, hWnd, uMsg, wParam, lParam );

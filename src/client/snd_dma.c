@@ -2124,7 +2124,7 @@ float S_GetStreamingFade(streamingSound_t *ss)
 /**
  * @brief S_Base_StopBackgroundTrack
  */
-void S_Base_StopBackgroundTrack(void)
+static void S_Base_StopBackgroundTrack(void)
 {
 	S_StopStreamingSound(0);
 }
@@ -2135,7 +2135,7 @@ void S_Base_StopBackgroundTrack(void)
  * @param[in] loop
  * @param[in] fadeupTime
  */
-void S_Base_StartBackgroundTrack(const char *intro, const char *loop, int fadeupTime)
+static void S_Base_StartBackgroundTrack(const char *intro, const char *loop, int fadeupTime)
 {
 	S_StartStreamingSoundEx(intro, loop, -1, -1, qtrue, fadeupTime);
 }
@@ -2300,7 +2300,7 @@ void S_UpdateStreamingSounds(void)
 S_GetVoiceAmplitude
 ======================
 */
-int S_Base_GetVoiceAmplitude( int entityNum ) {
+static int S_Base_GetVoiceAmplitude( int entityNum ) {
 	// FIXME: Stub
 	return 0;
 }
@@ -2346,9 +2346,9 @@ void S_FreeOldestSound( void ) {
 
 // START	xkan, 9/23/2002
 // returns how long the sound lasts in milliseconds
-int S_Base_GetSoundLength( sfxHandle_t sfxHandle ) {
+static int S_Base_GetSoundLength( sfxHandle_t sfxHandle ) {
 	if ( sfxHandle < 0 || sfxHandle >= s_numSfx ) {
-		Com_DPrintf( S_COLOR_YELLOW "S_StartSound: handle %i out of range\n", sfxHandle );
+		Com_DPrintf( S_COLOR_YELLOW "S_GetSoundLength: handle %i out of range\n", sfxHandle );
 		return -1;
 	}
 	return (int)( (float)s_knownSfx[ sfxHandle ].soundLength / dma.speed * 1000.0 );
@@ -2356,7 +2356,7 @@ int S_Base_GetSoundLength( sfxHandle_t sfxHandle ) {
 // END		xkan, 9/23/2002
 
 // ydnar: for looped sound synchronization
-int S_Base_GetCurrentSoundTime( void ) {
+static int S_Base_GetCurrentSoundTime( void ) {
 	return s_soundtime + dma.speed;
 //	 return s_paintedtime;
 }
@@ -2365,7 +2365,7 @@ int S_Base_GetCurrentSoundTime( void ) {
 // Shutdown sound engine
 // =======================================================================
 
-void S_Base_Shutdown( void ) {
+static void S_Base_Shutdown( void ) {
 
 	if ( !s_soundStarted ) {
 		return;

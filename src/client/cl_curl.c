@@ -935,6 +935,12 @@ qboolean Com_DL_Begin( download_t *dl, const char *localName, const char *remote
 
 		Q_strncpyz( dl->URL, remoteURL, sizeof( dl->URL ) );
 
+		if ( cl_dlDirectory->integer ) {
+			Q_replace( "%game%", FS_GetBaseGameDir(), dl->URL, sizeof( dl->URL ) );
+		} else {
+			Q_replace( "%game%", FS_GetCurrentGameDir(), dl->URL, sizeof( dl->URL ) );
+		}
+
 		if ( !Q_replace( "%1", escapedName, dl->URL, sizeof( dl->URL ) ) )
 		{
 			if ( dl->URL[strlen(dl->URL)] != '/' )

@@ -437,6 +437,13 @@ static LRESULT WINAPI BufferWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM
 	case WM_CONTEXTMENU:
 		return 0;
 
+	case WM_KEYDOWN:
+		if ( wParam == 'C' && ( GetAsyncKeyState( VK_LCONTROL ) & 0x8000 || GetAsyncKeyState( VK_RCONTROL ) & 0x8000 ) ) {
+			SendMessage( hWnd, WM_COPY, 0, 0 );
+			return 0;
+		}
+		break;
+
 	// allow copy with Ctrl+C
 	case WM_COPY:
 		return DefWindowProc( hWnd, uMsg, wParam, lParam );
@@ -549,6 +556,21 @@ LRESULT WINAPI InputLineWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPa
 			return 0;
 		}
 
+		if ( wParam == 'v' && ( GetAsyncKeyState( VK_LCONTROL ) & 0x8000 || GetAsyncKeyState( VK_RCONTROL ) & 0x8000 ) ) {
+			SendMessage( hWnd, WM_CUT, 0, 0 );
+			return 0;
+		}
+
+		if ( wParam == 'C' && ( GetAsyncKeyState( VK_LCONTROL ) & 0x8000 || GetAsyncKeyState( VK_RCONTROL ) & 0x8000 ) ) {
+			SendMessage( hWnd, WM_COPY, 0, 0 );
+			return 0;
+		}
+
+		if ( wParam == 'v' && ( GetAsyncKeyState( VK_LCONTROL ) & 0x8000 || GetAsyncKeyState( VK_RCONTROL ) & 0x8000 ) ) {
+			SendMessage( hWnd, WM_PASTE, 0, 0 );
+			return 0;
+		}
+
 		if ( wParam == VK_PRIOR ) {
 			if ( GetAsyncKeyState( VK_LCONTROL ) & 0x8000 || GetAsyncKeyState( VK_RCONTROL ) & 0x8000 )
 				SendMessage( s_wcd.hwndBuffer, EM_SCROLL, (WPARAM)SB_PAGEUP, 0 );
@@ -581,6 +603,11 @@ LRESULT WINAPI InputLineWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPa
 
 		break;
 	}
+
+	case WM_COPY:
+	case WM_CUT:
+	case WM_PASTE:
+		return DefWindowProc( hWnd, uMsg, wParam, lParam );
 
 	case WM_CHAR:
 		if ( wParam > 255 )

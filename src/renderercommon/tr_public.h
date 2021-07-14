@@ -249,6 +249,8 @@ typedef struct {
 	qboolean (*CL_IsMinimized)( void );
 	void	(*CL_SetScaling)( float factor, int captureWidth, int captureHeight );
 
+	void	(*SCR_UpdateScreen)( void );
+
 	void	(*Sys_SetClipboardBitmap)( const byte *bitmap, int size );
 	qboolean(*Sys_LowPhysicalMemory)( void );
 

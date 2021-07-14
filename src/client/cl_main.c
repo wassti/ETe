@@ -3993,6 +3993,7 @@ static void CL_InitRef( void ) {
 
 	rimp.CL_IsMinimized = CL_IsMininized;
 	rimp.CL_SetScaling = CL_SetScaling;
+	rimp.SCR_UpdateScreen = SCR_UpdateScreen;
 
 	rimp.Sys_SetClipboardBitmap = Sys_SetClipboardBitmap;
 	rimp.Sys_LowPhysicalMemory = Sys_LowPhysicalMemory;

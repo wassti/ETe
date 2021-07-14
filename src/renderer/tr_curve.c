@@ -360,14 +360,18 @@ R_SubdividePatchToGrid
 srfGridMesh_t *R_SubdividePatchToGrid( int width, int height,
 								drawVert_t points[MAX_PATCH_SIZE*MAX_PATCH_SIZE] ) {
 	int			i, j, k, l;
-	drawVert_t_cleared( prev );
-	drawVert_t_cleared( next );
-	drawVert_t_cleared( mid );
+	drawVert_t	prev;
+	drawVert_t	next;
+	drawVert_t	mid;
 	float		len, maxLen;
 	int			n;
 	int			t;
 	drawVert_t	ctrl[MAX_GRID_SIZE][MAX_GRID_SIZE];
 	float		errorTable[2][MAX_GRID_SIZE];
+
+	memset( &prev, 0, sizeof( prev ) );
+	memset( &next, 0, sizeof( next ) );
+	memset( &mid, 0, sizeof( mid ) );
 
 	for ( i = 0 ; i < width ; i++ ) {
 		for ( j = 0 ; j < height ; j++ ) {

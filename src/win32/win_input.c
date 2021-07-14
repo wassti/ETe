@@ -744,7 +744,7 @@ IN_ActivateMouse
 Called when the window gains focus or changes in some way
 ===========
 */
-static void IN_ActivateMouse( void )
+void IN_ActivateMouse( void )
 {
 	if ( !s_wmv.mouseInitialized )
 		return;
@@ -777,7 +777,7 @@ IN_DeactivateMouse
 Called when the window loses focus
 ===========
 */
-static void IN_DeactivateMouse( void )
+void IN_DeactivateMouse( void )
 {
 	if ( !s_wmv.mouseActive )
 		return;

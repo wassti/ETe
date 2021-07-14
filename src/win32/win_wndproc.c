@@ -173,7 +173,7 @@ static void VID_AppActivate( qboolean active )
 {
 	Key_ClearStates();
 
-	IN_Activate( active );
+	//IN_Activate( active );
 
 	if ( active ) {
 		WIN_EnableHook();
@@ -859,10 +859,12 @@ LRESULT WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM  wParam, LPARAM lParam 
 
 	case WM_SETFOCUS:
 		focused = qtrue;
+		IN_ActivateMouse();
 		break;
 
 	case WM_KILLFOCUS:
 		//gw_active = qfalse;
+		IN_DeactivateMouse();
 		focused = qfalse;
 		break;
 

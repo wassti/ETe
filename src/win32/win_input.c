@@ -204,7 +204,7 @@ IN_CaptureMouse
 static void IN_CaptureMouse( const RECT *clipRect )
 {
 	while( ShowCursor( FALSE ) >= 0 )
-		;
+		Sleep( 0 );
 	SetCursorPos( window_center.x, window_center.y );
 	SetCapture( g_wv.hWnd );
 	ClipCursor( clipRect );
@@ -244,7 +244,7 @@ static void IN_DeactivateWin32Mouse( void )
 	ReleaseCapture();
 	ClipCursor( NULL );
 	while ( ShowCursor( TRUE ) < 0 )
-		;
+		Sleep( 0 );
 }
 
 
@@ -744,7 +744,7 @@ IN_ActivateMouse
 Called when the window gains focus or changes in some way
 ===========
 */
-void IN_ActivateMouse( void )
+static void IN_ActivateMouse( void )
 {
 	if ( !s_wmv.mouseInitialized )
 		return;
@@ -777,7 +777,7 @@ IN_DeactivateMouse
 Called when the window loses focus
 ===========
 */
-void IN_DeactivateMouse( void )
+static void IN_DeactivateMouse( void )
 {
 	if ( !s_wmv.mouseActive )
 		return;
@@ -789,8 +789,8 @@ void IN_DeactivateMouse( void )
 	s_wmv.mouseActive = qfalse;
 
 	IN_DeactivateDIMouse();
-	IN_DeactivateWin32Mouse();
 	IN_DeactivateRawMouse();
+	IN_DeactivateWin32Mouse();
 }
 
 

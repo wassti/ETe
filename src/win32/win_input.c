@@ -204,7 +204,7 @@ IN_CaptureMouse
 static void IN_CaptureMouse( const RECT *clipRect )
 {
 	while( ShowCursor( FALSE ) >= 0 )
-		Sleep( 0 );
+		;
 	SetCursorPos( window_center.x, window_center.y );
 	SetCapture( g_wv.hWnd );
 	ClipCursor( clipRect );
@@ -244,7 +244,7 @@ static void IN_DeactivateWin32Mouse( void )
 	ReleaseCapture();
 	ClipCursor( NULL );
 	while ( ShowCursor( TRUE ) < 0 )
-		Sleep( 0 );
+		;
 }
 
 

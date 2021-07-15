@@ -855,16 +855,16 @@ LRESULT WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM  wParam, LPARAM lParam 
 		}
 
 		SNDDMA_Activate();
-		return 0;
+		break;
 
 	case WM_SETFOCUS:
 		focused = qtrue;
-		return 0;
+		break;
 
 	case WM_KILLFOCUS:
 		//gw_active = qfalse;
 		focused = qfalse;
-		return 0;
+		break;
 
 	case WM_MOVE:
 		if ( !gw_active || gw_minimized || !focused )
@@ -891,7 +891,7 @@ LRESULT WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM  wParam, LPARAM lParam 
 			UpdateMonitorInfo( &g_wv.winRect );
 			IN_UpdateWindow( NULL, qtrue );
 		}
-		return 0;
+		break;
 
 	case WM_TIMER:
 		//if ( wParam == TIMER_ID && uTimerID != 0 && !CL_VideoRecording() ) {

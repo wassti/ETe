@@ -5482,10 +5482,13 @@ void Item_ValidateTypeData( itemDef_t *item ) {
 		}
 	} else if ( item->type == ITEM_TYPE_MULTI || item->type == ITEM_TYPE_CHECKBOX || item->type == ITEM_TYPE_TRICHECKBOX ) {
 		item->typeData = UI_Alloc( sizeof( multiDef_t ) );
+		memset( item->typeData, 0, sizeof( multiDef_t ) );
 	} else if ( item->type == ITEM_TYPE_MODEL ) {
 		item->typeData = UI_Alloc( sizeof( modelDef_t ) );
+		memset( item->typeData, 0, sizeof( modelDef_t ) );
 	} else if ( item->type == ITEM_TYPE_MENUMODEL ) {
 		item->typeData = UI_Alloc( sizeof( modelDef_t ) );
+		memset( item->typeData, 0, sizeof( modelDef_t ) );
 	}
 }
 
@@ -6270,6 +6273,7 @@ qboolean ItemParse_cvarStrList( itemDef_t *item, int handle ) {
 	multiPtr = (multiDef_t*)item->typeData;
 	multiPtr->count = 0;
 	multiPtr->strDef = qtrue;
+	multiPtr->undefinedStr = NULL;
 
 	if ( !trap_PC_ReadToken( handle, &token ) ) {
 		return qfalse;
@@ -6320,6 +6324,7 @@ qboolean ItemParse_cvarFloatList( itemDef_t *item, int handle ) {
 	multiPtr = (multiDef_t*)item->typeData;
 	multiPtr->count = 0;
 	multiPtr->strDef = qfalse;
+	multiPtr->undefinedStr = NULL;
 
 	if ( !trap_PC_ReadToken( handle, &token ) ) {
 		return qfalse;

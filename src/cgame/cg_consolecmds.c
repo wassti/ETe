@@ -939,7 +939,7 @@ static void CG_CPM_f( void ) {
 }
 
 typedef struct {
-	char    *cmd;
+	const char *cmd;
 	void ( *function )( void );
 } consoleCommand_t;
 
@@ -1041,6 +1041,8 @@ static consoleCommand_t commands[] =
 	{ "forcetapout", CG_ForceTapOut_f },
 };
 
+static const size_t numCommands = ARRAY_LEN( commands );
+
 
 /*
 =================
@@ -1052,7 +1054,7 @@ Cmd_Argc() / Cmd_Argv()
 */
 qboolean CG_ConsoleCommand( void ) {
 	const char  *cmd;
-	int i;
+	size_t i;
 
 	// Arnout - don't allow console commands until a snapshot is present
 	if ( !cg.snap ) {
@@ -1061,7 +1063,7 @@ qboolean CG_ConsoleCommand( void ) {
 
 	cmd = CG_Argv( 0 );
 
-	for ( i = 0 ; i < sizeof( commands ) / sizeof( commands[0] ) ; i++ ) {
+	for ( i = 0 ; i < numCommands ; i++ ) {
 		if ( !Q_stricmp( cmd, commands[i].cmd ) ) {
 			commands[i].function();
 			return qtrue;
@@ -1071,6 +1073,95 @@ qboolean CG_ConsoleCommand( void ) {
 	return qfalse;
 }
 
+static const char *gcmds[] =
+{
+	"?",
+	//"addbot",
+	//"addtt",
+	"addip",
+	"ban",
+	"bottomshots",
+	//"buddylist",
+	"callvote",
+	"campaign",
+	"clientkick",
+	"commands",
+	"entitylist",
+	"fireteam",
+	"follow",
+	"follow",
+	"follownext",
+	"followprev",
+	"forceteam",
+	"game_memory",
+	"give",
+	"god",
+	"ignore",
+	"kick",
+	"kill",
+	//"listbotgoals",
+	"listcampaigns",
+	"listip",
+	"listmaxlivesip",
+	"loadgame",
+	"lock",
+	"makeReferee",
+#ifdef MV_SUPPORT
+	"mvadd",
+	"mvaxis",
+	"mvallies",
+	"mvall",
+	"mvnone",
+#endif
+	"noclip",
+	"nofatigue",
+	"notarget",
+	"notready",
+	"pause",
+	"players",
+	"ready",
+	"readyteam",
+	"ref",
+	"removeip",
+	"removeReferee",
+	"reset_match",
+	"revive",
+#ifdef SAVEGAME_SUPPORT
+	"savegame",
+#endif
+	//"say_limbo",
+	"say_team",
+	"say_teamnl",
+	"say",
+	"scores",
+	"selectbuddy",
+	"selectNextBuddy",
+	//"setclass",
+	"setviewpos",
+	//"setweapons",
+	"showstats",
+	"shuffle_teams",
+	"specinvite",
+	"speclock",
+	"specunlock",
+	"start_match",
+	"statsall",
+	"statsdump",
+	"swap_teams",
+	"team",
+	"tell",
+	"timein",
+	"timeout",
+	"topshots",
+	"unignore",
+	"unlock",
+	"unpause",
+	"unready",
+	"vote",
+	"weaponstats",
+};
+
+static const size_t numgcmds = ARRAY_LEN(gcmds);
 
 /*
 =================
@@ -1081,9 +1172,9 @@ so it can perform tab completion
 =================
 */
 void CG_InitConsoleCommands( void ) {
-	int i;
+	size_t i;
 
-	for ( i = 0 ; i < sizeof( commands ) / sizeof( commands[0] ) ; i++ ) {
+	for ( i = 0 ; i < numCommands ; i++ ) {
 		trap_AddCommand( commands[i].cmd );
 	}
 
@@ -1091,86 +1182,7 @@ void CG_InitConsoleCommands( void ) {
 	// the game server will interpret these commands, which will be automatically
 	// forwarded to the server after they are not recognized locally
 	//
-	trap_AddCommand( "kill" );
-	trap_AddCommand( "say" );
-	trap_AddCommand( "say_limbo" );           // NERVE - SMF
-	trap_AddCommand( "tell" );
-	trap_AddCommand( "listbotgoals" );
-	trap_AddCommand( "give" );
-	trap_AddCommand( "god" );
-	trap_AddCommand( "notarget" );
-	trap_AddCommand( "noclip" );
-	trap_AddCommand( "team" );
-	trap_AddCommand( "follow" );
-	trap_AddCommand( "addbot" );
-	trap_AddCommand( "setviewpos" );
-	trap_AddCommand( "callvote" );
-	trap_AddCommand( "vote" );
-
-	// Rafael
-	trap_AddCommand( "nofatigue" );
-
-	// NERVE - SMF
-	trap_AddCommand( "follownext" );
-	trap_AddCommand( "followprev" );
-
-	trap_AddCommand( "start_match" );
-	trap_AddCommand( "reset_match" );
-	trap_AddCommand( "swap_teams" );
-	// -NERVE - SMF
-	// OSP
-	trap_AddCommand( "?" );
-	trap_AddCommand( "bottomshots" );
-	trap_AddCommand( "commands" );
-	trap_AddCommand( "follow" );
-	trap_AddCommand( "lock" );
-#ifdef MV_SUPPORT
-	trap_AddCommand( "mvadd" );
-	trap_AddCommand( "mvaxis" );
-	trap_AddCommand( "mvallies" );
-	trap_AddCommand( "mvall" );
-	trap_AddCommand( "mvnone" );
-#endif
-	trap_AddCommand( "notready" );
-	trap_AddCommand( "pause" );
-	trap_AddCommand( "players" );
-	trap_AddCommand( "readyteam" );
-	trap_AddCommand( "ready" );
-	trap_AddCommand( "ref" );
-	trap_AddCommand( "say_teamnl" );
-	trap_AddCommand( "say_team" );
-	trap_AddCommand( "scores" );
-	trap_AddCommand( "specinvite" );
-	trap_AddCommand( "speclock" );
-	trap_AddCommand( "specunlock" );
-	trap_AddCommand( "statsall" );
-	trap_AddCommand( "statsdump" );
-	trap_AddCommand( "timein" );
-	trap_AddCommand( "timeout" );
-	trap_AddCommand( "topshots" );
-	trap_AddCommand( "unlock" );
-	trap_AddCommand( "unpause" );
-	trap_AddCommand( "unready" );
-	trap_AddCommand( "weaponstats" );
-	// OSP
-
-	trap_AddCommand( "fireteam" );
-	trap_AddCommand( "buddylist" );
-	trap_AddCommand( "showstats" );
-
-	trap_AddCommand( "ignore" );
-	trap_AddCommand( "unignore" );
-
-	trap_AddCommand( "addtt" );
-	trap_AddCommand( "selectbuddy" );
-	trap_AddCommand( "selectNextBuddy" ); // xkan 9/26/2002
-
-	trap_AddCommand( "loadgame" );
-	trap_AddCommand( "savegame" );
-
-	trap_AddCommand( "campaign" );
-	trap_AddCommand( "listcampaigns" );
-
-	trap_AddCommand( "setweapons" );
-	trap_AddCommand( "setclass" );
+	for ( i = 0 ; i < numgcmds ; i++ ) {
+		trap_AddCommand( gcmds[i] );
+	}
 }

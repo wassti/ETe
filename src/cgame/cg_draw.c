@@ -551,22 +551,6 @@ static float CG_DrawTimer( float y ) {
 	return y + 12 + 4;
 }
 
-// START	xkan, 8/29/2002
-int CG_BotIsSelected( int clientNum ) {
-	int i;
-
-	for ( i = 0; i < MAX_NUM_BUDDY; i++ )
-	{
-		if ( cg.selectedBotClientNumber[i] == 0 ) {
-			return 0;
-		} else if ( cg.selectedBotClientNumber[i] == clientNum ) {
-			return 1;
-		}
-	}
-	return 0;
-}
-// END		xkan, 8/29/2002
-
 /*
 =================
 CG_DrawTeamOverlay
@@ -2524,38 +2508,6 @@ static void CG_DrawIntermission( void ) {
 
 /*
 =================
-CG_ActivateLimboMenu
-
-NERVE - SMF
-=================
-*/
-static void CG_ActivateLimboMenu( void ) {
-/*	static qboolean latch = qfalse;
-	qboolean test;
-
-	// should we open the limbo menu (make allowances for MV clients)
-	test = ((cg.snap->ps.pm_flags & PMF_LIMBO) ||
-			( (cg.mvTotalClients < 1 && (
-				(cg.snap->ps.persistant[PERS_TEAM] == TEAM_SPECTATOR) ||
-				(cg.warmup))
-			  )
-			&& cg.snap->ps.pm_type != PM_INTERMISSION ) );
-
-
-	// auto open/close limbo mode
-	if(cg_popupLimboMenu.integer && !cg.demoPlayback) {
-		if(test && !latch) {
-			CG_LimboMenu_f();
-			latch = qtrue;
-		} else if(!test && latch && cg.showGameView) {
-			CG_EventHandling(CGAME_EVENT_NONE, qfalse);
-			latch = qfalse;
-		}
-	}*/
-}
-
-/*
-=================
 CG_DrawSpectatorMessage
 =================
 */
@@ -4465,7 +4417,6 @@ void CG_ShakeCamera() {
 void CG_DrawMiscGamemodels( void ) {
 	int i, j;
 	refEntity_t ent;
-	int drawn = 0;
 
 	memset( &ent, 0, sizeof( ent ) );
 
@@ -4490,45 +4441,12 @@ void CG_DrawMiscGamemodels( void ) {
 		VectorCopy( cgs.miscGameModels[i].org, ent.oldorigin );
 		VectorCopy( cgs.miscGameModels[i].org, ent.lightingOrigin );
 
-/*		{
-			vec3_t v;
-			vec3_t vu = { 0.f, 0.f, 1.f };
-			vec3_t vl = { 0.f, 1.f, 0.f };
-			vec3_t vf = { 1.f, 0.f, 0.f };
-
-			VectorCopy( cgs.miscGameModels[i].org, v );
-			VectorMA( v, cgs.miscGameModels[i].radius, vu, v );
-			CG_RailTrail2( NULL, cgs.miscGameModels[i].org, v );
-
-			VectorCopy( cgs.miscGameModels[i].org, v );
-			VectorMA( v, cgs.miscGameModels[i].radius, vf, v );
-			CG_RailTrail2( NULL, cgs.miscGameModels[i].org, v );
-
-			VectorCopy( cgs.miscGameModels[i].org, v );
-			VectorMA( v, cgs.miscGameModels[i].radius, vl, v );
-			CG_RailTrail2( NULL, cgs.miscGameModels[i].org, v );
-
-			VectorCopy( cgs.miscGameModels[i].org, v );
-			VectorMA( v, -cgs.miscGameModels[i].radius, vu, v );
-			CG_RailTrail2( NULL, cgs.miscGameModels[i].org, v );
-
-			VectorCopy( cgs.miscGameModels[i].org, v );
-			VectorMA( v, -cgs.miscGameModels[i].radius, vf, v );
-			CG_RailTrail2( NULL, cgs.miscGameModels[i].org, v );
-
-			VectorCopy( cgs.miscGameModels[i].org, v );
-			VectorMA( v, -cgs.miscGameModels[i].radius, vl, v );
-			CG_RailTrail2( NULL, cgs.miscGameModels[i].org, v );
-		}*/
-
 		for ( j = 0; j < 3; j++ ) {
 			VectorCopy( cgs.miscGameModels[i].axes[j], ent.axis[j] );
 		}
 		ent.hModel = cgs.miscGameModels[i].model;
 
 		trap_R_AddRefEntityToScene( &ent );
-
-		drawn++;
 	}
 }
 
@@ -4581,9 +4499,7 @@ void CG_DrawActive( stereoFrame_t stereoView ) {
 		VectorMA( cg.refdef_current->vieworg, -separation, cg.refdef_current->viewaxis[1], cg.refdef_current->vieworg );
 	}
 
-	cg.refdef_current->glfog.registered = 0;    // make sure it doesn't use fog from another scene
-
-	CG_ActivateLimboMenu();
+	cg.refdef_current->glfog.registered = qfalse;    // make sure it doesn't use fog from another scene
 
 //	if( cgs.ccCurrentCamObjective == -1 ) {
 //		if( cg.showGameView ) {

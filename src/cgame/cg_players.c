@@ -44,9 +44,6 @@ If you have questions concerning this license or the applicable additional terms
 static int dp_realtime;
 static float jumpHeight;
 
-animation_t     *lastTorsoAnim;
-animation_t     *lastLegsAnim;
-
 extern const char* cg_skillRewards[SK_NUM_SKILLS][NUM_SKILL_LEVELS - 1];
 
 /*
@@ -2838,75 +2835,6 @@ void WM_RegisterWeaponTypeShaders() {
 		w++;
 	}
 }
-
-void CG_MenuSetAnimation( playerInfo_t *pi, const char* legsAnim, const char* torsoAnim, qboolean force, qboolean clearpending ) {
-	lastLegsAnim = pi->legs.animation = CG_GetLimboAnimation( pi, legsAnim );
-	lastTorsoAnim = pi->torso.animation = CG_GetLimboAnimation( pi, torsoAnim );
-
-	if ( force ) {
-		pi->legs.oldFrame = pi->legs.frame = pi->legs.animation->firstFrame;
-		pi->torso.oldFrame = pi->torso.frame = pi->torso.animation->firstFrame;
-
-		pi->legs.frameTime = cg.time;
-		pi->torso.frameTime = cg.time;
-
-		pi->legs.oldFrameModel = pi->legs.frameModel = pi->legs.animation->mdxFile;
-		pi->torso.oldFrameModel = pi->torso.frameModel = pi->torso.animation->mdxFile;
-
-		pi->numPendingAnimations = 0;
-	} else {
-		pi->legs.oldFrame = pi->legs.frame;
-		pi->legs.oldFrameModel = pi->legs.frameModel;
-		pi->legs.frame = pi->legs.animation->firstFrame;
-		pi->torso.oldFrame = pi->torso.frame;
-		pi->torso.oldFrameModel = pi->torso.frameModel;
-		pi->torso.frame = pi->torso.animation->firstFrame;
-
-		pi->legs.frameTime += 200; // Give them some time to lerp between animations
-		pi->torso.frameTime += 200;
-	}
-
-	if ( clearpending ) {
-		pi->numPendingAnimations = 0;
-	}
-}
-
-void CG_MenuPendingAnimation( playerInfo_t *pi, const char* legsAnim, const char* torsoAnim, int delay ) {
-	if ( pi->numPendingAnimations >= 4 ) {
-		return;
-	}
-
-	if ( !pi->numPendingAnimations ) {
-		pi->pendingAnimations[pi->numPendingAnimations].pendingAnimationTime =  cg.time + delay;
-	} else {
-		pi->pendingAnimations[pi->numPendingAnimations].pendingAnimationTime =  pi->pendingAnimations[pi->numPendingAnimations - 1].pendingAnimationTime + delay;
-	}
-	pi->pendingAnimations[pi->numPendingAnimations].pendingLegsAnim =   legsAnim;
-	pi->pendingAnimations[pi->numPendingAnimations].pendingTorsoAnim =  torsoAnim;
-
-	lastLegsAnim = CG_GetLimboAnimation( pi, legsAnim );
-	lastTorsoAnim = CG_GetLimboAnimation( pi, torsoAnim );
-	pi->numPendingAnimations++;
-}
-
-void CG_MenuCheckPendingAnimation( playerInfo_t *pi ) {
-	int i;
-
-	if ( pi->numPendingAnimations <= 0 ) {
-		return;
-	}
-
-	if ( pi->pendingAnimations[0].pendingAnimationTime && pi->pendingAnimations[0].pendingAnimationTime < cg.time ) {
-		CG_MenuSetAnimation( pi, pi->pendingAnimations[0].pendingLegsAnim, pi->pendingAnimations[0].pendingTorsoAnim, qfalse, qfalse );
-
-		for ( i = 0; i < 3; i++ ) {
-			memcpy( &pi->pendingAnimations[i], &pi->pendingAnimations[i + 1], sizeof( pendingAnimation_t ) );
-		}
-
-		pi->numPendingAnimations--;
-	}
-}
-
 
 void CG_SetHudHeadLerpFrameAnimation( bg_character_t* ch, lerpFrame_t *lf, int newAnimation ) {
 	animation_t *anim;

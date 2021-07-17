@@ -1131,10 +1131,6 @@ typedef struct {
 	int engineerChargeTime[2];
 	int medicChargeTime[2];
 	int covertopsChargeTime[2];
-	// START	xkan, 8/29/2002
-	// which bots are currently selected
-	int selectedBotClientNumber[MAX_NUM_BUDDY];
-	// END		xkan, 8/29/2002
 	int binocZoomTime;
 	int limboEndCinematicTime;
 	int proneMovingTime;
@@ -3125,13 +3121,7 @@ typedef struct {
 extern weaponType_t weaponTypes[];
 weaponType_t* WM_FindWeaponTypeForWeapon( weapon_t weapon );
 
-extern animation_t      *lastTorsoAnim;
-extern animation_t      *lastLegsAnim;
 extern qboolean ccInitial;
-
-void CG_MenuCheckPendingAnimation( playerInfo_t *pi );
-void CG_MenuPendingAnimation( playerInfo_t *pi, const char* legsAnim, const char* torsoAnim, int delay );
-void CG_MenuSetAnimation( playerInfo_t *pi, const char* legsAnim, const char* torsoAnim, qboolean force, qboolean clearpending );
 
 #define CC_FILTER_AXIS          ( 1 << 0 )
 #define CC_FILTER_ALLIES        ( 1 << 1 )
@@ -3153,40 +3143,8 @@ typedef struct {
 
 extern rankicon_t rankicons[NUM_EXPERIENCE_LEVELS][2];
 
-#define TAB_LEFT_WIDTH 178
-#define TAB_LEFT_EDGE ( 640 - TAB_LEFT_WIDTH )
-
-fireteamData_t* CG_IsOnSameFireteam( int clientNum, int clientNum2 );
-
-
-// START Mad Doc - TDF
-
-#define MAX_SQUAD_SIZE 6
-
-//
-// merged the common UI elements
-//
-#define UI_CAMPAIGN_BRIEFING 0
-#define UI_COMMAND_MAP 1
-#define UI_SQUAD_SELECT 2
-
-
-void CG_DrawUITabs();
-void CG_DrawUICurrentSquad();
-qboolean CG_UICommonClick();
-void CG_DrawUISelectedSoldier( void );
-void CG_UICurrentSquadSetup( void );
-void CG_CampaignBriefingSetup( void );
-
-
-#define ORDER_ICON_FADE_TIME 3500
-
-int CG_GetFirstSelectedBot();
-void CG_AddToJournal( char *text );
 // returns true if game is single player (or coop)
 qboolean CG_IsSinglePlayer( void );
-
-// END Mad Doc - TDF
 
 // Gordon: Fireteam stuff
 

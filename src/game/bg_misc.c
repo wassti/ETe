@@ -5343,10 +5343,10 @@ void BG_CleanName( const char *in, char *out, int outSize, const char *blankStri
 			}
 
 			// don't allow black in a name, period
-			if( ColorIndex(*in) == 0 ) {
+			/*if( ColorIndex(*in) == 0 ) {
 				in++;
 				continue;
-			}
+			}*/
 
 			// make sure room in dest for both chars
 			if( len > outSize - 2 ) {

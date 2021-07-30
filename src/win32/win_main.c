@@ -894,7 +894,7 @@ static void SetTimerResolution( void )
 	ULONG curr, minr, maxr;
 	HMODULE dll;
 
-	dll = LoadLibrary( T( "ntdll" ) );
+	dll = GetModuleHandle( T( "ntdll" ) );
 	if ( dll )
 	{
 		pNtQueryTimerResolution = (pfnNtQueryTimerResolution) GetProcAddress( dll, "NtQueryTimerResolution" );
@@ -906,7 +906,6 @@ static void SetTimerResolution( void )
 				maxr = 5000;
 			pNtSetTimerResolution( maxr, TRUE, &curr );
 		}
-		FreeLibrary( dll );
 	}
 }
 

@@ -5302,7 +5302,7 @@ Servers with sv_pure set will get this string and pass it to clients.
 */
 const char *FS_LoadedPakChecksums( qboolean *overflowed ) {
 	static char	info[BIG_INFO_STRING];
-	searchpath_t *search;
+	const searchpath_t *search;
 	char buf[ 32 ];
 	char *s, *max;
 	int len;
@@ -5345,8 +5345,7 @@ Returns a space separated string containing the names of all loaded pk3 files.
 Servers with sv_pure set will get this string and pass it to clients.
 =====================
 */
-#ifndef DEDICATED
-const char *FS_LoadedPakNames( void ) {
+const char *FS_LoadedPakNames( qboolean *overflowed ) {
 	static char	info[BIG_INFO_STRING];
 	const searchpath_t *search;
 	char *s, *max;
@@ -5355,6 +5354,7 @@ const char *FS_LoadedPakNames( void ) {
 	s = info;
 	info[0] = '\0';
 	max = &info[sizeof(info)-1];
+	*overflowed = qfalse;
 
 	for ( search = fs_searchpaths ; search ; search = search->next ) {
 		// is the element a pak file?
@@ -5370,8 +5370,10 @@ const char *FS_LoadedPakNames( void ) {
 		if ( info[0] )
 			len++;
 
-		if ( s + len > max )
+		if ( s + len > max ) {
+			*overflowed = qtrue;
 			break;
+		}
 
 		if ( info[0] )
 			s = Q_stradd( s, " " );
@@ -5383,7 +5385,6 @@ const char *FS_LoadedPakNames( void ) {
 
 	return info;
 }
-#endif
 
 
 /*

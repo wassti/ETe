@@ -548,7 +548,7 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 	int			i;
 	int			checksum;
 	qboolean	isBot;
-	const char	*p;
+	const char	*p, *pnames;
 
 	// ydnar: broadcast a level change to all connected clients
 	if ( svs.clients && !com_errorEntered ) {
@@ -787,16 +787,18 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 	Cvar_Set( "sv_referencedPaks", p );
 
 	Cvar_Set( "sv_paks", "" );
-	Cvar_Set( "sv_pakNames", "" ); // not used on client-side
+	Cvar_Set( "sv_pakNames", "" ); // not used on client-side (except for FS_VerifyOfficialPaks :@@@@)
 
 	if ( sv_pure->integer ) {
-		int freespace, pakslen, infolen;
-		qboolean overflowed = qfalse;
+		int freespace, pakslen, infolen, paknameslen;
+		qboolean overflowed = qfalse, nameoverflowed = qfalse;
 		qboolean infoTruncated = qfalse;
 
 		p = FS_LoadedPakChecksums( &overflowed );
+		pnames = FS_LoadedPakNames( &nameoverflowed );
 
 		pakslen = strlen( p ) + 9; // + strlen( "\\sv_paks\\" )
+		paknameslen = strlen( pnames ) + 13; // strlen( "\\sv_pakNames\\" )
 		freespace = SV_RemainingGameState();
 		infolen = strlen( Cvar_InfoString_Big( CVAR_SYSTEMINFO, &infoTruncated ) );
 
@@ -804,7 +806,7 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 			Com_Printf( S_COLOR_YELLOW "WARNING: truncated systeminfo!\n" );
 		}
 
-		if ( pakslen > freespace || infolen + pakslen >= BIG_INFO_STRING || overflowed ) {
+		if ( pakslen > freespace || paknameslen > freespace || infolen + paknameslen + pakslen >= BIG_INFO_STRING || overflowed || nameoverflowed ) {
 			// switch to degraded pure mode
 			// this could *potentially* lead to a false "unpure client" detection
 			// which is better than guaranteed drop
@@ -816,6 +818,7 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 			if ( *p == '\0' ) {
 				Com_Printf( S_COLOR_YELLOW "WARNING: sv_pure set but no PK3 files loaded\n" );
 			}
+			Cvar_Set( "sv_pakNames", pnames );
 		}
 	}
 

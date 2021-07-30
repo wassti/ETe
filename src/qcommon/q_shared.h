@@ -186,6 +186,7 @@ If you have questions concerning this license or the applicable additional terms
 //endianness
 short ShortSwap( short l );
 int LongSwap( int l );
+int64_t Long64Swap(int64_t ll);
 float FloatSwap( const float *f );
 
 #include "q_platform.h"
@@ -225,7 +226,13 @@ float FloatSwap( const float *f );
 	#endif
 #endif
 
-int64_t Long64Swap(int64_t ll);
+#if defined (_WIN32) && !defined(_MSC_VER)
+#define Q_setjmp __builtin_setjmp
+#define Q_longjmp __builtin_longjmp
+#else
+#define Q_setjmp setjmp
+#define Q_longjmp longjmp
+#endif
 
 typedef unsigned char byte;
 

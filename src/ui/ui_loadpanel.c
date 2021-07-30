@@ -29,7 +29,6 @@ If you have questions concerning this license or the applicable additional terms
 #include "ui_local.h"
 #include "ui_shared.h"
 
-qboolean bg_loadscreeninited = qfalse;
 fontInfo_t bg_loadscreenfont1;
 fontInfo_t bg_loadscreenfont2;
 
@@ -150,9 +149,16 @@ panel_button_t* loadpanelButtons[] = {
 	NULL,
 };
 
+void UI_LoadPanel_Init( void ) {
+	trap_R_RegisterFont( "ariblk", 27, &bg_loadscreenfont1 );
+	trap_R_RegisterFont( "courbd", 30, &bg_loadscreenfont2 );
+
+	BG_PanelButtonsSetup( loadpanelButtons );
+}
+
 /*
 ================
-CG_DrawConnectScreen
+UI_DrawLoadPanel
 ================
 */
 static qboolean connect_ownerdraw;
@@ -169,15 +175,6 @@ void UI_DrawLoadPanel( qboolean forcerefresh, qboolean ownerdraw, qboolean uihac
 	connect_ownerdraw = ownerdraw;
 
 	inside = qtrue;
-
-	if ( !bg_loadscreeninited ) {
-		trap_R_RegisterFont( "ariblk", 27, &bg_loadscreenfont1 );
-		trap_R_RegisterFont( "courbd", 30, &bg_loadscreenfont2 );
-
-		BG_PanelButtonsSetup( loadpanelButtons );
-
-		bg_loadscreeninited = qtrue;
-	}
 
 	BG_PanelButtonsRender( loadpanelButtons );
 
@@ -295,26 +292,41 @@ void UI_LoadPanel_RenderHeaderText( panel_button_t* button ) {
 
 #define ESTIMATES 80
 const char *UI_DownloadInfo( const char *downloadName ) {
-	static char dlText[]    = "Downloading:";
-	static char etaText[]   = "Estimated time left:";
-	static char xferText[]  = "Transfer rate:";
+	static const char dlText[]    = "Downloading:";
+	static const char etaText[]   = "Estimated time left:";
+	static const char xferText[]  = "Transfer rate:";
 	static int tleEstimates[ESTIMATES] = { 60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,
 										   60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,
 										   60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,
 										   60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60 };
 	static int tleIndex = 0;
 
-	char dlSizeBuf[64], totalSizeBuf[64], xferRateBuf[64], dlTimeBuf[64];
-	int downloadSize, downloadCount, downloadTime;
-	int xferRate;
+	char dlSizeBuf[64], totalSizeBuf[64], xferRateBuf[64], dlTimeBuf[64], buf[64];
+	int downloadSize, downloadCount, downloadTime, percentage;
+	int xferRate, div;
 	const char *s, *ds;
 
-	downloadSize = trap_Cvar_VariableValue( "cl_downloadSize" );
-	downloadCount = trap_Cvar_VariableValue( "cl_downloadCount" );
-	downloadTime = trap_Cvar_VariableValue( "cl_downloadTime" );
+	trap_Cvar_VariableStringBuffer( "cl_downloadSize", buf, sizeof( buf ) );
+	downloadSize = atoi( buf );
+	trap_Cvar_VariableStringBuffer( "cl_downloadCount", buf, sizeof( buf ) );
+	downloadCount = atoi( buf ); 
+	trap_Cvar_VariableStringBuffer( "cl_downloadTime", buf, sizeof( buf ) );
+	downloadTime = atoi( buf );
 
 	if ( downloadSize > 0 ) {
-		ds = va( "%s (%d%%)", downloadName, (int)( (float)downloadCount * 100.0f / (float)downloadSize ) );
+		if ( downloadCount > 21474836 ) {// x100 could cause overflow!
+			div = downloadSize >> 8;
+			if ( div )
+				percentage = (downloadCount >> 8) * 100 / div;
+			else
+				percentage = 0;
+		} else {
+			percentage = downloadCount * 100 / downloadSize;
+		}
+		if ( percentage > 100 ) 
+			percentage = 100;
+		ds = va( "%s (%d%%)", downloadName, percentage );
+		//ds = va( "%s (%d%%)", downloadName, (int)( (float)downloadCount * 100.0f / (float)downloadSize ) );
 	} else {
 		ds = downloadName;
 	}

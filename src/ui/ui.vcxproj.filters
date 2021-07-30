@@ -46,9 +46,6 @@
     <ClCompile Include="ui_main.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="ui_players.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="ui_shared.c">
       <Filter>Source Files</Filter>
     </ClCompile>

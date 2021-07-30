@@ -89,7 +89,7 @@ itemDef_t *Menu_SetPrevCursorItem( menuDef_t *menu );
 itemDef_t *Menu_SetNextCursorItem( menuDef_t *menu );
 static qboolean Menu_OverActiveItem( menuDef_t *menu, float x, float y );
 
-#ifdef CGAME
+#ifdef CGAMEDLL
 #define MEM_POOL_SIZE  128 * 1024
 #else
 #define MEM_POOL_SIZE  1536 * 1024  // Arnout: was 1024
@@ -2172,12 +2172,12 @@ int Item_Slider_OverSlider( itemDef_t *item, float x, float y ) {
 
 int Item_ListBox_OverLB( itemDef_t *item, float x, float y ) {
 	rectDef_t r;
-	listBoxDef_t *listPtr;
+	//listBoxDef_t *listPtr;
 	int thumbstart;
-	int count;
+	//int count;
 
-	count = DC->feederCount( item->special );
-	listPtr = (listBoxDef_t*)item->typeData;
+	//count = DC->feederCount( item->special );
+	//listPtr = (listBoxDef_t*)item->typeData;
 	if ( item->window.flags & WINDOW_HORIZONTAL ) {
 		// check if on left arrow
 		r.x = item->window.rect.x;
@@ -2758,11 +2758,9 @@ qboolean Item_TextField_HandleKey( itemDef_t *item, int key ) {
 	editFieldDef_t *editPtr = (editFieldDef_t*)item->typeData;
 
 	if ( item->cvar ) {
-
 		memset( buff, 0, sizeof( buff ) );
 		DC->getCVarString( item->cvar, buff, sizeof( buff ) );
 		len = strlen( buff );
-
 
 		if ( editPtr->maxChars && len > editPtr->maxChars ) {
 			len = editPtr->maxChars;
@@ -4427,10 +4425,10 @@ char* BindingFromName( const char *cvar ) {
 
 void Item_Slider_Paint( itemDef_t *item ) {
 	vec4_t newColor, lowLight;
-	float x, y, value;
+	float x, y;//, value;
 	menuDef_t *parent = (menuDef_t*)item->parent;
 
-	value = ( item->cvar ) ? DC->getCVarValue( item->cvar ) : 0;
+	//value = ( item->cvar ) ? DC->getCVarValue( item->cvar ) : 0;
 
 	if ( item->window.flags & WINDOW_HASFOCUS && item->window.flags & WINDOW_FOCUSPULSE ) {
 		lowLight[0] = 0.8 * parent->focusColor[0];
@@ -5633,9 +5631,9 @@ qboolean ItemParse_group( itemDef_t *item, int handle ) {
 // asset_model <string>
 qboolean ItemParse_asset_model( itemDef_t *item, int handle ) {
 	const char *temp = NULL;
-	modelDef_t *modelPtr;
+	//modelDef_t *modelPtr;
 	Item_ValidateTypeData( item );
-	modelPtr = (modelDef_t*)item->typeData;
+	//modelPtr = (modelDef_t*)item->typeData;
 
 	if ( !PC_String_Parse( handle, &temp ) ) {
 		return qfalse;

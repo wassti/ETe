@@ -2032,7 +2032,7 @@ CL_PK3List_f
 */
 void CL_OpenedPK3List_f( void ) {
 	qboolean dummy = qfalse;
-	Com_Printf("Opened PK3 Names: %s\n", FS_LoadedPakNames(&dummy));
+	Com_Printf("Opened PK3 Names: %s\n", FS_LoadedPakNames(qfalse, &dummy));
 }
 
 

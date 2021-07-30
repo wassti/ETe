@@ -207,13 +207,13 @@ or configs will never get loaded from disk!
 
 */
 
-/*static const unsigned pak_checksums[] = {
+static const unsigned pak_checksums[] = {
 	2573271400u,
 	1581790464u,
 	608521179u,
-};*/
+};
 
-//static const unsigned mpbin_checksum = 2004278281u;
+static const unsigned mpbin_checksum = 2004278281u;
 
 #define USE_PK3_CACHE
 #define USE_PK3_CACHE_FILE
@@ -5337,6 +5337,26 @@ const char *FS_LoadedPakChecksums( qboolean *overflowed ) {
 }
 
 
+static qboolean FS_IsOfficialPak( const pack_t *pack ) {
+	int i;
+
+	if ( !pack )
+		return qfalse;
+
+	if ( FS_FilenameCompare( pack->pakGamename, BASEGAME ) != 0 )
+		return qfalse;
+	
+	if ( pack->checksum == mpbin_checksum )
+		return qtrue;
+
+	for( i = 0; i < ARRAY_LEN(pak_checksums); i++ ) {
+		if ( pack->checksum == pak_checksums[i] )
+			return qtrue;
+	}
+	return qfalse;
+}
+
+
 /*
 =====================
 FS_LoadedPakNames
@@ -5345,9 +5365,10 @@ Returns a space separated string containing the names of all loaded pk3 files.
 Servers with sv_pure set will get this string and pass it to clients.
 =====================
 */
-const char *FS_LoadedPakNames( qboolean *overflowed ) {
+const char *FS_LoadedPakNames( qboolean fake, qboolean *overflowed ) {
 	static char	info[BIG_INFO_STRING];
 	const searchpath_t *search;
+	qboolean idpack = qfalse;
 	char *s, *max;
 	int len;
 
@@ -5363,10 +5384,16 @@ const char *FS_LoadedPakNames( qboolean *overflowed ) {
 
 		if ( search->pack->exclude )
 			continue;
+		
+		idpack = FS_IsOfficialPak( search->pack );
 
-		// Arnout: changed to have the full path
-		//len = (int)strlen( search->pack->pakBasename );
-		len = (int)strlen( search->pack->pakGamename ) + (int)strlen( search->pack->pakBasename ) + 1;
+		if ( fake && !idpack ) {
+			len = 1;
+		} else {
+			// Arnout: changed to have the full path
+			//len = (int)strlen( search->pack->pakBasename );
+			len = (int)strlen( search->pack->pakGamename ) + (int)strlen( search->pack->pakBasename ) + 1;
+		}
 		if ( info[0] )
 			len++;
 
@@ -5378,9 +5405,14 @@ const char *FS_LoadedPakNames( qboolean *overflowed ) {
 		if ( info[0] )
 			s = Q_stradd( s, " " );
 
-		s = Q_stradd( s, search->pack->pakGamename );
-		s = Q_stradd( s, "/" );
-		s = Q_stradd( s, search->pack->pakBasename );
+		if ( fake && !idpack ) {
+			s = Q_stradd( s, "x" );
+		}
+		else {
+			s = Q_stradd( s, search->pack->pakGamename );
+			s = Q_stradd( s, "/" );
+			s = Q_stradd( s, search->pack->pakBasename );
+		}
 	}
 
 	return info;

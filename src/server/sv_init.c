@@ -796,7 +796,7 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 		qboolean infoTruncated = qfalse;
 
 		p = FS_LoadedPakChecksums( &overflowed );
-		pnames = FS_LoadedPakNames( &nameoverflowed );
+		pnames = FS_LoadedPakNames( qtrue, &nameoverflowed );
 
 		pakslen = strlen( p ) + 9; // + strlen( "\\sv_paks\\" )
 		paknameslen = strlen( pnames ) + 13; // strlen( "\\sv_pakNames\\" )
@@ -811,7 +811,9 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 			// switch to degraded pure mode
 			// this could *potentially* lead to a false "unpure client" detection
 			// which is better than guaranteed drop
-			Com_DPrintf( S_COLOR_YELLOW "WARNING: skipping sv_paks setup to avoid gamestate overflow\n" );
+			// however due to requirement for sv_pakNames in ET over Q3, it is very likely that drops will happen for vanilla clients
+			Com_Printf( S_COLOR_YELLOW "WARNING: skipping sv_paks setup to avoid gamestate overflow\n" );
+			Com_Printf( S_COLOR_YELLOW "WARNING: clients not running ETe (%s) will be unlikely to join this server\n", Q3_VERSION );
 		} else {
 			// the server sends these to the clients so they will only
 			// load pk3s also loaded at the server

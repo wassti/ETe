@@ -1860,6 +1860,8 @@ void SV_UserinfoChanged( client_t *cl, qboolean updateUserinfo, qboolean runFilt
 		// name for C code
 		Q_strncpyz( cl->name, Info_ValueForKey( cl->userinfo, "name" ), sizeof( cl->name ) );
 
+		Q_strncpyz( cl->guid, Info_ValueForKey( cl->userinfo, "cl_guid" ), sizeof( cl->guid ) );
+
 		// TTimo
 		// maintain the IP information
 		// the banning code relies on this being consistently present
@@ -1920,13 +1922,15 @@ void SV_UserinfoChanged( client_t *cl, qboolean updateUserinfo, qboolean runFilt
 	// name for C code
 	Q_strncpyz( cl->name, Info_ValueForKey( cl->userinfo, "name" ), sizeof( cl->name ) );
 
-	val = Info_ValueForKey( cl->userinfo, "handicap" );
+	Q_strncpyz( cl->guid, Info_ValueForKey( cl->userinfo, "cl_guid" ), sizeof( cl->guid ) );
+
+	/*val = Info_ValueForKey( cl->userinfo, "handicap" );
 	if ( val[0] ) {
 		i = atoi( val );
 		if ( i <= -100 || i > 100 || strlen( val ) > 4 ) {
 			Info_SetValueForKey( cl->userinfo, "handicap", "0" );
 		}
-	}
+	}*/
 
 	// TTimo
 	// download prefs of the client

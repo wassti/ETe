@@ -839,7 +839,6 @@ void GL_CheckErrors( void ) {
 }
 
 
-
 /*
 ==============================================================================
 
@@ -848,8 +847,8 @@ void GL_CheckErrors( void ) {
 ==============================================================================
 */
 
-/* 
-================== 
+/*
+==================
 RB_ReadPixels
 
 Reads an image but takes care of alignment issues for reading RGB images.
@@ -862,8 +861,8 @@ alignment of packAlign to ensure efficient copying.
 Stores the length of padding after a line of pixels to address padlen
 
 Return value must be freed with ri.Hunk_FreeTempMemory()
-================== 
-*/  
+==================
+*/
 static byte *RB_ReadPixels(int x, int y, int width, int height, size_t *offset, int *padlen, int lineAlign )
 {
 	byte *buffer, *bufstart;
@@ -899,7 +898,7 @@ static byte *RB_ReadPixels(int x, int y, int width, int height, size_t *offset, 
 ==================
 RB_TakeScreenshot
 ==================
-*/  
+*/
 void RB_TakeScreenshot( int x, int y, int width, int height, const char *fileName )
 {
 	const int header_size = 18;
@@ -938,10 +937,10 @@ void RB_TakeScreenshot( int x, int y, int width, int height, const char *fileNam
 			*destptr++ = srcptr[2];
 			*destptr++ = srcptr[1];
 			*destptr++ = temp;
-			
+
 			srcptr += 3;
 		}
-		
+
 		// Skip the pad
 		srcptr += padlen;
 	}
@@ -958,10 +957,10 @@ void RB_TakeScreenshot( int x, int y, int width, int height, const char *fileNam
 }
 
 
-/* 
-================== 
+/*
+==================
 RB_TakeScreenshotJPEG
-================== 
+==================
 */
 void RB_TakeScreenshotJPEG( int x, int y, int width, int height, const char *fileName )
 {
@@ -1105,11 +1104,11 @@ void RB_TakeScreenshotBMP( int x, int y, int width, int height, const char *file
 }
 
 
-/* 
-================== 
+/*
+==================
 R_ScreenshotFilename
-================== 
-*/  
+==================
+*/
 static void R_ScreenshotFilename( char *fileName, const char *fileExt ) {
 	qtime_t t;
 	int count;
@@ -1117,12 +1116,12 @@ static void R_ScreenshotFilename( char *fileName, const char *fileExt ) {
 	count = 0;
 	ri.Com_RealTime( &t );
 
-	Com_sprintf( fileName, MAX_OSPATH, "screenshots/shot-%04d%02d%02d-%02d%02d%02d.%s", 
+	Com_sprintf( fileName, MAX_OSPATH, "screenshots/shot-%04d%02d%02d-%02d%02d%02d.%s",
 			1900 + t.tm_year, 1 + t.tm_mon,	t.tm_mday,
 			t.tm_hour, t.tm_min, t.tm_sec, fileExt );
 
 	while (	ri.FS_FileExists( fileName ) && ++count < 1000 ) {
-		Com_sprintf( fileName, MAX_OSPATH, "screenshots/shot-%04d%02d%02d-%02d%02d%02d-%d.%s", 
+		Com_sprintf( fileName, MAX_OSPATH, "screenshots/shot-%04d%02d%02d-%02d%02d%02d-%d.%s",
 				1900 + t.tm_year, 1 + t.tm_mon,	t.tm_mday,
 				t.tm_hour, t.tm_min, t.tm_sec, count, fileExt );
 	}
@@ -1197,8 +1196,8 @@ static void R_LevelShot( void ) {
 }
 
 
-/* 
-================== 
+/*
+==================
 R_ScreenShot_f
 
 screenshot
@@ -1207,8 +1206,8 @@ screenshot [levelshot]
 screenshot [filename]
 
 Doesn't print the pacifier message if there is a second arg
-================== 
-*/  
+==================
+*/
 static void R_ScreenShot_f( void ) {
 	char		checkname[MAX_OSPATH];
 	qboolean	silent;
@@ -1343,10 +1342,10 @@ const void *RB_TakeVideoFrameCmd( const void *data )
 				*destptr++ = srcptr[0];
 				srcptr += 3;
 			}
-			
+
 			Com_Memset(destptr, '\0', avipadlen);
 			destptr += avipadlen;
-			
+
 			srcptr += padlen;
 		}
 
@@ -1573,7 +1572,6 @@ static void VarInfo( void )
 	} else {
 		ri.Printf( PRINT_ALL, "GAMMA: software w/ %d overbright bits\n", tr.overbrightBits );
 	}
-
 
 	ri.Printf( PRINT_ALL, "texturemode: %s\n", r_textureMode->string );
 	ri.Printf( PRINT_ALL, "texture bits: %d\n", r_texturebits->integer ? r_texturebits->integer : 32 );

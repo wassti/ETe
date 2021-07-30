@@ -3579,7 +3579,7 @@ an external lightmap image and/or sets the index to a valid number
 
 #define EXTERNAL_LIGHTMAP   "lm_%04d.tga"    // THIS MUST BE IN SYNC WITH Q3MAP2
 
-void R_FindLightmap( int *lightmapIndex ) {
+static void R_FindLightmap( int *lightmapIndex ) {
 	image_t     *image;
 	char fileName[ MAX_QPATH ];
 

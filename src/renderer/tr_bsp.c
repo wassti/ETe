@@ -2283,113 +2283,6 @@ static void R_LoadFogs( const lump_t *l, const lump_t *brushesLump, const lump_t
 
 
 /*
-==============
-R_FindLightGridBounds
-==============
-*/
-static void R_FindLightGridBounds( vec3_t mins, vec3_t maxs ) {
-	world_t *w;
-#if 0
-	msurface_t  *surf;
-	srfSurfaceFace_t *surfFace;
-//	cplane_t	*plane;
-	struct shader_s     *shd;
-
-	qboolean foundGridBrushes = qfalse;
-	int i,j;
-#endif
-
-	w = &s_worldData;
-
-//----(SA)	temp - disable this whole thing for now
-	VectorCopy( w->bmodels[0].bounds[0], mins );
-	VectorCopy( w->bmodels[0].bounds[1], maxs );
-	return;
-//----(SA)	temp
-
-#if 0
-
-
-
-	ClearBounds( mins, maxs );
-
-// wrong!
-	for ( i = 0; i < w->bmodels[0].numSurfaces; i++ ) {
-		surf = w->bmodels[0].firstSurface + i;
-		shd = surf->shader;
-
-		if ( !( *surf->data == SF_FACE ) ) {
-			continue;
-		}
-
-		if ( !( shd->contentFlags & CONTENTS_LIGHTGRID ) ) {
-			continue;
-		}
-
-		foundGridBrushes = qtrue;
-	}
-
-
-// wrong!
-	for ( i = 0; i < w->numsurfaces; i++ ) {
-		surf = &w->surfaces[i];
-		shd = surf->shader;
-		if ( !( *surf->data == SF_FACE ) ) {
-			continue;
-		}
-
-		if ( !( shd->contentFlags & CONTENTS_LIGHTGRID ) ) {
-			continue;
-		}
-
-		foundGridBrushes = qtrue;
-
-		surfFace = ( srfSurfaceFace_t * )surf->data;
-
-		for ( j = 0; j < surfFace->numPoints; j++ ) {
-			AddPointToBounds( surfFace->points[j], mins, maxs );
-		}
-
-	}
-
-	// go through brushes looking for lightgrid
-//	for ( i = 0 ; i < numbrushes ; i++ ) {
-//		db = &dbrushes[i];
-//
-//		if (!(dshaders[db->shaderNum].contentFlags & CONTENTS_LIGHTGRID)) {
-//			continue;
-//		}
-//
-//		foundGridBrushes = qtrue;
-//
-//		// go through light grid surfaces for bounds
-//		for ( j = 0 ; j < db->numSides ; j++ ) {
-//			s = &dbrushsides[ db->firstSide + j ];
-//
-//			surfmin[0] = -dplanes[ dbrushsides[ db->firstSide + 0 ].planeNum ].dist - 1;
-//			surfmin[1] = -dplanes[ dbrushsides[ db->firstSide + 2 ].planeNum ].dist - 1;
-//			surfmin[2] = -dplanes[ dbrushsides[ db->firstSide + 4 ].planeNum ].dist - 1;
-//			surfmax[0] = dplanes[ dbrushsides[ db->firstSide + 1 ].planeNum ].dist + 1;
-//			surfmax[1] = dplanes[ dbrushsides[ db->firstSide + 3 ].planeNum ].dist + 1;
-//			surfmax[2] = dplanes[ dbrushsides[ db->firstSide + 5 ].planeNum ].dist + 1;
-//			AddPointToBounds (surfmin, mins, maxs);
-//			AddPointToBounds (surfmax, mins, maxs);
-//		}
-//	}
-
-
-//----(SA)	temp
-	foundGridBrushes = qfalse;  // disable this whole thing for now
-//----(SA)	temp
-
-	if ( !foundGridBrushes ) {
-		VectorCopy( w->bmodels[0].bounds[0], mins );
-		VectorCopy( w->bmodels[0].bounds[1], maxs );
-	}
-#endif
-}
-
-/*
 ================
 R_LoadLightGrid
 ================
@@ -2398,21 +2291,15 @@ static void R_LoadLightGrid( const lump_t *l ) {
 	int i;
 	vec3_t maxs;
 	int numGridPoints;
-	world_t *w;
-//	float	*wMins, *wMaxs;
-	vec3_t wMins, wMaxs;
-
-	w = &s_worldData;
+	world_t *w = &s_worldData;
+	float	*wMins, *wMaxs;
 
 	w->lightGridInverseSize[0] = 1.0 / w->lightGridSize[0];
 	w->lightGridInverseSize[1] = 1.0 / w->lightGridSize[1];
 	w->lightGridInverseSize[2] = 1.0 / w->lightGridSize[2];
 
-//----(SA)	modified
-	R_FindLightGridBounds( wMins, wMaxs );
-//	wMins = w->bmodels[0].bounds[0];
-//	wMaxs = w->bmodels[0].bounds[1];
-//----(SA)	end
+	wMins = w->bmodels[0].bounds[0];
+	wMaxs = w->bmodels[0].bounds[1];
 
 	for ( i = 0 ; i < 3 ; i++ ) {
 		w->lightGridOrigin[i] = w->lightGridSize[i] * ceil( wMins[i] / w->lightGridSize[i] );

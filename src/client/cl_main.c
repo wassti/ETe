@@ -4286,7 +4286,7 @@ static void CL_ModeList_f( void )
 	int i;
 
 	Com_Printf( "\n" );
-	Com_Printf( "Mode -2: Current Desktop Resolution (%s)\n", Cvar_VariableString("r_currentResolution") );
+	Com_Printf( "Mode -2: Desktop Resolution\n" );
 	Com_Printf( "Mode -1: Custom Resolution (%ix%i)\n", r_customwidth->integer, r_customheight->integer );
 	Com_Printf( "         Set r_customWidth and r_customHeight cvars to change\n" );
 	Com_Printf( "\n" );

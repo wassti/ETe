@@ -186,7 +186,6 @@ If you have questions concerning this license or the applicable additional terms
 //endianness
 short ShortSwap( short l );
 int LongSwap( int l );
-int64_t Long64Swap(int64_t ll);
 float FloatSwap( const float *f );
 
 #include "q_platform.h"
@@ -225,6 +224,8 @@ float FloatSwap( const float *f );
 		#define Q_vsnprintf vsnprintf
 	#endif
 #endif
+
+int64_t Long64Swap(int64_t ll); // needs int64_t from above
 
 #if defined (_WIN32) && !defined(_MSC_VER)
 #define Q_setjmp __builtin_setjmp
@@ -318,6 +319,8 @@ typedef int		clipHandle_t;
 // rain - increased to 36 to match MAX_NETNAME, fixes #13 - UI stuff breaks
 // with very long names
 #define MAX_NAME_LENGTH     36      // max length of a client name
+
+#define MAX_GUID_LENGTH     33
 
 #define MAX_SAY_TEXT        150
 

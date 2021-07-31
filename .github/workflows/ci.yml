@@ -350,8 +350,10 @@ jobs:
           mv -t  ./etmain/ ./windows-x86/*.dll
           mv -t  ./etmain/ ./macos-x86_64/*.dylib
           cd etmain
-          7z a -r -tzip mp_bina.pk3      ./*.so
-          7z a -r -tzip mp_bina.pk3      ./*.dll
+          7z a -r -tzip mp_bina.pk3      ./cgame*.so
+          7z a -r -tzip mp_bina.pk3      ./ui*.so
+          7z a -r -tzip mp_bina.pk3      ./cgame*.dll
+          7z a -r -tzip mp_bina.pk3      ./ui*.dll
           cd ..
           7z a -r ete-etmain-all.zip      ./etmain/*.pk3
           7z a -r ete-etmain-all.zip      ./etmain/*.so
@@ -367,6 +369,14 @@ jobs:
 #7z a -r ete-linux-aarch64.zip  ./linux-aarch64/*
 #7z a -r ete-linux-armv7.zip    ./linux-armv7/*
 #7z a -r -tzip mp_bina.pk3      ./*.dylib
+
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Create docs archive
+        run: |
+          7z a -r ete-docs.zip ./docs/*
 
       - name: Create latest build
         uses: marvinpinto/action-automatic-releases@latest

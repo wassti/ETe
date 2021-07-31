@@ -329,6 +329,49 @@ jobs:
           src/bin/*_mac
         if-no-files-found: error
         retention-days: 5
+
+  create-testing:
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    needs: [windows-msvc, windows-msvc-etmain, ubuntu-x86, ubuntu-x86-etmain, macos-x86, macos-x86-etmain]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Artifacts
+        uses: actions/download-artifact@v2
+
+      - name: Create binary archives
+        run: |
+          7z a -r ete-linux-x86.zip           ./linux-x86/* -x!*.so
+          7z a -r ete-linux-x86_64.zip         ./linux-x86_64/* -x!*.so
+#          7z a -r ete-windows-mingw-x86.zip    ./windows-mingw-x86/* -x!*.dll
+#          7z a -r ete-windows-mingw-x86_64.zip ./windows-mingw-x86_64/* -x!*.dll
+          7z a -r ete-windows-msvc-x86.zip     ./windows-x86/* -x!*.dll
+#          7z a -r ete-windows-msvc-x86_64.zip  ./windows-x86_64/* -x!*.dll
+#          7z a -r ete-windows-msvc-arm64.zip   ./windows-arm64/* -x!*.dll
+          7z a -r ete-macos-x86_64.zip         ./macos-x86_64/* -x!*.dylib
+#          7z a -r ete-macos-arm64.zip         ./macos-arm64/* -x!*.dylib
+#         7z a -r ete-linux-aarch64.zip  ./linux-aarch64/*
+#         7z a -r ete-linux-armv7.zip    ./linux-armv7/*
+          mkdir -p etmain
+          mv -t  ./etmain/ ./linux-x86/*.so
+          mv -t  ./etmain/ ./linux-x86_64/*.so
+          mv -t  ./etmain/ ./windows-x86/*.dll
+          mv -t  ./etmain/ ./macos-x86_64/*.dylib
+          cd etmain
+          7z a -r -tzip mp_bina.pk3      ./*.so
+          7z a -r .-tzip mp_bina.pk3      ./*.dll
+#          7z a -r -tzip mp_bina.pk3      ./*.dylib
+          cd ..
+          7z a ete-etmain-all.zip      ./etmain/mp_bina.pk3
+
+      - name: Create latest build
+        uses: marvinpinto/action-automatic-releases@latest
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          automatic_release_tag: "latest"
+          prerelease: false
+          title: Latest Build
+          files: |
+            *.zip
   
   #mp_bin:
   #  name: Generate mp_bina.pk3

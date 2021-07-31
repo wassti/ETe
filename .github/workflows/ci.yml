@@ -335,6 +335,10 @@ jobs:
     needs: [windows-msvc, windows-msvc-etmain, ubuntu-x86, ubuntu-x86-etmain, macos-x86, macos-x86-etmain]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
       - name: Download Artifacts
         uses: actions/download-artifact@v2
 
@@ -369,10 +373,6 @@ jobs:
 #7z a -r ete-linux-aarch64.zip  ./linux-aarch64/*
 #7z a -r ete-linux-armv7.zip    ./linux-armv7/*
 #7z a -r -tzip mp_bina.pk3      ./*.dylib
-
-      - uses: actions/checkout@v2
-        with:
-          submodules: recursive
 
       - name: Create docs archive
         run: |

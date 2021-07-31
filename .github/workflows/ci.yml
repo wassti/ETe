@@ -351,11 +351,14 @@ jobs:
           mv -t  ./etmain/ ./macos-x86_64/*.dylib
           cd etmain
           7z a -r -tzip mp_bina.pk3      ./*.so
-          7z a -r .-tzip mp_bina.pk3      ./*.dll
+          7z a -r -tzip mp_bina.pk3      ./*.dll
           cd ..
-          7z a ete-etmain-all.zip      ./etmain/mp_bina.pk3
+          7z a -r ete-etmain-all.zip      ./etmain/*.pk3
+          7z a -r ete-etmain-all.zip      ./etmain/*.so
+          7z a -r ete-etmain-all.zip      ./etmain/*.dll
 
 #TODO other builds
+#NOTE purposely skipping etmain for macos as it is not really functional
 #7z a -r ete-windows-mingw-x86.zip    ./windows-mingw-x86/* -x!*.dll
 #7z a -r ete-windows-mingw-x86_64.zip ./windows-mingw-x86_64/* -x!*.dll
 #7z a -r ete-windows-msvc-x86_64.zip  ./windows-x86_64/* -x!*.dll

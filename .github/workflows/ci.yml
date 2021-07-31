@@ -243,92 +243,92 @@ jobs:
         if-no-files-found: error
         retention-days: 5
 
-  #macos-x86:
-  #  name: ${{ matrix.config }} macOS ${{ matrix.arch }}
-  #  runs-on: macos-latest
-  #  strategy:
-  #    fail-fast: false
-  #    matrix:
-  #      arch: [x86_64]
-  #      cc: [clang]
-  #      cxx: [clang++]
-  #      config: [Release]
-  #      include:
-  #        - config: Release
-  #          rule: install
-#
-  #  steps:
-  #  - name: Install tools
-  #    run: brew install coreutils ninja sdl2
-#
-  #  - uses: actions/checkout@v2
-  #    with:
-  #      submodules: recursive
-#
-  #  - name: Create Build Directory
-  #    working-directory: ${{github.workspace}}/src
-  #    run: cmake -E make_directory ${{github.workspace}}/src/bin
-#
-  #  - name: Configure CMake
-  #    working-directory: ${{github.workspace}}/src/bin
-  #    run: cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=${{ matrix.config }} -DUSE_SDL2=TRUE -DBUILD_ETMAIN_MOD=OFF
-#
-  #  - name: Build
-  #    working-directory: ${{github.workspace}}/src/bin
-  #    run: cmake --build . --config ${{ matrix.config }}
-#
-  #  - uses: actions/upload-artifact@v2
-  #    if: matrix.cc == 'clang' && matrix.config == 'Release'
-  #    with:
-  #      name: macos-${{ matrix.arch }}
-  #      path: |
-  #        src/bin/ete*.${{ matrix.arch }}
-  #      if-no-files-found: error
-  #      retention-days: 5
+  macos-x86:
+    name: ${{ matrix.config }} macOS ${{ matrix.arch }}
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86_64]
+        cc: [clang]
+        cxx: [clang++]
+        config: [Release]
+        include:
+          - config: Release
+            rule: install
 
-  #macos-x86-etmain:
-  #  name: ${{ matrix.config }} macOS etmain ${{ matrix.arch }}
-  #  runs-on: macos-latest
-  #  strategy:
-  #    fail-fast: false
-  #    matrix:
-  #      arch: [x86_64]
-  #      cc: [clang]
-  #      cxx: [clang++]
-  #      config: [Release]
-  #      include:
-  #        - config: Release
-  #          rule: install
-#
-  #  steps:
-  #  - name: Install tools
-  #    run: brew install coreutils ninja
-#
-  #  - uses: actions/checkout@v2
-  #    with:
-  #      submodules: recursive
-#
-  #  - name: Create Build Directory
-  #    working-directory: ${{github.workspace}}/src
-  #    run: cmake -E make_directory ${{github.workspace}}/src/bin
-#
-  #  - name: Configure CMake
-  #    working-directory: ${{github.workspace}}/src/bin
-  #    run: cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=${{ matrix.config }} -DBUILD_DEDSERVER=FALSE -DBUILD_CLIENT=FALSE -DBUILD_ETMAIN_MOD=TRUE
-#
-  #  - name: Build
-  #    working-directory: ${{github.workspace}}/src/bin
-  #    run: cmake --build . --config ${{ matrix.config }}
-#
-  #  - uses: actions/upload-artifact@v2
-  #    if: matrix.cc == 'clang' && matrix.config == 'Release'
-  #    with:
-  #      name: macos-${{ matrix.arch }}
-  #      path: |
-  #        src/bin/*.dylib
-  #        src/bin/*_mac
-  #      if-no-files-found: error
-  #      retention-days: 5
+    steps:
+    - name: Install tools
+      run: brew install coreutils ninja sdl2
+
+    - uses: actions/checkout@v2
+      with:
+        submodules: recursive
+
+    - name: Create Build Directory
+      working-directory: ${{github.workspace}}/src
+      run: cmake -E make_directory ${{github.workspace}}/src/bin
+
+    - name: Configure CMake
+      working-directory: ${{github.workspace}}/src/bin
+      run: cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=${{ matrix.config }} -DUSE_SDL2=TRUE -DBUILD_ETMAIN_MOD=OFF
+
+    - name: Build
+      working-directory: ${{github.workspace}}/src/bin
+      run: cmake --build . --config ${{ matrix.config }}
+
+    - uses: actions/upload-artifact@v2
+      if: matrix.cc == 'clang' && matrix.config == 'Release'
+      with:
+        name: macos-${{ matrix.arch }}
+        path: |
+          src/bin/ete*.${{ matrix.arch }}
+        if-no-files-found: error
+        retention-days: 5
+
+  macos-x86-etmain:
+    name: ${{ matrix.config }} macOS etmain ${{ matrix.arch }}
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86_64]
+        cc: [clang]
+        cxx: [clang++]
+        config: [Release]
+        include:
+          - config: Release
+            rule: install
+
+    steps:
+    - name: Install tools
+      run: brew install coreutils ninja
+
+    - uses: actions/checkout@v2
+      with:
+        submodules: recursive
+
+    - name: Create Build Directory
+      working-directory: ${{github.workspace}}/src
+      run: cmake -E make_directory ${{github.workspace}}/src/bin
+
+    - name: Configure CMake
+      working-directory: ${{github.workspace}}/src/bin
+      run: cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=${{ matrix.config }} -DBUILD_DEDSERVER=FALSE -DBUILD_CLIENT=FALSE -DBUILD_ETMAIN_MOD=TRUE
+
+    - name: Build
+      working-directory: ${{github.workspace}}/src/bin
+      run: cmake --build . --config ${{ matrix.config }}
+
+    - uses: actions/upload-artifact@v2
+      if: matrix.cc == 'clang' && matrix.config == 'Release'
+      with:
+        name: macos-${{ matrix.arch }}
+        path: |
+          src/bin/*.dylib
+          src/bin/*_mac
+        if-no-files-found: error
+        retention-days: 5
   
   #mp_bin:
   #  name: Generate mp_bina.pk3

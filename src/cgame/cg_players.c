@@ -1289,7 +1289,35 @@ static void CG_PlayerFloatSprite( centity_t *cent, qhandle_t shader, int height 
 	}
 
 	memset( &ent, 0, sizeof( ent ) );
-	VectorCopy( cent->lerpOrigin, ent.origin );
+	if ( cent->currentState.eFlags & EF_MOUNTEDTANK ) {
+		VectorCopy( cg_entities[ cg_entities[ cent->currentState.clientNum ].tagParent ].mountedMG42Player.origin, ent.origin );
+	} else if ( cent->currentState.eFlags & EF_MG42_ACTIVE || cent->currentState.eFlags & EF_AAGUN_ACTIVE ) {    // Arnout: see if we're attached to a gun
+		centity_t *mg42;
+		int num;
+
+		// find the mg42 we're attached to
+		for ( num = 0 ; num < cg.snap->numEntities ; num++ ) {
+			mg42 = &cg_entities[ cg.snap->entities[ num ].number ];
+			if ( mg42->currentState.eType == ET_MG42_BARREL &&
+				 mg42->currentState.otherEntityNum == cent->currentState.number ) {
+				// found it, clamp behind gun
+				vec3_t forward, right, up;
+
+				//AngleVectors (mg42->s.apos.trBase, forward, right, up);
+				AngleVectors( cent->lerpAngles, forward, right, up );
+				VectorMA( mg42->currentState.pos.trBase, -36, forward, ent.origin );
+				ent.origin[2] = cent->lerpOrigin[2];
+				break;
+			}
+		}
+
+		if ( num == cg.snap->numEntities ) {
+			VectorCopy( cent->lerpOrigin, ent.origin );
+		}
+	} else {
+		VectorCopy( cent->lerpOrigin, ent.origin );
+	}
+	//VectorCopy( cent->lerpOrigin, ent.origin );
 	ent.origin[2] += height;            // DHM - Nerve :: was '48'
 
 	// Account for ducking

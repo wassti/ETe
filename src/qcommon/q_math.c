@@ -1145,6 +1145,7 @@ int Q_isnan( float x )
 Q_isfinite
 ================
 */
+#ifdef USE_QISFINITE
 static int Q_isfinite( float f )
 {
 	floatint_t fi;
@@ -1159,6 +1160,7 @@ static int Q_isfinite( float f )
 
 	return 1;
 }
+#endif
 
 
 /*
@@ -1175,8 +1177,13 @@ float Q_atof( const char *str )
 	// modern C11-like implementations of atof() may return INF or NAN
 	// which breaks all FP code where such values getting passed
 	// and effectively corrupts range checks for cvars as well
+#if USE_QISFINITE
 	if ( !Q_isfinite( f ) )
 		return 0.0f;
+#else
+	if ( !isfinite( f ) )
+		return 0.0f;
+#endif
 
 	return f;
 }

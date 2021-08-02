@@ -280,7 +280,7 @@ qboolean G_ScriptAction_FollowPath( gentity_t* ent, char *params ) {
 			G_Error( "G_Scripting: followpath must have a speed\n" );
 		}
 
-		speed = atof( token );
+		speed = Q_atof( token );
 
 		while ( token[0] ) {
 			token = COM_ParseExt( &pString, qfalse );
@@ -642,7 +642,7 @@ qboolean G_ScriptAction_FollowSpline( gentity_t* ent, char *params ) {
 			G_Error( "G_Scripting: followspline must have a speed\n" );
 		}
 
-		speed = atof( token );
+		speed = Q_atof( token );
 
 		while ( token[0] ) {
 			token = COM_ParseExt( &pString, qfalse );
@@ -803,7 +803,7 @@ qboolean G_ScriptAction_SetChargeTimeFactor( gentity_t* ent, char *params ) {
 		G_Error( "G_Scripting: setchargetimefactor must have a factor\n" );
 	}
 
-	factor = atof( token );
+	factor = Q_atof( token );
 
 	if ( factor < 0.f ) {
 		G_Printf( "^3WARNING: setchargetimefactor with factor < 0, clamped to 0\n" );
@@ -1063,7 +1063,7 @@ qboolean G_ScriptAction_SetGlobalFog( gentity_t *ent, char *params ) {
 		G_Error( "G_Scripting: setglobalfog without restore flag must have a depth for opaque value\n" );
 	}
 
-	depthForOpaque = atof( token );
+	depthForOpaque = Q_atof( token );
 
 	trap_SetConfigstring( CS_GLOBALFOGVARS, va( "0 %i %f %f %f %f", duration, color[0], color[1], color[2], depthForOpaque ) );
 
@@ -1151,7 +1151,7 @@ qboolean G_ScriptAction_GotoMarker( gentity_t *ent, char *params ) {
 			G_Error( "G_Scripting: gotomarker must have a speed\n" );
 		}
 
-		speed = atof( token );
+		speed = Q_atof( token );
 		trType = TR_LINEAR_STOP;
 
 		while ( token[0] ) {
@@ -1663,7 +1663,7 @@ qboolean G_ScriptAction_MusicFade( gentity_t *ent, char *params ) {
 	if ( !token[0] ) {
 		G_Error( "G_Scripting: syntax: mu_fade <target volume 0.0-1.0> <fadeout time>" );
 	}
-	targetVol = atof( token );
+	targetVol = Q_atof( token );
 	if ( targetVol < 0 || targetVol >= 1 ) {
 		G_Error( "G_Scripting: syntax: mu_fade <target volume 0.0-1.0> <fadeout time>" );
 	}
@@ -3613,7 +3613,7 @@ qboolean G_ScriptAction_ConstructibleChargeBarReq( gentity_t *ent, char *params 
 		G_Error( "G_Scripting: \"constructible_chargebarreq\" must have a fraction value\n" );
 	}
 
-	value = atof( token );
+	value = Q_atof( token );
 
 	if ( value < 0 ) {
 		G_Error( "G_Scripting: \"constructible_chargebarreq\" has a bad value %f\n", value );

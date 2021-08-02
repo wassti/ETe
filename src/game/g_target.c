@@ -1231,14 +1231,14 @@ void SP_target_rumble( gentity_t *self ) {
 	self->use = target_rumble_use;
 
 	G_SpawnString( "pitch", "0", &pitch );
-	dapitch = atof( pitch );
+	dapitch = Q_atof( pitch );
 	self->delay = dapitch;
 	if ( !( self->delay ) ) {
 		self->delay = 5;
 	}
 
 	G_SpawnString( "yaw", "0", &yaw );
-	dayaw = atof( yaw );
+	dayaw = Q_atof( yaw );
 	self->random = dayaw;
 	if ( !( self->random ) ) {
 		self->random = 5;

@@ -328,7 +328,7 @@ qboolean Float_Parse( const char **p, float *f ) {
 	const char    *token;
 	token = COM_ParseExt( p, qfalse );
 	if ( token && token[0] != 0 ) {
-		*f = atof( token );
+		*f = Q_atof( token );
 		return qtrue;
 	} else {
 		return qfalse;
@@ -3866,7 +3866,7 @@ void Item_Text_Paint( itemDef_t *item ) {
 				COM_StripExtension( text, text, sizeof( text ) );
 				item->textRect.w = 0;   // force recalculation
 			} else if ( item->window.flags & WINDOW_TEXTASFLOAT ) {
-				const char *s = va( "%.2f", atof( text ) );
+				const char *s = va( "%.2f", Q_atof( text ) );
 				Q_strncpyz( text, s, sizeof( text ) );
 				item->textRect.w = 0;   // force recalculation
 			}

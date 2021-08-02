@@ -131,7 +131,7 @@ static qboolean CG_ParseHudHeadConfig( const char *filename, animation_t* hha ) 
 		if ( !token ) {
 			break;
 		}
-		fps = atof( token );
+		fps = Q_atof( token );
 		if ( fps == 0 ) {
 			fps = 1;
 		}

@@ -2216,11 +2216,11 @@ void Cmd_SetViewpos_f( gentity_t *ent ) {
 	VectorClear( angles );
 	for ( i = 0 ; i < 3 ; i++ ) {
 		trap_Argv( i + 1, buffer, sizeof( buffer ) );
-		origin[i] = atof( buffer );
+		origin[i] = Q_atof( buffer );
 	}
 
 	trap_Argv( 4, buffer, sizeof( buffer ) );
-	angles[YAW] = atof( buffer );
+	angles[YAW] = Q_atof( buffer );
 
 	TeleportPlayer( ent, origin, angles );
 }
@@ -2315,7 +2315,7 @@ void Cmd_SetCameraOrigin_f( gentity_t *ent ) {
 
 	for ( i = 0 ; i < 3 ; i++ ) {
 		trap_Argv( i + 1, buffer, sizeof( buffer ) );
-		origin[i] = atof( buffer );
+		origin[i] = Q_atof( buffer );
 	}
 
 	if ( ent->client->cameraPortal ) {

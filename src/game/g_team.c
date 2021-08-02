@@ -474,15 +474,6 @@ void Team_DroppedFlagThink( gentity_t *ent ) {
 int Team_TouchOurFlag( gentity_t *ent, gentity_t *other, int team ) {
 	gclient_t *cl = other->client;
 //	gentity_t* te;
-	int our_flag, enemy_flag;
-
-	if ( cl->sess.sessionTeam == TEAM_AXIS ) {
-		our_flag = PW_REDFLAG;
-		enemy_flag = PW_BLUEFLAG;
-	} else {
-		our_flag = PW_BLUEFLAG;
-		enemy_flag = PW_REDFLAG;
-	}
 
 	if ( ent->flags & FL_DROPPED_ITEM ) {
 		// hey, its not home.  return it by teleporting it back
@@ -719,16 +710,14 @@ gentity_t *SelectRandomTeamSpawnPoint( int teamstate, team_t team, int spawnObje
 	gentity_t   *spot;
 	gentity_t   *spots[MAX_TEAM_SPAWN_POINTS];
 
-	int count, closest, defendingTeam;
+	int count, closest;
 	int i = 0;
 
-	char        *classname;
+	const char  *classname;
 	float shortest, tmp;
 
 	vec3_t target;
 	vec3_t farthest;
-
-	defendingTeam = -1;
 
 	if ( team == TEAM_AXIS ) {
 		classname = "team_CTF_redspawn";

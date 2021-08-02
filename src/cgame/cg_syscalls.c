@@ -308,6 +308,7 @@ qhandle_t trap_R_RegisterModel( const char *name ) {
 }*/
 
 //----(SA)	added
+// NOTE: char *name expects an array sized 64 (MAX_QPATH)
 qboolean trap_R_GetSkinModel( qhandle_t skinid, const char *type, char *name ) {
 	return syscall( CG_R_GETSKINMODEL, skinid, type, name );
 }

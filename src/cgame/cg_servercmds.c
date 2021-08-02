@@ -121,7 +121,7 @@ and whenever the server updates any serverinfo flagged cvars
 */
 void CG_ParseServerinfo( void ) {
 	const char  *info;
-	char    *mapname;
+	const char  *mapname;
 
 	info = CG_ConfigString( CS_SERVERINFO );
 	cg_gameType.integer = cgs.gametype = atoi( Info_ValueForKey( info, "g_gametype" ) );
@@ -487,7 +487,7 @@ void CG_ParseServerVersionInfo( const char *pszVersionInfo ) {
 // Parse reinforcement offsets
 void CG_ParseReinforcementTimes( const char *pszReinfSeedString ) {
 	const char *tmp = pszReinfSeedString, *tmp2;
-	unsigned int i, j, dwDummy, dwOffset[TEAM_NUM_TEAMS];
+	unsigned int i, j, dwOffset[TEAM_NUM_TEAMS];
 
 #define GETVAL( x,y ) if ( ( tmp = strchr( tmp, ' ' ) ) == NULL ) {return;} x = atoi( ++tmp ) / y;
 
@@ -503,7 +503,10 @@ void CG_ParseReinforcementTimes( const char *pszReinfSeedString ) {
 				cgs.aReinfOffset[i] *= 1000;
 				break;
 			}
-			GETVAL( dwDummy, 1 );
+			if ( ( tmp = strchr( tmp, ' ' ) ) == NULL ) {
+				return;
+			}
+			++tmp;
 		}
 	}
 }

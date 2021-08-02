@@ -3214,7 +3214,7 @@ qboolean Bullet_Fire_Extended( gentity_t *source, gentity_t *attacker, vec3_t st
 	gentity_t   *traceEnt;
 	qboolean hitClient = qfalse;
 
-	qboolean reducedDamage = qfalse;
+	//qboolean reducedDamage = qfalse;
 
 	qboolean waslinked = qfalse;
 
@@ -3282,9 +3282,9 @@ qboolean Bullet_Fire_Extended( gentity_t *source, gentity_t *attacker, vec3_t st
 		scale = 1.0f - scale;
 
 		// And, finally, cap it.
-		reducedDamage = qtrue;
+		//reducedDamage = qtrue;
 		if ( scale >= 1.0f ) {
-			scale = 1.0f; reducedDamage = qfalse;
+			scale = 1.0f;// reducedDamage = qfalse;
 		} else if ( scale < 0.5f )                                                                {
 			scale = 0.5f;
 		}
@@ -3610,9 +3610,9 @@ ROCKET
 */
 
 void Weapon_Panzerfaust_Fire( gentity_t *ent ) {
-	gentity_t   *m;
+	//gentity_t   *m;
 
-	m = fire_rocket( ent, muzzleEffect, forward );
+	/*m = */(void)fire_rocket( ent, muzzleEffect, forward );
 
 //	VectorAdd( m->s.pos.trDelta, ent->client->ps.velocity, m->s.pos.trDelta );	// "real" physics
 }
@@ -3656,7 +3656,7 @@ static vec3_t flameChunkMins = {-4, -4, -4};
 static vec3_t flameChunkMaxs = { 4,  4,  4};
 
 void Weapon_FlamethrowerFire( gentity_t *ent ) {
-	gentity_t   *traceEnt;
+	//gentity_t   *traceEnt;
 	vec3_t start;
 	vec3_t trace_start;
 	vec3_t trace_end;
@@ -3687,7 +3687,7 @@ void Weapon_FlamethrowerFire( gentity_t *ent ) {
 		}
 	}
 
-	traceEnt = fire_flamechunk( ent, start, forward );
+	/*traceEnt =*/(void)fire_flamechunk( ent, start, forward );
 }
 
 //======================================================================
@@ -3823,19 +3823,19 @@ void CalcMuzzlePoints( gentity_t *ent, int weapon ) {
 		float spreadfrac, phase;
 
 		if ( BG_IsScopedWeapon( weapon ) ) {
-			float pitchAmp, yawAmp;
+			//float pitchAmp, yawAmp;
 			float pitchMinAmp, yawMinAmp;
 
 			spreadfrac = ent->client->currentAimSpreadScale;
 
 			if ( weapon == WP_FG42SCOPE ) {
-				pitchAmp = 4 * ZOOM_PITCH_AMPLITUDE;
-				yawAmp = 4 * ZOOM_YAW_AMPLITUDE;
+				//pitchAmp = 4 * ZOOM_PITCH_AMPLITUDE;
+				//yawAmp = 4 * ZOOM_YAW_AMPLITUDE;
 				pitchMinAmp = 4 * ZOOM_PITCH_MIN_AMPLITUDE;
 				yawMinAmp = 4 * ZOOM_YAW_MIN_AMPLITUDE;
 			} else {
-				pitchAmp = ZOOM_PITCH_AMPLITUDE;
-				yawAmp = ZOOM_YAW_AMPLITUDE;
+				//pitchAmp = ZOOM_PITCH_AMPLITUDE;
+				//yawAmp = ZOOM_YAW_AMPLITUDE;
 				pitchMinAmp = ZOOM_PITCH_MIN_AMPLITUDE;
 				yawMinAmp = ZOOM_YAW_MIN_AMPLITUDE;
 			}

@@ -1004,8 +1004,6 @@ void SV_Init( void )
 
 	sv_filter = Cvar_Get( "sv_filter", "filter.txt", CVAR_ARCHIVE );
 
-	sv_leanPakRefs = Cvar_Get( "sv_leanPakRefs", "0", CVAR_LATCH );
-
 	sv_filterCommands = Cvar_Get( "sv_filterCommands", "1", CVAR_ARCHIVE );
 	Cvar_SetDescription( sv_filterCommands, "0: Disabled\n1: Filter newlines and carriage returns in reliable commands.\n2: Also filter semicolons" );
 

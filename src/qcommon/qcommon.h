@@ -1144,7 +1144,6 @@ extern	cvar_t	*com_yieldCPU;
 #ifdef USE_AFFINITY_MASK
 extern	cvar_t	*com_affinityMask;
 #endif
-extern	cvar_t	*sv_leanPakRefs;
 
 // com_speeds times
 extern	int		time_game;

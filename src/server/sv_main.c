@@ -95,8 +95,6 @@ cvar_t  *sv_fullmsg;
 cvar_t *sv_levelTimeReset;
 cvar_t *sv_filter;
 
-cvar_t  *sv_leanPakRefs = NULL;
-
 cvar_t  *sv_filterCommands;
 
 #ifdef USE_BANS
@@ -429,6 +427,7 @@ void SV_MasterGameCompleteStatus( void ) {
 			SVC_GameCompleteStatus( &adr[i][1] );
 	}
 }
+
 
 /*
 =================

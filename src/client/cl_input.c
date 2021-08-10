@@ -1140,7 +1140,7 @@ void CL_InitInput( void ) {
 	m_yaw = Cvar_Get( "m_yaw", "0.022", CVAR_ARCHIVE_ND );
 	m_forward = Cvar_Get( "m_forward", "0.25", CVAR_ARCHIVE_ND );
 	m_side = Cvar_Get( "m_side", "0.25", CVAR_ARCHIVE_ND );
-//#ifdef MACOS_X
+//#ifdef __APPLE__
 	// Input is jittery on OS X w/o this
 //	m_filter = Cvar_Get( "m_filter", "1", CVAR_ARCHIVE_ND );
 //#else

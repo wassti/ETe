@@ -153,6 +153,11 @@ static void AddSkyPolygon (int nump, vec3_t vecs)
 ClipSkyPolygon
 ================
 */
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
+#endif /* __GNUC__ */
+
 static void ClipSkyPolygon (int nump, vec3_t vecs, int stage) 
 {
 	const float *norm;
@@ -243,6 +248,10 @@ static void ClipSkyPolygon (int nump, vec3_t vecs, int stage)
 	ClipSkyPolygon (newc[0], newv[0][0], stage+1);
 	ClipSkyPolygon (newc[1], newv[1][0], stage+1);
 }
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
 /*
 ==============

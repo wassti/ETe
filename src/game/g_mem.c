@@ -35,7 +35,11 @@ If you have questions concerning this license or the applicable additional terms
 
 // Ridah, increased this (fixes Dan's crash)
 
+#if (idx64 || arm64)
+#define POOLSIZE    ( 16 * 1024 * 1024 )
+#else
 #define POOLSIZE    ( 4 * 1024 * 1024 )
+#endif
 
 static char memoryPool[POOLSIZE];
 static int allocPoint;

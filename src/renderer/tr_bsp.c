@@ -820,7 +820,7 @@ static void ParseFoliage( const dsurface_t *ds, const drawVert_t *verts, msurfac
 	for ( i = 0; i < numIndexes; i++ )
 	{
 		foliage->indexes[ i ] = LittleLong( indexes[ i ] );
-		if ( foliage->indexes[ i ] < 0 || foliage->indexes[ i ] >= numVerts ) {
+		if ( /*foliage->indexes[ i ] < 0 ||*/ foliage->indexes[ i ] >= numVerts ) {
 			ri.Error( ERR_DROP, "Bad index in triangle surface" );
 		}
 	}

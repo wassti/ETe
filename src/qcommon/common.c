@@ -3196,7 +3196,7 @@ static void Com_GameRestart_f( void )
 	Com_GameRestart( 0, qtrue );
 }
 
-void Com_SetRecommended() {
+void Com_SetRecommended( void ) {
 	cvar_t *r_highQualityVideo;//,* com_recommended;
 	qboolean goodVideo;
 	float cpuSpeed;

@@ -532,7 +532,6 @@ void *R_GetSurfMemory( int size ) {
 }
 
 
-
 /*
 SphereFromBounds() - ydnar
 creates a bounding sphere from a bounding box
@@ -546,7 +545,6 @@ static void SphereFromBounds( vec3_t mins, vec3_t maxs, vec3_t origin, float *ra
 	VectorSubtract( maxs, origin, temp );
 	*radius = VectorLength( temp );
 }
-
 
 
 /*
@@ -566,7 +564,6 @@ static void FinishGenericSurface( const dsurface_t *ds, srfGeneric_t *gen, vec3_
 	SetPlaneSignbits( &gen->plane );
 	gen->plane.type = PlaneTypeForNormal( gen->plane.normal );
 }
-
 
 
 /*
@@ -640,183 +637,11 @@ static void ParseMesh( const dsurface_t *ds, const drawVert_t *verts, msurface_t
 }
 
 
-
-/*
-===============
-ParseFace
-===============
-*/
-#if 0 // rain - unused
-static void ParseFace( dsurface_t *ds, drawVert_t *verts, msurface_t *surf, int *indexes  ) {
-	int i, j;
-	srfSurfaceFace_t    *cv;
-	int numPoints, numIndexes;
-	int lightmapNum;
-	int sfaceSize, ofsIndexes;
-
-
-	lightmapNum = LittleLong( ds->lightmapNum );
-
-	// get fog volume
-	surf->fogIndex = LittleLong( ds->fogNum ) + 1;
-
-	// get shader value
-	surf->shader = ShaderForShaderNum( ds->shaderNum, lightmapNum );
-	if ( r_singleShader->integer && !surf->shader->isSky ) {
-		surf->shader = tr.defaultShader;
-	}
-
-	numPoints = LittleLong( ds->numVerts );
-	if ( numPoints > MAX_FACE_POINTS ) {
-		ri.Printf( PRINT_WARNING, "WARNING: MAX_FACE_POINTS exceeded: %i\n", numPoints );
-		numPoints = MAX_FACE_POINTS;
-		surf->shader = tr.defaultShader;
-	}
-
-	numIndexes = LittleLong( ds->numIndexes );
-
-	// create the srfSurfaceFace_t
-	sfaceSize = ( int ) &( (srfSurfaceFace_t *)0 )->points[numPoints];
-	ofsIndexes = sfaceSize;
-	sfaceSize += sizeof( int ) * numIndexes;
-
-	//cv = ri.Hunk_Alloc( sfaceSize );
-	cv = R_GetSurfMemory( sfaceSize );
-
-	cv->surfaceType = SF_FACE;
-	cv->numPoints = numPoints;
-	cv->numIndices = numIndexes;
-	cv->ofsIndices = ofsIndexes;
-
-	ClearBounds( cv->bounds[0], cv->bounds[1] );
-	verts += LittleLong( ds->firstVert );
-	for ( i = 0 ; i < numPoints ; i++ ) {
-		for ( j = 0 ; j < 3 ; j++ ) {
-			cv->points[i][j] = LittleFloat( verts[i].xyz[j] );
-		}
-		AddPointToBounds( cv->points[ i ], cv->bounds[ 0 ], cv->bounds[ 1 ] );
-		for ( j = 0 ; j < 2 ; j++ ) {
-			cv->points[i][3 + j] = LittleFloat( verts[i].st[j] );
-			cv->points[i][5 + j] = LittleFloat( verts[i].lightmap[j] );
-		}
-		R_ColorShiftLightingBytes( verts[i].color, (byte *)&cv->points[i][7] );
-	}
-
-	indexes += LittleLong( ds->firstIndex );
-	for ( i = 0 ; i < numIndexes ; i++ ) {
-		( ( int * )( (byte *)cv + cv->ofsIndices ) )[i] = LittleLong( indexes[ i ] );
-	}
-
-	#if 0
-	// take the plane information from the lightmap vector
-	for ( i = 0 ; i < 3 ; i++ ) {
-		cv->plane.normal[i] = LittleFloat( ds->lightmapVecs[2][i] );
-	}
-	cv->plane.dist = DotProduct( cv->points[0], cv->plane.normal );
-	SetPlaneSignbits( &cv->plane );
-	cv->plane.type = PlaneTypeForNormal( cv->plane.normal );
-	#endif
-
-	surf->data = (surfaceType_t *) cv;
-
-	// finish surface
-	FinishGenericSurface( ds, (srfGeneric_t*) cv, cv->points[ 0 ] );
-}
-#endif
-
-
 /*
 ===============
 ParseTriSurf
 ===============
 */
-#if 0
-static void ParseTriSurf( dsurface_t *ds, drawVert_t *verts, msurface_t *surf, int *indexes ) {
-	srfTriangles2_t     *tri;
-	int i, j;
-	int numVerts, numIndexes;
-	int lightmapNum;
-
-
-	// get lightmap num
-	lightmapNum = LittleLong( ds->lightmapNum );
-
-	// get fog volume
-	surf->fogIndex = LittleLong( ds->fogNum ) + 1;
-
-	// get shader
-	surf->shader = ShaderForShaderNum( ds->shaderNum, lightmapNum );    //%	LIGHTMAP_BY_VERTEX );
-	if ( r_singleShader->integer && !surf->shader->isSky ) {
-		surf->shader = tr.defaultShader;
-	}
-
-	numVerts = LittleLong( ds->numVerts );
-	numIndexes = LittleLong( ds->numIndexes );
-
-
-	tri = R_GetSurfMemory( sizeof( *tri ) + ( numVerts + 1 ) * ( sizeof( vec4hack_t ) + sizeof( vec2hack_t ) + sizeof( vec2hack_t ) + sizeof( vec4hack_t ) + sizeof( color4ubhack_t ) ) + numIndexes * sizeof( tri->indexes[0] ) );
-
-	tri->surfaceType = SF_TRIANGLES;
-	tri->numVerts = numVerts;
-	tri->numIndexes = numIndexes;
-
-	tri->xyz =      ( vec4hack_t* )( tri +              1 );
-	tri->st =       ( vec2hack_t* )( tri->xyz +         tri->numVerts + 1 );
-	tri->lightmap = ( vec2hack_t* )( tri->st +          tri->numVerts + 1 );
-	tri->normal =   ( vec4hack_t* )( tri->lightmap +    tri->numVerts + 1 );
-	tri->color =    ( color4ubhack_t* )( tri->normal +      tri->numVerts + 1 );
-	tri->indexes =  ( int* )( tri->color +       tri->numVerts + 1 );
-
-	surf->data = (surfaceType_t *)tri;
-
-	// copy vertexes
-	ClearBounds( tri->bounds[0], tri->bounds[1] );
-	verts += LittleLong( ds->firstVert );
-
-
-	if ( LittleLong( 256 ) != 256 ) {
-		for ( i = 0 ; i < numVerts ; i++ ) {
-			for ( j = 0 ; j < 3 ; j++ ) {
-				tri->xyz[i].v[j] =      LittleFloat( verts[i].xyz[j] );
-				tri->normal[i].v[j] =   LittleFloat( verts[i].normal[j] );
-			}
-			AddPointToBounds( tri->xyz[i].v, tri->bounds[0], tri->bounds[1] );
-			for ( j = 0 ; j < 2 ; j++ ) {
-				tri->st[i].v[j] =       LittleFloat( verts[i].st[j] );
-				tri->lightmap[i].v[j] = LittleFloat( verts[i].lightmap[j] );
-			}
-
-			R_ColorShiftLightingBytes( verts[i].color, tri->color[i].v );
-		}
-	} else { // Gordon: OPT: removed the littlefloats from when they aint needed
-		for ( i = 0 ; i < numVerts ; i++ ) {
-			for ( j = 0 ; j < 3 ; j++ ) {
-				tri->xyz[i].v[j] =      verts[i].xyz[j];
-				tri->normal[i].v[j] =   verts[i].normal[j];
-			}
-			AddPointToBounds( tri->xyz[i].v, tri->bounds[0], tri->bounds[1] );
-			for ( j = 0 ; j < 2 ; j++ ) {
-				tri->st[i].v[j] =       verts[i].st[j];
-				tri->lightmap[i].v[j] = verts[i].lightmap[j];
-			}
-
-			R_ColorShiftLightingBytes( verts[i].color, tri->color[i].v );
-		}
-	}
-
-	// copy indexes
-	indexes += LittleLong( ds->firstIndex );
-	for ( i = 0 ; i < numIndexes ; i++ ) {
-		tri->indexes[i] = LittleLong( indexes[i] );
-		if ( tri->indexes[i] < 0 || tri->indexes[i] >= numVerts ) {
-			ri.Error( ERR_DROP, "Bad index in triangle surface" );
-		}
-	}
-
-	// finish surface
-	FinishGenericSurface( ds, (srfGeneric_t*) tri, tri->xyz[0].v );
-}
-#else
 static void ParseTriSurf( const dsurface_t *ds, const drawVert_t *verts, msurface_t *surf, int *indexes ) {
 	srfTriangles_t	*tri;
 	int				i, j;
@@ -895,7 +720,6 @@ static void ParseTriSurf( const dsurface_t *ds, const drawVert_t *verts, msurfac
 	// finish surface
 	FinishGenericSurface( ds, (srfGeneric_t*) tri, tri->verts[ 0 ].xyz );
 }
-#endif // 0
 
 
 
@@ -1021,7 +845,6 @@ static void ParseFoliage( const dsurface_t *ds, const drawVert_t *verts, msurfac
 	// finish surface
 	FinishGenericSurface( ds, (srfGeneric_t*) foliage, foliage->xyz[ 0 ] );
 }
-
 
 
 /*

@@ -1602,6 +1602,28 @@ static void GfxInfo_f( void )
 	VarInfo();
 }
 
+static const char *textureModes[] = {
+	"GL_NEAREST",
+	"GL_LINEAR",
+	"GL_NEAREST_MIPMAP_NEAREST",
+	"GL_LINEAR_MIPMAP_NEAREST",
+	"GL_NEAREST_MIPMAP_LINEAR",
+	"GL_LINEAR_MIPMAP_LINEAR",
+};
+
+static void TexModeList_f( void ) {
+	int i;
+	ri.Printf( PRINT_ALL, "Available r_textureMode options:\n" );
+	for( i = 0; i < ARRAY_LEN(textureModes); i++ ) {
+		if ( !Q_stricmp( textureModes[i], r_textureMode->string ) ) {
+			ri.Printf( PRINT_ALL, "%s " S_COLOR_CYAN "[CURRENT]\n", textureModes[i] );
+		}
+		else {
+			ri.Printf( PRINT_ALL, "%s\n", textureModes[i] );
+		}
+	}
+}
+
 
 /*
 ===============
@@ -1620,6 +1642,7 @@ static void R_Register( void )
 	ri.Cmd_AddCommand( "screenshotBMP", R_ScreenShot_f );
 	ri.Cmd_AddCommand( "gfxinfo", GfxInfo_f );
 	ri.Cmd_AddCommand( "taginfo", R_TagInfo_f );
+	ri.Cmd_AddCommand( "texmodelist", TexModeList_f );
 	//
 	// temporary latched variables that can only change over a restart
 	//
@@ -2001,6 +2024,7 @@ static void RE_Shutdown( refShutdownCode_t code ) {
 	ri.Cmd_RemoveCommand( "gfxinfo" );
 	ri.Cmd_RemoveCommand( "shaderstate" );
 	ri.Cmd_RemoveCommand( "taginfo" );
+	ri.Cmd_RemoveCommand( "texmodelist" );
 
 	// Ridah
 	//ri.Cmd_RemoveCommand( "cropimages" );

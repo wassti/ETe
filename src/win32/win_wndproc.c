@@ -713,7 +713,7 @@ LRESULT WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM  wParam, LPARAM lParam 
 		uTimerM = 0;
 		uTimerT = 0;
 
-		in_forceCharset = Cvar_Get( "in_forceCharset", "1", CVAR_ARCHIVE_ND );
+		in_forceCharset = Cvar_Get( "in_forceCharset", "0", CVAR_ARCHIVE_ND );
 
 		break;
 #if 0

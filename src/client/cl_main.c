@@ -4564,7 +4564,7 @@ void CL_Init( void ) {
 	// -NERVE - SMF
 
 #ifndef USE_SDL
-	in_forceCharset = Cvar_Get( "in_forceCharset", "1", CVAR_ARCHIVE_ND );
+	in_forceCharset = Cvar_Get( "in_forceCharset", "0", CVAR_ARCHIVE_ND );
 #endif
 
 #ifdef USE_DISCORD

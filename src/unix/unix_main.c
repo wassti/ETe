@@ -388,7 +388,7 @@ tty_err Sys_ConsoleInputInit( void )
 
 	// If SIGCONT is received, reinitialize console
 	signal( SIGCONT, CON_SigCont );
-	
+
 	if ( signal( SIGTSTP, SIG_IGN ) == SIG_DFL )
 	{
 		signal( SIGTSTP, CON_SigTStp );
@@ -592,7 +592,7 @@ char *Sys_ConsoleInput( void )
 
 		len = read( STDIN_FILENO, text, sizeof( text ) );
 		if ( len == 0 ) // eof!
-		{ 
+		{
 			fcntl( STDIN_FILENO, F_SETFL, stdin_flags );
 			stdin_active = qfalse;
 			return NULL;

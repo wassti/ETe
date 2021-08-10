@@ -1867,7 +1867,7 @@ static void InitCvars( void )
 	in_dgamouse = Cvar_Get( "in_dgamouse", "1", CVAR_ARCHIVE_ND );
 	in_shiftedKeys = Cvar_Get( "in_shiftedKeys", "0", CVAR_ARCHIVE_ND );
 
-	in_forceCharset = Cvar_Get( "in_forceCharset", "1", CVAR_ARCHIVE_ND );
+	in_forceCharset = Cvar_Get( "in_forceCharset", "0", CVAR_ARCHIVE_ND );
 }
 
 

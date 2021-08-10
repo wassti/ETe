@@ -30,7 +30,7 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "../qcommon/q_platform.h"
 
-#if defined(__MINGW32__) || defined(MACOS_X)
+#if defined(__MINGW32__) || defined(__APPLE__)
 #undef ELF
 #endif
 

@@ -25,7 +25,7 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-#if !( defined __linux__ || defined __FreeBSD__ || defined __sun || defined MACOS_X )
+#if !( defined __linux__ || defined __FreeBSD__ || defined __sun || defined __APPLE__ )
 #error You should include this file only on Linux/FreeBSD/Solaris platforms
 #endif
 

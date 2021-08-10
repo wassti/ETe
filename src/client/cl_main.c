@@ -1100,6 +1100,9 @@ void CL_ShutdownAll( void ) {
 			// shutdown sound system before renderer
 			S_Shutdown();
 			cls.soundStarted = qfalse;
+			if ( re.purgeCache ) {
+				CL_DoPurgeCache();
+			}
 			CL_ShutdownRef( REF_DESTROY_WINDOW ); // shutdown renderer & GLimp
 		} else {
 			re.Shutdown( REF_KEEP_CONTEXT ); // don't destroy window or context

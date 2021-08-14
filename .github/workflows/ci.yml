@@ -153,10 +153,10 @@ jobs:
         if [ ${{ matrix.arch }} == "x86" ]; then
           sudo dpkg --add-architecture i386
           sudo apt-get -qq update
-          sudo apt-get -y install gcc-multilib g++-multilib ninja-build libglib2.0-dev:i386 libgl1-mesa-dev:i386 libasound2-dev:i386 libpulse-dev:i386 libjpeg-dev:i386 libsdl2-dev:i386 libcurl4-openssl-dev:i386
+          sudo apt-get -y install gcc-multilib g++-multilib ninja-build libglib2.0-dev:i386 libjpeg-dev:i386 libsdl2-dev:i386 libcurl4-openssl-dev:i386
         else
           sudo apt-get -qq update
-          sudo apt-get -y install ninja-build libglib2.0-dev libgl1-mesa-dev libasound2-dev libpulse-dev libjpeg-dev libsdl2-dev libcurl4-openssl-dev
+          sudo apt-get -y install ninja-build libglib2.0-dev libjpeg-dev libsdl2-dev libcurl4-openssl-dev
         fi
     - uses: actions/checkout@v2
       with:

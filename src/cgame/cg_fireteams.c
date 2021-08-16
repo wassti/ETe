@@ -1074,7 +1074,7 @@ qboolean CG_FireteamCheckExecKey( int key, qboolean doaction ) {
 				if ( key >= '0' && key <= '9' ) {
 					if ( ( ( key - '0' ) + 9 ) % 10 == cg.fireTeams[i].ident ) {
 						if ( doaction ) {
-							trap_SendConsoleCommand( va( "fireteam apply %i", i + 1 ) );
+							trap_SendConsoleCommand( va( "fireteam apply %i\n", i + 1 ) );
 							CG_EventHandling( CGAME_EVENT_NONE, qfalse );
 						}
 						return qtrue;
@@ -1084,7 +1084,7 @@ qboolean CG_FireteamCheckExecKey( int key, qboolean doaction ) {
 				if ( key >= 'a' || key <= 'z' ) {
 					if ( key - 'a' == cg.fireTeams[i].ident ) {
 						if ( doaction ) {
-							trap_SendConsoleCommand( va( "fireteam apply %i", i + 1 ) );
+							trap_SendConsoleCommand( va( "fireteam apply %i\n", i + 1 ) );
 							CG_EventHandling( CGAME_EVENT_NONE, qfalse );
 						}
 						return qtrue;
@@ -1133,7 +1133,7 @@ qboolean CG_FireteamCheckExecKey( int key, qboolean doaction ) {
 		x = CG_PlayerNFFromPos( i, &cgs.ftMenuModeEx );
 		if ( x != -1 ) {
 			if ( doaction ) {
-				trap_SendConsoleCommand( va( "fireteam propose %i", x + 1 ) );
+				trap_SendConsoleCommand( va( "fireteam propose %i\n", x + 1 ) );
 				CG_EventHandling( CGAME_EVENT_NONE, qfalse );
 			}
 
@@ -1191,7 +1191,7 @@ qboolean CG_FireteamCheckExecKey( int key, qboolean doaction ) {
 			x = CG_PlayerNFFromPos( i, &cgs.ftMenuModeEx );
 			if ( x != -1 ) {
 				if ( doaction ) {
-					trap_SendConsoleCommand( va( "fireteam invite %i", x + 1 ) );
+					trap_SendConsoleCommand( va( "fireteam invite %i\n", x + 1 ) );
 					CG_EventHandling( CGAME_EVENT_NONE, qfalse );
 				}
 
@@ -1215,11 +1215,11 @@ qboolean CG_FireteamCheckExecKey( int key, qboolean doaction ) {
 				if ( doaction ) {
 					switch ( cgs.ftMenuPos ) {
 					case 4:
-						trap_SendConsoleCommand( va( "fireteam warn %i", x + 1 ) );
+						trap_SendConsoleCommand( va( "fireteam warn %i\n", x + 1 ) );
 						CG_EventHandling( CGAME_EVENT_NONE, qfalse );
 						break;
 					case 3:
-						trap_SendConsoleCommand( va( "fireteam kick %i", x + 1 ) );
+						trap_SendConsoleCommand( va( "fireteam kick %i\n", x + 1 ) );
 						CG_EventHandling( CGAME_EVENT_NONE, qfalse );
 						break;
 					}

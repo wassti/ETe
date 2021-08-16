@@ -6028,15 +6028,15 @@ int FS_VM_ReadFile( void *buffer, int len, fileHandle_t f, handleOwner_t owner )
 }
 
 
-void FS_VM_WriteFile( void *buffer, int len, fileHandle_t f, handleOwner_t owner ) {
+int FS_VM_WriteFile( void *buffer, int len, fileHandle_t f, handleOwner_t owner ) {
 
 	if ( f <= 0 || f >= MAX_FILE_HANDLES )
-		return;
+		return 0;
 
 	if ( fsh[f].owner != owner || !fsh[f].handleFiles.file.v )
-		return;
+		return 0;
 
-	FS_Write( buffer, len, f );
+	return FS_Write( buffer, len, f );
 }
 
 

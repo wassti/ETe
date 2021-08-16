@@ -443,9 +443,7 @@ static intptr_t SV_GameSystemCalls( intptr_t *args ) {
 	case G_FS_READ:
 		return FS_VM_ReadFile( VMA( 1 ), args[2], args[3], H_QAGAME );
 	case G_FS_WRITE:
-		//return FS_Write( VMA( 1 ), args[2], args[3] );
-		FS_VM_WriteFile( VMA(1), args[2], args[3], H_QAGAME );
-		return 0;
+		return FS_VM_WriteFile( VMA(1), args[2], args[3], H_QAGAME );
 	case G_FS_RENAME:
 		FS_Rename( VMA( 1 ), VMA( 2 ) );
 		return 0;

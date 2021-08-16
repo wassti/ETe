@@ -676,9 +676,7 @@ static intptr_t CL_CgameSystemCalls( intptr_t *args ) {
 		FS_VM_ReadFile( VMA(1), args[2], args[3], H_CGAME );
 		return 0;
 	case CG_FS_WRITE:
-		FS_VM_WriteFile( VMA(1), args[2], args[3], H_CGAME );
-		return 0;
-		////return FS_Write( VMA( 1 ), args[2], args[3] );
+		return FS_VM_WriteFile( VMA(1), args[2], args[3], H_CGAME );
 	case CG_FS_FCLOSEFILE:
 		FS_VM_CloseFile( args[1], H_CGAME );
 		return 0;

@@ -5346,11 +5346,11 @@ static qboolean FS_IsOfficialPak( const pack_t *pack ) {
 	if ( FS_FilenameCompare( pack->pakGamename, BASEGAME ) != 0 )
 		return qfalse;
 	
-	if ( pack->checksum == mpbin_checksum )
+	if ( (unsigned)pack->checksum == mpbin_checksum )
 		return qtrue;
 
 	for( i = 0; i < ARRAY_LEN(pak_checksums); i++ ) {
-		if ( pack->checksum == pak_checksums[i] )
+		if ( (unsigned)pack->checksum == pak_checksums[i] )
 			return qtrue;
 	}
 	return qfalse;

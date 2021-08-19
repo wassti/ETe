@@ -1738,7 +1738,6 @@ static void CL_Connect_f( void ) {
 		Com_RandomBytes( (byte*)&clc.challenge, sizeof( clc.challenge ) );
 	}
 
-
 	//Cvar_Set( "cl_avidemo", "0" );
 
 	// show_bug.cgi?id=507
@@ -1757,20 +1756,6 @@ static void CL_Connect_f( void ) {
 	// server connection string
 	Cvar_Set( "cl_currentServerAddress", server );
 	Cvar_Set( "cl_currentServerIP", serverString );
-
-	// Gordon: um, couldnt this be handled
-	// NERVE - SMF - reset some cvars
-	Cvar_Set( "mp_playerType", "0" );
-	Cvar_Set( "mp_currentPlayerType", "0" );
-	Cvar_Set( "mp_weapon", "0" );
-	Cvar_Set( "mp_team", "0" );
-	Cvar_Set( "mp_currentTeam", "0" );
-
-	Cvar_Set( "ui_limboOptions", "0" );
-	Cvar_Set( "ui_limboPrevOptions", "0" );
-	Cvar_Set( "ui_limboObjective", "0" );
-	// -NERVE - SMF
-
 }
 
 #define MAX_RCON_MESSAGE (MAX_STRING_CHARS+4)

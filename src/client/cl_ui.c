@@ -1349,7 +1349,8 @@ void CL_InitUI( void ) {
 			// new gamestate will be requested after downloads complete
 			// which will correct filesystem permissions
 			fs_reordered = qfalse;
-			FS_PureServerSetLoadedPaks( "", "" );
+			FS_ClearPureServerPaks();
+			//FS_PureServerSetLoadedPaks( "", "" );
 			uivm = VM_Create( VM_UI, CL_UISystemCalls, UI_DllSyscall, VMI_NATIVE );
 			if ( !uivm ) {
 				Com_Error( ERR_DROP, "VM_Create on UI failed" );

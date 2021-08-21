@@ -1024,6 +1024,7 @@ typedef struct gameInfo_s {
 } gameInfo_t;
 
 extern gameInfo_t com_gameInfo;
+extern int currentGameMod;
 
 void Com_GetGameInfo( void );
 void Com_UpdateDefaultGametype( void );

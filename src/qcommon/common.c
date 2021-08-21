@@ -143,6 +143,8 @@ qboolean	gw_minimized = qfalse; // this will be always true for dedicated server
 qboolean	gw_active = qtrue;
 #endif
 
+int currentGameMod = GAMEMOD_UNKNOWN;
+
 static char com_errorMessage[ MAXPRINTMSG ];
 
 static void Com_Shutdown( qboolean badProfile );
@@ -3158,6 +3160,8 @@ void Com_GameRestart( int checksumFeed, qboolean clientRestart )
 		// Load new configuration
 		Com_ExecuteCfg(Com_SafeMode());
 
+		currentGameMod = FS_GetGameMod();
+
 		if ( clientRestart && !com_dedicated->integer ) {
 #ifndef DEDICATED
 			if ( !com_skipIdLogo || !com_skipIdLogo->integer )
@@ -3739,6 +3743,8 @@ void Com_Init( char *commandLine ) {
 	
 	safeMode = Com_SafeMode();
 	Com_ExecuteCfg(safeMode);
+
+	currentGameMod = FS_GetGameMod();
 
 	// override anything from the config files with command line args
 	Com_StartupVariable( NULL );

@@ -1965,4 +1965,23 @@ typedef int( *cmpFunc_t )( const void *a, const void *b );
 void *Q_LinearSearch( const void *key, const void *ptr, size_t count,
 	size_t size, cmpFunc_t cmp );
 
+typedef enum gameMod_e {
+	GAMEMOD_UNKNOWN = 0,
+	GAMEMOD_ETMAIN,
+	GAMEMOD_ETF,
+	GAMEMOD_ETPRO,
+	GAMEMOD_LEGACY,
+	GAMEMOD_ETPUB,
+	GAMEMOD_NITMOD,
+	GAMEMOD_SILENT,
+	GAMEMOD_JAYMOD,
+	GAMEMOD_NOQUARTER,
+	GAMEMOD_ETJUMP,
+	GAMEMOD_ETRUN,
+	GAMEMOD_TCETEST,
+	GAMEMOD_CQBTEST,
+	GAMEMOD_ETNAM,
+	//GAMEMOD_MAX = 512
+} gameMod_t;
+
 #endif  // __Q_SHARED_H

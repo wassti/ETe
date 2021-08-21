@@ -160,7 +160,7 @@ void SV_AddServerCommand( client_t *client, const char *cmd ) {
 	int index, i;
 
 	// do not send commands until the gamestate has been sent
-	if ( client->state < CS_PRIMED )
+	if ( currentGameMod != GAMEMOD_ETJUMP && client->state < CS_PRIMED )
 		return;
 
 	client->reliableSequence++;
@@ -217,6 +217,9 @@ void QDECL SV_SendServerCommand( client_t *cl, const char *fmt, ... ) {
 
 	// send the data to all relevant clients
 	for ( j = 0, client = svs.clients; j < sv_maxclients->integer ; j++, client++ ) {
+		if ( currentGameMod == GAMEMOD_ETJUMP && client->state < CS_PRIMED ) {
+			continue;
+		}
 		// Ridah, don't need to send messages to AI
 		if ( client->gentity && client->gentity->r.svFlags & SVF_BOT ) {
 			continue;

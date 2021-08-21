@@ -6089,6 +6089,45 @@ const char *FS_GetCurrentGameDir( void )
 }
 
 
+typedef struct gameStrMap_s {
+	const char *gameName;
+	gameMod_t gameEnum;
+} gameStrMap_t;
+
+static const gameStrMap_t knownGames[] = {
+	{ BASEGAME, GAMEMOD_ETMAIN },
+	{ "etf", GAMEMOD_ETF },
+	{ "etpro", GAMEMOD_ETPRO },
+	{ "legacy", GAMEMOD_LEGACY },
+	{ "etpub", GAMEMOD_ETPUB },
+	{ "nitmod", GAMEMOD_NITMOD },
+	{ "silent", GAMEMOD_SILENT },
+	{ "jaymod", GAMEMOD_JAYMOD },
+	{ "nq", GAMEMOD_NOQUARTER },
+	{ "etjump", GAMEMOD_ETJUMP },
+	{ "etrun", GAMEMOD_ETRUN },
+	{ "tcetest", GAMEMOD_TCETEST },
+	{ "cqbtest", GAMEMOD_CQBTEST },
+	{ "etnam", GAMEMOD_ETNAM },
+};
+
+static const int numKnownGames = (int)ARRAY_LEN(knownGames);
+
+gameMod_t FS_GetGameMod( void ) {
+	if ( fs_gamedirvar->string[0] )
+	{
+		int i;
+		for ( i = 0; i < numKnownGames; i++ ) {
+			if ( !Q_stricmp( fs_gamedirvar->string, knownGames[i].gameName ) ) {
+				return knownGames[i].gameEnum;
+			}
+		}
+		return GAMEMOD_UNKNOWN;
+	}
+	return GAMEMOD_ETMAIN;
+}
+
+
 const char *FS_GetBaseGameDir( void )
 {
 	return fs_basegame->string;

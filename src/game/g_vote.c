@@ -507,7 +507,9 @@ int G_UnMute_v( gentity_t *ent, unsigned int dwVoteIndex, char *arg, char *arg2,
 	return( G_OK );
 }
 
-// *** Map - simpleton: we dont verify map is allowed/exists ***
+qboolean G_MapExist( const char *map );
+
+// *** Map - we dont verify map is allowed but we do verify it exists ***
 int G_Map_v( gentity_t *ent, unsigned int dwVoteIndex, char *arg, char *arg2, qboolean fRefereeCmd ) {
 	// Vote request (vote is being initiated)
 	if ( arg ) {
@@ -519,6 +521,10 @@ int G_Map_v( gentity_t *ent, unsigned int dwVoteIndex, char *arg, char *arg2, qb
 			G_voteCurrentSetting( ent, arg, Info_ValueForKey( serverinfo, "mapname" ) );
 			return( G_INVALID );
 		} else if ( G_voteDescription( ent, fRefereeCmd, dwVoteIndex ) ) {
+			G_voteCurrentSetting( ent, arg, Info_ValueForKey( serverinfo, "mapname" ) );
+			return( G_INVALID );
+		} else if( !G_MapExist( arg2 ) ) {
+			G_refPrintf( ent, "^3No such map on server: ^7%s\n", arg2 );
 			G_voteCurrentSetting( ent, arg, Info_ValueForKey( serverinfo, "mapname" ) );
 			return( G_INVALID );
 		}

@@ -3830,3 +3830,24 @@ qboolean G_IsSinglePlayerGame() {
 
 	return qfalse;
 }
+
+qboolean G_MapExist( const char *map ) {
+	fileHandle_t fh;
+	int len;
+
+	if ( !map || !*map )
+		return qfalse;
+
+	len = trap_FS_FOpenFile( va( "maps/%s.bsp", map ), &fh, FS_READ );
+
+	if ( len < 0 ) {
+		if ( fh != 0 )
+			trap_FS_FCloseFile( fh );
+		return qfalse;
+	}
+
+	trap_FS_FCloseFile( fh );
+
+	// len 144 is length of bsp header
+	return ( len >= 144 ) ? qtrue : qfalse ;
+}

@@ -1390,7 +1390,7 @@ qboolean    ConsoleCommand( void ) {
 
 	if ( g_dedicated.integer ) {
 		if ( !Q_stricmp( cmd, "say" ) ) {
-			trap_SendServerCommand( -1, va( "cpm \"server: %s\n\"", ConcatArgs( 1 ) ) );
+			G_BroadcastServerCommand( -1, va( "cpm \"server: %s\n\"", ConcatArgs( 1 ) ) );
 			return qtrue;
 		}
 

@@ -102,7 +102,10 @@ void QDECL PrintMsg( gentity_t *ent, const char *fmt, ... ) {
 	while ( ( p = strchr( msg, '"' ) ) != NULL )
 		*p = '\'';
 
-	trap_SendServerCommand( ( ( ent == NULL ) ? -1 : ent - g_entities ), va( "print \"%s\"", msg ) );
+	if ( ent == NULL )
+		G_BroadcastServerCommand( -1, va( "print \"%s\"", msg ) );
+	else
+		trap_SendServerCommand( ent - g_entities, va( "print \"%s\"", msg ) );
 }
 
 /*
@@ -455,7 +458,7 @@ void Team_DroppedFlagThink( gentity_t *ent ) {
 			G_Script_ScriptEvent( level.gameManager, "trigger", "axis_object_returned" );
 		}
 
-		trap_SendServerCommand( -1, "cp \"Axis have returned the objective!\" 2" );
+		G_BroadcastServerCommand( -1, "cp \"Axis have returned the objective!\" 2" );
 	} else if ( ent->item->giTag == PW_BLUEFLAG ) {
 		G_Script_ScriptEvent( &g_entities[ent->s.otherEntityNum], "trigger", "returned" );
 
@@ -466,7 +469,7 @@ void Team_DroppedFlagThink( gentity_t *ent ) {
 			G_Script_ScriptEvent( level.gameManager, "trigger", "allied_object_returned" );
 		}
 
-//		trap_SendServerCommand(-1, "cp \"Allies have returned the objective!\" 2");
+		G_BroadcastServerCommand( -1, "cp \"Allies have returned the objective!\" 2" );
 	}
 	// Reset Flag will delete this entity
 }

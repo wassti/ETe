@@ -1415,6 +1415,7 @@ void SendScoreboardMessageToAllClients( void );
 void QDECL G_Printf( const char *fmt, ... ) _attribute( ( format( printf,1,2 ) ) );
 void QDECL G_DPrintf( const char *fmt, ... ) _attribute( ( format( printf,1,2 ) ) );
 void NORETURN QDECL G_Error( const char *fmt, ... ) _attribute( ( format( printf,1,2 ) ) );
+void G_BroadcastServerCommand( int ignoreClient, const char *command );
 // Is this a single player type game - sp or coop?
 qboolean G_IsSinglePlayerGame();
 
@@ -2079,7 +2080,7 @@ void aagun_fire( gentity_t *other );
 #define G_NOTFOUND  -2
 
 
-#define AP( x ) trap_SendServerCommand( -1, x )                 // Print to all
+#define AP( x ) G_BroadcastServerCommand( -1, x )                 // Print to all
 #define CP( x ) trap_SendServerCommand( ent - g_entities, x )     // Print to an ent
 #define CPx( x, y ) trap_SendServerCommand( x, y )              // Print to id = x
 

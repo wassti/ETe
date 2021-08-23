@@ -1355,7 +1355,7 @@ qboolean ClientUserinfoChanged( int clientNum ) {
 
 	if ( client->pers.connected == CON_CONNECTED ) {
 		if ( strcmp( oldname, client->pers.netname ) ) {
-			trap_SendServerCommand( -1, va( "print \"[lof]%s" S_COLOR_WHITE " [lon]renamed to[lof] %s\n\"", oldname,
+			G_BroadcastServerCommand( -1, va( "print \"[lof]%s" S_COLOR_WHITE " [lon]renamed to[lof] %s\n\"", oldname,
 											client->pers.netname ) );
 		}
 	}
@@ -1632,7 +1632,7 @@ const char *ClientConnect( int clientNum, qboolean firstTime, qboolean isBot ) {
 	// don't do the "xxx connected" messages if they were caried over from previous level
 	//		TAT 12/10/2002 - Don't display connected messages in single player
 	if ( firstTime && !G_IsSinglePlayerGame() ) {
-		trap_SendServerCommand( -1, va( "cpm \"%s" S_COLOR_WHITE " connected\n\"", client->pers.netname ) );
+		G_BroadcastServerCommand( -1, va( "cpm \"%s" S_COLOR_WHITE " connected\n\"", client->pers.netname ) );
 	}
 
 	// count current clients and rank for scoreboard
@@ -1777,7 +1777,7 @@ void ClientBegin( int clientNum ) {
 	}
 
 	if ( client->sess.sessionTeam != TEAM_SPECTATOR ) {
-		trap_SendServerCommand( -1, va( "print \"[lof]%s" S_COLOR_WHITE " [lon]entered the game\n\"", client->pers.netname ) );
+		G_BroadcastServerCommand( -1, va( "print \"[lof]%s" S_COLOR_WHITE " [lon]entered the game\n\"", client->pers.netname ) );
 	}
 
 	G_LogPrintf( "ClientBegin: %i\n", clientNum );

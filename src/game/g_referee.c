@@ -388,7 +388,7 @@ void G_refWarning_cmd( gentity_t* ent ) {
 
 	if ( kicknum != MAX_CLIENTS ) {
 		if ( level.clients[kicknum].sess.referee == RL_NONE || ( ( !ent || ent->client->sess.referee == RL_RCON ) && level.clients[kicknum].sess.referee <= RL_REFEREE ) ) {
-			trap_SendServerCommand( -1, va( "cpm \"%s^7 was issued a ^1Warning^7 (%s)\n\"\n", level.clients[kicknum].pers.netname, *reason ? reason : "No Reason Supplied" ) );
+			G_BroadcastServerCommand( -1, va( "cpm \"%s^7 was issued a ^1Warning^7 (%s)\n\"\n", level.clients[kicknum].pers.netname, *reason ? reason : "No Reason Supplied" ) );
 		} else {
 			G_refPrintf( ent, "Insufficient rights to issue client a warning." );
 		}

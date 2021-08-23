@@ -570,6 +570,18 @@ void NORETURN QDECL G_Error( const char *fmt, ... ) {
 void NORETURN QDECL G_Error( const char *fmt, ... ) _attribute( ( format( printf,1,2 ) ) );
 
 
+void G_BroadcastServerCommand( int ignoreClient, const char *command ) {
+	int i;
+	for ( i = 0; i < level.maxclients; i++ ) {
+		if ( i == ignoreClient )
+			continue;
+		if ( level.clients[ i ].pers.connected == CON_CONNECTED ) {
+			trap_SendServerCommand( i, command );
+		}
+	}
+}
+
+
 #define CH_KNIFE_DIST       48  // from g_weapon.c
 #define CH_LADDER_DIST      100
 #define CH_WATER_DIST       100
@@ -1307,7 +1319,7 @@ void G_UpdateCvars( void ) {
 				cv->modificationCount = cv->vmCvar->modificationCount;
 
 				if ( cv->trackChange && !( cv->cvarFlags & CVAR_LATCH ) ) {
-					trap_SendServerCommand( -1, va( "print \"Server:[lof] %s [lon]changed to[lof] %s\n\"", cv->cvarName, cv->vmCvar->string ) );
+					G_BroadcastServerCommand( -1, va( "print \"Server:[lof] %s [lon]changed to[lof] %s\n\"", cv->cvarName, cv->vmCvar->string ) );
 				}
 
 				if ( cv->teamShader ) {
@@ -2831,13 +2843,13 @@ void CheckExitRules( void ) {
 						Info_SetValueForKey( cs, "winner", "0" );
 						trap_SetConfigstring( CS_MULTI_MAPWINNER, cs );
 						LogExit( "Axis team wins by drawing First Blood." );
-						trap_SendServerCommand( -1, "print \"Axis team wins by drawing First Blood.\n\"" );
+						G_BroadcastServerCommand( -1, "print \"Axis team wins by drawing First Blood.\n\"" );
 					} else if ( level.firstbloodTeam == TEAM_ALLIES ) {
 						trap_GetConfigstring( CS_MULTI_MAPWINNER, cs, sizeof( cs ) );
 						Info_SetValueForKey( cs, "winner", "1" );
 						trap_SetConfigstring( CS_MULTI_MAPWINNER, cs );
 						LogExit( "Allied team wins by drawing First Blood." );
-						trap_SendServerCommand( -1, "print \"Allied team wins by drawing First Blood.\n\"" );
+						G_BroadcastServerCommand( -1, "print \"Allied team wins by drawing First Blood.\n\"" );
 					} else {
 						// no winner yet - sudden death!
 						return;
@@ -2847,14 +2859,14 @@ void CheckExitRules( void ) {
 					Info_SetValueForKey( cs, "winner", "0" );
 					trap_SetConfigstring( CS_MULTI_MAPWINNER, cs );
 					LogExit( "Axis team has the most survivors." );
-					trap_SendServerCommand( -1, "print \"Axis team has the most survivors.\n\"" );
+					G_BroadcastServerCommand( -1, "print \"Axis team has the most survivors.\n\"" );
 					return;
 				} else {
 					trap_GetConfigstring( CS_MULTI_MAPWINNER, cs, sizeof( cs ) );
 					Info_SetValueForKey( cs, "winner", "1" );
 					trap_SetConfigstring( CS_MULTI_MAPWINNER, cs );
 					LogExit( "Allied team has the most survivors." );
-					trap_SendServerCommand( -1, "print \"Allied team has the most survivors.\n\"" );
+					G_BroadcastServerCommand( -1, "print \"Allied team has the most survivors.\n\"" );
 					return;
 				}
 			} else {
@@ -2875,7 +2887,7 @@ void CheckExitRules( void ) {
 				return;
 			}
 
-			trap_SendServerCommand( -1, "print \"Timelimit hit.\n\"" );
+			G_BroadcastServerCommand( -1, "print \"Timelimit hit.\n\"" );
 			LogExit( "Timelimit hit." );
 
 			return;

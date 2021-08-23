@@ -1618,6 +1618,8 @@ while a slow client may have multiple ClientEndFrame between ClientThink.
 void ClientEndFrame( gentity_t *ent ) {
 	int i;
 
+	if ( !ent->client )
+		return;
 
 	// used for informing of speclocked teams.
 	// Zero out here and set only for certain specs

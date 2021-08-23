@@ -193,7 +193,7 @@ void G_voteFlags( void ) {
 // Prints specific callvote command help description.
 qboolean G_voteDescription( gentity_t *ent, qboolean fRefereeCmd, int cmd ) {
 	char arg[MAX_TOKEN_CHARS];
-	char *ref_cmd = ( fRefereeCmd ) ? "\\ref" : "\\callvote";
+	const char *ref_cmd = ( fRefereeCmd ) ? "\\ref" : "\\callvote";
 
 	if ( !ent ) {
 		return( qfalse );

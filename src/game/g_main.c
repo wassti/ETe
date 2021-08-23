@@ -91,6 +91,7 @@ vmCvar_t g_swapteams;
 // -NERVE - SMF
 
 vmCvar_t g_restarted;
+vmCvar_t g_mapname;
 vmCvar_t g_logFile;
 vmCvar_t g_logSync;
 vmCvar_t g_podiumDist;
@@ -111,7 +112,6 @@ vmCvar_t g_enforcemaxlives;         // Xian
 vmCvar_t g_needpass;
 vmCvar_t g_balancedteams;
 vmCvar_t g_doWarmup;
-vmCvar_t g_teamAutoJoin;
 vmCvar_t g_teamForceBalance;
 vmCvar_t g_banIPs;
 vmCvar_t g_filterBan;
@@ -236,7 +236,7 @@ cvarTable_t gameCvarTable[] = {
 	{ NULL, "gamename", GAMEVERSION, CVAR_SERVERINFO | CVAR_ROM, 0, qfalse  },
 	{ NULL, "gamedate", __DATE__, CVAR_ROM, 0, qfalse  },
 	{ &g_restarted, "g_restarted", "0", CVAR_ROM, 0, qfalse  },
-	{ NULL, "mapname", "", CVAR_SERVERINFO | CVAR_ROM, 0, qfalse  },
+	{ &g_mapname, "mapname", "", CVAR_SERVERINFO | CVAR_ROM, 0, qfalse  },
 
 	// latched vars
 	{ &g_gametype, "g_gametype", "4", CVAR_SERVERINFO | CVAR_LATCH, 0, qfalse  },     // Arnout: default to GT_WOLF_CAMPAIGN
@@ -1799,6 +1799,10 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
 	// range are NEVER anything but clients
 	level.num_entities = MAX_CLIENTS;
 
+	for ( i = 0 ; i < MAX_CLIENTS ; i++ ) {
+		g_entities[ i ].classname = "clientslot";
+	}
+
 	// let the server system know where the entites are
 	trap_LocateGameData( level.gentities, level.num_entities, sizeof( gentity_t ),
 						 &level.clients[0].ps, sizeof( level.clients[0] ) );
@@ -1887,6 +1891,9 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
 	trap_PbStat( -1, "INIT", "GAME" ) ;
 
 	G_RemapTeamShaders();
+
+	// don't forget to reset times
+	trap_SetConfigstring( CS_INTERMISSION, "" );
 
 	BG_ClearAnimationPool();
 

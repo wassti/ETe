@@ -286,7 +286,7 @@ Cmd_Give_f
 Give items to a client
 ==================
 */
-void G_Give( gentity_t *ent, const char *name, const char *args ) {
+static void G_Give( gentity_t *ent, const char *name, const char *args ) {
 	int i;
 	qboolean give_all = qfalse;
 	int amount;
@@ -303,7 +303,7 @@ void G_Give( gentity_t *ent, const char *name, const char *args ) {
 	amount = atoi( args );
 	//----(SA)	end
 
-	if ( Q_stricmpn( name, "skill", 5 ) == 0 ) {
+	if ( !Q_stricmpn( name, "skill", 5 ) ) {
 		if ( hasAmount ) {
 			if ( amount >= 0 && amount < SK_NUM_SKILLS ) {
 				G_AddSkillPoints( ent, amount, 20 );
@@ -410,7 +410,7 @@ void G_Give( gentity_t *ent, const char *name, const char *args ) {
 }
 
 
-void Cmd_Give_f( gentity_t *ent )
+static void Cmd_Give_f( gentity_t *ent )
 {
 	char name[MAX_TOKEN_CHARS] = {0};
 
@@ -422,7 +422,7 @@ void Cmd_Give_f( gentity_t *ent )
 	G_Give( ent, name, ConcatArgs( 2 ) );
 }
 
-void Cmd_GiveOther_f( gentity_t *ent )
+static void Cmd_GiveOther_f( gentity_t *ent )
 {
 	char		name[MAX_TOKEN_CHARS] = {0};
 	int			i;
@@ -452,7 +452,7 @@ void Cmd_GiveOther_f( gentity_t *ent )
 	if ( otherEnt->health <= 0 )
 	{
 		// Intentionally displaying for the command user
-		trap_SendServerCommand( ent - g_entities, va( "print \"You must be alive to use this command.\n\"" ) );
+		trap_SendServerCommand( ent - g_entities, va( "print \"Target must be alive to use this command.\n\"" ) );
 		return;
 	}
 
@@ -471,7 +471,7 @@ Sets client to godmode
 argv(0) god
 ==================
 */
-void Cmd_God_f( gentity_t *ent ) {
+static void Cmd_God_f( gentity_t *ent ) {
 	char    *msg;
 	char    *name;
 	qboolean godAll = qfalse;
@@ -546,7 +546,7 @@ argv(0) nofatigue
 ==================
 */
 
-void Cmd_Nofatigue_f( gentity_t *ent ) {
+static void Cmd_Nofatigue_f( gentity_t *ent ) {
 	char    *msg;
 
 	char    *name = ConcatArgs( 1 );
@@ -581,7 +581,7 @@ Sets client to notarget
 argv(0) notarget
 ==================
 */
-void Cmd_Notarget_f( gentity_t *ent ) {
+static void Cmd_Notarget_f( gentity_t *ent ) {
 	char    *msg;
 
 	if ( !CheatsOk( ent ) ) {
@@ -606,7 +606,7 @@ Cmd_Noclip_f
 argv(0) noclip
 ==================
 */
-void Cmd_Noclip_f( gentity_t *ent ) {
+static void Cmd_Noclip_f( gentity_t *ent ) {
 	char    *msg;
 
 	char    *name = ConcatArgs( 1 );
@@ -690,13 +690,16 @@ void G_TeamDataForString( const char* teamstr, int clientNum, team_t* team, spec
 SetTeam
 =================
 */
-qboolean SetTeam( gentity_t *ent, char *s, qboolean force, weapon_t w1, weapon_t w2, qboolean setweapons ) {
+qboolean SetTeam( gentity_t *ent, const char *s, qboolean force, weapon_t w1, weapon_t w2, qboolean setweapons ) {
 	team_t team, oldTeam;
 	gclient_t           *client;
 	int clientNum;
 	spectatorState_t specState;
 	int specClient;
 	int respawnsLeft;
+
+	if (!ent->inuse)
+		return qfalse;
 
 	//
 	// see what change is requested
@@ -802,6 +805,10 @@ qboolean SetTeam( gentity_t *ent, char *s, qboolean force, weapon_t w1, weapon_t
 	}
 
 	if ( oldTeam != TEAM_SPECTATOR ) {
+		// revert any casted votes
+		if ( oldTeam != team )
+			G_RevertVote( ent->client );
+
 		if ( !( ent->client->ps.pm_flags & PMF_LIMBO ) ) {
 			// Kill him (makes sure he loses flags, etc)
 			ent->flags &= ~FL_GODMODE;
@@ -950,7 +957,7 @@ void StopFollowing( gentity_t *ent ) {
 //		pos[2] += 16; // Gordon: removing for now
 		VectorCopy( client->ps.viewangles, angle );
 		// Need this as it gets spec mode reset properly
-		SetTeam( ent, "s", qtrue, -1, -1, qfalse );
+		SetTeam( ent, "s", qtrue, WP_NONE, WP_NONE, qfalse );
 		VectorCopy( pos, client->ps.origin );
 		SetClientViewAngle( ent, angle );
 	} else {
@@ -1148,7 +1155,7 @@ void Cmd_Team_f( gentity_t *ent, unsigned int dwCommand, qboolean fValue ) {
 	}
 }
 
-void Cmd_ResetSetup_f( gentity_t* ent ) {
+static void Cmd_ResetSetup_f( gentity_t* ent ) {
 	qboolean changed = qfalse;
 
 	if ( !ent || !ent->client ) {
@@ -1785,7 +1792,7 @@ static void Cmd_VoiceTaunt_f( gentity_t *ent ) {
 Cmd_Where_f
 ==================
 */
-void Cmd_Where_f( gentity_t *ent ) {
+static void Cmd_Where_f( gentity_t *ent ) {
 	trap_SendServerCommand( ent - g_entities, va( "print \"%s\n\"", vtos( ent->s.origin ) ) );
 }
 
@@ -1825,13 +1832,13 @@ qboolean Cmd_CallVote_f( gentity_t *ent, unsigned int dwCommand, qboolean fRefCo
 	trap_Argv( 1, arg1, sizeof( arg1 ) );
 	trap_Argv( 2, arg2, sizeof( arg2 ) );
 
-	if ( strchr( arg1, ';' ) || strchr( arg2, ';' ) ) {
-		char *strCmdBase = ( !fRefCommand ) ? "vote" : "ref command";
+	if ( strchr( arg1, ';' ) || strchr( arg1, '\n' ) || strchr( arg1, '\r' ) || 
+		strchr( arg2, ';' ) || strchr( arg2, '\n' ) || strchr( arg2, '\r' ) ) {
+		const char *strCmdBase = ( !fRefCommand ) ? "vote" : "ref command";
 
 		G_refPrintf( ent, "Invalid %s string.", strCmdBase );
 		return( qfalse );
 	}
-
 
 	if ( trap_Argc() > 1 && ( i = G_voteCmdCheck( ent, arg1, arg2, fRefCommand ) ) != G_NOTFOUND ) {   //  --OSP
 		if ( i != G_OK ) {
@@ -1876,12 +1883,15 @@ qboolean Cmd_CallVote_f( gentity_t *ent, unsigned int dwCommand, qboolean fRefCo
 
 	// Don't send the vote info if a ref initiates (as it will automatically pass)
 	if ( !fRefCommand ) {
-		for ( i = 0; i < level.numConnectedClients; i++ ) {
-			level.clients[level.sortedClients[i]].ps.eFlags &= ~EF_VOTED;
+		//for ( i = 0; i < level.numConnectedClients; i++ ) {
+		for ( i = 0; i < level.maxclients; i++ ) {
+			level.clients[i].ps.eFlags &= ~EF_VOTED;
+			level.clients[i].pers.voted = 0;
 		}
 
 		ent->client->pers.voteCount++;
 		ent->client->ps.eFlags |= EF_VOTED;
+		ent->client->pers.voted = 1;
 
 		trap_SetConfigstring( CS_VOTE_YES,    va( "%i", level.voteInfo.voteYes ) );
 		trap_SetConfigstring( CS_VOTE_NO,     va( "%i", level.voteInfo.voteNo ) );
@@ -1919,7 +1929,7 @@ qboolean G_FindFreeComplainIP( gclient_t* cl, ipFilter_t* ip ) {
 Cmd_Vote_f
 ==================
 */
-void Cmd_Vote_f( gentity_t *ent ) {
+static void Cmd_Vote_f( gentity_t *ent ) {
 	char msg[64];
 	int num;
 
@@ -1941,7 +1951,7 @@ void Cmd_Vote_f( gentity_t *ent ) {
 
 		trap_Argv( 1, msg, sizeof( msg ) );
 
-		if ( msg[0] == 'y' || msg[1] == 'Y' || msg[1] == '1' ) {
+		if ( msg[0] == 'y' || msg[0] == 'Y' || msg[0] == '1' ) {
 			// Increase their complaint counter
 			cl->pers.complaints++;
 
@@ -1996,7 +2006,7 @@ void Cmd_Vote_f( gentity_t *ent ) {
 
 		trap_Argv( 1, msg, sizeof( msg ) );
 
-		if ( msg[0] == 'y' || msg[1] == 'Y' || msg[1] == '1' ) {
+		if ( msg[0] == 'y' || msg[0] == 'Y' || msg[0] == '1' ) {
 			trap_SendServerCommand( ent - g_entities, "application -4" );
 			trap_SendServerCommand( ent->client->pers.applicationClient, "application -3" );
 
@@ -2027,7 +2037,7 @@ void Cmd_Vote_f( gentity_t *ent ) {
 
 		trap_Argv( 1, msg, sizeof( msg ) );
 
-		if ( msg[0] == 'y' || msg[1] == 'Y' || msg[1] == '1' ) {
+		if ( msg[0] == 'y' || msg[0] == 'Y' || msg[0] == '1' ) {
 			trap_SendServerCommand( ent - g_entities, "invitation -4" );
 			trap_SendServerCommand( ent->client->pers.invitationClient, "invitation -3" );
 
@@ -2057,7 +2067,7 @@ void Cmd_Vote_f( gentity_t *ent ) {
 
 		trap_Argv( 1, msg, sizeof( msg ) );
 
-		if ( msg[0] == 'y' || msg[1] == 'Y' || msg[1] == '1' ) {
+		if ( msg[0] == 'y' || msg[0] == 'Y' || msg[0] == '1' ) {
 			trap_SendServerCommand( ent - g_entities, "proposition -4" );
 			trap_SendServerCommand( ent->client->pers.propositionClient2, "proposition -3" );
 
@@ -2079,7 +2089,7 @@ void Cmd_Vote_f( gentity_t *ent ) {
 
 		trap_Argv( 1, msg, sizeof( msg ) );
 
-		if ( msg[0] == 'y' || msg[1] == 'Y' || msg[1] == '1' ) {
+		if ( msg[0] == 'y' || msg[0] == 'Y' || msg[0] == '1' ) {
 			trap_SendServerCommand( ent - g_entities, "aft -2" );
 
 			if ( G_IsFireteamLeader( ent - g_entities, &ft ) ) {
@@ -2097,7 +2107,7 @@ void Cmd_Vote_f( gentity_t *ent ) {
 	if ( ent->client->pers.autofireteamCreateEndTime > level.time ) {
 		trap_Argv( 1, msg, sizeof( msg ) );
 
-		if ( msg[0] == 'y' || msg[1] == 'Y' || msg[1] == '1' ) {
+		if ( msg[0] == 'y' || msg[0] == 'Y' || msg[0] == '1' ) {
 			trap_SendServerCommand( ent - g_entities, "aftc -2" );
 
 			G_RegisterFireteam( ent - g_entities );
@@ -2113,7 +2123,7 @@ void Cmd_Vote_f( gentity_t *ent ) {
 	if ( ent->client->pers.autofireteamJoinEndTime > level.time ) {
 		trap_Argv( 1, msg, sizeof( msg ) );
 
-		if ( msg[0] == 'y' || msg[1] == 'Y' || msg[1] == '1' ) {
+		if ( msg[0] == 'y' || msg[0] == 'Y' || msg[0] == '1' ) {
 			fireteamData_t* ft;
 
 			trap_SendServerCommand( ent - g_entities, "aftj -2" );
@@ -2145,7 +2155,7 @@ void Cmd_Vote_f( gentity_t *ent ) {
 		trap_SendServerCommand( ent - g_entities, "print \"No vote in progress.\n\"" );
 		return;
 	}
-	if ( ent->client->ps.eFlags & EF_VOTED ) {
+	if ( ent->client->pers.voted != 0 ) {
 		trap_SendServerCommand( ent - g_entities, "print \"Vote already cast.\n\"" );
 		return;
 	}
@@ -2172,11 +2182,13 @@ void Cmd_Vote_f( gentity_t *ent ) {
 
 	trap_Argv( 1, msg, sizeof( msg ) );
 
-	if ( msg[0] == 'y' || msg[1] == 'Y' || msg[1] == '1' ) {
+	if ( msg[0] == 'y' || msg[0] == 'Y' || msg[0] == '1' ) {
 		level.voteInfo.voteYes++;
+		ent->client->pers.voted = 1;
 		trap_SetConfigstring( CS_VOTE_YES, va( "%i", level.voteInfo.voteYes ) );
 	} else {
 		level.voteInfo.voteNo++;
+		ent->client->pers.voted = -1;
 		trap_SetConfigstring( CS_VOTE_NO, va( "%i", level.voteInfo.voteNo ) );
 	}
 
@@ -2185,13 +2197,21 @@ void Cmd_Vote_f( gentity_t *ent ) {
 }
 
 
-qboolean G_canPickupMelee( gentity_t *ent ) {
-// JPW NERVE -- no "melee" weapons in net play
-	return qfalse;
+void G_RevertVote( gclient_t *client ) {
+	if ( level.voteInfo.voteTime ) {
+		if ( client->pers.voted == 1 ) {
+			level.voteInfo.voteYes--;
+			client->pers.voted = 0;
+			client->ps.eFlags &= ~EF_VOTED;
+			trap_SetConfigstring( CS_VOTE_YES, va( "%i", level.voteInfo.voteYes ) );
+		} else if ( client->pers.voted == -1 ) {
+			level.voteInfo.voteNo--;
+			client->pers.voted = 0;
+			client->ps.eFlags &= ~EF_VOTED;
+			trap_SetConfigstring( CS_VOTE_NO, va( "%i", level.voteInfo.voteNo ) );
+		}
+	}
 }
-// jpw
-
-
 
 
 /*
@@ -2199,7 +2219,7 @@ qboolean G_canPickupMelee( gentity_t *ent ) {
 Cmd_SetViewpos_f
 =================
 */
-void Cmd_SetViewpos_f( gentity_t *ent ) {
+static void Cmd_SetViewpos_f( gentity_t *ent ) {
 	vec3_t origin, angles;
 	char buffer[MAX_TOKEN_CHARS];
 	int i;
@@ -2266,7 +2286,7 @@ void Cmd_StartCamera_f( gentity_t *ent ) {
 Cmd_StopCamera_f
 =================
 */
-void Cmd_StopCamera_f( gentity_t *ent ) {
+static void Cmd_StopCamera_f( gentity_t *ent ) {
 //	gentity_t *sp;
 
 	if ( ent->client->cameraPortal && ( ent->client->ps.eFlags & EF_VIEWING_CAMERA ) ) {
@@ -2304,7 +2324,7 @@ void Cmd_StopCamera_f( gentity_t *ent ) {
 Cmd_SetCameraOrigin_f
 =================
 */
-void Cmd_SetCameraOrigin_f( gentity_t *ent ) {
+static void Cmd_SetCameraOrigin_f( gentity_t *ent ) {
 	char buffer[MAX_TOKEN_CHARS];
 	int i;
 	vec3_t origin;
@@ -2843,7 +2863,7 @@ void SetPlayerSpawn( gentity_t* ent, int spawn, qboolean update ) {
 	}
 }
 
-void Cmd_SetSpawnPoint_f( gentity_t* ent ) {
+static void Cmd_SetSpawnPoint_f( gentity_t* ent ) {
 	char arg[MAX_TOKEN_CHARS];
 	int val, i;
 
@@ -2927,7 +2947,7 @@ Cmd_ClearWayPoint_f
 	G_RemoveWayPoint( ent->client );
 }*/
 
-void Cmd_WeaponStat_f( gentity_t* ent ) {
+static void Cmd_WeaponStat_f( gentity_t* ent ) {
 	char buffer[16];
 	extWeaponStats_t stat;
 
@@ -2944,7 +2964,7 @@ void Cmd_WeaponStat_f( gentity_t* ent ) {
 	trap_SendServerCommand( ent - g_entities, va( "rws %i %i", ent->client->sess.aWeaponStats[stat].atts, ent->client->sess.aWeaponStats[stat].hits ) );
 }
 
-void Cmd_IntermissionWeaponStats_f( gentity_t* ent ) {
+static void Cmd_IntermissionWeaponStats_f( gentity_t* ent ) {
 	char buffer[1024];
 	int i, clientNum;
 
@@ -2981,7 +3001,7 @@ void G_MakeUnready( gentity_t* ent ) {
 	ent->client->pers.ready = qfalse;
 }
 
-void Cmd_IntermissionReady_f( gentity_t* ent ) {
+static void Cmd_IntermissionReady_f( gentity_t* ent ) {
 	if ( !ent || !ent->client ) {
 		return;
 	}
@@ -2989,7 +3009,7 @@ void Cmd_IntermissionReady_f( gentity_t* ent ) {
 	G_MakeReady( ent );
 }
 
-void Cmd_IntermissionPlayerKillsDeaths_f( gentity_t* ent ) {
+static void Cmd_IntermissionPlayerKillsDeaths_f( gentity_t* ent ) {
 	char buffer[1024];
 	int i;
 
@@ -3031,7 +3051,7 @@ void G_CalcClientAccuracies( void ) {
 }
 
 
-void Cmd_IntermissionWeaponAccuracies_f( gentity_t* ent ) {
+static void Cmd_IntermissionWeaponAccuracies_f( gentity_t* ent ) {
 	char buffer[1024];
 	int i;
 
@@ -3049,7 +3069,7 @@ void Cmd_IntermissionWeaponAccuracies_f( gentity_t* ent ) {
 	trap_SendServerCommand( ent - g_entities, buffer );
 }
 
-void Cmd_SelectedObjective_f( gentity_t* ent ) {
+static void Cmd_SelectedObjective_f( gentity_t* ent ) {
 	int i, val;
 	char buffer[16];
 	vec_t dist, neardist = 0;
@@ -3098,7 +3118,7 @@ void Cmd_SelectedObjective_f( gentity_t* ent ) {
 	}
 }
 
-void Cmd_Ignore_f( gentity_t* ent ) {
+static void Cmd_Ignore_f( gentity_t* ent ) {
 	char cmd[MAX_TOKEN_CHARS];
 	int cnum;
 
@@ -3116,15 +3136,8 @@ void Cmd_Ignore_f( gentity_t* ent ) {
 	}
 }
 
-void Cmd_TicketTape_f( void ) {
-/*	char	cmd[MAX_TOKEN_CHARS];
 
-	trap_Argv( 1, cmd, sizeof( cmd ) );
-
-	trap_SendServerCommand( -1, va( "tt \"LANDMINES SPOTTED <STOP> CHECK COMMAND MAP FOR DETAILS <STOP>\"\n", cmd ));*/
-}
-
-void Cmd_UnIgnore_f( gentity_t* ent ) {
+static void Cmd_UnIgnore_f( gentity_t* ent ) {
 	char cmd[MAX_TOKEN_CHARS];
 	int cnum;
 
@@ -3141,6 +3154,7 @@ void Cmd_UnIgnore_f( gentity_t* ent ) {
 		COM_BitClear( ent->client->sess.ignoreClients, cnum );
 	}
 }
+
 
 /*
 =================

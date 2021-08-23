@@ -214,8 +214,6 @@ int G_GetWeaponClassForMOD( meansOfDeath_t mod );
 
 #define MAX_NETNAME         36
 
-#define CFOFS( x ) (offsetof(gclient_t, x))
-
 #define MAX_COMMANDER_TEAM_SOUNDS 16
 
 typedef struct commanderTeamChat_s {
@@ -634,7 +632,6 @@ typedef struct {
 	int connectTime;                // DHM - Nerve :: level.time the client first connected to the server
 	playerTeamState_t teamState;    // status in teamplay games
 	int voteCount;                  // to prevent people from constantly calling votes
-	int teamVoteCount;              // to prevent people from constantly calling votes
 
 	int complaints;                     // DHM - Nerve :: number of complaints lodged against this client
 	int complaintClient;                // DHM - Nerve :: able to lodge complaint against this client
@@ -692,6 +689,9 @@ typedef struct {
 	int characterIndex;
 
 	ipFilter_t complaintips[MAX_COMPLAINTIPS];
+
+	int			voted;
+	qboolean	inGame;
 } clientPersistant_t;
 
 typedef struct {
@@ -1110,7 +1110,7 @@ void Cmd_Score_f( gentity_t *ent );
 void StopFollowing( gentity_t *ent );
 //void BroadcastTeamChange( gclient_t *client, int oldTeam );
 void G_TeamDataForString( const char* teamstr, int clientNum, team_t* team, spectatorState_t* sState, int* specClient );
-qboolean SetTeam( gentity_t *ent, char *s, qboolean force, weapon_t w1, weapon_t w2, qboolean setweapons );
+qboolean SetTeam( gentity_t *ent, const char *s, qboolean force, weapon_t w1, weapon_t w2, qboolean setweapons );
 void G_SetClientWeapons( gentity_t* ent, weapon_t w1, weapon_t w2, qboolean updateclient );
 void Cmd_FollowCycle_f( gentity_t *ent, int dir );
 void Cmd_Kill_f( gentity_t *ent );
@@ -1118,6 +1118,7 @@ void G_EntitySound( gentity_t *ent, const char *soundId, int volume );
 void G_EntitySoundNoCut( gentity_t *ent, const char *soundId, int volume );
 int ClientNumberFromString( gentity_t *to, char *s );
 void SanitizeString( char *in, char *out, qboolean fToLower );
+void G_RevertVote( gclient_t *client );
 
 //
 // g_items.c
@@ -1126,10 +1127,8 @@ void G_RunItem( gentity_t *ent );
 void RespawnItem( gentity_t *ent );
 
 void UseHoldableItem( gentity_t *ent, int item );
-void PrecacheItem( gitem_t *it );
 gentity_t *Drop_Item( gentity_t *ent, gitem_t *item, float angle, qboolean novelocity );
 gentity_t *LaunchItem( gitem_t *item, vec3_t origin, vec3_t velocity, int ownerNum );
-void SetRespawn( gentity_t *ent, float delay );
 void G_SpawnItem( gentity_t *ent, gitem_t *item );
 void FinishSpawningItem( gentity_t *ent );
 void Think_Weapon( gentity_t *ent );
@@ -1167,7 +1166,7 @@ void    G_KillBox( gentity_t *ent );
 gentity_t *G_Find( gentity_t *from, int fieldofs, const char *match );
 gentity_t* G_FindByTargetname( gentity_t *from, const char* match );
 gentity_t* G_FindByTargetnameFast( gentity_t *from, const char* match, int hash );
-gentity_t *G_PickTarget( char *targetname );
+gentity_t *G_PickTarget( const char *targetname );
 void    G_UseTargets( gentity_t *ent, gentity_t *activator );
 void    G_SetMovedir( vec3_t angles, vec3_t movedir );
 
@@ -1181,7 +1180,6 @@ void    G_FreeEntity( gentity_t *e );
 //qboolean	G_EntitiesFree( void );
 
 void    G_TouchTriggers( gentity_t *ent );
-void    G_TouchSolids( gentity_t *ent );
 
 float   *tv( float x, float y, float z );
 char    *vtos( const vec3_t v );
@@ -1273,11 +1271,6 @@ void SetMoverState( gentity_t *ent, moverState_t moverState, int time );
 void func_constructible_underconstructionthink( gentity_t *ent );
 
 //
-// g_tramcar.c
-//
-void Reached_Tramcar( gentity_t *ent );
-
-//
 // g_trigger.c
 //
 void Think_SetupObjectiveInfo( gentity_t *ent );
@@ -1318,8 +1311,6 @@ void SetClientViewAngle( gentity_t *ent, vec3_t angle );
 gentity_t *SelectSpawnPoint( vec3_t avoidPoint, vec3_t origin, vec3_t angles );
 void respawn( gentity_t *ent );
 void BeginIntermission( void );
-void InitClientPersistant( gclient_t *client );
-void InitClientResp( gclient_t *client );
 void InitBodyQue( void );
 void ClientSpawn( gentity_t *ent, qboolean revived );
 void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int damage, int mod );
@@ -1381,17 +1372,10 @@ qboolean IsSilencedWeapon
 	int weaponType
 );
 
-
-//
-// p_hud.c
-//
-void MoveClientToIntermission( gentity_t *client );
-void G_SetStats( gentity_t *ent );
-void G_SendScore( gentity_t *client );
-
 //
 // g_cmds.c
 //
+void G_SendScore( gentity_t *client );
 void G_SayTo( gentity_t *ent, gentity_t *other, int mode, int color, const char *name, const char *message, qboolean localize ); // JPW NERVE removed static declaration so it would link
 qboolean Cmd_CallVote_f( gentity_t *ent, unsigned int dwCommand, qboolean fValue );
 void Cmd_Follow_f( gentity_t *ent, unsigned int dwCommand, qboolean fValue );
@@ -1401,14 +1385,10 @@ void Cmd_SetWeapons_f( gentity_t *ent, unsigned int dwCommand, qboolean fValue )
 void Cmd_SetClass_f( gentity_t *ent, unsigned int dwCommand, qboolean fValue );
 
 //
-// g_pweapon.c
-//
-
-
-//
 // g_main.c
 //
 void FindIntermissionPoint( void );
+void MoveClientToIntermission( gentity_t *client );
 void G_RunThink( gentity_t *ent );
 void QDECL G_LogPrintf( const char *fmt, ... ) _attribute( ( format( printf,1,2 ) ) );
 void SendScoreboardMessageToAllClients( void );
@@ -1435,14 +1415,9 @@ void ClientThink( int clientNum );
 void ClientEndFrame( gentity_t *ent );
 void G_RunClient( gentity_t *ent );
 qboolean ClientNeedsAmmo( int client );
-qboolean ClientOutOfAmmo( int client );
 
 // Does ent have enough "energy" to call artillery?
 qboolean ReadyToCallArtillery( gentity_t* ent );
-// to call airstrike?
-qboolean ReadyToCallAirstrike( gentity_t* ent );
-// to use smoke grenade?
-qboolean ReadyToThrowSmoke( gentity_t *ent );
 // Are we ready to construct?  Optionally, will also update the time while we are constructing
 qboolean ReadyToConstruct( gentity_t *ent, gentity_t *constructible, qboolean updateState );
 
@@ -1466,7 +1441,7 @@ void Svcmd_GameMem_f( void );
 // g_session.c
 //
 void G_ReadSessionData( gclient_t *client );
-void G_InitSessionData( gclient_t *client, char *userinfo );
+void G_InitSessionData( gclient_t *client );
 
 void G_InitWorldSession( void );
 void G_WriteSessionData( qboolean restart );
@@ -1513,6 +1488,7 @@ extern vmCvar_t g_maxclients;               // allow this many total, including 
 extern vmCvar_t g_maxGameClients;           // allow this many active
 extern vmCvar_t g_minGameClients;           // NERVE - SMF - we need at least this many before match actually starts
 extern vmCvar_t g_restarted;
+extern vmCvar_t g_mapname;
 
 extern vmCvar_t g_fraglimit;
 extern vmCvar_t g_timelimit;
@@ -1552,7 +1528,6 @@ extern vmCvar_t g_enforcemaxlives;          // Xian - Temp ban with maxlives bet
 extern vmCvar_t g_needpass;
 extern vmCvar_t g_balancedteams;
 extern vmCvar_t g_doWarmup;
-extern vmCvar_t g_teamAutoJoin;
 extern vmCvar_t g_teamForceBalance;
 extern vmCvar_t g_banIPs;
 extern vmCvar_t g_filterBan;

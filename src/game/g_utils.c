@@ -190,14 +190,13 @@ NULL will be returned if the end of the list is reached.
 */
 gentity_t *G_Find( gentity_t *from, int fieldofs, const char *match ) {
 	char    *s;
-	gentity_t *max = &g_entities[level.num_entities];
+	const gentity_t *max = &g_entities[level.num_entities];
 
 	if ( !from ) {
 		from = g_entities;
 	} else {
 		from++;
 	}
-
 
 	for ( ; from < max ; from++ ) {
 		if ( !from->inuse ) {
@@ -221,7 +220,7 @@ G_FindByTargetname
 =============
 */
 gentity_t* G_FindByTargetname( gentity_t *from, const char* match ) {
-	gentity_t* max = &g_entities[level.num_entities];
+	const gentity_t* max = &g_entities[level.num_entities];
 	int hash = BG_StringHashValue( match );
 
 	if ( !from ) {
@@ -245,7 +244,7 @@ gentity_t* G_FindByTargetname( gentity_t *from, const char* match ) {
 
 // digibob: this version should be used for loops, saves the constant hash building
 gentity_t* G_FindByTargetnameFast( gentity_t *from, const char* match, int hash ) {
-	gentity_t* max = &g_entities[level.num_entities];
+	const gentity_t* max = &g_entities[level.num_entities];
 
 	if ( !from ) {
 		from = g_entities;
@@ -274,7 +273,7 @@ Selects a random entity from among the targets
 */
 #define MAXCHOICES  32
 
-gentity_t *G_PickTarget( char *targetname ) {
+gentity_t *G_PickTarget( const char *targetname ) {
 	gentity_t   *ent = NULL;
 	int num_choices = 0;
 	gentity_t   *choice[MAXCHOICES];

@@ -193,14 +193,26 @@ static void UpdateIPBans( ipFilterList_t *ipFilterList ) {
 	trap_Cvar_Set( ipFilterList->cvarIPList, iplist_final );
 }
 
-void PrintMaxLivesGUID() {
+static void Svcmd_ListIP_f( void ) {
+	int i;
+
+	for ( i = 0 ; i < ipFilters.numIPFilters ; i++ )
+	{
+		floatint_t addr;
+		addr.u = ipFilters.ipFilters[i].compare;
+		G_Printf( "%i. %i.%i.%i.%i\n", i, addr.b[0], addr.b[1], addr.b[2], addr.b[3] );
+	}
+	G_Printf( "--- End of list\n" );
+}
+
+static void PrintMaxLivesGUID( void ) {
 	int i;
 
 	for ( i = 0 ; i < numMaxLivesFilters ; i++ )
 	{
-		G_LogPrintf( "%i. %s\n", i, guidMaxLivesFilters[i].compare );
+		G_Printf( "%i. %s\n", i, guidMaxLivesFilters[i].compare );
 	}
-	G_LogPrintf( "--- End of list\n" );
+	G_Printf( "--- End of list\n" );
 }
 
 /*
@@ -631,7 +643,7 @@ extern const char *eventnames[];
 Svcmd_EntityList_f
 ===================
 */
-void	Svcmd_EntityList_f (void) {
+static void	Svcmd_EntityList_f (void) {
 	int			e;
 	gentity_t		*check;
 	int			count;
@@ -666,7 +678,7 @@ void	Svcmd_EntityList_f (void) {
 // on the server (clientnum 0 and 1)
 // this function will say 'client 3 is not connected'
 // solution: first check for usernames, if none is found, check for slotnumbers
-gclient_t   *ClientForString( const char *s ) {
+static gclient_t   *ClientForString( const char *s ) {
 	gclient_t   *cl;
 	int i;
 	int idnum;
@@ -718,7 +730,7 @@ static qboolean G_Is_SV_Running( void ) {
 G_GetPlayerByNum
 ==================
 */
-gclient_t   *G_GetPlayerByNum( int clientNum ) {
+static gclient_t   *G_GetPlayerByNum( int clientNum ) {
 	gclient_t   *cl;
 
 
@@ -758,7 +770,7 @@ gclient_t   *G_GetPlayerByNum( int clientNum ) {
 G_GetPlayerByName
 ==================
 */
-gclient_t *G_GetPlayerByName( char *name ) {
+static gclient_t *G_GetPlayerByName( char *name ) {
 
 	int i;
 	gclient_t   *cl;
@@ -804,7 +816,7 @@ forceteam <player> <team>
 ===================
 */
 
-void Svcmd_ForceTeam_f( void ) {
+static void Svcmd_ForceTeam_f( void ) {
 	gclient_t   *cl;
 	char str[MAX_TOKEN_CHARS];
 
@@ -819,6 +831,42 @@ void Svcmd_ForceTeam_f( void ) {
 	trap_Argv( 2, str, sizeof( str ) );
 	SetTeam( &g_entities[cl - level.clients], str, qfalse, cl->sess.playerWeapon, cl->sess.playerWeapon2, qtrue );
 }
+
+#ifdef SAVEGAME_SUPPORT
+static void Svcmd_SaveGame_f( void ) {
+	char filename[MAX_QPATH];
+	if ( g_gametype.integer != GT_SINGLE_PLAYER ) {
+		return;
+	}
+
+	// don't allow a manual savegame command while we are waiting for the game to start/exit
+	if ( g_reloading.integer ) {
+		return qtrue;
+	}
+	if ( saveGamePending ) {
+		return qtrue;
+	}
+
+	if ( trap_Argc() < 2 ) {
+		G_Printf( "syntax: savegame <name>\n" );
+		return;
+	}
+
+	trap_Argv( 1, filename, sizeof( filename ) );
+	// strip the extension if provided
+	COM_StripExtension( filename, filename, sizeof(filename) );
+	if ( !Q_stricmp( filename, "current" ) ) {     // beginning of map
+		Com_Printf( "Sorry, '%s' is a reserved savegame name.  please use another name.\n", filename );
+		return qtrue;
+	}
+
+	if ( G_SaveGame( filename ) ) {
+		trap_SendServerCommand( -1, "cp \"Game Saved\n\"" );  // deletedgame
+	} else {
+		G_Printf( "Unable to save game.\n" );
+	}
+}
+#endif // SAVEGAME_SUPPORT
 
 /*
 ============
@@ -877,6 +925,10 @@ void Svcmd_ResetMatch_f( qboolean fDoReset, qboolean fDoRestart ) {
 	}
 }
 
+static void Svcmd_ResetMatchCmd_f( void ) {
+	Svcmd_ResetMatch_f( qtrue, qtrue );
+}
+
 /*
 ============
 Svcmd_SwapTeams_f
@@ -922,7 +974,7 @@ void Svcmd_ShuffleTeams_f( void ) {
 	Svcmd_ResetMatch_f( qfalse, qtrue );
 }
 
-void Svcmd_Campaign_f( void ) {
+static void Svcmd_Campaign_f( void ) {
 	char str[MAX_TOKEN_CHARS];
 	int i;
 	g_campaignInfo_t *campaign = NULL;
@@ -959,7 +1011,7 @@ void Svcmd_Campaign_f( void ) {
 	trap_SendConsoleCommand( EXEC_APPEND, va( "map %s\n", campaign->mapnames[0] ) );
 }
 
-void Svcmd_ListCampaigns_f( void ) {
+static void Svcmd_ListCampaigns_f( void ) {
 	int i, mpCampaigns;
 
 	mpCampaigns = 0;
@@ -990,15 +1042,17 @@ void Svcmd_ListCampaigns_f( void ) {
 extern void ReviveEntity( gentity_t *ent, gentity_t *traceEnt );
 extern int FindClientByName( const char *name );
 
-void Svcmd_RevivePlayer( char *name ) {
+static void Svcmd_RevivePlayer_f( void ) {
+	char name[MAX_NETNAME];
 	int clientNum;
 	gentity_t   *player;
-
 
 	if ( !g_cheats.integer ) {
 		trap_SendServerCommand( -1, va( "print \"Cheats are not enabled on this server.\n\"" ) );
 		return;
 	}
+
+	trap_Argv( 1, name, sizeof(name) );
 
 	clientNum = FindClientByName( name );
 	if ( clientNum < 0 ) {
@@ -1206,7 +1260,38 @@ static void Svcmd_KickNum_f( void ) {
 
 // -fretn
 
+typedef struct {
+	const char *cmd;
+	void ( *function )( void );
+} serverCommand_t;
 
+static serverCommand_t svcommands[] =
+{
+	{ "addip", Svcmd_AddIP_f },
+	{ "ban", G_PlayerBan },
+	{ "campaign", Svcmd_Campaign_f },
+	{ "clientkick", Svcmd_KickNum_f },
+	{ "entitylist", Svcmd_EntityList_f },
+	{ "forceteam", Svcmd_ForceTeam_f },
+	{ "game_memory", Svcmd_GameMem_f },
+	{ "kick", Svcmd_Kick_f },
+	{ "listcampaigns", Svcmd_ListCampaigns_f },
+	{ "listip", Svcmd_ListIP_f },
+	{ "listmaxlivesip", PrintMaxLivesGUID },
+	{ "makeReferee", G_MakeReferee },
+	{ "removeip", Svcmd_RemoveIP_f },
+	{ "removeReferee", G_RemoveReferee },
+	{ "reset_match", Svcmd_ResetMatchCmd_f },
+	{ "revive", Svcmd_RevivePlayer_f },
+#ifdef SAVEGAME_SUPPORT
+	{ "savegame", Svcmd_SaveGame_f },
+#endif
+	{ "shuffle_teams", Svcmd_ShuffleTeams_f },
+	{ "start_match", Svcmd_StartMatch_f },
+	{ "swap_teams", Svcmd_SwapTeams_f },
+};
+
+static const size_t numCommands = ARRAY_LEN( svcommands );
 
 char    *ConcatArgs( int start );
 
@@ -1218,175 +1303,16 @@ ConsoleCommand
 */
 qboolean    ConsoleCommand( void ) {
 	char cmd[MAX_TOKEN_CHARS];
+	size_t i;
 
 	trap_Argv( 0, cmd, sizeof( cmd ) );
 
-#ifdef SAVEGAME_SUPPORT
-	if ( Q_stricmp( cmd, "savegame" ) == 0 ) {
-
-		if ( g_gametype.integer != GT_SINGLE_PLAYER ) {
+	for ( i = 0 ; i < numCommands ; i++ ) {
+		if ( !Q_stricmp( cmd, svcommands[i].cmd ) ) {
+			svcommands[i].function();
 			return qtrue;
 		}
-
-		// don't allow a manual savegame command while we are waiting for the game to start/exit
-		if ( g_reloading.integer ) {
-			return qtrue;
-		}
-		if ( saveGamePending ) {
-			return qtrue;
-		}
-
-		trap_Argv( 1, cmd, sizeof( cmd ) );
-		if ( strlen( cmd ) > 0 ) {
-			// strip the extension if provided
-			if ( strrchr( cmd, '.' ) ) {
-				cmd[strrchr( cmd,'.' ) - cmd] = '\0';
-			}
-			if ( !Q_stricmp( cmd, "current" ) ) {     // beginning of map
-				Com_Printf( "sorry, '%s' is a reserved savegame name.  please use another name.\n", cmd );
-				return qtrue;
-			}
-
-			if ( G_SaveGame( cmd ) ) {
-				trap_SendServerCommand( -1, "cp \"Game Saved\n\"" );  // deletedgame
-			} else {
-				G_Printf( "Unable to save game.\n" );
-			}
-
-		} else {    // need a name
-			G_Printf( "syntax: savegame <name>\n" );
-		}
-
-		return qtrue;
 	}
-#endif // SAVEGAME_SUPPORT
-
-	if ( Q_stricmp( cmd, "entitylist" ) == 0 ) {
-		Svcmd_EntityList_f();
-		return qtrue;
-	}
-
-	if ( Q_stricmp( cmd, "forceteam" ) == 0 ) {
-		Svcmd_ForceTeam_f();
-		return qtrue;
-	}
-
-	if ( Q_stricmp( cmd, "game_memory" ) == 0 ) {
-		Svcmd_GameMem_f();
-		return qtrue;
-	}
-
-	/*if (Q_stricmp (cmd, "addbot") == 0) {
-		Svcmd_AddBot_f();
-		return qtrue;
-	}
-	if (Q_stricmp (cmd, "removebot") == 0) {
-		Svcmd_AddBot_f();
-		return qtrue;
-	}*/
-	if ( Q_stricmp( cmd, "addip" ) == 0 ) {
-		Svcmd_AddIP_f();
-		return qtrue;
-	}
-
-	if ( Q_stricmp( cmd, "removeip" ) == 0 ) {
-		Svcmd_RemoveIP_f();
-		return qtrue;
-	}
-
-	if ( Q_stricmp( cmd, "listip" ) == 0 ) {
-		trap_SendConsoleCommand( EXEC_INSERT, "g_banIPs\n" );
-		return qtrue;
-	}
-
-	if ( Q_stricmp( cmd, "listmaxlivesip" ) == 0 ) {
-		PrintMaxLivesGUID();
-		return qtrue;
-	}
-
-	// NERVE - SMF
-	if ( Q_stricmp( cmd, "start_match" ) == 0 ) {
-		Svcmd_StartMatch_f();
-		return qtrue;
-	}
-
-	if ( Q_stricmp( cmd, "reset_match" ) == 0 ) {
-		Svcmd_ResetMatch_f( qtrue, qtrue );
-		return qtrue;
-	}
-
-	if ( Q_stricmp( cmd, "swap_teams" ) == 0 ) {
-		Svcmd_SwapTeams_f();
-		return qtrue;
-	}
-
-	if ( Q_stricmp( cmd, "shuffle_teams" ) == 0 ) {
-		Svcmd_ShuffleTeams_f();
-		return qtrue;
-	}
-
-	// -NERVE - SMF
-
-	if ( Q_stricmp( cmd, "makeReferee" ) == 0 ) {
-		G_MakeReferee();
-		return qtrue;
-	}
-
-	if ( Q_stricmp( cmd, "removeReferee" ) == 0 ) {
-		G_RemoveReferee();
-		return qtrue;
-	}
-
-	/*if (Q_stricmp (cmd, "mute") == 0) {
-		G_MuteClient();
-		return qtrue;
-	}
-
-	if (Q_stricmp (cmd, "unmute") == 0) {
-		G_UnMuteClient();
-		return qtrue;
-	}*/
-
-	if ( Q_stricmp( cmd, "ban" ) == 0 ) {
-		G_PlayerBan();
-		return qtrue;
-	}
-
-	if ( Q_stricmp( cmd, "campaign" ) == 0 ) {
-		Svcmd_Campaign_f();
-		return qtrue;
-	}
-
-	if ( Q_stricmp( cmd, "listcampaigns" ) == 0 ) {
-		Svcmd_ListCampaigns_f();
-		return qtrue;
-	}
-
-	/*if ( Q_stricmp( cmd, "spawnbot" ) == 0 ) {
-		Svcmd_SpawnBot();
-		return qtrue;
-	}*/
-
-
-// START - Mad Doc - TDF
-	if ( Q_stricmp( cmd, "revive" ) == 0 ) {
-		trap_Argv( 1, cmd, sizeof( cmd ) );
-		Svcmd_RevivePlayer( cmd );
-		return qtrue;
-	}
-// END - Mad Doc - TDF
-
-	// fretn - moved from engine
-	if ( !Q_stricmp( cmd, "kick" ) ) {
-		Svcmd_Kick_f();
-		return qtrue;
-	}
-
-	if ( !Q_stricmp( cmd, "clientkick" ) ) {
-		Svcmd_KickNum_f();
-		return qtrue;
-	}
-	// -fretn
 
 	if ( g_dedicated.integer ) {
 		if ( !Q_stricmp( cmd, "say" ) ) {

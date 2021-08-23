@@ -1482,13 +1482,33 @@ const char *ClientConnect( int clientNum, qboolean firstTime, qboolean isBot ) {
 
 	ent = &g_entities[ clientNum ];
 
+	if ( firstTime ) {
+		// cleanup previous data manually
+		// because client may silently (re)connect without ClientDisconnect in case of crash for example
+		if ( level.clients[ clientNum ].pers.connected != CON_DISCONNECTED || ent->inuse ) {
+			G_LogPrintf( "Forcing disconnect on active client: %i\n", clientNum );
+			ClientDisconnect( clientNum );
+		}
+
+		// remove old entity from the world
+		trap_UnlinkEntity( ent );
+		ent->r.contents = 0;
+		ent->s.eType = ET_INVISIBLE;
+		ent->s.eFlags = 0;
+		ent->s.modelindex = 0;
+		ent->s.clientNum = clientNum;
+		ent->s.number = clientNum;
+		ent->takedamage = qfalse;
+		ent->active = qfalse;
+	}
+
 	// Gordon: porting q3f flag bug fix
 	//			If a player reconnects quickly after a disconnect, the client disconnect may never be called, thus flag can get lost in the ether
-	if ( ent->inuse ) {
+	/*if ( ent->inuse ) {
 		G_LogPrintf( "Forcing disconnect on active client: %i\n", clientNum );
 		// so lets just fix up anything that should happen on a disconnect
 		ClientDisconnect( clientNum );
-	}
+	}*/
 
 	ent->r.svFlags &= ~SVF_BOT;
 	ent->inuse = qfalse;
@@ -1515,12 +1535,12 @@ const char *ClientConnect( int clientNum, qboolean firstTime, qboolean isBot ) {
 		if ( g_enforcemaxlives.integer && ( g_maxlives.integer > 0 || g_axismaxlives.integer > 0 || g_alliedmaxlives.integer > 0 ) ) {
 			if ( trap_Cvar_VariableIntegerValue( "sv_punkbuster" ) ) {
 				value = Info_ValueForKey( userinfo, "cl_guid" );
-				if ( !isAdmin && G_FilterMaxLivesPacket( value ) ) {
+				if ( !isAdmin && !isBot && G_FilterMaxLivesPacket( value ) ) {
 					return "Max Lives Enforcement Temp Ban. You will be able to reconnect when the next round starts. This ban is enforced to ensure you don't reconnect to get additional lives.";
 				}
 			} else {
 				value = Info_ValueForKey( userinfo, "ip" ); // this isn't really needed, oh well.
-				if ( !isAdmin && G_FilterMaxLivesIPPacket( value ) ) {
+				if ( !isAdmin && !isBot && G_FilterMaxLivesIPPacket( value ) ) {
 					return "Max Lives Enforcement Temp Ban. You will be able to reconnect when the next round starts. This ban is enforced to ensure you don't reconnect to get additional lives.";
 				}
 			}
@@ -1561,7 +1581,7 @@ const char *ClientConnect( int clientNum, qboolean firstTime, qboolean isBot ) {
 	}
 	// read or initialize the session data
 	if ( firstTime || level.newSession ) {
-		G_InitSessionData( client, userinfo );
+		G_InitSessionData( client );
 		client->pers.enterTime = level.time;
 		client->ps.persistant[PERS_SCORE] = 0;
 	} else {
@@ -1634,6 +1654,9 @@ const char *ClientConnect( int clientNum, qboolean firstTime, qboolean isBot ) {
 	if ( firstTime && !G_IsSinglePlayerGame() ) {
 		G_BroadcastServerCommand( -1, va( "cpm \"%s" S_COLOR_WHITE " connected\n\"", client->pers.netname ) );
 	}
+
+	// mute all prints until completely in game
+	client->pers.inGame = qfalse;
 
 	// count current clients and rank for scoreboard
 	CalculateRanks();
@@ -1716,6 +1739,10 @@ void ClientBegin( int clientNum ) {
 
 	// locate ent at a spawn point
 	ClientSpawn( ent, qfalse );
+
+	if ( !client->pers.inGame ) {
+		client->pers.inGame = qtrue;
+	}
 
 	// Xian -- Changed below for team independant maxlives
 	if ( g_gametype.integer != GT_WOLF_LMS ) {
@@ -2327,6 +2354,8 @@ void ClientDisconnect( int clientNum ) {
 		G_LogPrintf( "WeaponStats: %s\n", G_createStats( ent ) );
 	}
 
+	G_RevertVote( ent->client );
+
 	G_LogPrintf( "ClientDisconnect: %i\n", clientNum );
 
 	trap_UnlinkEntity( ent );
@@ -2337,7 +2366,7 @@ void ClientDisconnect( int clientNum ) {
 	ent->client->ps.persistant[PERS_TEAM] = TEAM_FREE;
 	i = ent->client->sess.sessionTeam;
 	ent->client->sess.sessionTeam = TEAM_FREE;
-	ent->active = 0;
+	ent->active = qfalse;
 
 	trap_SetConfigstring( CS_PLAYERS + clientNum, "" );
 

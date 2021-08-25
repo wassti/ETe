@@ -135,8 +135,8 @@ static consoleCommand_t commands[] =
 	{ "ui_teamOrders", dummyFunc, qfalse },
 	{ "ui_cdkey", dummyFunc, qfalse },
 	{ "iamacheater", UI_Cheater_f, qfalse },
-	{"campaign", UI_Campaign_f, qtrue },
-	{"listcampaigns", UI_ListCampaigns_f, qtrue },
+	{ "campaign", UI_Campaign_f, qtrue },
+	{ "listcampaigns", UI_ListCampaigns_f, qtrue },
 };
 
 static const size_t numCommands = ARRAY_LEN( commands );

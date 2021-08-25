@@ -116,129 +116,12 @@ qboolean    UI_CheckExecKey( int key );
 // -NERVE - SMF - enabled for multiplayer
 
 static void UI_ParseGameInfo( const char *teamFile );
-//static void UI_ParseTeamInfo(const char *teamFile); // TTimo: unused
-
-//int ProcessNewUI( int command, int arg0, int arg1, int arg2, int arg3, int arg4, int arg5, int arg6 );
 
 itemDef_t *Menu_FindItemByName( menuDef_t *menu, const char *p );
 void Menu_ShowItemByName( menuDef_t *menu, const char *p, qboolean bShow );
 
-#define ITEM_GRENADES       1
-#define ITEM_MEDKIT         2
-
-#define ITEM_PISTOL         1
-
-#define DEFAULT_PISTOL
-
-#define PT_KNIFE            ( 1 )
-#define PT_PISTOL           ( 1 << 2 )
-#define PT_RIFLE            ( 1 << 3 )
-#define PT_LIGHTONLY        ( 1 << 4 )
-#define PT_GRENADES         ( 1 << 5 )
-#define PT_EXPLOSIVES       ( 1 << 6 )
-#define PT_MEDKIT           ( 1 << 7 )
-
 // TTimo
 static char translated_yes[4], translated_no[4];
-
-/*typedef struct {
-	const char  *name;
-	int items;
-} playerType_t;
-
-static playerType_t playerTypes[] = {
-	{ "player_window_soldier",       PT_KNIFE | PT_PISTOL | PT_RIFLE | PT_GRENADES },
-	{ "player_window_medic",     PT_KNIFE | PT_PISTOL | PT_MEDKIT },
-	{ "player_window_engineer",      PT_KNIFE | PT_PISTOL | PT_LIGHTONLY | PT_GRENADES },
-	{ "player_window_lieutenant",    PT_KNIFE | PT_PISTOL | PT_RIFLE | PT_EXPLOSIVES },
-	{ "player_window_covertops", PT_KNIFE | PT_PISTOL | PT_GRENADES }
-};
-
-int numPlayerTypes = sizeof( playerTypes ) / sizeof( playerTypes[0] );*/
-
-/*typedef struct {
-	int			weapindex;
-
-	const char	*desc;
-//	int			flags;
-	const char	*cvar;
-	int			value;
-	const char	*shadername;
-
-	const char	*torso_anim;
-	const char	*legs_anim;
-
-//	const char	*large_shader;
-} weaponType_t;*/
-
-#define ENG_WEAPMASK_1 ( 0 | 1 | 2 )
-#define ENG_WEAPMASK_2 ( 4 | 8 )
-
-// NERVE - SMF - this is the weapon info list [what can and can't be used by character classes]
-//   - This list is seperate from the actual text names in the listboxes for localization purposes.
-//   - The list boxes look up this list by the cvar value.
-// Gordon: stripped out some useless stuff, and moved some other stuff to generic class stuff
-/*static weaponType_t weaponTypes[] = {
-	{ 0,					"NULL",						"none",			-1, "none",									"",						""						},
-
-	{ WP_COLT,				"1911 pistol",				"mp_weapon",	-1,	"ui/assets/weapon_colt1911.tga",		"firing_pistolB_1",		"stand_pistolB"			},
-	{ WP_LUGER,				"Luger pistol",				"mp_weapon",	-1,	"ui/assets/weapon_luger.tga",			"firing_pistolB_1",		"stand_pistolB"			},
-
-	{ WP_MP40,				"MP 40",					"mp_weapon",	0,	"ui/assets/weapon_mp40.tga",			"relaxed_idle_2h_1",	"relaxed_idle_2h_1"		},
-	{ WP_THOMPSON,			"Thompson",					"mp_weapon",	1,	"ui/assets/weapon_thompson.tga",		"relaxed_idle_2h_1",	"relaxed_idle_2h_1"		},
-	{ WP_STEN,				"Sten",						"mp_weapon",	2,	"ui/assets/weapon_sten.tga",			"relaxed_idle_2h_1",	"relaxed_idle_2h_1"		},
-
-	{ WP_PANZERFAUST,		"Panzerfaust",				"mp_weapon",	4,	"ui/assets/weapon_panzerfaust.tga",		"stand_panzer",			"stand_panzer"			},
-	{ WP_FLAMETHROWER,		"Flamethrower",				"mp_weapon",	6,	"ui/assets/weapon_flamethrower.tga",	"stand_machinegun",		"stand_machinegun"		},
-
-	{ WP_GRENADE_PINEAPPLE,	"Pineapple grenade",		"mp_weapon_2",	8,	"ui/assets/weapon_grenade.tga",			"firing_pistolB_1",		"stand_pistolB"			},
-	{ WP_GRENADE_LAUNCHER,	"Stick grenade",			"mp_weapon_2",	8,	"ui/assets/weapon_grenade_ger.tga",		"firing_pistolB_1",		"stand_pistolB"			},
-
-	{ WP_DYNAMITE,			"Explosives",				"mp_item2",		-1, "ui/assets/weapon_dynamite.tga",		"firing_pistolB_1",		"stand_pistolB"			},
-
-	{ WP_KAR98,				"Kar98",                    "mp_weapon",	2,	"ui/assets/weapon_kar98.tga",			"stand_rifle",			"stand_rifle"			},
-	{ WP_CARBINE,			"M1 Garand",                "mp_weapon",	2,	"ui/assets/weapon_carbine.tga",			"stand_rifle",			"stand_rifle"			},
-
-	{ WP_FG42,				"FG42",						"mp_weapon",	7,	"ui/assets/weapon_fg42.tga",			"stand_rifle",			"stand_rifle"			},
-	{ WP_GARAND,			"M1 Garand",				"mp_weapon",	8,	"ui/assets/weapon_carbine.tga",			"stand_rifle",			"stand_rifle"			},
-	{ WP_MOBILE_MG42,		"Mobile MG42",				"mp_weapon",	9,	"ui/assets/weapon_mg42.tga",			"stand_rifle",			"stand_rifle"			},
-
-	{ WP_LANDMINE,			"Land Mines",				"mp_weapon_2",	4,	"ui/assets/weapon_landmine.tga",		"firing_pistolB_1",		"stand_pistolB"			},
-
-	{ WP_K43,				"K43",						"mp_weapon",	8,	"ui/assets/weapon_kar98.tga",			"stand_rifle",			"stand_rifle"			},
-//	{ WP_SATCHEL,			"Satchel Charges",			"mp_weapon",	10, "ui/assets/weapon_satchel.tga",			"firing_pistolB_1",		"stand_pistolB"			},
-	{ WP_TRIPMINE,			"Trip Mines",				"mp_weapon",	9,	"ui/assets/weapon_tripmine.tga",		"firing_pistolB_1",		"stand_pistolB"			},
-
-	{ 0,					NULL,						NULL,			-1,											NULL,					NULL					},
-};*/
-
-typedef struct {
-	char        *name;
-	int flags;
-	char        *shader;
-} uiitemType_t;
-
-#define UI_KNIFE_PIC    "window_knife_pic"
-#define UI_PISTOL_PIC   "window_pistol_pic"
-#define UI_WEAPON_PIC   "window_weapon_pic"
-#define UI_ITEM1_PIC    "window_item1_pic"
-#define UI_ITEM2_PIC    "window_item2_pic"
-
-#if 0 // rain - not used
-static uiitemType_t itemTypes[] = {
-	{ UI_KNIFE_PIC,     PT_KNIFE,       "ui/assets/weapon_knife.tga" },
-	{ UI_PISTOL_PIC,    PT_PISTOL,      "ui/assets/weapon_colt1911.tga" },
-
-	{ UI_WEAPON_PIC,    PT_RIFLE,       "ui/assets/weapon_mauser.tga" },
-
-	{ UI_ITEM1_PIC,     PT_MEDKIT,      "ui/assets/item_medkit.tga" },
-
-	{ UI_ITEM1_PIC,     PT_GRENADES,    "ui/assets/weapon_grenade.tga" },
-	{ UI_ITEM2_PIC,     PT_EXPLOSIVES,  "ui/assets/weapon_dynamite.tga" },
-
-	{ NULL, 0, NULL }
-};
-#endif
 
 extern displayContextDef_t *DC;
 

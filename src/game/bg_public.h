@@ -2169,18 +2169,7 @@ void BG_LinearPathOrigin2( float radius, splinePath_t** pSpline, float *deltaTim
 int BG_MaxAmmoForWeapon( weapon_t weaponNum, int *skill );
 
 void BG_InitLocations( vec2_t world_mins, vec2_t world_maxs );
-char *BG_GetLocationString( vec_t* pos );
-
-// START Mad Doc - TDF
-typedef struct botpool_x
-{
-	int num;
-	int playerclass;
-	int rank;
-	struct botpool_x *next;
-} botpool_t;
-
-// END Mad Doc - TDF
+const char *BG_GetLocationString( vec_t* pos );
 
 #define MAX_FIRETEAMS       12
 
@@ -2266,14 +2255,10 @@ int BG_simpleHintsCollapse( int hint, int val );
 int BG_simpleHintsExpand( int hint, int val );
 int BG_simpleWeaponState( int ws );
 
-// Color escape handling
-int BG_colorstrncpyz( char *in, char *out, int str_max, int out_max );
-int BG_drawStrlen( const char *str );
-int BG_strRelPos( char *in, int index );
-int BG_cleanName( const char *pszIn, char *pszOut, unsigned int dwMaxLength, qboolean fCRLF );
+int BG_cleanName( const char *pszIn, char *pszOut, int dwMaxLength, qboolean fCRLF );
 
 // Crosshair support
-void BG_setCrosshair( char *colString, float *col, float alpha, char *cvarName );
+void BG_setCrosshair( const char *colString, float *col, float alpha, const char *cvarName );
 
 // Voting
 #define VOTING_DISABLED     ( ( 1 << numVotesAvailable ) - 1 )

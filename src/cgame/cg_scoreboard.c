@@ -306,7 +306,7 @@ static void WM_DrawClientScore( int x, int y, score_t *score, float *color, floa
 			Q_strcat( buf, sizeof( buf ), va( "^%c%c", COLOR_RED + i, skillNames[i][0] ) );
 	}
 	maxchars--;
-	CG_DrawStringExt( tempx + ( BG_drawStrlen( ci->name ) * SMALLCHAR_WIDTH + SMALLCHAR_WIDTH ), y, buf, hcolor, qfalse, qfalse, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, maxchars );
+	CG_DrawStringExt( tempx + ( Q_PrintStrlen( ci->name ) * SMALLCHAR_WIDTH + SMALLCHAR_WIDTH ), y, buf, hcolor, qfalse, qfalse, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, maxchars );
 
 	tempx += INFO_PLAYER_WIDTH - offset;
 

@@ -1416,11 +1416,11 @@ void G_Say( gentity_t *ent, gentity_t *target, int mode, const char *chatText ) 
 	int j;
 	gentity_t   *other;
 	int color;
-	char name[64];
+	char name[64 + 8 + 15]; // name + location + formatting
 	// don't let text be too long for malicious reasons
 	char text[MAX_SAY_TEXT];
 	qboolean localize = qfalse;
-	char        *loc;
+	const char  *loc;
 
 	switch ( mode ) {
 	default:

@@ -5018,76 +5018,10 @@ int BG_simpleHintsExpand( int hint, int val ) {
 	return( 0 );
 }
 
-// Real printable charater count
-int BG_drawStrlen( const char *str ) {
-	int cnt = 0;
-
-	while ( *str ) {
-		if ( Q_IsColorString( str ) ) {
-			str += 2;
-		} else {
-			cnt++;
-			str++;
-		}
-	}
-	return( cnt );
-}
-
-
-// Copies a color string, with limit of real chars to print
-//		in = reference buffer w/color
-//		out = target buffer
-//		str_max = max size of printable string
-//		out_max = max size of target buffer
-//
-// Returns size of printable string
-int BG_colorstrncpyz( char *in, char *out, int str_max, int out_max ) {
-	int str_len = 0;    // current printable string size
-	int out_len = 0;    // current true string size
-	const int in_len = strlen( in );
-
-	out_max--;
-	while ( *in && out_len < out_max && str_len < str_max ) {
-		if ( *in == '^' ) {
-			if ( out_len + 2 >= in_len && out_len + 2 >= out_max ) {
-				break;
-			}
-
-			*out++ = *in++;
-			*out++ = *in++;
-			out_len += 2;
-			continue;
-		}
-
-		*out++ = *in++;
-		str_len++;
-		out_len++;
-	}
-
-	*out = 0;
-
-	return( str_len );
-}
-
-int BG_strRelPos( char *in, int index ) {
-	int cPrintable = 0;
-	const char *ref = in;
-
-	while ( *ref && cPrintable < index ) {
-		if ( Q_IsColorString( ref ) ) {
-			ref += 2;
-		} else {
-			ref++;
-			cPrintable++;
-		}
-	}
-
-	return( ref - in );
-}
 
 // strip colors and control codes, copying up to dwMaxLength-1 "good" chars and nul-terminating
 // returns the length of the cleaned string
-int BG_cleanName( const char *pszIn, char *pszOut, unsigned int dwMaxLength, qboolean fCRLF ) {
+int BG_cleanName( const char *pszIn, char *pszOut, int dwMaxLength, qboolean fCRLF ) {
 	const char *pInCopy = pszIn;
 	const char *pszOutStart = pszOut;
 
@@ -5107,12 +5041,12 @@ int BG_cleanName( const char *pszIn, char *pszOut, unsigned int dwMaxLength, qbo
 
 // Only used locally
 typedef struct {
-	char *colorname;
+	const char *colorname;
 	vec4_t *color;
 } colorTable_t;
 
 // Colors for crosshairs
-colorTable_t OSP_Colortable[] =
+static const colorTable_t OSP_Colortable[] =
 {
 	{ "white",       &colorWhite },
 	{ "red",     &colorRed },
@@ -5137,8 +5071,8 @@ colorTable_t OSP_Colortable[] =
 };
 
 extern void trap_Cvar_Set( const char *var_name, const char *value );
-void BG_setCrosshair( char *colString, float *col, float alpha, char *cvarName ) {
-	char *s = colString;
+void BG_setCrosshair( const char *colString, float *col, float alpha, const char *cvarName ) {
+	const char *s = colString;
 
 	col[0] = 1.0f;
 	col[1] = 1.0f;
@@ -5217,7 +5151,7 @@ void BG_InitLocations( vec2_t world_mins, vec2_t world_maxs ) {
 	locInfo.gridStartCoord[1] = world_mins[1] - .5f * ( ( ( ( world_mins[1] - world_maxs[1] ) / locInfo.gridStep[1] ) - ( (int)( ( world_mins[1] - world_maxs[1] ) / locInfo.gridStep[1] ) ) ) * locInfo.gridStep[1] );
 }
 
-char *BG_GetLocationString( vec_t* pos ) {
+const char *BG_GetLocationString( vec_t* pos ) {
 	static char coord[6];
 	int x, y;
 

@@ -1277,6 +1277,7 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 		}
 	}
 
+#if 0
 	if ( depthMaskExplicit && shader.sort == SS_BAD ) {
 		// fix decals on q3wcp18 and other maps
 		if ( blendSrcBits == GLS_SRCBLEND_SRC_ALPHA && blendDstBits == GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA /*&& stage->rgbGen == CGEN_VERTEX*/ ) {
@@ -1287,6 +1288,7 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 			shader.sort = SS_SEE_THROUGH;
 		}
 	}
+#endif
 
 	//
 	// compute state bits

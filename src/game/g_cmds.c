@@ -418,6 +418,11 @@ static void Cmd_Give_f( gentity_t *ent )
 		return;
 	}
 
+	if ( trap_Argc () < 2 ) {
+		trap_SendServerCommand( ent-g_entities, "print \"Usage: give <givestring>\n\"" );
+		return;
+	}
+
 	trap_Argv( 1, name, sizeof( name ) );
 	G_Give( ent, name, ConcatArgs( 2 ) );
 }
@@ -439,7 +444,7 @@ static void Cmd_GiveOther_f( gentity_t *ent )
 	}
 
 	trap_Argv( 1, otherindex, sizeof( otherindex ) );
-	i = ClientNumberFromString( ent, otherindex/*, qfalse*/ );
+	i = ClientNumberFromString( ent, otherindex );
 	if ( i == -1 ) {
 		return;
 	}
@@ -534,6 +539,59 @@ static void Cmd_God_f( gentity_t *ent ) {
 	}
 
 	trap_SendServerCommand( ent - g_entities, va( "print \"%s\"", msg ) );
+}
+
+static void Cmd_GodOther_f( gentity_t *ent )
+{
+	const char	*name, *msg;
+	int			i;
+	char		otherindex[MAX_TOKEN_CHARS];
+	gentity_t	*otherEnt = NULL;
+
+	if ( !CheatsOk( ent ) ) {
+		return;
+	}
+
+	if ( trap_Argc () < 2 ) {
+		trap_SendServerCommand( ent-g_entities, "print \"Usage: godother <player id> (on|off|empty for toggle)\n\"" );
+		return;
+	}
+
+	trap_Argv( 1, otherindex, sizeof( otherindex ) );
+	i = ClientNumberFromString( ent, otherindex );
+	if ( i == -1 ) {
+		return;
+	}
+
+	otherEnt = &g_entities[i];
+	if ( !otherEnt->inuse || !otherEnt->client ) {
+		return;
+	}
+
+	if ( otherEnt->health <= 0 )
+	{
+		// Intentionally displaying for the command user
+		trap_SendServerCommand( ent - g_entities, va( "print \"Target must be alive to use this command.\n\"" ) );
+		return;
+	}
+
+	name = ConcatArgs( 2 );
+
+	if ( !Q_stricmp( name, "on" ) || atoi( name ) ) {
+		otherEnt->flags |= FL_GODMODE;
+	} else if ( !Q_stricmp( name, "off" ) || !Q_stricmp( name, "0" ) ) {
+		otherEnt->flags &= ~FL_GODMODE;
+	} else {
+		otherEnt->flags ^= FL_GODMODE;
+	}
+	if ( !( otherEnt->flags & FL_GODMODE ) ) {
+		msg = "godmode OFF";
+	} else {
+		msg = "godmode ON";
+	}
+
+	trap_SendServerCommand( ent - g_entities, va( "print \"%s for %s^7\n\"", msg, otherEnt->client->pers.netname ) );
+	trap_SendServerCommand( otherEnt - g_entities, va( "print \"%s\n\"", msg ) );
 }
 
 /*
@@ -3298,8 +3356,12 @@ void ClientCommand( int clientNum ) {
 
 	if ( Q_stricmp( cmd, "give" ) == 0 ) {
 		Cmd_Give_f( ent );
+	} else if ( Q_stricmp( cmd, "giveother" ) == 0 ) {
+		Cmd_GiveOther_f( ent );
 	} else if ( Q_stricmp( cmd, "god" ) == 0 ) {
 		Cmd_God_f( ent );
+	} else if ( Q_stricmp( cmd, "godother" ) == 0 ) {
+		Cmd_GodOther_f( ent );
 	} else if ( Q_stricmp( cmd, "nofatigue" ) == 0 ) {
 		Cmd_Nofatigue_f( ent );
 	} else if ( Q_stricmp( cmd, "notarget" ) == 0 ) {

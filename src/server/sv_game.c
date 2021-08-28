@@ -370,7 +370,7 @@ static void *VM_ArgPtr( intptr_t intValue ) {
 		return NULL;
 
 	//if ( gvm->entryPoint )
-		return (void *)(intValue);
+	return (void *)(intValue);
 	//else
 	//	return (void *)(gvm->dataBase + (intValue & gvm->dataMask));
 }

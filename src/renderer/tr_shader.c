@@ -1277,10 +1277,12 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 		}
 	}
 
-#if 0
+#if 1
 	if ( depthMaskExplicit && shader.sort == SS_BAD ) {
+		if ( blendSrcBits == GLS_SRCBLEND_SRC_ALPHA && blendDstBits == GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA && stage->rgbGen == CGEN_LIGHTING_DIFFUSE && stage->alphaGen == AGEN_NORMALZFADE ) {
+			shader.sort = 16.0f;
 		// fix decals on q3wcp18 and other maps
-		if ( blendSrcBits == GLS_SRCBLEND_SRC_ALPHA && blendDstBits == GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA /*&& stage->rgbGen == CGEN_VERTEX*/ ) {
+		} else if ( blendSrcBits == GLS_SRCBLEND_SRC_ALPHA && blendDstBits == GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA && stage->bundle[0].image[0] != tr.whiteImage /*&& stage->rgbGen == CGEN_VERTEX*/ ) {
 			depthMaskBits &= ~GLS_DEPTHMASK_TRUE;
 			shader.sort = shader.polygonOffset ? SS_DECAL : SS_OPAQUE + 0.01f;
 		} else if ( blendSrcBits == GLS_SRCBLEND_ZERO && blendDstBits == GLS_DSTBLEND_ONE_MINUS_SRC_COLOR && stage->rgbGen == CGEN_EXACT_VERTEX ) {

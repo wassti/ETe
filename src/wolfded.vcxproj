@@ -218,7 +218,10 @@ nmake /f Makefile.vc6 CFG=release
     <ClCompile Include="server\sv_snapshot.c" />
     <ClCompile Include="server\sv_world.c" />
     <ClCompile Include="win32\win_dpi.c" />
-    <ClCompile Include="win32\win_eh.cpp" />
+    <ClCompile Include="win32\win_eh.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="win32\win_main.c" />
     <ClCompile Include="win32\win_shared.c" />
     <ClCompile Include="win32\win_syscon.c" />

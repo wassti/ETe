@@ -614,7 +614,7 @@ void GLimp_Init( glconfig_t *config )
 
 	glw_state.config = config; // feedback renderer configuration
 
-	in_nograb = Cvar_Get( "in_nograb", "0", CVAR_ARCHIVE );
+	in_nograb = Cvar_Get( "in_nograb", "0", 0 );
 
 	r_allowSoftwareGL = Cvar_Get( "r_allowSoftwareGL", "0", CVAR_LATCH );
 
@@ -707,7 +707,7 @@ void VKimp_Init( glconfig_t *config )
 
 	Com_DPrintf( "VKimp_Init()\n" );
 
-	in_nograb = Cvar_Get( "in_nograb", "0", CVAR_ARCHIVE );
+	in_nograb = Cvar_Get( "in_nograb", "0", 0 );
 
 	r_swapInterval = Cvar_Get( "r_swapInterval", "0", CVAR_ARCHIVE | CVAR_LATCH );
 	r_stereoEnabled = Cvar_Get( "r_stereoEnabled", "0", CVAR_ARCHIVE | CVAR_LATCH );

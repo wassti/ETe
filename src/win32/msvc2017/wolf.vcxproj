@@ -194,7 +194,6 @@
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <AdditionalIncludeDirectories>..\..\libcurl\windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ExceptionHandling>Async</ExceptionHandling>
-      <EnableEnhancedInstructionSet>NoExtensions</EnableEnhancedInstructionSet>
       <FloatingPointModel>Fast</FloatingPointModel>
     </ClCompile>
     <ResourceCompile>
@@ -234,7 +233,6 @@
       <WarningLevel>Level4</WarningLevel>
       <DisableSpecificWarnings>4091</DisableSpecificWarnings>
       <SuppressStartupBanner>true</SuppressStartupBanner>
-      <EnableEnhancedInstructionSet>NoExtensions</EnableEnhancedInstructionSet>
       <ExceptionHandling>Async</ExceptionHandling>
       <AdditionalIncludeDirectories>..\..\libcurl\windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>

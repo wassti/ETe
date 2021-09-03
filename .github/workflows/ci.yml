@@ -244,9 +244,9 @@ jobs:
           7z a -r -tzip mp_bina.pk3      ./cgame*.dll
           7z a -r -tzip mp_bina.pk3      ./ui*.dll
           cd ..
-          7z a -r ete-etmain-all.zip      ./etmain/*.pk3
-          7z a -r ete-etmain-all.zip      ./etmain/*.so
-          7z a -r ete-etmain-all.zip      ./etmain/*.dll
+          7z a -r ete-etmain-mod-replacement-allplatform.zip      ./etmain/*.pk3
+          7z a -r ete-etmain-mod-replacement-allplatform.zip      ./etmain/*.so
+          7z a -r ete-etmain-mod-replacement-allplatform.zip      ./etmain/*.dll
 
       - name: Create Client Hashes
         run: |
@@ -287,21 +287,3 @@ jobs:
           title: Latest Build
           files: |
             *.zip
-  
-  #mp_bin:
-  #  name: Generate mp_bina.pk3
-  #  runs-on: ubuntu-latest
-  #  needs: [ windows-msvc-etmain, ubuntu-x86-etmain ] #, macos-x86-etmain ]
-  #  steps:
-  #    #- uses: actions/checkout@v2
-#
-  #    - uses: actions/download-artifact@v2
-#
-  #    - name: Generate the pk3
-  #      run: |
-  #        zip -rvj mp_bina.pk3 linux-x86/*.so linux-x86_64/*.so macos-x86_64/*.dylib windows-x86/*.dll -x qagame*.so -x qagame*.dll -x qagame*.dylib
-#
-  #    - uses: actions/upload-artifact@v2
-  #      with:
-  #        name: etmain-all-os-pak
-  #        path: mp_bina.pk3

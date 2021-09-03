@@ -88,11 +88,13 @@ If you have questions concerning this license or the applicable additional terms
 //#pragma warning(disable : 4136)
 #pragma warning(disable	: 4152)		// nonstandard extension, function/data pointer conversion in expression
 #pragma warning(disable : 4200)		// nonstandard extension used: size-sided array in struct/union
-#pragma warning(disable : 4201)
+//#pragma warning(disable : 4201)		// nonstandard extension used : nameless struct/union
+//#pragma warning(disable : 4206)		// nonstandard extension used: translation unit is empty
 //#pragma warning(disable : 4214)
+#pragma warning(disable : 4267)		// conversion from 'size_t' to 'int', possible loss of data
 #pragma warning(disable : 4244)
-//#pragma warning(disable : 4142)	// benign redefinition
-#pragma warning(disable : 4305)		// truncation from const double to float
+#pragma warning(disable : 4142)		// benign redefinition
+//#pragma warning(disable : 4305)		// truncation from const double to float
 //#pragma warning(disable : 4310)	// cast truncates constant value
 //#pragma warning(disable :	4505)	// unreferenced local function has been removed
 //#pragma warning(disable : 4514)
@@ -101,6 +103,7 @@ If you have questions concerning this license or the applicable additional terms
 #pragma warning(disable : 4220)		// varargs matches remaining parameters
 #pragma warning(disable : 4324)		// 'q_jpeg_error_mgr_s' : structure was padded due to alignment specifier
 #pragma warning(disable : 4091)		// 'typedef': ignored on lef of <..> when no variable is declared
+//#pragma intrinsic( memset, memcpy )
 #endif
 
 //Ignore __attribute__ on non-gcc/clang platforms

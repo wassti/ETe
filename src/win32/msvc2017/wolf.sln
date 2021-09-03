@@ -2,11 +2,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.26730.16
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Splines", "splines\Splines.vcxproj", "{0C24E6E9-2B9F-43AE-ADB7-B7693966F41E}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Splines", "Splines.vcxproj", "{0C24E6E9-2B9F-43AE-ADB7-B7693966F41E}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "botlib", "botlib\botlib.vcxproj", "{EFA65954-05A8-43C4-B4FE-FAFE8E678AB7}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "botlib", "botlib.vcxproj", "{EFA65954-05A8-43C4-B4FE-FAFE8E678AB7}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "renderer", "renderer\renderer.vcxproj", "{7906CC4F-E230-4049-A3EF-EA7F64E73DDE}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "renderer", "renderer.vcxproj", "{7906CC4F-E230-4049-A3EF-EA7F64E73DDE}"
 	ProjectSection(ProjectDependencies) = postProject
 		{17867AF4-12CB-4847-A13E-BF37D8BDF597} = {17867AF4-12CB-4847-A13E-BF37D8BDF597}
 	EndProjectSection
@@ -16,15 +16,15 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "wolf", "wolf.vcxproj", "{B6
 		{17867AF4-12CB-4847-A13E-BF37D8BDF597} = {17867AF4-12CB-4847-A13E-BF37D8BDF597}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libjpeg", "jpeg-8c\libjpeg.vcxproj", "{17867AF4-12CB-4847-A13E-BF37D8BDF597}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libjpeg", "libjpeg.vcxproj", "{17867AF4-12CB-4847-A13E-BF37D8BDF597}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "wolfded", "wolfded.vcxproj", "{7815162A-BB04-4C87-919D-415B1C1ED2FF}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "cgame", "cgame\cgame.vcxproj", "{68A804FC-00C3-44E2-A479-3DB3D20F943D}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "cgame", "cgame.vcxproj", "{68A804FC-00C3-44E2-A479-3DB3D20F943D}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "game", "game\game.vcxproj", "{4F8332D7-5687-4875-813A-A1B7AA479C2D}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "game", "game.vcxproj", "{4F8332D7-5687-4875-813A-A1B7AA479C2D}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ui", "ui\ui.vcxproj", "{4C02EEB1-33AA-41C5-9A96-609161DF1635}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ui", "ui.vcxproj", "{4C02EEB1-33AA-41C5-9A96-609161DF1635}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

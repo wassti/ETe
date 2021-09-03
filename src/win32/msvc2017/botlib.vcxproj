@@ -5,13 +5,13 @@
       <Configuration>Debug</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|Win32">
-      <Configuration>Release</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
     <ProjectConfiguration Include="Debug|x64">
       <Configuration>Debug</Configuration>
       <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="Release|x64">
       <Configuration>Release</Configuration>
@@ -19,7 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{0C24E6E9-2B9F-43AE-ADB7-B7693966F41E}</ProjectGuid>
+    <ProjectGuid>{EFA65954-05A8-43C4-B4FE-FAFE8E678AB7}</ProjectGuid>
     <WindowsTargetPlatformVersion>7.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -88,7 +88,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
-      <PreprocessorDefinitions>NDEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_LIB;BOTLIB;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <BufferSecurityCheck>false</BufferSecurityCheck>
@@ -112,10 +112,9 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>_DEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_LIB;BOTLIB;DEBUG;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
       <ObjectFileName>$(IntDir)</ObjectFileName>
       <ProgramDataBaseFileName>$(IntDir)</ProgramDataBaseFileName>
@@ -141,7 +140,7 @@
     </Midl>
     <ClCompile>
       <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
-      <PreprocessorDefinitions>NDEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_LIB;BOTLIB;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <BufferSecurityCheck>false</BufferSecurityCheck>
@@ -167,10 +166,9 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>_DEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_LIB;BOTLIB;DEBUG;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
       <ObjectFileName>$(IntDir)</ObjectFileName>
       <ProgramDataBaseFileName>$(IntDir)</ProgramDataBaseFileName>
@@ -190,24 +188,80 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="math_angles.cpp" />
-    <ClCompile Include="math_matrix.cpp" />
-    <ClCompile Include="math_quaternion.cpp" />
-    <ClCompile Include="math_vector.cpp" />
-    <ClCompile Include="q_parse.cpp" />
-    <ClCompile Include="q_shared.c" />
-    <ClCompile Include="splines.cpp" />
-    <ClCompile Include="util_str.cpp" />
+    <ClCompile Include="..\..\botlib\be_aas_bspq3.c" />
+    <ClCompile Include="..\..\botlib\be_aas_cluster.c" />
+    <ClCompile Include="..\..\botlib\be_aas_debug.c" />
+    <ClCompile Include="..\..\botlib\be_aas_entity.c" />
+    <ClCompile Include="..\..\botlib\be_aas_file.c" />
+    <ClCompile Include="..\..\botlib\be_aas_main.c" />
+    <ClCompile Include="..\..\botlib\be_aas_move.c" />
+    <ClCompile Include="..\..\botlib\be_aas_optimize.c" />
+    <ClCompile Include="..\..\botlib\be_aas_reach.c" />
+    <ClCompile Include="..\..\botlib\be_aas_route.c" />
+    <ClCompile Include="..\..\botlib\be_aas_routealt.c" />
+    <ClCompile Include="..\..\botlib\be_aas_routetable.c" />
+    <ClCompile Include="..\..\botlib\be_aas_sample.c" />
+    <ClCompile Include="..\..\botlib\be_ai_char.c" />
+    <ClCompile Include="..\..\botlib\be_ai_chat.c" />
+    <ClCompile Include="..\..\botlib\be_ai_gen.c" />
+    <ClCompile Include="..\..\botlib\be_ai_goal.c" />
+    <ClCompile Include="..\..\botlib\be_ai_move.c" />
+    <ClCompile Include="..\..\botlib\be_ai_weap.c" />
+    <ClCompile Include="..\..\botlib\be_ai_weight.c" />
+    <ClCompile Include="..\..\botlib\be_ea.c" />
+    <ClCompile Include="..\..\botlib\be_interface.c" />
+    <ClCompile Include="..\..\botlib\l_crc.c" />
+    <ClCompile Include="..\..\botlib\l_libvar.c" />
+    <ClCompile Include="..\..\botlib\l_log.c" />
+    <ClCompile Include="..\..\botlib\l_memory.c" />
+    <ClCompile Include="..\..\botlib\l_precomp.c" />
+    <ClCompile Include="..\..\botlib\l_script.c" />
+    <ClCompile Include="..\..\botlib\l_struct.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="math_angles.h" />
-    <ClInclude Include="math_matrix.h" />
-    <ClInclude Include="math_quaternion.h" />
-    <ClInclude Include="math_vector.h" />
-    <ClInclude Include="q_shared.h" />
-    <ClInclude Include="splines.h" />
-    <ClInclude Include="util_list.h" />
-    <ClInclude Include="util_str.h" />
+    <ClInclude Include="..\..\botlib\aasfile.h" />
+    <ClInclude Include="..\..\botlib\be_aas_bsp.h" />
+    <ClInclude Include="..\..\botlib\be_aas_cluster.h" />
+    <ClInclude Include="..\..\botlib\be_aas_debug.h" />
+    <ClInclude Include="..\..\botlib\be_aas_def.h" />
+    <ClInclude Include="..\..\botlib\be_aas_entity.h" />
+    <ClInclude Include="..\..\botlib\be_aas_file.h" />
+    <ClInclude Include="..\..\botlib\be_aas_funcs.h" />
+    <ClInclude Include="..\..\botlib\be_aas_main.h" />
+    <ClInclude Include="..\..\botlib\be_aas_move.h" />
+    <ClInclude Include="..\..\botlib\be_aas_optimize.h" />
+    <ClInclude Include="..\..\botlib\be_aas_reach.h" />
+    <ClInclude Include="..\..\botlib\be_aas_route.h" />
+    <ClInclude Include="..\..\botlib\be_aas_routealt.h" />
+    <ClInclude Include="..\..\botlib\be_aas_routetable.h" />
+    <ClInclude Include="..\..\botlib\be_aas_sample.h" />
+    <ClInclude Include="..\..\botlib\be_ai_weight.h" />
+    <ClInclude Include="..\..\botlib\be_interface.h" />
+    <ClInclude Include="..\..\botlib\l_crc.h" />
+    <ClInclude Include="..\..\botlib\l_libvar.h" />
+    <ClInclude Include="..\..\botlib\l_log.h" />
+    <ClInclude Include="..\..\botlib\l_memory.h" />
+    <ClInclude Include="..\..\botlib\l_precomp.h" />
+    <ClInclude Include="..\..\botlib\l_script.h" />
+    <ClInclude Include="..\..\botlib\l_struct.h" />
+    <ClInclude Include="..\..\botlib\l_utils.h" />
+    <ClInclude Include="..\..\game\be_aas.h" />
+    <ClInclude Include="..\..\game\be_ai_char.h" />
+    <ClInclude Include="..\..\game\be_ai_chat.h" />
+    <ClInclude Include="..\..\game\be_ai_gen.h" />
+    <ClInclude Include="..\..\game\be_ai_goal.h" />
+    <ClInclude Include="..\..\game\be_ai_move.h" />
+    <ClInclude Include="..\..\game\be_ai_weap.h" />
+    <ClInclude Include="..\..\game\be_ea.h" />
+    <ClInclude Include="..\..\game\botlib.h" />
+    <ClInclude Include="..\..\game\bg_public.h" />
+    <ClInclude Include="..\..\game\g_public.h" />
+    <ClInclude Include="..\..\qcommon\cm_public.h" />
+    <ClInclude Include="..\..\qcommon\qcommon.h" />
+    <ClInclude Include="..\..\qcommon\qfiles.h" />
+    <ClInclude Include="..\..\qcommon\q_shared.h" />
+    <ClInclude Include="..\..\game\surfaceflags.h" />
+    <ClInclude Include="..\..\server\server.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

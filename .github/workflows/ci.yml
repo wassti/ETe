@@ -35,6 +35,7 @@ jobs:
          # - arch: arm64
          #   platform: ARM64
          #   suffix: .arm64
+         #   pkg_suffix: arm64
 
           - arch: x86
             platform: Win32
@@ -42,7 +43,7 @@ jobs:
 
           - arch: x64
             platform: x64
-            suffix: .x86_64
+            suffix: .x64
             pkg_suffix: x86_64
 
     steps:
@@ -52,42 +53,33 @@ jobs:
       with:
         submodules: recursive
 
-    - name: Create Binary Directory
-      working-directory: ${{github.workspace}}
-      run: mkdir bin
-      #run: cmake -E make_directory ${{github.workspace}}/bin
-
     - name: Build Engine
       working-directory: ${{github.workspace}}/src
       run: |
         msbuild win32\msvc2017\wolfded.vcxproj -m -p:PlatformToolset=v141_xp,TargetName=ETe.ded,Configuration=${{ matrix.config }},Platform=${{ matrix.platform }}
         msbuild win32\msvc2017\renderer.vcxproj -m -p:PlatformToolset=v141_xp,Configuration=${{ matrix.config }},Platform=${{ matrix.platform }}
-        msbuild win32\msvc2017\wolf.vcxproj -m -p:PlatformToolset=v141_xp,Configuration=${{ matrix.config }},Platform=${{ matrix.platform }},UseWasapi=USE_WASAPI=0
+        msbuild win32\msvc2017\wolf.vcxproj -m -p:PlatformToolset=v141_xp,TargetName=ETe,Configuration=${{ matrix.config }},Platform=${{ matrix.platform }},UseWasapi=USE_WASAPI=0
 
     - name: Build etmain
       working-directory: ${{github.workspace}}/src
-      if: matrix.arch == 'x86'
       run: |
         msbuild win32\msvc2017\game.vcxproj -m -p:PlatformToolset=v141_xp,Configuration=${{ matrix.config }},Platform=${{ matrix.platform }}
         msbuild win32\msvc2017\ui.vcxproj -m -p:PlatformToolset=v141_xp,Configuration=${{ matrix.config }},Platform=${{ matrix.platform }}
         msbuild win32\msvc2017\cgame.vcxproj -m -p:PlatformToolset=v141_xp,Configuration=${{ matrix.config }},Platform=${{ matrix.platform }}
 
+    - name: Create Binary Directory
+      working-directory: ${{github.workspace}}
+      run: mkdir bin
+
     - name: Copy outputs to Binary Directory
       working-directory: ${{github.workspace}}/src
-      if: matrix.arch == 'x86'
       run: |
-          copy win32\msvc2017\output\${{ matrix.config }}\ETe.ded.exe ${{github.workspace}}\bin\ETe-ded${{ matrix.suffix }}.exe
+          copy win32\msvc2017\output\${{ matrix.config }}\ETe.ded.exe ${{github.workspace}}\bin\ETe.ded${{ matrix.suffix }}.exe
           copy win32\msvc2017\output\${{ matrix.config }}\ETe.exe ${{github.workspace}}\bin\ETe${{ matrix.suffix }}.exe
-          copy win32\msvc2017\output\${{ matrix.config }}\qagame_mp_${{ matrix.pkg_suffix }}.dll ${{github.workspace}}\bin\
-          copy win32\msvc2017\output\${{ matrix.config }}\ui_mp_{{ matrix.pkg_suffix }}.dll ${{github.workspace}}\bin\
-          copy win32\msvc2017\output\${{ matrix.config }}\cgame_mp_{{ matrix.pkg_suffix }}.dll ${{github.workspace}}\bin\
 
-    #- name: Copy outputs to Binary Directory
-    #  working-directory: ${{github.workspace}}/src
-    #  if: matrix.arch == 'x64'
-    #  run: |
-    #      copy ded\Release\ETe-ded.exe ${{github.workspace}}\bin\ETe-ded${{ matrix.suffix }}.exe
-    #      copy Release\ETe.exe ${{github.workspace}}\bin\ETe${{ matrix.suffix }}.exe
+          copy win32\msvc2017\output\${{ matrix.config }}\qagame_mp_${{ matrix.pkg_suffix }}.dll ${{github.workspace}}\bin\
+          copy win32\msvc2017\output\${{ matrix.config }}\ui_mp_${{ matrix.pkg_suffix }}.dll ${{github.workspace}}\bin\
+          copy win32\msvc2017\output\${{ matrix.config }}\cgame_mp_${{ matrix.pkg_suffix }}.dll ${{github.workspace}}\bin\
 
     - uses: actions/upload-artifact@v2
       if: ${{ matrix.config == 'Release' }}

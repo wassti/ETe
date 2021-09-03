@@ -233,14 +233,16 @@ jobs:
 
       - name: Create binary archives
         run: |
-          7z a -r ete-linux-x86.zip           ./linux-x86/* -x!*.so
+          7z a -r ete-linux-x86.zip            ./linux-x86/* -x!*.so
           7z a -r ete-linux-x86_64.zip         ./linux-x86_64/* -x!*.so
           7z a -r ete-windows-msvc-x86.zip     ./windows-x86/* -x!*.dll
+          7z a -r ete-windows-msvc-x86_64.zip  ./windows-x86_64/* -x!*.dll
           7z a -r ete-macos-x86_64.zip         ./macos-x86_64/* -x!*.dylib
           mkdir -p etmain
           mv -t  ./etmain/ ./linux-x86/*.so
           mv -t  ./etmain/ ./linux-x86_64/*.so
           mv -t  ./etmain/ ./windows-x86/*.dll
+          mv -t  ./etmain/ ./windows-x86_64/*.dll
           mv -t  ./etmain/ ./macos-x86_64/*.dylib
           cd etmain
           7z a -r -tzip mp_bina.pk3      ./cgame*.so
@@ -256,22 +258,24 @@ jobs:
         run: |
           md5sum ./linux-x86/ete.x86 > ete.x86.md5
           sha1sum ./linux-x86/ete.x86 > ete.x86.sha1
-          7z a -r ete-linux-x86.zip ete.x86.md5 ete.x86.sha1
+          7z a -r ete-client-hashes.zip ete.x86.md5 ete.x86.sha1
           md5sum ./linux-x86_64/ete.x86_64 > ete.x86_64.md5
           sha1sum ./linux-x86_64/ete.x86_64 > ete.x86_64.sha1
-          7z a -r ete-linux-x86_64.zip ete.x86_64.md5 ete.x86_64.sha1
+          7z a -r ete-client-hashes.zip ete.x86_64.md5 ete.x86_64.sha1
           md5sum ./windows-x86/ETe.exe > ETe.exe.md5
           sha1sum ./windows-x86/ETe.exe > ETe.exe.sha1
-          7z a -r ete-windows-msvc-x86.zip ETe.exe.md5 ETe.exe.sha1
+          7z a -r ete-client-hashes.zip ETe.exe.md5 ETe.exe.sha1
+          md5sum ./windows-x86_64/ETe.x64.exe > ETe.x64.exe.md5
+          sha1sum ./windows-x86_64/ETe.x64.exe > ETe.x64.exe.sha1
+          7z a -r ete-client-hashes.zip ETe.x64.exe.md5 ETe.x64.exe.sha1
           md5sum ./macos-x86_64/ete.x86_64 > ete_mac.x86_64.md5
           sha1sum ./macos-x86_64/ete.x86_64 > ete_mac.x86_64.sha1
-          7z a -r ete-macos-x86_64.zip ete_mac.x86_64.md5 ete_mac.x86_64.sha1
+          7z a -r ete-client-hashes.zip ete_mac.x86_64.md5 ete_mac.x86_64.sha1
 
 #TODO other builds
 #NOTE purposely skipping etmain for macos as it is not really functional
 #7z a -r ete-windows-mingw-x86.zip    ./windows-mingw-x86/* -x!*.dll
 #7z a -r ete-windows-mingw-x86_64.zip ./windows-mingw-x86_64/* -x!*.dll
-#7z a -r ete-windows-msvc-x86_64.zip  ./windows-x86_64/* -x!*.dll
 #7z a -r ete-windows-msvc-arm64.zip   ./windows-arm64/* -x!*.dll
 #7z a -r ete-macos-arm64.zip         ./macos-arm64/* -x!*.dylib
 #7z a -r ete-linux-aarch64.zip  ./linux-aarch64/*

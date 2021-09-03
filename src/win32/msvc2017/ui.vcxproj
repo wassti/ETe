@@ -68,26 +68,26 @@
     <XPDeprecationWarning>false</XPDeprecationWarning>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <OutDir>..\output\$(Configuration)\</OutDir>
-    <IntDir>..\build\$(ProjectName)_$(Configuration)_$(PlatformTarget)\</IntDir>
+    <OutDir>.\output\$(Configuration)\</OutDir>
+    <IntDir>.\build\$(ProjectName)_$(Configuration)_$(PlatformTarget)\</IntDir>
     <TargetName>ui_mp_x86</TargetName>
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <OutDir>..\output\$(Configuration)\</OutDir>
-    <IntDir>..\build\$(ProjectName)_$(Configuration)_$(PlatformTarget)\</IntDir>
+    <OutDir>.\output\$(Configuration)\</OutDir>
+    <IntDir>.\build\$(ProjectName)_$(Configuration)_$(PlatformTarget)\</IntDir>
     <TargetName>ui_mp_x86</TargetName>
     <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <OutDir>..\output\$(Configuration)\</OutDir>
-    <IntDir>..\build\$(ProjectName)_$(Configuration)_$(PlatformTarget)\</IntDir>
+    <OutDir>.\output\$(Configuration)\</OutDir>
+    <IntDir>.\build\$(ProjectName)_$(Configuration)_$(PlatformTarget)\</IntDir>
     <TargetName>ui_mp_x86_64</TargetName>
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <OutDir>..\output\$(Configuration)\</OutDir>
-    <IntDir>..\build\$(ProjectName)_$(Configuration)_$(PlatformTarget)\</IntDir>
+    <OutDir>.\output\$(Configuration)\</OutDir>
+    <IntDir>.\build\$(ProjectName)_$(Configuration)_$(PlatformTarget)\</IntDir>
     <TargetName>ui_mp_x86_64</TargetName>
     <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>

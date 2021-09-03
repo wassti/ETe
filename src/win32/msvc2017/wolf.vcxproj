@@ -131,6 +131,7 @@
       <ProgramDatabaseFile>$(IntDir)ETe-debug.pdb</ProgramDatabaseFile>
       <GenerateMapFile>true</GenerateMapFile>
       <MapFileName>$(IntDir)ETe-debug.map</MapFileName>
+      <TargetMachine>MachineX86</TargetMachine>
       <SubSystem>Windows</SubSystem>
       <StackReserveSize>8388608</StackReserveSize>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
@@ -211,6 +212,7 @@
       <ProgramDatabaseFile>$(IntDir)ETe-debug-x64.pdb</ProgramDatabaseFile>
       <GenerateMapFile>true</GenerateMapFile>
       <MapFileName>$(IntDir)ETe-debug-x64.map</MapFileName>
+      <TargetMachine>MachineX64</TargetMachine>
       <SubSystem>Windows</SubSystem>
       <StackReserveSize>8388608</StackReserveSize>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>

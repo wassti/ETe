@@ -123,7 +123,7 @@
     </ResourceCompile>
     <Link>
       <AdditionalOptions>/MACHINE:I386 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>comctl32.lib;dinput8.lib;winmm.lib;wsock32.lib;ws2_32.lib;Iphlpapi.lib;$(OutDir)$(ConfigurationName)-$(PlatformName)-renderer.lib;libcurl\windows\vs2017\lib32\libcurl_a_debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;dinput8.lib;winmm.lib;wsock32.lib;ws2_32.lib;Iphlpapi.lib;$(OutDir)$(ConfigurationName)-$(PlatformName)-renderer.lib;..\..\libcurl\windows\vs2017\lib32\libcurl_a_debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <IgnoreSpecificDefaultLibraries>libcd;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
@@ -163,7 +163,7 @@
     </ResourceCompile>
     <Link>
       <AdditionalOptions>/MACHINE:I386 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>comctl32.lib;dinput8.lib;winmm.lib;wsock32.lib;ws2_32.lib;Iphlpapi.lib;$(OutDir)$(ConfigurationName)-$(PlatformName)-renderer.lib;libcurl\windows\vs2017\lib32\libcurl_a.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;dinput8.lib;winmm.lib;wsock32.lib;ws2_32.lib;Iphlpapi.lib;$(OutDir)$(ConfigurationName)-$(PlatformName)-renderer.lib;..\..\libcurl\windows\vs2017\lib32\libcurl_a.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <IgnoreSpecificDefaultLibraries>libc;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
@@ -204,7 +204,7 @@
     </ResourceCompile>
     <Link>
       <AdditionalOptions>/MACHINE:X64 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>comctl32.lib;dinput8.lib;winmm.lib;wsock32.lib;ws2_32.lib;Iphlpapi.lib;$(OutDir)$(ConfigurationName)-$(PlatformName)-renderer.lib;libcurl\windows\vs2017\lib64\libcurl_a_debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;dinput8.lib;winmm.lib;wsock32.lib;ws2_32.lib;Iphlpapi.lib;$(OutDir)$(ConfigurationName)-$(PlatformName)-renderer.lib;..\..\libcurl\windows\vs2017\lib64\libcurl_a_debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <IgnoreSpecificDefaultLibraries>libcd;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
@@ -244,7 +244,7 @@
     </ResourceCompile>
     <Link>
       <AdditionalOptions>/MACHINE:X64 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>comctl32.lib;dinput8.lib;winmm.lib;wsock32.lib;ws2_32.lib;Iphlpapi.lib;$(OutDir)$(ConfigurationName)-$(PlatformName)-renderer.lib;libcurl\windows\vs2017\lib64\libcurl_a.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;dinput8.lib;winmm.lib;wsock32.lib;ws2_32.lib;Iphlpapi.lib;$(OutDir)$(ConfigurationName)-$(PlatformName)-renderer.lib;..\..\libcurl\windows\vs2017\lib64\libcurl_a.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <IgnoreSpecificDefaultLibraries>libc;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>

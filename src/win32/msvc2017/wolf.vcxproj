@@ -339,6 +339,16 @@
     <ClCompile Include="..\win_wndproc.c" />
   </ItemGroup>
   <ItemGroup>
+    <CustomBuild Include="..\..\asm\snd_mix_x64.asm">
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Assembling...</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">ml64 /c /Zi /Fo"$(IntDir)%(Filename)%(Extension).obj" "%(FullPath)"</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)%(Filename)%(Extension).obj;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Assembling...</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">ml64 /c /Zi /Fo"$(IntDir)%(Filename)%(Extension).obj" "%(FullPath)"</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)%(Filename)%(Extension).obj;%(Outputs)</Outputs>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
     <ClInclude Include="..\..\cgame\cg_public.h" />
     <ClInclude Include="..\..\client\client.h" />
     <ClInclude Include="..\..\client\cl_curl.h" />

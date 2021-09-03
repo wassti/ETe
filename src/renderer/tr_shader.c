@@ -2139,7 +2139,7 @@ static qboolean ParseShader( const char **text )
 			if ( fogvar == 0 ) {       // '0' specifies "use the map values for everything except the fog color
 				// TODO
 			} else if ( fogvar > 1 )      { // distance "linear" fog
-				R_SetFog( FOG_WATER, 0, fogvar, watercolor[0], watercolor[1], watercolor[2], 1.1 );
+				R_SetFog( FOG_WATER, 0, fogvar, watercolor[0], watercolor[1], watercolor[2], 1.1f );
 			} else {                      // density "exp" fog
 				R_SetFog( FOG_WATER, 0, 5, watercolor[0], watercolor[1], watercolor[2], fogvar );
 			}

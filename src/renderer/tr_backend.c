@@ -582,7 +582,7 @@ static void RB_BeginDrawingView( void ) {
 				qglClearColor( glfogsettings[FOG_CURRENT].color[0], glfogsettings[FOG_CURRENT].color[1], glfogsettings[FOG_CURRENT].color[2], glfogsettings[FOG_CURRENT].color[3] );
 			} else {
 //				qglClearColor ( 0.0, 0.0, 1.0, 1.0 );	// blue clear for testing world sky clear
-				qglClearColor( 0.05, 0.05, 0.05, 1.0 );  // JPW NERVE changed per id req was 0.5s
+				qglClearColor( 0.05f, 0.05f, 0.05f, 1.0f );  // JPW NERVE changed per id req was 0.5s
 			}
 		} else {        // world scene, no portal sky, not fastsky, clear color if fog says to, otherwise, just set the clearcolor
 			if ( glfogsettings[FOG_CURRENT].registered ) { // try to clear fastsky with current fog color

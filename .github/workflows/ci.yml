@@ -29,7 +29,7 @@ jobs:
       matrix:
         #arch: [arm64, x86, x64]
         #arch: [x86, x64]
-        arch: [x86]
+        arch: [x86, x64]
         config: [Release]
         include:
          # - arch: arm64
@@ -39,9 +39,9 @@ jobs:
           - arch: x86
             platform: Win32
 
-          #- arch: x64
-          #  platform: x64
-          #  suffix: .x86_64
+          - arch: x64
+            platform: x64
+            suffix: .x86_64
 
     steps:
     - uses: microsoft/setup-msbuild@v1.0.2
@@ -64,6 +64,7 @@ jobs:
 
     - name: Build etmain
       working-directory: ${{github.workspace}}/src
+      if: matrix.arch == 'x86'
       run: |
         msbuild game\game.vcxproj -m -p:PlatformToolset=v141_xp,Configuration=${{ matrix.config }},Platform=${{ matrix.platform }}
         msbuild ui\ui.vcxproj -m -p:PlatformToolset=v141_xp,Configuration=${{ matrix.config }},Platform=${{ matrix.platform }}
@@ -71,12 +72,20 @@ jobs:
 
     - name: Copy outputs to Binary Directory
       working-directory: ${{github.workspace}}/src
+      if: matrix.arch == 'x86'
       run: |
-          copy ded\Release\ETe-ded.exe ${{github.workspace}}\bin\ETe-ded${{ matrix.suffix }}.exe
-          copy Release\ETe.exe ${{github.workspace}}\bin\ETe${{ matrix.suffix }}.exe
+          copy output\ETe.ded.exe ${{github.workspace}}\bin\ETe-ded${{ matrix.suffix }}.exe
+          copy output\ETe.exe ${{github.workspace}}\bin\ETe${{ matrix.suffix }}.exe
           copy Release\qagame_mp_x86.dll ${{github.workspace}}\bin\
           copy Release\ui_mp_x86.dll ${{github.workspace}}\bin\
           copy Release\cgame_mp_x86.dll ${{github.workspace}}\bin\
+
+    #- name: Copy outputs to Binary Directory
+    #  working-directory: ${{github.workspace}}/src
+    #  if: matrix.arch == 'x64'
+    #  run: |
+    #      copy ded\Release\ETe-ded.exe ${{github.workspace}}\bin\ETe-ded${{ matrix.suffix }}.exe
+    #      copy Release\ETe.exe ${{github.workspace}}\bin\ETe${{ matrix.suffix }}.exe
     - uses: actions/upload-artifact@v2
       if: ${{ matrix.config == 'Release' }}
       with:

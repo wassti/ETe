@@ -1297,7 +1297,7 @@ UI_DllSyscall
 */
 static intptr_t QDECL UI_DllSyscall( intptr_t arg, ... ) {
 #if !id386 || defined __clang__
-	intptr_t	args[10]; // max.count for UI
+	intptr_t	args[11]; // max.count for UI
 	va_list	ap;
 	int i;
 

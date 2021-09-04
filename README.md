@@ -5,7 +5,9 @@
 This is a modern Wolfenstein: Enemy Territory engine aimed to be fast, secure and compatible with many existing ET mods and etmain.
 It is based on the [Quake3e](https://github.com/ec-/Quake3e) engine which itself is based on the last non-SDL source dump of [ioquake3](https://github.com/ioquake/ioq3) with latest upstream fixes applied. Several common fixes from upstream [ET:Legacy](https://github.com/etlegacy/etlegacy) also are applied as needed for security.
 
-Go to [Releases](../../releases) section to download latest binaries for your platform or follow [Build Instructions](#build-instructions)
+Go to [Releases](../../releases) section to download latest binaries for your platform or follow [Build Instructions](#build-instructions).
+
+**Notes**: Skip the ete-etmain-mod-replacement-allplatform.zip unless you know what you are doing. You will want **ete-docs.zip** and **ete-platform-name.zip** when downloading prebuilt packages. 64-bit (x86_64) platforms are unstable currently with bugs that do not exist under 32-bit platforms.
 
 *This repository does not contain any game content, so in order to play you must copy the resulting binaries into your existing Wolfenstein: Enemy Territory installation*
 

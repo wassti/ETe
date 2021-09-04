@@ -7,7 +7,7 @@ It is based on the [Quake3e](https://github.com/ec-/Quake3e) engine which itself
 
 Go to [Releases](../../releases) section to download latest binaries for your platform or follow [Build Instructions](#build-instructions).
 
-**Notes**: Skip the ete-etmain-mod-replacement-allplatform.zip unless you know what you are doing. You will want **ete-docs.zip** and **ete-platform-name.zip** when downloading prebuilt packages. 64-bit (x86_64) platforms are unstable currently with bugs that do not exist under 32-bit platforms.
+**Notes**: Skip the **ete-etmain-mod-replacement-allplatform.zip** unless you know what you are doing. You will want **ete-docs.zip** and **ete-platform-name.zip** when downloading prebuilt packages. 64-bit (x86_64) platforms are unstable currently with bugs that do not exist under 32-bit platforms.
 
 *This repository does not contain any game content, so in order to play you must copy the resulting binaries into your existing Wolfenstein: Enemy Territory installation*
 

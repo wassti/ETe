@@ -377,6 +377,10 @@ static void R_InitExtensions( void )
 	version = Q_atof( (const char *)qglGetString( GL_VERSION ) );
 	gl_version = (int)(version * 10.001);
 
+	if ( Q_stristr( glConfig.vendor_string, "Microsoft" ) && Q_stristr( glConfig.renderer_string, "GDI Generic" ) ) {
+		ri.Printf( PRINT_WARNING, "WARNING: Microsoft GDI OpenGL Driver detected! Likely means graphics card and/or drivers not configured properly.\n" );
+	}
+
 	glConfig.textureCompression = TC_NONE;
 
 	glConfig.textureEnvAddAvailable = qfalse;

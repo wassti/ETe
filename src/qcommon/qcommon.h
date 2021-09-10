@@ -1010,6 +1010,7 @@ extern	int	CPU_Flags;
 #define CPU_SSE2   0x08
 #define CPU_SSE3   0x10
 #define CPU_SSE41  0x20
+#define CPU_SSE42  0x40
 
 // ARM flags
 #define CPU_IDIV   0x01

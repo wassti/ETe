@@ -465,7 +465,7 @@ static	facet_t			facets[MAX_FACETS];
 CM_PlaneEqual
 ==================
 */
-static qboolean CM_PlaneEqual( const patchPlane_t *p, const float plane[4], int *flipped ) {
+static qboolean CM_PlaneEqual( const patchPlane_t *p, const float plane[4], qboolean *flipped ) {
 	float invplane[4];
 
 	if (
@@ -474,7 +474,8 @@ static qboolean CM_PlaneEqual( const patchPlane_t *p, const float plane[4], int 
 	&& fabs(p->plane[2] - plane[2]) < NORMAL_EPSILON
 	&& fabs(p->plane[3] - plane[3]) < DIST_EPSILON )
 	{
-		*flipped = qfalse;
+		if ( flipped )
+			*flipped = qfalse;
 		return qtrue;
 	}
 
@@ -487,7 +488,8 @@ static qboolean CM_PlaneEqual( const patchPlane_t *p, const float plane[4], int 
 	&& fabs(p->plane[2] - invplane[2]) < NORMAL_EPSILON
 	&& fabs(p->plane[3] - invplane[3]) < DIST_EPSILON )
 	{
-		*flipped = qtrue;
+		if ( flipped )
+			*flipped = qtrue;
 		return qtrue;
 	}
 
@@ -526,7 +528,7 @@ static void CM_SnapVector( vec3_t normal ) {
 CM_FindPlane2
 ==================
 */
-static int CM_FindPlane2( const float plane[4], int *flipped ) {
+static int CM_FindPlane2( const float plane[4], qboolean *flipped ) {
 	int i;
 
 	// see if the points are close enough to an existing plane
@@ -872,7 +874,8 @@ CM_AddFacetBevels
 static void CM_AddFacetBevels( facet_t *facet ) {
 
 	int i, j, k, l;
-	int axis, dir, order, flipped;
+	int axis, dir, order;
+	qboolean flipped;
 	float plane[4], /*d, minBack,*/ newplane[4];
 	winding_t *w, *w2;
 	vec3_t mins, maxs, vec, vec2;
@@ -928,7 +931,7 @@ static void CM_AddFacetBevels( facet_t *facet ) {
 					continue;
 				}
 				facet->borderPlanes[facet->numBorders] = CM_FindPlane2(plane, &flipped);
-				facet->borderNoAdjust[facet->numBorders] = 0;
+				facet->borderNoAdjust[facet->numBorders] = qfalse;
 				facet->borderInward[facet->numBorders] = flipped;
 				facet->numBorders++;
 			}
@@ -1002,7 +1005,7 @@ static void CM_AddFacetBevels( facet_t *facet ) {
 							facet->borderPlanes[k]) Com_Printf("WARNING: bevel plane already used\n");
 					}
 
-					facet->borderNoAdjust[facet->numBorders] = 0;
+					facet->borderNoAdjust[facet->numBorders] = qfalse;
 					facet->borderInward[facet->numBorders] = flipped;
 					//
 					w2 = CopyWinding(w);
@@ -1038,7 +1041,7 @@ static void CM_AddFacetBevels( facet_t *facet ) {
 		return;
 	}
 	facet->borderPlanes[facet->numBorders] = facet->surfacePlane;
-	facet->borderNoAdjust[facet->numBorders] = 0;
+	facet->borderNoAdjust[facet->numBorders] = qfalse;
 	facet->borderInward[facet->numBorders] = qtrue;
 	facet->numBorders++;
 #endif //BSPC

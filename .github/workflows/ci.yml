@@ -44,7 +44,7 @@ jobs:
           - arch: x64
             platform: x64
             suffix: .x64
-            pkg_suffix: x86_64
+            pkg_suffix: x64
 
     steps:
     - uses: microsoft/setup-msbuild@v1.0.2
@@ -236,13 +236,13 @@ jobs:
           7z a -r ete-linux-x86.zip            ./linux-x86/* -x!*.so
           7z a -r ete-linux-x86_64.zip         ./linux-x86_64/* -x!*.so
           7z a -r ete-windows-msvc-x86.zip     ./windows-x86/* -x!*.dll
-          7z a -r ete-windows-msvc-x86_64.zip  ./windows-x86_64/* -x!*.dll
+          7z a -r ete-windows-msvc-x64.zip     ./windows-x64/* -x!*.dll
           7z a -r ete-macos-x86_64.zip         ./macos-x86_64/* -x!*.dylib
           mkdir -p etmain
           mv -t  ./etmain/ ./linux-x86/*.so
           mv -t  ./etmain/ ./linux-x86_64/*.so
           mv -t  ./etmain/ ./windows-x86/*.dll
-          mv -t  ./etmain/ ./windows-x86_64/*.dll
+          mv -t  ./etmain/ ./windows-x64/*.dll
           mv -t  ./etmain/ ./macos-x86_64/*.dylib
           cd etmain
           7z a -r -tzip mp_bina.pk3      ./cgame*.so
@@ -265,8 +265,8 @@ jobs:
           md5sum ./windows-x86/ETe.exe > ETe.exe.md5
           sha1sum ./windows-x86/ETe.exe > ETe.exe.sha1
           7z a -r ete-client-hashes.zip ETe.exe.md5 ETe.exe.sha1
-          md5sum ./windows-x86_64/ETe.x64.exe > ETe.x64.exe.md5
-          sha1sum ./windows-x86_64/ETe.x64.exe > ETe.x64.exe.sha1
+          md5sum ./windows-x64/ETe.x64.exe > ETe.x64.exe.md5
+          sha1sum ./windows-x64/ETe.x64.exe > ETe.x64.exe.sha1
           7z a -r ete-client-hashes.zip ETe.x64.exe.md5 ETe.x64.exe.sha1
           md5sum ./macos-x86_64/ete.x86_64 > ete_mac.x86_64.md5
           sha1sum ./macos-x86_64/ete.x86_64 > ete_mac.x86_64.sha1

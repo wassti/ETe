@@ -82,13 +82,13 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>.\output\$(Configuration)\</OutDir>
     <IntDir>.\build\$(ProjectName)_$(Configuration)_$(PlatformTarget)\</IntDir>
-    <TargetName>qagame_mp_x86_64</TargetName>
+    <TargetName>qagame_mp_x64</TargetName>
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>.\output\$(Configuration)\</OutDir>
     <IntDir>.\build\$(ProjectName)_$(Configuration)_$(PlatformTarget)\</IntDir>
-    <TargetName>qagame_mp_x86_64</TargetName>
+    <TargetName>qagame_mp_x64</TargetName>
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -180,9 +180,9 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <ModuleDefinitionFile>..\..\game\game.def</ModuleDefinitionFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <ProgramDatabaseFile>$(IntDir)qagame_mp_x86_64.pdb</ProgramDatabaseFile>
+      <ProgramDatabaseFile>$(IntDir)qagame_mp_x64.pdb</ProgramDatabaseFile>
       <GenerateMapFile>true</GenerateMapFile>
-      <MapFileName>$(IntDir)qagame_mp_x86_64.map</MapFileName>
+      <MapFileName>$(IntDir)qagame_mp_x64.map</MapFileName>
       <TargetMachine>MachineX64</TargetMachine>
       <SubSystem>Windows</SubSystem>
       <FixedBaseAddress>false</FixedBaseAddress>
@@ -211,9 +211,9 @@
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <ModuleDefinitionFile>..\..\game\game.def</ModuleDefinitionFile>
-      <ProgramDatabaseFile>$(IntDir)qagame_mp_x86_64.pdb</ProgramDatabaseFile>
+      <ProgramDatabaseFile>$(IntDir)qagame_mp_x64.pdb</ProgramDatabaseFile>
       <GenerateMapFile>true</GenerateMapFile>
-      <MapFileName>$(IntDir)qagame_mp_x86_64.map</MapFileName>
+      <MapFileName>$(IntDir)qagame_mp_x64.map</MapFileName>
       <TargetMachine>MachineX64</TargetMachine>
       <SubSystem>Windows</SubSystem>
       <FixedBaseAddress>false</FixedBaseAddress>

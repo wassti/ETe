@@ -77,7 +77,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #if defined( _M_AMD64 )
 #define OSARCH_STRING "win64"
-#define ARCH_STRING "x86_64"
+#define ARCH_STRING "x64"
 #define Q3_LITTLE_ENDIAN
 #undef idx64
 #define idx64 1

@@ -865,6 +865,19 @@ static qboolean CM_ValidateFacet( const facet_t *facet ) {
 	return qtrue;		// winding is fine
 }
 
+// Returns true for vanilla ET behavior, false for fixed behavior
+// See further comments in area where function is used as well
+static ID_INLINE qboolean CM_UseVanillaOptimization( void ) {
+#ifdef DEDICATED
+	return cm_optimizePatchPlanes->integer != 0;
+#else
+	if ( com_sv_running->integer )
+		return cm_optimizePatchPlanes->integer != 0;
+	else
+		return cl_optimizedPatchServer != 0;
+#endif
+}
+
 
 /*
 ==================
@@ -919,10 +932,27 @@ static void CM_AddFacetBevels( facet_t *facet ) {
 			if (CM_PlaneEqual(&planes[facet->surfacePlane], plane, &flipped)) {
 				continue;
 			}
+
 			// see if the plane is already present
 			for ( i = 0 ; i < facet->numBorders ; i++ ) {
-				if (CM_PlaneEqual(&planes[facet->borderPlanes[i]], plane, &flipped))
-					break;
+				// Fixed behavior from zturtleman / spearmint
+				if (!CM_UseVanillaOptimization() ) {
+					if (CM_PlaneEqual(&planes[facet->borderPlanes[i]], plane, &flipped))
+						break;
+				}
+				else
+				{
+					// Vanilla ET behavior, able to walk inside patch bevels on certain angles
+					if ( dir > 0 ) {
+						if ( planes[facet->borderPlanes[i]].plane[axis] >= 0.9999f ) {
+							break;
+						}
+					} else {
+						if ( planes[facet->borderPlanes[i]].plane[axis] <= -0.9999f ) {
+							break;
+						}
+					}
+				}
 			}
 
 			if ( i == facet->numBorders ) {

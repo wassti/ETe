@@ -71,6 +71,7 @@ cvar_t		*cm_noAreas;
 cvar_t		*cm_noCurves;
 cvar_t		*cm_playerCurveClip;
 cvar_t      *cm_optimize;
+cvar_t		*cm_optimizePatchPlanes;
 #endif
 
 cmodel_t	box_model;
@@ -652,6 +653,17 @@ void CM_LoadMap( const char *name, qboolean clientload, int *checksum ) {
 	cm_playerCurveClip = Cvar_Get( "cm_playerCurveClip", "1", CVAR_ARCHIVE_ND | CVAR_CHEAT );
 	cm_optimize = Cvar_Get( "cm_optimize", "1", CVAR_CHEAT );
 #endif
+
+	// We only care about this cvar on server, client will parse it out of systeminfo directly
+	// even for etlegacy servers which set as client cvar
+	if ( !clientload ) {
+		cm_optimizePatchPlanes = Cvar_Get( "cm_optimizePatchPlanes", "0", CVAR_LATCH | CVAR_SYSTEMINFO );
+	}
+	else {
+		// But make the pointer valid just in case and assign read only state with systeminfo to make sure
+		// no clients complain about the cvar being not settable by the server
+		cm_optimizePatchPlanes = Cvar_Get( "cm_optimizePatchPlanes", "0", CVAR_ROM | CVAR_SYSTEMINFO );
+	}
 
 	Com_DPrintf( "%s( '%s', %i )\n", __func__, name, clientload );
 

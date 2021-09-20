@@ -463,8 +463,10 @@ static void CL_ParseSnapshot( msg_t *msg ) {
 
 int cl_connectedToPureServer;
 int cl_connectedToCheatServer;
+int cl_optimizedPatchServer;
 
 static const char *ignoredCvars[] = {
+	"cm_optimizePatchPlanes",
 	"sv_pure",
 	"sv_paks",
 	"sv_pakNames",
@@ -509,6 +511,12 @@ void CL_SystemInfoChanged( qboolean onlyGame ) {
 	s = Info_ValueForKey( systemInfo, "sv_pure" );
 	oldPureState = cl_connectedToPureServer;
 	cl_connectedToPureServer = atoi( s );
+
+	s = Info_ValueForKey( systemInfo, "cm_optimizePatchPlanes" );
+	if ( *s == '\0')
+		cl_optimizedPatchServer = qfalse;
+	else
+		cl_optimizedPatchServer = atoi( s );
 
 	// parse/update fs_game in first place
 	s = Info_ValueForKey( systemInfo, "fs_game" );
@@ -596,7 +604,7 @@ void CL_SystemInfoChanged( qboolean onlyGame ) {
 			{
 #ifndef STANDALONE
 				if(Q_stricmp(key, "g_synchronousClients") && Q_stricmp(key, "pmove_fixed") &&
-				   Q_stricmp(key, "pmove_msec") && Q_stricmp(key, "shared"))
+				   Q_stricmp(key, "pmove_msec") && Q_stricmp(key, "shared") && Q_stricmp( key, "cm_optimizePatchPlanes"))
 #endif
 				{
 					Com_Printf( S_COLOR_YELLOW "WARNING: server is not allowed to set %s=%s\n", key, value );

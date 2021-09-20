@@ -1165,6 +1165,10 @@ extern	qboolean	gw_minimized;
 extern	qboolean	gw_active;
 #endif
 
+#ifndef DEDICATED
+extern	int		cl_optimizedPatchServer;
+#endif
+
 extern	qboolean	com_errorEntered;
 
 extern	fileHandle_t	com_journalDataFile;

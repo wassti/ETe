@@ -643,6 +643,7 @@ const char *Key_KeynumToString( int keynum, qboolean bTranslate );
 //
 extern int cl_connectedToPureServer;
 extern int cl_connectedToCheatServer;
+extern int cl_optimizedPatchServer;
 
 void CL_ParseServerInfo(void);
 void CL_ParsePlayerInfo(void);

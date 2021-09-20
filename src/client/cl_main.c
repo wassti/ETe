@@ -96,7 +96,7 @@ cvar_t  *cl_waverecording; //bani
 cvar_t  *cl_wavefilename; //bani
 cvar_t  *cl_waveoffset; //bani
 
-cvar_t  *cl_packetloss; //bani
+//cvar_t  *cl_packetloss; //bani
 //cvar_t  *cl_packetdelay;    //bani
 
 cvar_t	*cl_lanForcePackets;
@@ -1458,6 +1458,8 @@ qboolean CL_Disconnect( qboolean showMainMenu ) {
 
 	// not connected to a pure server anymore
 	cl_connectedToPureServer = qfalse;
+
+	cl_optimizedPatchServer = qfalse;
 
 	CL_UpdateGUID();
 
@@ -4487,8 +4489,8 @@ void CL_Init( void ) {
 	cl_waveoffset = Cvar_Get( "cl_waveoffset", "0", CVAR_ROM );
 
 	//bani
-	cl_packetloss = Cvar_Get( "cl_packetloss", "0", CVAR_CHEAT );
-	cl_packetdelay = Cvar_Get( "cl_packetdelay", "0", CVAR_CHEAT );
+	//cl_packetloss = Cvar_Get( "cl_packetloss", "0", CVAR_CHEAT );
+	//cl_packetdelay = Cvar_Get( "cl_packetdelay", "0", CVAR_CHEAT );
 
 	Cvar_Get( "cl_maxPing", "800", CVAR_ARCHIVE_ND );
 
@@ -4536,12 +4538,6 @@ void CL_Init( void ) {
 	Cvar_Get( "name", "ETPlayer", CVAR_USERINFO | CVAR_ARCHIVE_ND );
 	Cvar_Get( "rate", "25000", CVAR_USERINFO | CVAR_ARCHIVE );     // NERVE - SMF - changed from 3000
 	Cvar_Get( "snaps", "40", CVAR_USERINFO | CVAR_ARCHIVE );
-//	Cvar_Get ("model", "american", CVAR_USERINFO | CVAR_ARCHIVE );	// temp until we have an skeletal american model
-//	Arnout - no need // Cvar_Get ("model", "multi", CVAR_USERINFO | CVAR_ARCHIVE );
-//	Arnout - no need // Cvar_Get ("head", "default", CVAR_USERINFO | CVAR_ARCHIVE );
-//	Arnout - no need // Cvar_Get ("color", "4", CVAR_USERINFO | CVAR_ARCHIVE );
-//	Arnout - no need // Cvar_Get ("handicap", "0", CVAR_USERINFO | CVAR_ARCHIVE );
-//	Cvar_Get ("sex", "male", CVAR_USERINFO | CVAR_ARCHIVE );
 	Cvar_Get( "cl_anonymous", "0", CVAR_USERINFO | CVAR_ARCHIVE_ND );
 
 	Cvar_Get( "password", "", CVAR_USERINFO );

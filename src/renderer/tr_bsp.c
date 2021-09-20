@@ -2271,7 +2271,7 @@ void RE_LoadWorldMap( const char *name ) {
 
 	tr.sunShader = 0;   // clear sunshader so it's not there if the level doesn't specify it
 
-	// inalidate fogs (likely to be re-initialized to new values by the current map)
+	// invalidate fogs (likely to be re-initialized to new values by the current map)
 	// TODO:(SA)this is sort of silly.  I'm going to do a general cleanup on fog stuff
 	//			now that I can see how it's been used.  (functionality can narrow since
 	//			it's not used as much as it's designed for.)

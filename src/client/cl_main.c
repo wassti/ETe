@@ -1083,7 +1083,8 @@ void CL_ShutdownAll( void ) {
 #ifdef USE_CURL
 	CL_cURL_Shutdown();
 #endif
-	// clear sounds
+
+	// clear and mute all sounds until next registration
 	S_DisableSounds();
 
 #ifdef USE_CURL
@@ -1097,9 +1098,6 @@ void CL_ShutdownAll( void ) {
 	// shutdown the renderer
 	if ( re.Shutdown ) {
 		if ( CL_GameSwitch() ) {
-			// shutdown sound system before renderer
-			S_Shutdown();
-			cls.soundStarted = qfalse;
 			if ( re.purgeCache ) {
 				CL_DoPurgeCache();
 			}
@@ -1113,10 +1111,10 @@ void CL_ShutdownAll( void ) {
 		CL_DoPurgeCache();
 	}
 
-	cls.uiStarted = qfalse;
-	cls.cgameStarted = qfalse;
 	cls.rendererStarted = qfalse;
 	cls.soundRegistered = qfalse;
+
+	SCR_Done();
 }
 
 
@@ -1886,20 +1884,11 @@ static void CL_Vid_Restart( qboolean keepWindow ) {
 	if ( clc.demorecording )
 		CL_StopRecord_f();
 
-	// make sure noone calls SCR_UpdateScreen()?
-	SCR_Done();
-
-	// don't let them loop during the restart
-	//S_StopAllSounds(); - redundant because already called in S_Shutdown()?
+	// clear and mute all sounds until next registration
+	S_DisableSounds();
 
 	// shutdown VMs
 	CL_ShutdownVMs();
-
-	// make sure noone calls SCR_UpdateScreen()?
-	//SCR_Done();
-
-	// shutdown sound system
-	S_Shutdown();
 
 	// shutdown the renderer and clear the renderer interface
 	CL_ShutdownRef( keepWindow ? REF_KEEP_WINDOW : REF_DESTROY_WINDOW );
@@ -1914,25 +1903,12 @@ static void CL_Vid_Restart( qboolean keepWindow ) {
 	if ( !clc.demoplaying ) // -EC-
 		FS_ConditionalRestart( clc.checksumFeed, qfalse );
 
-	// ENSI - not in q3e/ioq3
-	//S_BeginRegistration();  // all sound handles are now invalid
-
-	cls.rendererStarted = qfalse;
-	cls.uiStarted = qfalse;
-	cls.cgameStarted = qfalse;
 	cls.soundRegistered = qfalse;
-	cls.soundStarted = qfalse;
 
 	// unpause so the cgame definitely gets a snapshot and renders a frame
 	Cvar_Set( "cl_paused", "0" );
 
 	CL_ClearMemory();
-
-	// initialize the renderer interface
-	CL_InitRef();
-
-	// allow SCR_UpdateScreen()?
-	SCR_Init();
 
 	// startup all the client stuff
 	CL_StartHunkUsers();
@@ -1999,21 +1975,6 @@ void CL_Snd_Reload_f( void ) {
 
 /*
 =================
-CL_Snd_Restart
-
-Restart the sound subsystem
-=================
-*/
-static void CL_Snd_Shutdown( void )
-{
-	S_StopAllSounds();
-	S_Shutdown();
-	cls.soundStarted = qfalse;
-}
-
-
-/*
-=================
 CL_Snd_Restart_f
 
 Restart the sound subsystem
@@ -2023,7 +1984,7 @@ handles will be invalid
 */
 static void CL_Snd_Restart_f( void )
 {
-	CL_Snd_Shutdown();
+	S_Shutdown();
 
 	// sound will be reinitialized by vid_restart
 	CL_Vid_Restart( qtrue );
@@ -3722,6 +3683,17 @@ static void CL_ShutdownRef( refShutdownCode_t code ) {
 	}
 #endif
 
+	// clear and mute all sounds until next registration
+	// S_DisableSounds();
+
+	if ( code >= REF_DESTROY_WINDOW ) { // +REF_UNLOAD_DLL
+		// shutdown sound system before renderer
+		// because it may depend from window handle
+		S_Shutdown();
+	}
+
+	SCR_Done();
+
 	if ( re.Shutdown ) {
 		re.Shutdown( code );
 	}
@@ -3734,6 +3706,8 @@ static void CL_ShutdownRef( refShutdownCode_t code ) {
 #endif
 
 	Com_Memset( &re, 0, sizeof( re ) );
+
+	cls.rendererStarted = qfalse;
 }
 
 
@@ -3770,6 +3744,8 @@ static void CL_InitRenderer( void ) {
 		cls.scale = cls.glconfig.vidWidth * (1.0/640.0);
 		cls.biasY = 0.5 * ( cls.glconfig.vidHeight - ( cls.glconfig.vidWidth * (480.0/640) ) );
 	}
+
+	SCR_Init();
 }
 
 
@@ -3782,11 +3758,8 @@ This is the only place that any of these functions are called from
 ============================
 */
 void CL_StartHunkUsers( void ) {
-	if (!com_cl_running) {
-		return;
-	}
 
-	if ( !com_cl_running->integer ) {
+	if ( !com_cl_running || !com_cl_running->integer ) {
 		return;
 	}
 
@@ -4640,12 +4613,6 @@ void CL_Init( void ) {
 
 	Cmd_AddCommand( "locations", NULL );
 
-	CL_InitRef();
-
-	SCR_Init();
-
-	//Cbuf_Execute ();
-
 	Cvar_Set( "cl_running", "1" );
 
 	CL_GenerateETKey();
@@ -4679,6 +4646,8 @@ void CL_Init( void ) {
 /*
 ===============
 CL_Shutdown
+
+Called on fatal error, quit and dedicated mode switch
 ===============
 */
 void CL_Shutdown( const char *finalmsg, qboolean quit ) {
@@ -4703,9 +4672,10 @@ void CL_Shutdown( const char *finalmsg, qboolean quit ) {
 	noGameRestart = quit;
 	CL_Disconnect( qfalse );
 
-	CL_ShutdownVMs();
+	// clear and mute all sounds until next registration
+	S_DisableSounds();
 
-	S_Shutdown();
+	CL_ShutdownVMs();
 
 	CL_ShutdownRef( quit ? REF_UNLOAD_DLL : REF_DESTROY_WINDOW );
 

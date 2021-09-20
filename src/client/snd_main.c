@@ -734,7 +734,7 @@ void S_Shutdown( void )
 	}
 
 	if( si.Shutdown ) {
-		si.Shutdown( );
+		si.Shutdown();
 	}
 
 	Com_Memset( &si, 0, sizeof( soundInterface_t ) );
@@ -748,6 +748,8 @@ void S_Shutdown( void )
 	Cmd_RemoveCommand( "s_stop" );
 	Cmd_RemoveCommand( "s_info" );
 
-	S_CodecShutdown( );
+	S_CodecShutdown();
+
+	cls.soundStarted = qfalse;
 }
 

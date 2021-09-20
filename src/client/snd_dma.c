@@ -2385,8 +2385,6 @@ static void S_Base_Shutdown( void ) {
 	if ( dma_buffer2 != buffer2 )
 		free( dma_buffer2 );
 	dma_buffer2 = NULL;
-
-	Cmd_RemoveCommand( "s_info" );
 }
 
 

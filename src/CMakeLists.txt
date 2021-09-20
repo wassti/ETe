@@ -661,7 +661,11 @@ if(BUILD_ETMAIN_MOD)
                 $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:RELWITHDEBINFO>>:${compiler_flags_relwithdebinfo} -w>
     )
     set_target_properties(cgame PROPERTIES PREFIX "")
-    set_target_properties(cgame PROPERTIES SUFFIX "${LIB_SUFFIX}${Architecture}${DLL_EXT}") #NOTE changeme when multi-platform and multi-arch support is added
+    if(APPLE)
+        set_target_properties(cgame PROPERTIES SUFFIX "${LIB_SUFFIX}")
+    else()
+        set_target_properties(cgame PROPERTIES SUFFIX "${LIB_SUFFIX}${Architecture}${DLL_EXT}") #NOTE changeme when multi-platform and multi-arch support is added
+    endif()
     target_compile_definitions(cgame PUBLIC "CGAMEDLL")
     target_link_libraries(cgame PRIVATE ${CMAKE_DL_LIBS} "m")
 
@@ -675,7 +679,11 @@ if(BUILD_ETMAIN_MOD)
                 $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:RELWITHDEBINFO>>:${compiler_flags_relwithdebinfo} -w>
     )
     set_target_properties(qagame PROPERTIES PREFIX "")
-    set_target_properties(qagame PROPERTIES SUFFIX "${LIB_SUFFIX}${Architecture}${DLL_EXT}") #NOTE changeme when multi-platform and multi-arch support is added
+    if(APPLE)
+        set_target_properties(qagame PROPERTIES SUFFIX "${LIB_SUFFIX}")
+    else()
+        set_target_properties(qagame PROPERTIES SUFFIX "${LIB_SUFFIX}${Architecture}${DLL_EXT}") #NOTE changeme when multi-platform and multi-arch support is added
+    endif()
     target_compile_definitions(qagame PUBLIC "GAMEDLL" "NO_BOT_SUPPORT")
     target_link_libraries(qagame PRIVATE ${CMAKE_DL_LIBS} "m")
 
@@ -689,7 +697,11 @@ if(BUILD_ETMAIN_MOD)
                 $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:RELWITHDEBINFO>>:${compiler_flags_relwithdebinfo} -w>
     )
     set_target_properties(ui PROPERTIES PREFIX "")
-    set_target_properties(ui PROPERTIES SUFFIX "${LIB_SUFFIX}${Architecture}${DLL_EXT}") #NOTE changeme when multi-platform and multi-arch support is added
+    if(APPLE)
+        set_target_properties(ui PROPERTIES SUFFIX "${LIB_SUFFIX}")
+    else()
+        set_target_properties(ui PROPERTIES SUFFIX "${LIB_SUFFIX}${Architecture}${DLL_EXT}") #NOTE changeme when multi-platform and multi-arch support is added
+    endif()
     target_compile_definitions(ui PUBLIC "UIDLL")
     target_link_libraries(ui PRIVATE ${CMAKE_DL_LIBS} "m")
 

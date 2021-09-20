@@ -215,7 +215,7 @@ jobs:
         name: macos-${{ matrix.arch }}
         path: |
           src/bin/ete*.${{ matrix.arch }}
-          src/bin/*.dylib
+          src/bin/*_mac
         if-no-files-found: error
         retention-days: 5
 
@@ -237,22 +237,25 @@ jobs:
           7z a -r ete-linux-x86_64.zip         ./linux-x86_64/* -x!*.so
           7z a -r ete-windows-msvc-x86.zip     ./windows-x86/* -x!*.dll
           7z a -r ete-windows-msvc-x64.zip     ./windows-x64/* -x!*.dll
-          7z a -r ete-macos-x86_64.zip         ./macos-x86_64/* -x!*.dylib
+          7z a -r ete-macos-x86_64.zip         ./macos-x86_64/* -x!*_mac
           mkdir -p etmain
           mv -t  ./etmain/ ./linux-x86/*.so
           mv -t  ./etmain/ ./linux-x86_64/*.so
           mv -t  ./etmain/ ./windows-x86/*.dll
           mv -t  ./etmain/ ./windows-x64/*.dll
-          mv -t  ./etmain/ ./macos-x86_64/*.dylib
+          mv -t  ./etmain/ ./macos-x86_64/*_mac
           cd etmain
           7z a -r -tzip mp_bina.pk3      ./cgame*.so
           7z a -r -tzip mp_bina.pk3      ./ui*.so
           7z a -r -tzip mp_bina.pk3      ./cgame*.dll
           7z a -r -tzip mp_bina.pk3      ./ui*.dll
+          7z a -r -tzip mp_bina.pk3      ./cgame_mac
+          7z a -r -tzip mp_bina.pk3      ./ui_mac
           cd ..
           7z a -r ete-etmain-mod-replacement-allplatform.zip      ./etmain/*.pk3
           7z a -r ete-etmain-mod-replacement-allplatform.zip      ./etmain/*.so
           7z a -r ete-etmain-mod-replacement-allplatform.zip      ./etmain/*.dll
+          7z a -r ete-etmain-mod-replacement-allplatform.zip      ./etmain/*_mac
 
       - name: Create Client Hashes
         run: |

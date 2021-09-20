@@ -951,6 +951,8 @@ static const char *GetExceptionName( DWORD code )
 		case EXCEPTION_INVALID_DISPOSITION: return "INVALID_DISPOSITION";
 		case EXCEPTION_GUARD_PAGE: return "GUARD_PAGE";
 		case EXCEPTION_INVALID_HANDLE: return "INVALID_HANDLE";
+		case EXCEPTION_INT_DIVIDE_BY_ZERO: return "INT_DIVIDE_BY_ZERO";
+		case EXCEPTION_FLT_DIVIDE_BY_ZERO: return "FLT_DIVIDE_BY_ZERO";
 		default: break;
 	}
 

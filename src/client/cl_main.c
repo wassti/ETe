@@ -1884,18 +1884,30 @@ static void CL_Vid_Restart( qboolean keepWindow ) {
 	if ( clc.demorecording )
 		CL_StopRecord_f();
 
+	// make sure noone calls SCR_UpdateScreen()?
+	SCR_Done();
+
 	// don't let them loop during the restart
-	S_StopAllSounds();
+	//S_StopAllSounds(); - redundant because already called in S_Shutdown()?
+
 	// shutdown VMs
 	CL_ShutdownVMs();
+
+	// make sure noone calls SCR_UpdateScreen()?
+	//SCR_Done();
+
 	// shutdown sound system
 	S_Shutdown();
+
 	// shutdown the renderer and clear the renderer interface
 	CL_ShutdownRef( keepWindow ? REF_KEEP_WINDOW : REF_DESTROY_WINDOW );
+
 	// client is no longer pure until new checksums are sent
 	CL_ResetPureClientAtServer();
+
 	// clear pak references
 	FS_ClearPakReferences( FS_UI_REF | FS_CGAME_REF );
+
 	// reinitialize the filesystem if the game directory or checksum has changed
 	if ( !clc.demoplaying ) // -EC-
 		FS_ConditionalRestart( clc.checksumFeed, qfalse );
@@ -1916,6 +1928,9 @@ static void CL_Vid_Restart( qboolean keepWindow ) {
 
 	// initialize the renderer interface
 	CL_InitRef();
+
+	// allow SCR_UpdateScreen()?
+	SCR_Init();
 
 	// startup all the client stuff
 	CL_StartHunkUsers();

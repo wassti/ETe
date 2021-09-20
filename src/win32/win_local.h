@@ -133,7 +133,6 @@ void HandleConsoleEvents( void );
 void Conbuf_AppendText( const char *msg );
 
 void SNDDMA_Activate( void );
-qboolean SNDDMA_InitDS( void );
 
 typedef struct
 {

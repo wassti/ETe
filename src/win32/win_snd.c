@@ -35,6 +35,7 @@ extern cvar_t *s_bits;
 extern cvar_t *s_numchannels;
 
 static qboolean	dsound_init;
+static qboolean SNDDMA_InitDS( void );
 
 // Visual Studio 2012+ or MINGW
 #if ( _MSC_VER >= 1700 ) || defined(MINGW)
@@ -600,7 +601,7 @@ static qboolean SNDDMA_InitWASAPI( void )
 	hThread = CreateThread( NULL, 4096, (LPTHREAD_START_ROUTINE)ThreadProc, hInited, 0, &dwThreadID );
 	if ( hThread == NULL )
 	{
-		Com_Printf( S_COLOR_YELLOW "WASAPI: CreateThread() failed\n" );
+		Com_Printf( S_COLOR_YELLOW "WASAPI: CreateThread( hThread ) failed\n" );
 		goto error7;
 	}
 
@@ -819,6 +820,8 @@ qboolean SNDDMA_Init( void ) {
 		dma.driver = "DirectSound";
 		dsound_init = qtrue;
 		return qtrue;
+	} else {
+		dma.channels = 1; // to avoid division-by-zero in S_GetSoundTime()
 	}
 
 	Com_DPrintf( "Failed\n" );
@@ -843,7 +846,7 @@ DEFINE_GUID(IID_IDirectSound8, 0xC50A7E93, 0xF395, 0x4834, 0x9E, 0xF6, 0x7F, 0xA
 DEFINE_GUID(IID_IDirectSound, 0x279AFA83, 0x4981, 0x11CE, 0xA5, 0x21, 0x00, 0x20, 0xAF, 0x0B, 0xE5, 0x60);
 
 
-qboolean SNDDMA_InitDS( void )
+static qboolean SNDDMA_InitDS( void )
 {
 	HRESULT			hresult;
 	DSBUFFERDESC	dsbuf;
@@ -859,7 +862,7 @@ qboolean SNDDMA_InitDS( void )
 		use8 = 0;
 		if( FAILED( hresult = CoCreateInstance(&CLSID_DirectSound, NULL, CLSCTX_INPROC_SERVER, &IID_IDirectSound, (void **)&pDS))) {
 			Com_Printf ("failed\n");
-			SNDDMA_Shutdown ();
+			SNDDMA_Shutdown();
 			return qfalse;
 		}
 	}
@@ -872,11 +875,10 @@ qboolean SNDDMA_InitDS( void )
 
 	if ( DS_OK != pDS->lpVtbl->SetCooperativeLevel( pDS, g_wv.hWnd, DSSCL_PRIORITY ) )	{
 		Com_Printf ("failed\n");
-		SNDDMA_Shutdown ();
+		SNDDMA_Shutdown();
 		return qfalse;
 	}
 	Com_DPrintf("ok\n" );
-
 
 	// create the secondary buffer we'll actually work with
 	dma.channels = (int)s_numchannels->value;
@@ -890,7 +892,7 @@ qboolean SNDDMA_InitDS( void )
 		default: dma.speed = 22050; break;
 	};
 
-	memset (&format, 0, sizeof(format));
+	memset( &format, 0, sizeof( format ) );
 	format.wFormatTag = WAVE_FORMAT_PCM;
 	format.nChannels = dma.channels;
 	format.wBitsPerSample = dma.samplebits;
@@ -899,7 +901,7 @@ qboolean SNDDMA_InitDS( void )
 	format.cbSize = 0;
 	format.nAvgBytesPerSec = format.nSamplesPerSec*format.nBlockAlign; 
 
-	memset (&dsbuf, 0, sizeof(dsbuf));
+	memset( &dsbuf, 0, sizeof( dsbuf ) );
 	dsbuf.dwSize = sizeof(DSBUFFERDESC);
 
 	// Micah: take advantage of 2D hardware.if available.

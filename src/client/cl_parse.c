@@ -514,7 +514,7 @@ void CL_SystemInfoChanged( qboolean onlyGame ) {
 
 	s = Info_ValueForKey( systemInfo, "cm_optimizePatchPlanes" );
 	if ( *s == '\0')
-		cl_optimizedPatchServer = qfalse;
+		cl_optimizedPatchServer = qtrue;
 	else
 		cl_optimizedPatchServer = atoi( s );
 

@@ -117,7 +117,7 @@ ParseVector
 ===============
 */
 static qboolean ParseVector( const char **text, int count, float *v ) {
-	char	*token;
+	const char *token;
 	int		i;
 
 	// FIXME: spaces are currently required after parens, should change parseext...
@@ -308,7 +308,7 @@ ParseWaveForm
 */
 static void ParseWaveForm( const char **text, waveForm_t *wave )
 {
-	char *token;
+	const char *token;
 
 	token = COM_ParseExt( text, qfalse );
 	if ( token[0] == 0 )
@@ -1319,7 +1319,7 @@ deformVertexes text[0-7]
 ===============
 */
 static void ParseDeform( const char **text ) {
-	char	*token;
+	const char	*token;
 	deformStage_t	*ds;
 
 	token = COM_ParseExt( text, qfalse );
@@ -1469,7 +1469,7 @@ skyParms <outerbox> <cloudheight> <innerbox>
 ===============
 */
 static void ParseSkyParms( const char **text ) {
-	char		*token;
+	const char	*token;
 	static char	*suf[6] = {"rt", "bk", "lf", "ft", "up", "dn"};
 	char		pathname[MAX_QPATH];
 	int			i;
@@ -1519,8 +1519,7 @@ static void ParseSkyParms( const char **text ) {
 	}
 	if ( strcmp( token, "-" ) ) {
 		for (i=0 ; i<6 ; i++) {
-			Com_sprintf( pathname, sizeof(pathname), "%s_%s.tga"
-				, token, suf[i] );
+			Com_sprintf( pathname, sizeof(pathname), "%s_%s.tga", token, suf[i] );
 			shader.sky.innerbox[i] = R_FindImageFile( pathname, imgFlags );
 			if ( !shader.sky.innerbox[i] ) {
 				shader.sky.innerbox[i] = tr.defaultImage;
@@ -1538,7 +1537,7 @@ ParseSort
 =================
 */
 void ParseSort( const char **text ) {
-	char	*token;
+	const char	*token;
 
 	token = COM_ParseExt( text, qfalse );
 	if ( token[0] == 0 ) {
@@ -1661,9 +1660,9 @@ surfaceparm <name>
 ===============
 */
 static void ParseSurfaceParm( const char **text ) {
-	char	*token;
-	int		numInfoParms = ARRAY_LEN( infoParms );
-	int		i;
+	const char	*token;
+	int			numInfoParms = (int)ARRAY_LEN( infoParms );
+	int			i;
 
 	token = COM_ParseExt( text, qfalse );
 	for ( i = 0 ; i < numInfoParms ; i++ ) {

@@ -656,7 +656,7 @@ void CM_LoadMap( const char *name, qboolean clientload, int *checksum ) {
 
 	// We only care about this cvar on server, client will parse it out of systeminfo directly
 	// even for etlegacy servers which set as client cvar
-	if ( !clientload ) {
+	if ( !clientload || com_sv_running->integer ) {
 		cm_optimizePatchPlanes = Cvar_Get( "cm_optimizePatchPlanes", "0", CVAR_LATCH | CVAR_SYSTEMINFO );
 	}
 	else {

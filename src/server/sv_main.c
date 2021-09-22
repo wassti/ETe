@@ -86,8 +86,6 @@ cvar_t *sv_wwwFallbackURL; // URL to send to if an http/ftp fails or is refused 
 
 //bani
 cvar_t  *sv_cheats;
-cvar_t  *sv_packetloss;
-//cvar_t  *sv_packetdelay;
 
 // fretn
 cvar_t  *sv_fullmsg;

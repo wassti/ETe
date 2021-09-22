@@ -96,9 +96,6 @@ cvar_t  *cl_waverecording; //bani
 cvar_t  *cl_wavefilename; //bani
 cvar_t  *cl_waveoffset; //bani
 
-//cvar_t  *cl_packetloss; //bani
-//cvar_t  *cl_packetdelay;    //bani
-
 cvar_t	*cl_lanForcePackets;
 
 //cvar_t	*cl_guidServerUniq;
@@ -4460,10 +4457,6 @@ void CL_Init( void ) {
 	cl_waverecording = Cvar_Get( "cl_waverecording", "0", CVAR_ROM );
 	cl_wavefilename = Cvar_Get( "cl_wavefilename", "", CVAR_ROM );
 	cl_waveoffset = Cvar_Get( "cl_waveoffset", "0", CVAR_ROM );
-
-	//bani
-	//cl_packetloss = Cvar_Get( "cl_packetloss", "0", CVAR_CHEAT );
-	//cl_packetdelay = Cvar_Get( "cl_packetdelay", "0", CVAR_CHEAT );
 
 	Cvar_Get( "cl_maxPing", "800", CVAR_ARCHIVE_ND );
 

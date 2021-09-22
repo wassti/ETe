@@ -528,6 +528,24 @@ void NET_FlushPacketQueue( void )
 
 
 void NET_SendPacket( netsrc_t sock, int length, const void *data, const netadr_t *to ) {
+#ifndef DEDICATED
+	if ( sock == NS_CLIENT && cl_packetloss->integer > 0 ) {
+		if ( ( (float)rand() / RAND_MAX ) * 100 <= cl_packetloss->integer ) {
+			if ( showpackets->integer ) {
+				Com_Printf( "drop packet %4i\n", length );
+			}
+			return;
+		}
+	}
+#endif
+	if ( sock == NS_SERVER && sv_packetloss->integer > 0 ) {
+		if ( ( (float)rand() / RAND_MAX ) * 100 <= sv_packetloss->integer ) {
+			if ( showpackets->integer ) {
+				Com_Printf( "drop packet %4i\n", length );
+			}
+			return;
+		}
+	}
 
 	// sequenced packets are shown in netchan, so just show oob
 	if ( showpackets->integer && *(int *)data == -1 )	{

@@ -1136,11 +1136,13 @@ extern cvar_t  *com_watchdog_cmd;
 // both client and server must agree to pause
 extern	cvar_t	*sv_paused;
 extern	cvar_t	*sv_packetdelay;
+extern	cvar_t	*sv_packetloss;
 extern	cvar_t	*com_sv_running;
 
 #ifndef DEDICATED
 extern	cvar_t	*cl_paused;
 extern	cvar_t	*cl_packetdelay;
+extern	cvar_t	*cl_packetloss;
 extern	cvar_t	*com_cl_running;
 extern	cvar_t	*com_yieldCPU;
 #endif

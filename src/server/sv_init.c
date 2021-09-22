@@ -988,10 +988,6 @@ void SV_Init( void )
 	sv_wwwDlDisconnected = Cvar_Get( "sv_wwwDlDisconnected", "0", CVAR_ARCHIVE );
 	sv_wwwFallbackURL = Cvar_Get( "sv_wwwFallbackURL", "", CVAR_ARCHIVE );
 
-	//bani
-	sv_packetloss = Cvar_Get( "sv_packetloss", "0", CVAR_CHEAT );
-	sv_packetdelay = Cvar_Get( "sv_packetdelay", "0", CVAR_CHEAT );
-
 	// fretn - note: redirecting of clients to other servers relies on this,
 	// ET://someserver.com
 	sv_fullmsg = Cvar_Get( "sv_fullmsg", "Server is full.", CVAR_ARCHIVE );

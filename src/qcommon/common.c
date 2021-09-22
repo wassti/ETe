@@ -103,11 +103,13 @@ cvar_t	*com_skipIdLogo;
 
 cvar_t	*cl_paused;
 cvar_t	*cl_packetdelay;
+cvar_t	*cl_packetloss;
 cvar_t	*com_cl_running;
 #endif
 
 cvar_t	*sv_paused;
 cvar_t  *sv_packetdelay;
+cvar_t	*sv_packetloss;
 cvar_t	*com_sv_running;
 
 cvar_t	*com_cameraMode;
@@ -3811,11 +3813,13 @@ void Com_Init( char *commandLine ) {
 	Cvar_CheckRange( com_timedemo, "0", "1", CV_INTEGER );
 	cl_paused = Cvar_Get( "cl_paused", "0", CVAR_ROM );
 	cl_packetdelay = Cvar_Get( "cl_packetdelay", "0", CVAR_CHEAT );
+	cl_packetloss = Cvar_Get( "cl_packetloss", "0", CVAR_CHEAT );
 	com_cl_running = Cvar_Get( "cl_running", "0", CVAR_ROM | CVAR_NOTABCOMPLETE );
 #endif
 
 	sv_paused = Cvar_Get( "sv_paused", "0", CVAR_ROM );
 	sv_packetdelay = Cvar_Get( "sv_packetdelay", "0", CVAR_CHEAT );
+	sv_packetloss = Cvar_Get( "sv_packetloss", "0", CVAR_CHEAT );
 	com_sv_running = Cvar_Get( "sv_running", "0", CVAR_ROM | CVAR_NOTABCOMPLETE );
 
 	com_buildScript = Cvar_Get( "com_buildScript", "0", 0 );

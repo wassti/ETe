@@ -399,8 +399,6 @@ extern cvar_t *sv_wwwFallbackURL;
 
 //bani
 extern cvar_t *sv_cheats;
-extern cvar_t *sv_packetloss;
-extern cvar_t *sv_packetdelay;
 
 //fretn
 extern cvar_t *sv_fullmsg;

@@ -1333,7 +1333,7 @@ void CG_PlayVoiceChat( bufferedVoiceChat_t *vchat ) {
 	}
 	if ( !vchat->voiceOnly && !cg_noVoiceText.integer ) {
 		CG_AddToTeamChat( vchat->message, vchat->clientNum );
-		CG_Printf( va( "[skipnotify]: %s\n", vchat->message ) ); // JPW NERVE
+		CG_Printf( "[skipnotify]: (%i) %s\n", vchat->clientNum, vchat->message );
 	}
 	voiceChatBuffer[cg.voiceChatBufferOut].snd = 0;
 }
@@ -2018,7 +2018,7 @@ Cmd_Argc() / Cmd_Argv()
 void CG_ForceTapOut_f( void );
 
 static void CG_ServerCommand( void ) {
-	const char  *cmd;
+	const char  *cmd, *id;
 	char text[MAX_SAY_TEXT];
 
 	cmd = CG_Argv( 0 );
@@ -2143,6 +2143,7 @@ static void CG_ServerCommand( void ) {
 
 	if ( !Q_stricmp( cmd, "chat" ) ) {
 		const char *s;
+		int idnum = -1;
 
 		if ( cg_teamChatsOnly.integer ) {
 			return;
@@ -2156,14 +2157,21 @@ static void CG_ServerCommand( void ) {
 
 		Q_strncpyz( text, s, MAX_SAY_TEXT );
 		CG_RemoveChatEscapeChar( text );
-		CG_AddToTeamChat( text, atoi( CG_Argv( 2 ) ) );
-		CG_Printf( "%s\n", text );
+		id = CG_Argv( 2 );
+		if ( *id >= '0' && *id <= '9' )
+			idnum = atoi( id );
+		CG_AddToTeamChat( text, idnum );
+		if ( idnum >= 0 && idnum < MAX_CLIENTS )
+			CG_Printf( "(%i) %s\n", idnum, text );
+		else
+			CG_Printf( "%s\n", text );
 
 		return;
 	}
 
 	if ( !Q_stricmp( cmd, "tchat" ) ) {
 		const char *s;
+		int idnum = -1;
 
 		if ( atoi( CG_Argv( 3 ) ) ) {
 			s = CG_LocalizeServerCommand( CG_Argv( 1 ) );
@@ -2173,8 +2181,14 @@ static void CG_ServerCommand( void ) {
 
 		Q_strncpyz( text, s, MAX_SAY_TEXT );
 		CG_RemoveChatEscapeChar( text );
-		CG_AddToTeamChat( text, atoi( CG_Argv( 2 ) ) );
-		CG_Printf( "%s\n", text ); // JPW NERVE
+		id = CG_Argv( 2 );
+		if ( *id >= '0' && *id <= '9' )
+			idnum = atoi( id );
+		CG_AddToTeamChat( text, idnum );
+		if ( idnum >= 0 && idnum < MAX_CLIENTS )
+			CG_Printf( "(%i) %s\n", idnum, text );
+		else
+			CG_Printf( "%s\n", text );
 
 		return;
 	}

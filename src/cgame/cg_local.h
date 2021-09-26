@@ -1614,16 +1614,6 @@ typedef struct {
 	qhandle_t ccMortarTarget;
 	qhandle_t ccMortarTargetArrow;
 
-	qhandle_t currentSquadBackground;
-	qhandle_t SPTeamOverlayUnitBackground;
-	qhandle_t SPTeamOverlayUnitSelected;
-	qhandle_t SPTeamOverlayBotOrders[BOT_ACTION_MAX];
-	qhandle_t SPTeamOverlayBotOrdersBkg;
-	qhandle_t SPPlayerInfoSpecialIcon;
-	qhandle_t SPPlayerInfoHealthIcon;
-	qhandle_t SPPlayerInfoStaminaIcon;
-	qhandle_t SPPlayerInfoAmmoIcon;
-
 	// Gordon: for commandmap
 	qhandle_t medicIcon;
 
@@ -1840,12 +1830,6 @@ typedef struct {
 	int voteNo;
 	qboolean voteModified;                  // beep whenever changed
 	char voteString[MAX_STRING_TOKENS];
-
-	int teamVoteTime[2];
-	int teamVoteYes[2];
-	int teamVoteNo[2];
-	qboolean teamVoteModified[2];           // beep whenever changed
-	char teamVoteString[2][MAX_STRING_TOKENS];
 
 	int levelStartTime;
 	int intermissionStartTime;

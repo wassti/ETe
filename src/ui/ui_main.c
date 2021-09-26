@@ -63,27 +63,6 @@ static const serverFilter_t serverFilters[] = {
 	{"All", "" }
 };
 
-// For server browser
-/*static const char *ETGameTypes[] = {
-	"Single Player",
-	"Cooperative",
-	"Objective",
-	"Stopwatch",
-	"Campaign",
-	"Last Man Standing"
-};
-
-static const char *shortETGameTypes[] = {
-	"SP",
-	"Coop",
-	"Obj",
-	"SW",
-	"Cmpgn",
-	"LMS"
-};
-
-static int const numETGameTypes = sizeof(ETGameTypes) / sizeof(const char*);*/
-
 static const int numServerFilters = (int)ARRAY_LEN( serverFilters );
 
 static const char* netnames[] = {
@@ -133,9 +112,6 @@ This is the only way control passes into the module.
 This must be the very first function compiled into the .qvm file
 ================
 */
-vmCvar_t ui_new;
-vmCvar_t ui_debug;
-vmCvar_t ui_initialized;
 vmCvar_t ui_teamArenaFirstRun;
 
 extern itemDef_t* g_bindItem;
@@ -1238,8 +1214,6 @@ void UI_LoadMenus( const char *menuFile, qboolean reset ) {
 		}
 	}
 
-	ui_new.integer = 1;
-
 	if ( reset ) {
 		Menu_Reset();
 	}
@@ -2079,7 +2053,7 @@ static int UI_OwnerDrawWidth( int ownerDraw, float scale ) {
 
 
 static void UI_DrawCrosshair( rectDef_t *rect, float scale, vec4_t color ) {
-	float size = cg_crosshairSize.integer;
+	float size = ui_cg_crosshairSize.integer;
 
 	if ( uiInfo.currentCrosshair < 0 || uiInfo.currentCrosshair >= NUM_CROSSHAIRS ) {
 		uiInfo.currentCrosshair = 0;
@@ -3730,9 +3704,7 @@ void UI_RunMenuScript( const char **args ) {
 		} else if ( Q_stricmp( name, "startSingleplayer" ) == 0 ) {
 			trap_Cmd_ExecuteText( EXEC_APPEND, "startSingleplayer\n" );
 		} else if ( Q_stricmp( name, "showSpecScores" ) == 0 ) {
-			if ( atoi( UI_Cvar_VariableString( "ui_isSpectator" ) ) ) {
-				trap_Cmd_ExecuteText( EXEC_APPEND, "+scores\n" );
-			}
+			trap_Cmd_ExecuteText( EXEC_APPEND, "+scores\n" );
 		} else if ( Q_stricmp( name, "setPbClStatus" ) == 0 ) {
 			int stat;
 
@@ -6421,8 +6393,6 @@ typedef struct {
 	int modificationCount;          // for tracking changes
 } cvarTable_t;
 
-vmCvar_t ui_master;
-
 vmCvar_t ui_brassTime;
 vmCvar_t ui_drawCrosshair;
 vmCvar_t ui_drawCrosshairNames;
@@ -6461,11 +6431,6 @@ vmCvar_t ui_netGameType;
 vmCvar_t ui_joinGameType;
 vmCvar_t ui_dedicated;
 
-vmCvar_t ui_clipboardName;          // the name of the group for the current clipboard item //----(SA)	added
-
-vmCvar_t ui_notebookCurrentPage;        //----(SA)	added
-vmCvar_t ui_clipboardName;          // the name of the group for the current clipboard item //----(SA)	added
-
 // NERVE - SMF - cvars for multiplayer
 vmCvar_t ui_serverFilterType;
 vmCvar_t ui_currentNetMap;
@@ -6486,25 +6451,6 @@ vmCvar_t ui_browserShowTeamBalanced;
 
 vmCvar_t ui_serverStatusTimeOut;
 
-vmCvar_t ui_limboOptions;
-vmCvar_t ui_limboPrevOptions;
-vmCvar_t ui_limboObjective;
-
-vmCvar_t ui_prevTeam;
-vmCvar_t ui_prevClass;
-vmCvar_t ui_prevWeapon;
-
-vmCvar_t ui_limboMode;
-vmCvar_t ui_objective;
-
-vmCvar_t ui_team;
-vmCvar_t ui_class;
-vmCvar_t ui_weapon;
-
-vmCvar_t ui_isSpectator;
-
-vmCvar_t ui_friendlyFire;
-
 vmCvar_t ui_userTimeLimit;
 vmCvar_t ui_userAlliedRespawnTime;
 vmCvar_t ui_userAxisRespawnTime;
@@ -6523,11 +6469,11 @@ vmCvar_t ui_currentCampaignCompleted;
 // OSP
 // cgame mappings
 vmCvar_t ui_blackout;       // For speclock
-vmCvar_t cg_crosshairColor;
-vmCvar_t cg_crosshairColorAlt;
-vmCvar_t cg_crosshairAlpha;
-vmCvar_t cg_crosshairAlphaAlt;
-vmCvar_t cg_crosshairSize;
+vmCvar_t ui_cg_crosshairColor;
+vmCvar_t ui_cg_crosshairColorAlt;
+vmCvar_t ui_cg_crosshairAlpha;
+vmCvar_t ui_cg_crosshairAlphaAlt;
+vmCvar_t ui_cg_crosshairSize;
 // OSP
 
 vmCvar_t ui_cl_bypassMouseInput;
@@ -6540,7 +6486,7 @@ cvarTable_t cvarTable[] = {
 	{ &ui_glCustom, "ui_glCustom", "4", CVAR_ARCHIVE }, // JPW NERVE missing from q3ta
 
 	// NERVE - SMF
-	{ &ui_friendlyFire, "g_friendlyFire", "1", CVAR_ARCHIVE },
+	{ NULL, "g_friendlyFire", "1", CVAR_ARCHIVE },
 
 	{ &ui_userTimeLimit, "ui_userTimeLimit", "0", 0 },
 	{ &ui_userAlliedRespawnTime, "ui_userAlliedRespawnTime", "0", 0 },
@@ -6550,8 +6496,6 @@ cvarTable_t cvarTable[] = {
 // JPW NERVE
 	{ &ui_teamArenaFirstRun, "ui_teamArenaFirstRun", "0", CVAR_ARCHIVE}, // so sound stuff latches, strange as that seems
 // jpw
-
-	{ &ui_master, "ui_master", "0", CVAR_ARCHIVE },
 
 	{ &ui_brassTime, "cg_brassTime", "2500", CVAR_ARCHIVE }, // JPW NERVE
 	{ &ui_drawCrosshair, "cg_drawCrosshair", "4", CVAR_ARCHIVE },
@@ -6580,7 +6524,6 @@ cvarTable_t cvarTable[] = {
 	{ &ui_server16, "server16", "", CVAR_ARCHIVE },
 
 	{ &ui_dedicated, "ui_dedicated", "0", CVAR_ARCHIVE },
-	{ &ui_cdkeychecked, "ui_cdkeychecked", "0", CVAR_ROM },
 	{ &ui_selectedPlayer, "cg_selectedPlayer", "0", CVAR_ARCHIVE},
 	{ &ui_selectedPlayerName, "cg_selectedPlayerName", "", CVAR_ARCHIVE},
 	{ &ui_netSource, "ui_netSource", "1", CVAR_ARCHIVE },
@@ -6589,9 +6532,6 @@ cvarTable_t cvarTable[] = {
 	{ &ui_joinGameType, "ui_joinGametype", "-1", CVAR_ARCHIVE },
 	{ &ui_netGameType, "ui_netGametype", "4", CVAR_ARCHIVE },                 // NERVE - SMF - hardwired for now
 //	{ &ui_actualNetGameType, "ui_actualNetGametype", "5", CVAR_ARCHIVE },		// NERVE - SMF - hardwired for now
-
-	{ &ui_notebookCurrentPage, "ui_notebookCurrentPage", "1", CVAR_ROM},
-	{ &ui_clipboardName, "cg_clipboardName", "", CVAR_ROM },
 
 	// NERVE - SMF - multiplayer cvars
 	{ &ui_mapIndex, "ui_mapIndex", "0", CVAR_ARCHIVE },
@@ -6611,27 +6551,9 @@ cvarTable_t cvarTable[] = {
 	{ &ui_browserShowTeamBalanced, "ui_browserShowTeamBalanced", "0", CVAR_ARCHIVE },
 
 	{ &ui_serverStatusTimeOut, "ui_serverStatusTimeOut", "7000", CVAR_ARCHIVE},
-
-	{ &ui_limboOptions, "ui_limboOptions", "0", 0 },
-	{ &ui_limboPrevOptions, "ui_limboPrevOptions", "0", 0 },
-	{ &ui_limboObjective, "ui_limboObjective", "0", 0 },
-
-	{ &ui_prevTeam, "ui_prevTeam", "-1", 0 },
-	{ &ui_prevClass, "ui_prevClass", "-1", 0 },
-	{ &ui_prevWeapon, "ui_prevWeapon", "-1", 0 },
-
-	{ &ui_limboMode, "ui_limboMode", "0", 0 },
-	{ &ui_objective, "ui_objective", "", 0 },
-
-	{ &ui_team, "ui_team", "Axis", 0 },
-	{ &ui_class, "ui_class", "Soldier", 0 },
-	{ &ui_weapon, "ui_weapon", "MP 40", 0 },
-
-	{ &ui_isSpectator, "ui_isSpectator", "1", 0 },
 	// -NERVE - SMF
 
 	{ &g_gameType,  "g_gameType",    "4", CVAR_SERVERINFO | CVAR_LATCH },
-	{ NULL, "cg_drawBuddies", "1", CVAR_ARCHIVE },
 	{ NULL, "cg_drawRoundTimer", "1", CVAR_ARCHIVE },
 	{ NULL, "cg_showblood", "1", CVAR_ARCHIVE },
 	{ NULL, "cg_bloodFlash", "1.0", CVAR_ARCHIVE },
@@ -6642,19 +6564,13 @@ cvarTable_t cvarTable[] = {
 	{ NULL, "cg_zoomstepsniper", "2", CVAR_ARCHIVE },
 	{ NULL, "cg_voicespritetime", "6000", CVAR_ARCHIVE },
 	{ NULL, "cg_complaintPopUp", "1", CVAR_ARCHIVE },
-	{ NULL, "cg_announcer", "1", CVAR_ARCHIVE },
 	{ NULL, "cg_printObjectiveInfo", "1", CVAR_ARCHIVE },
 	{ NULL, "cg_useScreenshotJPEG", "1", CVAR_ARCHIVE },
 	{ NULL, "cg_drawGun", "1", CVAR_ARCHIVE },
 	{ NULL, "cg_drawCompass", "1", CVAR_ARCHIVE },
-	{ NULL, "cg_drawRoundTimer", "1", CVAR_ARCHIVE },
 	{ NULL, "cg_drawReinforcementTime", "1", CVAR_ARCHIVE },
 	{ NULL, "cg_cursorHints", "1", CVAR_ARCHIVE },
 	{ NULL, "cg_crosshairPulse", "1", CVAR_ARCHIVE },
-	{ NULL, "cg_drawCrosshairNames", "1", CVAR_ARCHIVE },
-	{ NULL, "cg_crosshairColor", "White", CVAR_ARCHIVE },
-	{ NULL, "cg_crosshairAlpha", "1.0", CVAR_ARCHIVE },
-	{ NULL, "cg_crosshairColorAlt", "White", CVAR_ARCHIVE },
 	{ NULL, "cg_coronafardist", "1536", CVAR_ARCHIVE },
 	{ NULL, "cg_wolfparticles", "1", CVAR_ARCHIVE },
 	{ NULL, "g_password", "none", CVAR_TEMP },
@@ -6672,20 +6588,14 @@ cvarTable_t cvarTable[] = {
 	{ &ui_campaignIndex, "ui_campaignIndex", "0", CVAR_ARCHIVE },
 	{ &ui_currentCampaignCompleted, "ui_currentCampaignCompleted", "0", CVAR_ARCHIVE },
 
-	// START - TAT 9/16/2002
-	// cvar used to implement context sensitive bot menu
-	//		if this is set to "engineer", for instance, then only engineer commands will show up
-	{ NULL, "cg_botMenuType", "0", CVAR_TEMP },
-	// END - TAT 9/15/2002
-
 	// OSP
 	// cgame mappings
 	{ &ui_blackout, "ui_blackout", "0", CVAR_ROM },
-	{ &cg_crosshairAlpha, "cg_crosshairAlpha", "1.0", CVAR_ARCHIVE },
-	{ &cg_crosshairAlphaAlt, "cg_crosshairAlphaAlt", "1.0", CVAR_ARCHIVE },
-	{ &cg_crosshairColor, "cg_crosshairColor", "White", CVAR_ARCHIVE },
-	{ &cg_crosshairColorAlt, "cg_crosshairColorAlt", "White", CVAR_ARCHIVE },
-	{ &cg_crosshairSize, "cg_crosshairSize", "48", CVAR_ARCHIVE },
+	{ &ui_cg_crosshairAlpha, "cg_crosshairAlpha", "1.0", CVAR_ARCHIVE },
+	{ &ui_cg_crosshairAlphaAlt, "cg_crosshairAlphaAlt", "1.0", CVAR_ARCHIVE },
+	{ &ui_cg_crosshairColor, "cg_crosshairColor", "White", CVAR_ARCHIVE },
+	{ &ui_cg_crosshairColorAlt, "cg_crosshairColorAlt", "White", CVAR_ARCHIVE },
+	{ &ui_cg_crosshairSize, "cg_crosshairSize", "48", CVAR_ARCHIVE },
 	// game mappings (for create server option)
 	{ NULL, "bot_enable", "1", CVAR_ARCHIVE },
 	{ NULL, "bot_minplayers", "0", CVAR_ARCHIVE },
@@ -6697,7 +6607,7 @@ cvarTable_t cvarTable[] = {
 	{ NULL, "g_maxLives", "0", CVAR_ARCHIVE },
 	{ NULL, "refereePassword", "none", CVAR_ARCHIVE },
 	{ NULL, "g_teamForceBalance", "0", CVAR_ARCHIVE  },
-	{ NULL, "sv_maxRate", "0", CVAR_ARCHIVE },
+	{ NULL, "sv_maxRate", "0", CVAR_ARCHIVE_ND },
 	{ NULL, "g_spectatorInactivity", "0", CVAR_ARCHIVE },
 	{ NULL, "match_latejoin", "1", CVAR_ARCHIVE },
 	{ NULL, "match_minplayers", MATCH_MINPLAYERS, CVAR_ARCHIVE },
@@ -6777,8 +6687,8 @@ void UI_RegisterCvars( void ) {
 
 	// OSP - Always force this to 0 on init
 	trap_Cvar_Set( "ui_blackout", "0" );
-	BG_setCrosshair( cg_crosshairColor.string, uiInfo.xhairColor, cg_crosshairAlpha.value, "cg_crosshairColor" );
-	BG_setCrosshair( cg_crosshairColorAlt.string, uiInfo.xhairColorAlt, cg_crosshairAlphaAlt.value, "cg_crosshairColorAlt" );
+	BG_setCrosshair( ui_cg_crosshairColor.string, uiInfo.xhairColor, ui_cg_crosshairAlpha.value, "cg_crosshairColor" );
+	BG_setCrosshair( ui_cg_crosshairColorAlt.string, uiInfo.xhairColorAlt, ui_cg_crosshairAlphaAlt.value, "cg_crosshairColorAlt" );
 }
 
 /*
@@ -6797,12 +6707,12 @@ void UI_UpdateCvars( void ) {
 				cv->modificationCount = cv->vmCvar->modificationCount;
 
 				// OSP
-				if ( cv->vmCvar == &cg_crosshairColor || cv->vmCvar == &cg_crosshairAlpha ) {
-					BG_setCrosshair( cg_crosshairColor.string, uiInfo.xhairColor, cg_crosshairAlpha.value, "cg_crosshairColor" );
+				if ( cv->vmCvar == &ui_cg_crosshairColor || cv->vmCvar == &ui_cg_crosshairAlpha ) {
+					BG_setCrosshair( ui_cg_crosshairColor.string, uiInfo.xhairColor, ui_cg_crosshairAlpha.value, "cg_crosshairColor" );
 				}
 
-				if ( cv->vmCvar == &cg_crosshairColorAlt || cv->vmCvar == &cg_crosshairAlphaAlt ) {
-					BG_setCrosshair( cg_crosshairColorAlt.string, uiInfo.xhairColorAlt, cg_crosshairAlphaAlt.value, "cg_crosshairColorAlt" );
+				if ( cv->vmCvar == &ui_cg_crosshairColorAlt || cv->vmCvar == &ui_cg_crosshairAlphaAlt ) {
+					BG_setCrosshair( ui_cg_crosshairColorAlt.string, uiInfo.xhairColorAlt, ui_cg_crosshairAlphaAlt.value, "cg_crosshairColorAlt" );
 				}
 			}
 		}
@@ -6933,6 +6843,11 @@ void UI_Campaign_f( void ) {
 	UI_LoadArenas();
 	UI_MapCountByGameType( qfalse );
 	UI_LoadCampaigns();
+
+	if ( trap_Argc () < 2 ) {
+		Com_Printf( "Usage: campaign <shortname>\n" );
+		return;
+	}
 
 	// find the campaign
 	trap_Argv( 1, str, sizeof( str ) );

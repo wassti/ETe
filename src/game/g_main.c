@@ -520,7 +520,7 @@ Q_EXPORT intptr_t vmMain( int command, intptr_t arg0, intptr_t arg1, intptr_t ar
 	return -1;
 }
 
-void QDECL G_Printf( const char *fmt, ... ) {
+void FORMAT_PRINTF(1,2) QDECL G_Printf( const char *fmt, ... ) {
 	va_list argptr;
 	char text[BIG_INFO_STRING];
 
@@ -532,10 +532,8 @@ void QDECL G_Printf( const char *fmt, ... ) {
 
 	trap_Printf( text );
 }
-//bani
-void QDECL G_Printf( const char *fmt, ... ) _attribute( ( format( printf,1,2 ) ) );
 
-void QDECL G_DPrintf( const char *fmt, ... ) {
+void FORMAT_PRINTF(1,2) QDECL G_DPrintf( const char *fmt, ... ) {
 	va_list argptr;
 	char text[BIG_INFO_STRING];
 
@@ -551,10 +549,8 @@ void QDECL G_DPrintf( const char *fmt, ... ) {
 
 	trap_Printf( text );
 }
-//bani
-void QDECL G_DPrintf( const char *fmt, ... ) _attribute( ( format( printf,1,2 ) ) );
 
-void NORETURN QDECL G_Error( const char *fmt, ... ) {
+void NORETURN FORMAT_PRINTF(1,2) QDECL G_Error( const char *fmt, ... ) {
 	va_list argptr;
 	char text[BIG_INFO_STRING];
 
@@ -566,8 +562,6 @@ void NORETURN QDECL G_Error( const char *fmt, ... ) {
 
 	trap_Error( text );
 }
-//bani
-void NORETURN QDECL G_Error( const char *fmt, ... ) _attribute( ( format( printf,1,2 ) ) );
 
 
 void G_BroadcastServerCommand( int ignoreClient, const char *command ) {
@@ -2495,7 +2489,7 @@ G_LogPrintf
 Print to the logfile with a time stamp if it is open
 =================
 */
-void QDECL G_LogPrintf( const char *fmt, ... ) {
+void FORMAT_PRINTF(1,2) QDECL G_LogPrintf( const char *fmt, ... ) {
 	va_list argptr;
 	char string[BIG_INFO_STRING];
 	int min, tsec, sec, len;
@@ -2522,8 +2516,7 @@ void QDECL G_LogPrintf( const char *fmt, ... ) {
 
 	trap_FS_Write( string, strlen( string ), level.logFile );
 }
-//bani
-void QDECL G_LogPrintf( const char *fmt, ... ) _attribute( ( format( printf,1,2 ) ) );
+
 
 /*
 ================
@@ -3755,23 +3748,6 @@ void G_RunFrame( int levelTime ) {
 	if ( level.alliedBombCounter < 0 ) {
 		level.alliedBombCounter = 0;
 	}
-
-#if 0
-	if ( trap_Cvar_VariableIntegerValue( "dbg_spam" ) ) {
-		trap_SetConfigstring( CS_VOTE_STRING, va(
-								  "vvvvvvvvvvvvvvvvvvvwiubgfiwebxqbwigb3qir4gviqrbegiuertbgiuoeyvqrugyveru\
-qogyjvuqeyrvguqoehvrguorevqguoveruygqueorvguoqeyrvguyervguverougvequryvg\
-uoerqvgouqevrguoerqvguoerqvguoyqevrguoyvreuogvqeuogiyvureoyvnguoeqvguoqe\
-rvguoeqrvuoeqvrguoyvqeruogverquogvqoeurvgouqervguerqvgqiertbgiqerubgipqe\
-rbgipqebgierqviqrviertqyvbgyerqvgieqrbgipqebrgpiqbergibepbreqgupqruiperq\
-ubgipqeurbgpiqjefgpkeiueripgberipgubreugqeirpqgbipeqygbibgpibqpebiqgefpi\
-mgbqepigjbriqpirbgipvbiqpgvbpqiegvbiepqbgqiebgipqgjebiperqbgpiqebpireqbg\
-ipqbgipjqfebzipjgbqipqervbgiyreqvbgipqertvgbiprqbgipgbipertqjgbipubriuqi\
-pjgpifjbqzpiebgipuerqbgpibuergpijfebgqiepgbiupreqbgpqegjfebzpigu4ebrigpq\
-uebrgpiebrpgibqeripgubeqrpigubqifejbgipegbrtibgurepqgbn%i"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            , level.time )
-							  );
-	}
-#endif
 
 #ifdef SAVEGAME_SUPPORT
 	G_CheckLoadGame();

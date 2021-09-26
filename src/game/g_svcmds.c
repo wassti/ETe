@@ -979,6 +979,11 @@ static void Svcmd_Campaign_f( void ) {
 	int i;
 	g_campaignInfo_t *campaign = NULL;
 
+	if ( trap_Argc () < 2 ) {
+		G_Printf( "Usage: campaign <shortname>\n" );
+		return;
+	}
+
 	// find the campaign
 	trap_Argv( 1, str, sizeof( str ) );
 
@@ -1048,7 +1053,7 @@ static void Svcmd_RevivePlayer_f( void ) {
 	gentity_t   *player;
 
 	if ( !g_cheats.integer ) {
-		trap_SendServerCommand( -1, va( "print \"Cheats are not enabled on this server.\n\"" ) );
+		G_Printf( "Cheats are not enabled on this server.\n" );
 		return;
 	}
 

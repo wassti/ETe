@@ -36,8 +36,6 @@ If you have questions concerning this license or the applicable additional terms
 #include "../game/bg_public.h"
 #include "ui_shared.h"
 
-extern vmCvar_t ui_master;
-
 extern vmCvar_t ui_brassTime;
 extern vmCvar_t ui_drawCrosshair;
 extern vmCvar_t ui_drawCrosshairNames;
@@ -77,8 +75,6 @@ extern vmCvar_t ui_netGameType;
 //extern vmCvar_t	ui_actualNetGameType;
 extern vmCvar_t ui_joinGameType;
 extern vmCvar_t ui_dedicated;
-extern vmCvar_t ui_notebookCurrentPage;
-extern vmCvar_t ui_clipboardName;
 
 // NERVE - SMF - multiplayer cvars
 extern vmCvar_t ui_serverFilterType;
@@ -99,9 +95,6 @@ extern vmCvar_t ui_browserShowWeaponsRestricted;
 extern vmCvar_t ui_browserShowTeamBalanced;
 
 extern vmCvar_t ui_serverStatusTimeOut;
-extern vmCvar_t ui_limboOptions;
-
-extern vmCvar_t ui_isSpectator;
 // -NERVE - SMF
 
 extern vmCvar_t g_gameType;
@@ -114,11 +107,11 @@ extern vmCvar_t ui_currentCampaign;
 extern vmCvar_t ui_campaignIndex;
 extern vmCvar_t ui_currentCampaignCompleted;
 extern vmCvar_t ui_blackout;
-extern vmCvar_t cg_crosshairAlpha;
-extern vmCvar_t cg_crosshairAlphaAlt;
-extern vmCvar_t cg_crosshairColor;
-extern vmCvar_t cg_crosshairColorAlt;
-extern vmCvar_t cg_crosshairSize;
+extern vmCvar_t ui_cg_crosshairAlpha;
+extern vmCvar_t ui_cg_crosshairAlphaAlt;
+extern vmCvar_t ui_cg_crosshairColor;
+extern vmCvar_t ui_cg_crosshairColorAlt;
+extern vmCvar_t ui_cg_crosshairSize;
 
 extern vmCvar_t ui_cl_bypassMouseInput;
 

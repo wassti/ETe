@@ -34,7 +34,7 @@ If you have questions concerning this license or the applicable additional terms
 
 int iWeap = WS_MAX;
 
-char *lock_status[2] = { "unlock", "lock" };
+static const char *lock_status[2] = { "unlock", "lock" };
 
 //
 // Update info:
@@ -42,7 +42,7 @@ char *lock_status[2] = { "unlock", "lock" };
 //	2. Add implementation for specific command (see an existing command for an example)
 //
 typedef struct {
-	char *pszCommandName;
+	const char *pszCommandName;
 	qboolean fAnytime;
 	qboolean fValue;
 	void ( *pCommand )( gentity_t *ent, unsigned int dwCommand, qboolean fValue );

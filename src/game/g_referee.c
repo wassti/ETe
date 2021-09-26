@@ -600,7 +600,7 @@ int G_refClientnumForName( gentity_t *ent, const char *name ) {
 	return( MAX_CLIENTS );
 }
 
-void G_refPrintf( gentity_t* ent, const char *fmt, ... ) {
+void FORMAT_PRINTF(2,3) G_refPrintf( gentity_t* ent, const char *fmt, ... ) {
 	va_list argptr;
 	char text[1024];
 

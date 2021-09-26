@@ -1651,12 +1651,15 @@ const char *ClientConnect( int clientNum, qboolean firstTime, qboolean isBot ) {
 
 	// don't do the "xxx connected" messages if they were caried over from previous level
 	//		TAT 12/10/2002 - Don't display connected messages in single player
-	if ( firstTime && !G_IsSinglePlayerGame() ) {
-		G_BroadcastServerCommand( -1, va( "cpm \"%s" S_COLOR_WHITE " connected\n\"", client->pers.netname ) );
-	}
+	if ( firstTime ) {
+		if ( !G_IsSinglePlayerGame() )
+			G_BroadcastServerCommand( -1, va( "cpm \"%s" S_COLOR_WHITE " connected\n\"", client->pers.netname ) );
 
-	// mute all prints until completely in game
-	client->pers.inGame = qfalse;
+		// mute all prints until completely in game
+		client->pers.inGame = qfalse;
+	} else {
+		client->pers.inGame = qtrue; // FIXME: read from session data?
+	}
 
 	// count current clients and rank for scoreboard
 	CalculateRanks();
@@ -1740,10 +1743,6 @@ void ClientBegin( int clientNum ) {
 	// locate ent at a spawn point
 	ClientSpawn( ent, qfalse );
 
-	if ( !client->pers.inGame ) {
-		client->pers.inGame = qtrue;
-	}
-
 	// Xian -- Changed below for team independant maxlives
 	if ( g_gametype.integer != GT_WOLF_LMS ) {
 		if ( ( client->sess.sessionTeam == TEAM_AXIS || client->sess.sessionTeam == TEAM_ALLIES ) ) {
@@ -1803,9 +1802,11 @@ void ClientBegin( int clientNum ) {
 		limbo( ent, qfalse );
 	}
 
-	if ( client->sess.sessionTeam != TEAM_SPECTATOR ) {
+	if ( client->sess.sessionTeam != TEAM_SPECTATOR && !client->pers.inGame ) {
 		G_BroadcastServerCommand( -1, va( "print \"[lof]%s" S_COLOR_WHITE " [lon]entered the game\n\"", client->pers.netname ) );
 	}
+
+	client->pers.inGame = qtrue;
 
 	G_LogPrintf( "ClientBegin: %i\n", clientNum );
 

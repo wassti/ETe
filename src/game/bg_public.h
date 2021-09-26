@@ -59,8 +59,6 @@ If you have questions concerning this license or the applicable additional terms
 
 #define SPRINTTIME 20000.0f
 
-#define DEBUG_BOT_RETREATBEHAVIOR 1
-
 #define DEFAULT_GRAVITY     800
 #define FORCE_LIMBO_HEALTH  -75 // JPW NERVE
 #define GIB_HEALTH          -175 // JPW NERVE
@@ -117,9 +115,6 @@ extern vec3_t playerlegsProneMaxs;
 
 #define MAX_COMMANDMAP_LAYERS   4
 
-#define DEFAULT_MODEL       "multi"
-#define DEFAULT_HEAD        "default"    // technically the default head skin.  this means "head_default.skin" for the head
-
 // RF, on fire effects
 #define FIRE_FLASH_TIME         2000
 #define FIRE_FLASH_FADEIN_TIME  1000
@@ -156,60 +151,6 @@ typedef enum {
 	STATE_UNDERCONSTRUCTION // ent is being constructed
 } entState_t;
 
-typedef enum {
-	SELECT_BUDDY_ALL = 0,
-	SELECT_BUDDY_1,
-	SELECT_BUDDY_2,
-	SELECT_BUDDY_3,
-	SELECT_BUDDY_4,
-	SELECT_BUDDY_5,
-	SELECT_BUDDY_6,
-
-	SELECT_BUDDY_LAST // must be the last one in the enum
-
-} SelectBuddyFlag;
-
-// START - TAT 10/21/2002
-// New icon based bot action command system
-typedef enum
-{
-	BOT_ACTION_ATTACK = 0,
-	BOT_ACTION_COVER,           // 1
-	BOT_ACTION_MOUNTGUN,        // 2
-	BOT_ACTION_OPENDOOR,        // 3
-	BOT_ACTION_USEDYNAMITE,     // 4
-	BOT_ACTION_DISARM,          // 5
-	BOT_ACTION_CONSTRUCT,       // 6
-	BOT_ACTION_REPAIR,          // 7
-	BOT_ACTION_REVIVE,          // 8
-	BOT_ACTION_GETDISGUISE,     // 9
-	BOT_ACTION_HEAL,            // 10
-	BOT_ACTION_AMMO,            // 11
-	BOT_ACTION_GRENADELAUNCH,   // 12
-	BOT_ACTION_PICKUPITEM,      // 13
-	BOT_ACTION_PANZERFAUST,     // 14
-	BOT_ACTION_FLAMETHROW,      // 15
-	BOT_ACTION_MG42,            // 16
-	BOT_ACTION_MOUNTEDATTACK,   // 17		-- attack when mounted on mg42
-	BOT_ACTION_KNIFEATTACK,     // 18
-	BOT_ACTION_LOCKPICK,        // 19
-
-	BOT_ACTION_MAXENTITY,
-
-	// None of these need an entity...
-	BOT_ACTION_RECON = BOT_ACTION_MAXENTITY,    // 20
-	BOT_ACTION_SMOKEBOMB,       // 21
-	BOT_ACTION_FINDMINES,       // 22
-	BOT_ACTION_PLANTMINE,       // 23
-	BOT_ACTION_ARTILLERY,       // 24
-	BOT_ACTION_AIRSTRIKE,       // 25
-	BOT_ACTION_MOVETOLOC,       // 26
-
-	// NOTE: if this gets bigger than 32 items, need to make botMenuIcons bigger
-	BOT_ACTION_MAX
-} botAction_t;
-// END - TAT 10/21/2002
-
 // RF
 #define MAX_TAGCONNECTS     64
 
@@ -236,11 +177,6 @@ typedef struct {
 
 	int typeBits;
 	int cinematic;
-
-	// Gordon: FIXME: remove
-	const char *opponentName;
-	int teamMembers;
-	int timeToBeat[MAX_GAMETYPES];
 
 	qhandle_t levelShot;
 	qboolean active;
@@ -2103,7 +2039,7 @@ extern pathCorner_t pathCorners[MAX_PATH_CORNERS];
 #define NUM_EXPERIENCE_LEVELS 11
 
 typedef enum {
-	ME_PLAYER,
+	ME_PLAYER = 0,
 	ME_PLAYER_REVIVE,
 	ME_PLAYER_DISGUISED,
 	ME_CONSTRUCT,

@@ -1390,14 +1390,15 @@ void Cmd_SetClass_f( gentity_t *ent, unsigned int dwCommand, qboolean fValue );
 void FindIntermissionPoint( void );
 void MoveClientToIntermission( gentity_t *client );
 void G_RunThink( gentity_t *ent );
-void QDECL G_LogPrintf( const char *fmt, ... ) _attribute( ( format( printf,1,2 ) ) );
+void QDECL G_LogPrintf( const char *fmt, ... ) FORMAT_PRINTF(1,2);
 void SendScoreboardMessageToAllClients( void );
-void QDECL G_Printf( const char *fmt, ... ) _attribute( ( format( printf,1,2 ) ) );
-void QDECL G_DPrintf( const char *fmt, ... ) _attribute( ( format( printf,1,2 ) ) );
-void NORETURN QDECL G_Error( const char *fmt, ... ) _attribute( ( format( printf,1,2 ) ) );
+void QDECL G_Printf( const char *fmt, ... ) FORMAT_PRINTF(1,2);
+void QDECL G_DPrintf( const char *fmt, ... ) FORMAT_PRINTF(1,2);
+void NORETURN QDECL G_Error( const char *fmt, ... ) FORMAT_PRINTF(1,2);
 void G_BroadcastServerCommand( int ignoreClient, const char *command );
 // Is this a single player type game - sp or coop?
 qboolean G_IsSinglePlayerGame();
+qboolean G_MapExist( const char *map );
 
 //
 // g_client.c
@@ -2036,7 +2037,6 @@ qboolean G_SweepForLandmines( vec3_t origin, float radius, int team );
 
 void G_AddClientToFireteam( int entityNum, int leaderNum );
 void G_InviteToFireTeam( int entityNum, int otherEntityNum );
-void GetBotAmmo( int clientNum, int *weapon, int *ammo, int *ammoclip );
 void G_UpdateFireteamConfigString( fireteamData_t* ft );
 void G_RemoveClientFromFireteams( int entityNum, qboolean update, qboolean print );
 
@@ -2196,7 +2196,7 @@ void G_refWarmup_cmd( gentity_t* ent );
 void G_refWarning_cmd( gentity_t* ent );
 void G_refMute_cmd( gentity_t *ent, qboolean mute );
 int  G_refClientnumForName( gentity_t *ent, const char *name );
-void G_refPrintf( gentity_t* ent, const char *fmt, ... ) _attribute( ( format( printf,2,3 ) ) );
+void G_refPrintf( gentity_t* ent, const char *fmt, ... ) FORMAT_PRINTF(2,3);
 void G_PlayerBan( void );
 void G_MakeReferee( void );
 void G_RemoveReferee( void );

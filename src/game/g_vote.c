@@ -507,8 +507,6 @@ int G_UnMute_v( gentity_t *ent, unsigned int dwVoteIndex, char *arg, char *arg2,
 	return( G_OK );
 }
 
-qboolean G_MapExist( const char *map );
-
 // *** Map - we dont verify map is allowed but we do verify it exists ***
 int G_Map_v( gentity_t *ent, unsigned int dwVoteIndex, char *arg, char *arg2, qboolean fRefereeCmd ) {
 	// Vote request (vote is being initiated)

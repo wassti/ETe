@@ -714,8 +714,16 @@ void Menu_PostParse( menuDef_t *menu ) {
 	if ( menu->fullScreen ) {
 		menu->window.rect.x = 0;
 		menu->window.rect.y = 0;
-		menu->window.rect.w = 640;
-		menu->window.rect.h = 480;
+		menu->window.rect.w = SCREEN_WIDTH;
+		menu->window.rect.h = SCREEN_HEIGHT;
+	}
+	if ( !Q_stricmp( menu->window.name, "profile_create_initial_opener") ) {
+		if ( menu->onOpen && *menu->onOpen && strstr(menu->onOpen, "\"ui_rate\" 0") ) {
+			char openscript[4096];
+			Q_strncpyz(openscript, menu->onOpen, sizeof(openscript));
+			Q_replace( "\"ui_rate\" 0", "\"ui_rate\" 25000", openscript, sizeof(openscript) );
+			menu->onOpen = String_Alloc( openscript );
+		}
 	}
 	Menu_UpdatePosition( menu );
 }

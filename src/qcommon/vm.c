@@ -466,4 +466,3 @@ static void VM_VmInfo_f( void ) {
 		Com_Printf( "    data length : %7i\n", vm->dataMask + 1 );*/
 	}
 }
-

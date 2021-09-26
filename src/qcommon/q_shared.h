@@ -888,7 +888,7 @@ unsigned long Com_GenerateHashValue( const char *fname, const unsigned int size 
 
 void    COM_BeginParseSession( const char *name );
 void    COM_RestoreParseSession( const char **data_p );
-void    COM_SetCurrentParseLine( int line );
+//void    COM_SetCurrentParseLine( int line );
 int     COM_GetCurrentParseLine( void );
 char	*COM_Parse( const char **data_p );
 char	*COM_ParseExt( const char **data_p, qboolean allowLineBreak );
@@ -1031,37 +1031,10 @@ char *Q_CleanDirName( char *dirname );
 
 //=============================================
 
-// 64-bit integers for global rankings interface
-// implemented as a struct for qvm compatibility
-typedef struct
-{
-	byte b0;
-	byte b1;
-	byte b2;
-	byte b3;
-	byte b4;
-	byte b5;
-	byte b6;
-	byte b7;
-} qint64;
-
 typedef intptr_t (*syscall_t)( intptr_t *parms );
 typedef intptr_t (QDECL *dllSyscall_t)( intptr_t callNum, ... );
 typedef void (QDECL *dllEntry_t)( dllSyscall_t syscallptr );
 
-//=============================================
-/*
-short	BigShort(short l);
-short	LittleShort(short l);
-int		BigLong (int l);
-int		LittleLong (int l);
-qint64  BigLong64 (qint64 l);
-qint64  LittleLong64 (qint64 l);
-float	BigFloat (const float *l);
-float	LittleFloat (const float *l);
-
-void	Swap_Init (void);
-*/
 const char *QDECL va( const char *format, ... ) FORMAT_PRINTF(1, 2);
 float   *tv( float x, float y, float z );
 

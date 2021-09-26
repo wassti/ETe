@@ -327,7 +327,7 @@ typedef struct
 	netadr_t ip;
 	// For a CIDR-Notation type suffix
 	int subnet;
-	
+
 	qboolean isexception;
 } serverBan_t;
 #endif

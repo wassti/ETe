@@ -4318,7 +4318,7 @@ static void CL_InitGLimp_Cvars( void )
 	Cvar_SetDescription( r_modeFullscreen, "Dedicated fullscreen mode, set to \"\" to use \\r_mode in all cases" );
 
 	r_currentResolution = Cvar_Get("r_currentResolution", "", CVAR_ROM | CVAR_PROTECTED);
-	Cvar_SetDescription(r_currentResolution, "Current game window resolution depending on fullscreen state");
+	Cvar_SetDescription( r_currentResolution, "Current game window resolution depending on fullscreen state" );
 
 	r_fullscreen = Cvar_Get( "r_fullscreen", "1", CVAR_ARCHIVE | CVAR_LATCH );
 	r_customaspect = Cvar_Get( "r_customaspect", "1", CVAR_ARCHIVE_ND | CVAR_LATCH );
@@ -4442,6 +4442,7 @@ void CL_Init( void ) {
 
 	cl_conXOffset = Cvar_Get( "cl_conXOffset", "0", 0 );
 	cl_conColor = Cvar_Get( "cl_conColor", "", 0 );
+	Cvar_SetDescription( cl_conColor, "Custom Console Color [RRR GGG BBB AAA]");
 	cl_inGameVideo = Cvar_Get( "r_inGameVideo", "1", CVAR_ARCHIVE_ND );
 
 	Cvar_SetDescription( cl_inGameVideo, "Controls whether in game video should be draw" );

@@ -5594,7 +5594,8 @@ void FS_ClearPakReferences( int flags ) {
 
 	// Don't try this if we are in shutting down state
 	// Otherwise we will run into an infinite loop
-	if ( !fs_searchpaths ) {
+	if (!fs_searchpaths || com_errorEntered)
+	{
 		return;
 	}
 
@@ -5619,7 +5620,8 @@ static void FS_SetDirPolicy( dirPolicy_t policy ) {
 
 	// Don't try this if we are in shutting down state
 	// Otherwise we will run into an infinite loop
-	if ( !fs_searchpaths ) {
+	if (!fs_searchpaths || com_errorEntered)
+	{
 		return;
 	}
 

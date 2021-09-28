@@ -5591,6 +5591,13 @@ void FS_ClearPakReferences( int flags ) {
 	if ( !flags ) {
 		flags = -1;
 	}
+
+	// Don't try this if we are in shutting down state
+	// Otherwise we will run into an infinite loop
+	if ( !fs_searchpaths ) {
+		return;
+	}
+
 	for ( search = fs_searchpaths; search; search = search->next ) {
 		// is the element a pak file and has it been referenced?
 		if ( search->pack ) {
@@ -5602,13 +5609,19 @@ void FS_ClearPakReferences( int flags ) {
 
 /*
 =====================
-FS_ApplyDirPolicy
+FS_SetDirPolicy
 
 Set access rights for non-regular (pk3dir) directories
 =====================
 */
 static void FS_SetDirPolicy( dirPolicy_t policy ) {
 	searchpath_t	*search;
+
+	// Don't try this if we are in shutting down state
+	// Otherwise we will run into an infinite loop
+	if ( !fs_searchpaths ) {
+		return;
+	}
 
 	for ( search = fs_searchpaths ; search ; search = search->next ) {
 		if ( search->dir && search->policy != DIR_STATIC ) {
@@ -5618,6 +5631,13 @@ static void FS_SetDirPolicy( dirPolicy_t policy ) {
 }
 
 
+/*
+=====================
+FS_ClearPureServerPaks
+
+Reset pure server pack restriction state
+=====================
+*/
 void FS_ClearPureServerPaks( void ) {
 	//int i;
 

@@ -246,7 +246,7 @@ void Sys_ConsoleInputShutdown( void )
 
 	stdin_active = qfalse;
 	ttycon_on = qfalse;
-	
+
 	ttycon_hide = 0;
 }
 
@@ -266,16 +266,16 @@ void CON_SigCont( int signum )
 void CON_SigTStp( int signum )
 {
 	sigset_t mask;
-	
+
 	tty_FlushIn();
 	Sys_ConsoleInputShutdown();
 
 	sigemptyset( &mask );
 	sigaddset( &mask, SIGTSTP );
 	sigprocmask( SIG_UNBLOCK, &mask, NULL );
-	
+
 	signal( SIGTSTP, SIG_DFL );
-	
+
 	kill( getpid(),  SIGTSTP );
 }
 
@@ -304,7 +304,7 @@ void NORETURN Sys_Exit( int code )
 	}
 
 #ifdef NDEBUG // regular behavior
-	// We can't do this 
+	// We can't do this
 	//  as long as GL DLL's keep installing with atexit...
 	//exit(ex);
 	_exit( code );
@@ -664,7 +664,7 @@ void Sys_UnloadDll( void *dllHandle ) {
 ==================
 Sys_Sleep
 
-Block execution for msec or until input is recieved.
+Block execution for msec or until input is received.
 ==================
 */
 void Sys_Sleep( int msec ) {
@@ -964,14 +964,10 @@ void *Sys_LoadDll( const char *name, dllSyscall_t *entryPoint, dllSyscall_t syst
 
 /*****************************************************************************/
 
-void Sys_AppActivate( void )
-{
-}
 
-
-static struct Q3ToAnsiColorTable_s
+static const struct ETToAnsiColorTable_s
 {
-	const char Q3color;
+	const char ETcolor;
 	const char *ANSIcolor;
 } tty_colorTable[ ] =
 {
@@ -982,61 +978,75 @@ static struct Q3ToAnsiColorTable_s
 	{ COLOR_BLUE,     "34" },
 	{ COLOR_CYAN,     "36" },
 	{ COLOR_MAGENTA,  "35" },
-	{ COLOR_WHITE,    "0" }
+	{ COLOR_WHITE,    "0"  },
+	{ COLOR_ORANGE,	  "33" },
+	{ COLOR_MDGREY,   "30" },
+	{ COLOR_LTGREY,   "30" },
+//	{ COLOR_LTGREY,   "30" },
+	{ COLOR_MDGREEN,  "32" },
+	{ COLOR_MDYELLOW, "33" },
+	{ COLOR_MDBLUE,   "34" },
+	{ COLOR_MDRED,    "31" },
+	{ COLOR_LTORANGE, "33" },
+	{ COLOR_MDCYAN,   "36" },
+	{ COLOR_MDPURPLE, "35" }
 };
+
+
+static const char *getANSIcolor( char ETcolor ) {
+	int i;
+	for ( i = 0; i < ARRAY_LEN( tty_colorTable ); i++ ) {
+		if ( ETcolor == tty_colorTable[ i ].ETcolor ) {
+			return tty_colorTable[ i ].ANSIcolor;
+		}
+	}
+	return NULL;
+}
+
+
+static qboolean printableChar( char c ) {
+	if ( ( c >= ' ' && c <= '~' ) || c == '\n' || c == '\r' || c == '\t' )
+		return qtrue;
+	else
+		return qfalse;
+}
 
 
 void Sys_ANSIColorify( const char *msg, char *buffer, int bufferSize )
 {
   int   msgLength;
-  int   i, j;
-  const char *escapeCode;
-  char  tempBuffer[ 7 ];
+  int   i;
+  char  tempBuffer[ 8 ];
+  const char *ANSIcolor;
 
-  if( !msg || !buffer )
+  if ( !msg || !buffer )
     return;
 
   msgLength = strlen( msg );
   i = 0;
   buffer[ 0 ] = '\0';
 
-  while( i < msgLength )
+  while ( i < msgLength )
   {
-    if( msg[ i ] == '\n' )
+    if ( msg[ i ] == '\n' )
     {
-      Com_sprintf( tempBuffer, 7, "%c[0m\n", 0x1B );
-      strncat( buffer, tempBuffer, bufferSize - 1);
-      i++;
+      Com_sprintf( tempBuffer, sizeof( tempBuffer ), "%c[0m\n", 0x1B );
+      strncat( buffer, tempBuffer, bufferSize - 1 );
+      i += 1;
     }
-    else if( msg[ i ] == Q_COLOR_ESCAPE )
+    else if ( msg[ i ] == Q_COLOR_ESCAPE && ( ANSIcolor = getANSIcolor( msg[ i+1 ] ) ) != NULL )
     {
-      i++;
-
-      if( i < msgLength )
-      {
-        escapeCode = NULL;
-        for( j = 0; j < ARRAY_LEN( tty_colorTable ); j++ )
-        {
-          if( msg[ i ] == tty_colorTable[ j ].Q3color )
-          {
-            escapeCode = tty_colorTable[ j ].ANSIcolor;
-            break;
-          }
-        }
-
-        if( escapeCode )
-        {
-          Com_sprintf( tempBuffer, 7, "%c[%sm", 0x1B, escapeCode );
-          strncat( buffer, tempBuffer, bufferSize - 1);
-        }
-
-        i++;
-      }
+      Com_sprintf( tempBuffer, sizeof( tempBuffer ), "%c[%sm", 0x1B, ANSIcolor );
+      strncat( buffer, tempBuffer, bufferSize - 1 );
+      i += 2;
     }
     else
     {
-      Com_sprintf( tempBuffer, 7, "%c", msg[ i++ ] );
-      strncat( buffer, tempBuffer, bufferSize - 1);
+      if ( printableChar( msg[ i ] ) ) {
+        Com_sprintf( tempBuffer, sizeof( tempBuffer ), "%c", msg[ i ] );
+        strncat( buffer, tempBuffer, bufferSize - 1 );
+      }
+      i += 1;
     }
   }
 }
@@ -1044,6 +1054,9 @@ void Sys_ANSIColorify( const char *msg, char *buffer, int bufferSize )
 
 void Sys_Print( const char *msg )
 {
+	char printmsg[ MAXPRINTMSG ];
+	size_t len;
+
 	if ( ttycon_on )
 	{
 		tty_Hide();
@@ -1051,12 +1064,22 @@ void Sys_Print( const char *msg )
 
 	if ( ttycon_on && ttycon_color_on )
 	{
-		char ansiColorString[ MAXPRINTMSG ];
-		Sys_ANSIColorify( msg, ansiColorString, MAXPRINTMSG );
-		fputs( ansiColorString, stderr );
+		Sys_ANSIColorify( msg, printmsg, sizeof( printmsg ) );
+		len = strlen( printmsg );
 	}
 	else
-		fputs( msg, stderr );
+	{
+		char *out = printmsg;
+		while ( *msg != '\0' && out < printmsg + sizeof( printmsg ) )
+		{
+			if ( printableChar( *msg ) )
+				*out++ = *msg;
+			msg++;
+		}
+		len = out - printmsg;
+	}
+
+	(void)!write( STDERR_FILENO, printmsg, len );
 
 	if ( ttycon_on )
 	{
@@ -1116,6 +1139,7 @@ void Sys_PrintBinVersion( const char* name )
 	fprintf( stdout, "%s\n\n", sep );
 }
 
+
 /*
 ==================
 chmod OR on a file
@@ -1134,6 +1158,7 @@ void Sys_Chmod( const char *file, int mode ) {
 	}
 	Com_DPrintf( "chmod +%d '%s'\n", mode, file );
 }
+
 
 /*
 ==================
@@ -1174,6 +1199,7 @@ void Sys_DoStartProcess( const char *cmdline ) {
 	}
 }
 
+
 /*
 ==================
 Sys_StartProcess
@@ -1195,6 +1221,7 @@ void Sys_StartProcess( const char *cmdline, qboolean doexit ) {
 	Com_DPrintf( "Sys_StartProcess %s\n", cmdline );
 	Sys_DoStartProcess( cmdline );
 }
+
 
 /*
 =================
@@ -1289,6 +1316,7 @@ int Sys_ParseArgs( int argc, const char* argv[] )
 
 	return 0;
 }
+
 
 #if USE_SDL && !defined(DEDICATED)
 void Sys_GetSDLVersion(uint8_t *minor, uint8_t *major, uint8_t *patch);
@@ -1390,12 +1418,14 @@ int main( int argc, const char* argv[] )
 	return 0;
 }
 
+
 #ifndef USE_SDL
 qboolean Sys_IsNumLockDown( void ) {
 	// Gordon: FIXME for timothee
 	return qfalse;
 }
 #endif
+
 
 int Sys_GetPID( void ) {
 	return (int)getpid();
@@ -1418,11 +1448,13 @@ void Sys_OmnibotLoad()
 	}
 }
 
+
 void Sys_OmnibotUnLoad()
 {
 	Sys_UnloadLibrary( omnibotHandle );
 	omnibotHandle = NULL;
 }
+
 
 const void * Sys_OmnibotRender( const void * data )
 {

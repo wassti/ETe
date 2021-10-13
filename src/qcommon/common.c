@@ -2126,8 +2126,9 @@ void Hunk_Log( void ) {
 	char		buf[4096];
 	int size, numBlocks;
 
-	if (!logfile || !FS_Initialized())
+	if ( logfile == FS_INVALID_HANDLE || !FS_Initialized() )
 		return;
+
 	size = 0;
 	numBlocks = 0;
 	Com_sprintf(buf, sizeof(buf), "\r\n================\r\nHunk log\r\n================\r\n");
@@ -2157,8 +2158,9 @@ void Hunk_SmallLog( void ) {
 	char		buf[4096];
 	int size, locsize, numBlocks;
 
-	if (!logfile || !FS_Initialized())
+	if ( logfile == FS_INVALID_HANDLE || !FS_Initialized() )
 		return;
+
 	for (block = hunkblocks ; block; block = block->next) {
 		block->printed = qfalse;
 	}
@@ -3145,7 +3147,7 @@ void Com_GameRestart( int checksumFeed, qboolean clientRestart )
 #endif
 
 		// Shutdown FS early so Cvar_Restart will not reset old game cvars
-		FS_Shutdown( qfalse );
+		FS_Shutdown( qtrue );
 
 		// Clean out any user and VM created cvars
 		Cvar_Restart( qtrue );
@@ -3381,7 +3383,7 @@ qboolean Com_WriteProfile( const char *profile_path ) {
 #include <intrin.h>
 static void CPUID( int func, unsigned int *regs )
 {
-	__cpuid( regs, func );
+	__cpuid( (int*)regs, func );
 }
 
 #else // clang/gcc/mingw

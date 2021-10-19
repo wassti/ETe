@@ -506,7 +506,7 @@ void Win_AddHotkey( void )
 
 	vk = HotKey & 0xFF;
 
-	atom = GlobalAddAtom( TEXT( "Q3MinimizeHotkey" ) );
+	atom = GlobalAddAtom( TEXT( "ETMinimizeHotkey" ) );
 	if ( !RegisterHotKey( g_wv.hWnd, atom, modifiers, vk ) ) {
 		GlobalDeleteAtom( atom );
 		return;
@@ -522,7 +522,7 @@ void Win_RemoveHotkey( void )
 	if ( !g_wv.hWnd || !hkinstalled )
 		return;
 
-	atom = GlobalFindAtom( TEXT( "Q3MinimizeHotkey" ) );
+	atom = GlobalFindAtom( TEXT( "ETMinimizeHotkey" ) );
 	if ( atom ) {
 		UnregisterHotKey( g_wv.hWnd, atom );
  		GlobalDeleteAtom( atom );

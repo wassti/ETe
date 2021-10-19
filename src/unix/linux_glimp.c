@@ -1861,6 +1861,8 @@ static void InitCvars( void )
 	// referenced in GLW_StartDriverAndSetMode() so must be inited there
 	in_nograb = Cvar_Get( "in_nograb", "0", 0 );
 
+	Cvar_SetDescription( in_nograb, "Prevents input grabbing" );
+
 	// turn on-off sub-frame timing of X events, referenced in Sys_XTimeToSysTime
 	in_subframe = Cvar_Get( "in_subframe", "1", CVAR_ARCHIVE_ND );
 
@@ -2048,6 +2050,13 @@ void IN_Init( void )
 
 	// mouse variables
 	in_mouse = Cvar_Get( "in_mouse", "1", CVAR_ARCHIVE );
+
+	Cvar_CheckRange( in_mouse, "0", "1", CV_INTEGER );
+
+	Cvar_SetDescription( in_mouse,
+		"Mouse data input source:\n" \
+		"  0 - disable mouse input\n" \
+		"  1 - xi/raw mouse" );
 
 	if ( in_mouse->integer )
 	{

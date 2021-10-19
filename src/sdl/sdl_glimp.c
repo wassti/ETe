@@ -616,6 +616,8 @@ void GLimp_Init( glconfig_t *config )
 
 	in_nograb = Cvar_Get( "in_nograb", "0", 0 );
 
+	Cvar_SetDescription( in_nograb, "Prevents input grabbing" );
+
 	r_allowSoftwareGL = Cvar_Get( "r_allowSoftwareGL", "0", CVAR_LATCH );
 
 	r_swapInterval = Cvar_Get( "r_swapInterval", "0", CVAR_ARCHIVE | CVAR_LATCH );
@@ -708,6 +710,8 @@ void VKimp_Init( glconfig_t *config )
 	Com_DPrintf( "VKimp_Init()\n" );
 
 	in_nograb = Cvar_Get( "in_nograb", "0", 0 );
+
+	Cvar_SetDescription( in_nograb, "Prevents input grabbing" );
 
 	r_swapInterval = Cvar_Get( "r_swapInterval", "0", CVAR_ARCHIVE | CVAR_LATCH );
 	r_stereoEnabled = Cvar_Get( "r_stereoEnabled", "0", CVAR_ARCHIVE | CVAR_LATCH );

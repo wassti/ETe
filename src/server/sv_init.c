@@ -907,8 +907,12 @@ void SV_Init( void )
 	// systeminfo
 	//bani - added cvar_t for sv_cheats so server engine can reference it
 	sv_cheats = Cvar_Get( "sv_cheats", "1", CVAR_SYSTEMINFO | CVAR_ROM );
+	Cvar_SetDescription( sv_cheats, "Allow cheats" );
 	sv_serverid = Cvar_Get( "sv_serverid", "0", CVAR_SYSTEMINFO | CVAR_ROM );
 	sv_pure = Cvar_Get( "sv_pure", "1", CVAR_SYSTEMINFO | CVAR_LATCH );
+	Cvar_SetDescription( sv_pure, "Pure server client file checksum verification:\n"
+		" 0 - disabled\n"
+		" 1 - enabled" );
 	Cvar_Get( "sv_paks", "", CVAR_SYSTEMINFO | CVAR_ROM );
 	Cvar_Get( "sv_pakNames", "", CVAR_SYSTEMINFO | CVAR_ROM );
 	Cvar_Get( "sv_referencedPaks", "", CVAR_SYSTEMINFO | CVAR_ROM );
@@ -919,6 +923,7 @@ void SV_Init( void )
 	sv_privatePassword = Cvar_Get( "sv_privatePassword", "", CVAR_TEMP );
 	sv_fps = Cvar_Get( "sv_fps", "20", CVAR_TEMP );
 	Cvar_CheckRange( sv_fps, "10", "125", CV_INTEGER );
+	Cvar_SetDescription( sv_fps, "Frames per second the server runs at" );
 	sv_timeout = Cvar_Get( "sv_timeout", "240", CVAR_TEMP );
 	Cvar_CheckRange( sv_timeout, "4", NULL, CV_INTEGER );
 	Cvar_SetDescription( sv_timeout, "Seconds without any message before automatic client disconnect" );

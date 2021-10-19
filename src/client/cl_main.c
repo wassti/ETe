@@ -4298,7 +4298,7 @@ static void CL_InitGLimp_Cvars( void )
 #endif
 
 	r_displayRefresh = Cvar_Get( "r_displayRefresh", "0", CVAR_LATCH | CVAR_UNSAFE );
-	Cvar_CheckRange( r_displayRefresh, "0", "360", CV_INTEGER );
+	Cvar_CheckRange( r_displayRefresh, "0", "1000", CV_INTEGER );
 	Cvar_SetDescription( r_displayRefresh, "Override monitor refresh rate in fullscreen mode:\n  0 - use current monitor refresh rate\n >0 - use custom refresh rate" );
 
 	vid_xpos = Cvar_Get( "vid_xpos", "3", CVAR_ARCHIVE );

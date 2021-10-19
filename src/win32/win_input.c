@@ -1169,6 +1169,7 @@ void IN_Init( void ) {
 		" -1 - win32 mouse" );
 		
 	in_nograb = Cvar_Get( "in_nograb", "0", 0 );
+	Cvar_SetDescription( in_nograb, "Prevents input grabbing" );
 	in_lagged = Cvar_Get( "in_lagged", "0", 0 );
 	Cvar_SetDescription( in_lagged, 
 		"Mouse movement processing order:\n" \

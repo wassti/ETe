@@ -1834,6 +1834,14 @@ static void R_Register( void )
 	r_normallength = ri.Cvar_Get( "r_normallength", "0.5", CVAR_ARCHIVE_ND );
 	r_showmodelbounds = ri.Cvar_Get( "r_showmodelbounds", "0", CVAR_CHEAT );
 	r_clear = ri.Cvar_Get( "r_clear", "0", CVAR_CHEAT );
+
+	ri.Cvar_SetDescription( r_clear,
+		"Force screen clear every frame:\n" \
+		"  0 - disable screen clear (recommended)\n" \
+		"  1 - magenta\n" \
+		"  2 - black\n"
+		"  rrr ggg bbb - color format also accepted" );
+
 	r_offsetFactor = ri.Cvar_Get( "r_offsetfactor", "-1", CVAR_CHEAT );
 	r_offsetUnits = ri.Cvar_Get( "r_offsetunits", "-2", CVAR_CHEAT );
 	r_drawBuffer = ri.Cvar_Get( "r_drawBuffer", "GL_BACK", CVAR_CHEAT );

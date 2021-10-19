@@ -3715,6 +3715,8 @@ void Com_Init( char *commandLine ) {
 	com_developer = Cvar_Get( "developer", "0", CVAR_TEMP );
 	Cvar_CheckRange( com_developer, NULL, NULL, CV_INTEGER );
 
+	Cvar_SetDescription( com_developer, "Developer mode" );
+
 	// bani: init this early
 	Com_StartupVariable( "com_ignorecrash" );
 	com_ignorecrash = Cvar_Get( "com_ignorecrash", "0", 0 );
@@ -3726,6 +3728,11 @@ void Com_Init( char *commandLine ) {
 	com_journal = Cvar_Get( "journal", "0", CVAR_INIT | CVAR_PROTECTED );
 	Cvar_CheckRange( com_journal, "0", "2", CV_INTEGER );
 
+	Cvar_SetDescription( com_journal, "System event and config journaling:\n"
+		" 0 - disabled\n"
+		" 1 - record journal\n"
+		" 2 - play back journal" );
+
 	Com_StartupVariable( "sv_master1" );
 	Com_StartupVariable( "sv_master2" );
 	Cvar_Get( "sv_master1", MASTER_SERVER_NAME, CVAR_INIT );
@@ -3736,9 +3743,13 @@ void Com_Init( char *commandLine ) {
 	com_protocol->flags &= ~CVAR_USER_CREATED;
 	com_protocol->flags |= CVAR_SERVERINFO | CVAR_ROM;
 
+	Cvar_SetDescription( com_protocol, "Network protocol version" );
+
 	// bani: init pid
 	s = va( "%d", Sys_GetPID() );
 	com_pid = Cvar_Get( "com_pid", s, CVAR_ROM | CVAR_PROTECTED );
+
+	Cvar_SetDescription( com_pid, "Process ID" );
 
 	// done early so bind command exists
 	Com_InitKeyCommands();

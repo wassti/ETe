@@ -5049,6 +5049,8 @@ static void FS_Startup( void ) {
 	fs_gamedirvar = Cvar_Get( "fs_game", "", CVAR_INIT | CVAR_SYSTEMINFO );
 	Cvar_CheckRange( fs_gamedirvar, NULL, NULL, CV_FSPATH );
 
+	Cvar_SetDescription( fs_gamedirvar, "Mod path" );
+
 	if ( !Q_stricmp( fs_basegame->string, fs_gamedirvar->string ) ) {
 		Cvar_ForceReset( "fs_game" );
 	}

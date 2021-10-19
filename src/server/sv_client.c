@@ -759,6 +759,13 @@ gotnewcl:
 		SV_InjectLocation( newcl->tld, newcl->country );
 	}
 
+#ifdef USE_MV
+#ifdef USE_MV_ZCMD
+	cl->multiview.z.deltaSeq = 0; // reset on DirectConnect();
+#endif
+	cl->multiview.recorder = qfalse;
+#endif
+
 	// send the connect packet to the client
 	NET_OutOfBandPrint( NS_SERVER, from, "connectResponse %d", challenge );
 
@@ -830,6 +837,10 @@ void SV_DropClient( client_t *drop, const char *reason ) {
 
 	// Free all allocated data on the client structure
 	SV_FreeClient( drop );
+
+#ifdef USE_MV
+	SV_TrackDisconnect( drop - svs.clients );
+#endif
 
 	// tell everyone why they got dropped
 	if ( reason && !SV_GameIsSinglePlayer() && !isBot ) {
@@ -1016,6 +1027,15 @@ static void SV_SendClientGameState( client_t *client ) {
 	// with a gamestate and it sets the clc.serverCommandSequence at
 	// the client side
 	SV_UpdateServerCommandsToClient( client, &msg );
+
+#ifdef USE_MV
+#ifdef USE_MV_ZCMD
+	// reset command compressor and score timer
+	//client->multiview.encoderInited = qfalse;
+	client->multiview.z.deltaSeq = 0; // force encoder reset on gamestate change
+#endif
+	client->multiview.scoreQueryTime = 0;
+#endif
 
 	// send the gamestate
 	MSG_WriteByte( &msg, svc_gamestate );
@@ -1967,6 +1987,64 @@ void SV_UserinfoChanged( client_t *cl, qboolean updateUserinfo, qboolean runFilt
 }
 
 
+#ifdef USE_MV
+/*
+=================
+void SV_MultiView_f
+=================
+*/
+void SV_MultiView_f( client_t *client ) {
+	int i, n;
+
+	if (  Q_stricmp( Cmd_Argv( 0 ), "mvjoin" ) == 0 ) {
+		if ( client->multiview.protocol > 0 ) {
+			SV_SendServerCommand( client, "print \"You are already in multiview state.\n\"" );
+			return;
+		}
+
+		// count active multiview clients
+		for ( i = 0, n = 0; i < sv_maxclients->integer; i++ ) {
+			if ( svs.clients[ i ].multiview.protocol > 0 )
+				n++;
+		}
+
+		if ( n >= sv_mvClients->integer ) {
+			SV_SendServerCommand( client, "print \""S_COLOR_YELLOW"No free multiview slots.\n\"" );
+			return;
+		}
+
+		if ( sv_mvPassword->string[0] != '\0' ) {
+			if ( Cmd_Argc() < 2 || strcmp( sv_mvPassword->string, Cmd_Argv(1) ) ) {
+				SV_SendServerCommand( client, "print \""S_COLOR_YELLOW"Invalid password.\n\"" );
+				return;
+			}
+		}
+
+		client->multiview.protocol = MV_PROTOCOL_VERSION;
+		client->multiview.scoreQueryTime = 0;
+#ifdef USE_MV_ZCMD
+		client->multiview.z.deltaSeq = 0; // reset on transition to multiview
+#endif
+		// FIXME: only local print?
+		SV_SendServerCommand( client, "print \"%s "S_COLOR_WHITE "joined multiview.\n\"", client->name );
+
+	} else { // assume "mvleave" in opposition to "mvjoin"
+		if ( client->multiview.protocol == 0 ) {
+			SV_SendServerCommand( client, "print \"You are not in multiview state.\n\"" );
+		} else {
+			SV_SendServerCommand( client, "print \"%s "S_COLOR_WHITE"leaved multiview.\n\"", client->name );
+			// FIXME: broadcast?
+			client->multiview.protocol = 0;
+			client->multiview.scoreQueryTime = 0;
+#ifdef USE_MV_ZCMD
+			client->multiview.z.deltaSeq = 0; // reset on leaving multiview state
+#endif
+		}
+	}
+}
+#endif
+
+
 /*
 ==================
 SV_UpdateUserinfo_f
@@ -2085,6 +2163,10 @@ static const ucmd_t ucmds[] = {
 	{"donedl",		SV_DoneDownload_f,		qfalse },
 	{"wwwdl",		SV_WWWDownload_f,		qfalse },
 	{"locations",	SV_PrintLocations_f,	qfalse },
+#ifdef USE_MV
+	{"mvjoin",		SV_MultiView_f,			qfalse },
+	{"mvleave",		SV_MultiView_f,			qfalse },
+#endif
 	{NULL, NULL}
 };
 
@@ -2207,6 +2289,13 @@ static qboolean SV_ClientCommand( client_t *cl, msg_t *msg, qboolean premapresta
 	if ( !SV_ExecuteClientCommand( cl, s, premaprestart ) ) {
 		return qfalse;
 	}
+
+#ifdef USE_MV
+	if ( !cl->multiview.recorder && sv_demoFile != FS_INVALID_HANDLE && sv_demoClientID == (cl - svs.clients) ) {
+		// forward changes to recorder slot
+		svs.clients[ sv_maxclients->integer ].lastClientCommand++;
+	}
+#endif
 
 	cl->lastClientCommand = seq;
 	Q_strncpyz( cl->lastClientCommandString, s, sizeof( cl->lastClientCommandString ) );

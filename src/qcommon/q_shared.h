@@ -73,6 +73,13 @@ If you have questions concerning this license or the applicable additional terms
 #define GAMENAME_FOR_MASTER		"ET"
 #define HEARTBEAT_FOR_MASTER	"EnemyTerritory-1"
 
+#define MV_PROTOCOL_VERSION	1 // multiview protocol version
+//#define USE_MV				  // multiview enabled
+//#define USE_MV_ZCMD		// command compression
+
+#define GET_ABIT( byteArray, bitIndex ) ((byteArray)[ (bitIndex) / 8 ] & ( 1 << ( (bitIndex) & 7 ) ))
+#define SET_ABIT( byteArray, bitIndex ) (byteArray)[ (bitIndex) / 8 ] |= ( 1 << ( (bitIndex) & 7 ) )
+
 #define DEMOEXT	"dm_"			// standard demo extension
 
 #ifdef _MSC_VER
@@ -1298,6 +1305,10 @@ typedef enum {
 #define SNAPFLAG_RATE_DELAYED   1
 #define SNAPFLAG_NOT_ACTIVE     2   // snapshot used during connection and for zombies
 #define SNAPFLAG_SERVERCOUNT    4   // toggled every map_restart so transitions can be detected
+
+#ifdef USE_MV
+#define SNAPFLAG_MULTIVIEW		8	// this snapshot built from multiview stream
+#endif
 
 //
 // per-level limits

@@ -177,8 +177,8 @@ pip-log.txt
 *.o
 *.so
 .idea
-#CMakeLists.txt
-src/build-cmake/
+[Bb]uild*/
+src/[Bb]uild*/
 cmake-build-debug
 src/scons.signatures.dblite
 site.conf

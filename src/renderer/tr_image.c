@@ -48,20 +48,28 @@ static image_t*        hashTable[FILE_HASH_SIZE];
 int imageBufferSize[BUFFER_MAX_TYPES] = {0,0,0,0};
 void        *imageBufferPtr[BUFFER_MAX_TYPES] = {NULL,NULL,NULL,NULL};
 
+static const char *imageBufferTypeStrs[BUFFER_MAX_TYPES] = {
+	"IMAGE",
+	"SCALED",
+	"RESAMPLED",
+	"UPLOAD",
+};
+
 void *R_GetImageBuffer( int size, bufferMemType_t bufferType ) {
 	if ( imageBufferSize[bufferType] < R_IMAGE_BUFFER_SIZE && size <= imageBufferSize[bufferType] ) {
 		imageBufferSize[bufferType] = R_IMAGE_BUFFER_SIZE;
 		imageBufferPtr[bufferType] = malloc( imageBufferSize[bufferType] );
-//DAJ TEST		imageBufferPtr[bufferType] = Z_Malloc( imageBufferSize[bufferType] );
 	}
 	if ( size > imageBufferSize[bufferType] ) {   // it needs to grow
-		//if ( imageBufferPtr[bufferType] ) {
+		if ( imageBufferPtr[bufferType] ) {
 			free( imageBufferPtr[bufferType] );
-		//}
-//DAJ TEST		Z_Free( imageBufferPtr[bufferType] );
+		}
 		imageBufferSize[bufferType] = size;
 		imageBufferPtr[bufferType] = malloc( imageBufferSize[bufferType] );
-//DAJ TEST		imageBufferPtr[bufferType] = Z_Malloc( imageBufferSize[bufferType] );
+	}
+
+	if ( !imageBufferPtr[bufferType] ) {
+		ri.Error( ERR_DROP, "R_GetImageBuffer: unable to allocate %s buffer with size: %i\n", imageBufferTypeStrs[bufferType], size);
 	}
 
 	return imageBufferPtr[bufferType];
@@ -69,12 +77,12 @@ void *R_GetImageBuffer( int size, bufferMemType_t bufferType ) {
 
 void R_FreeImageBuffer( void ) {
 	int bufferType;
+	//ri.Printf( PRINT_ALL, "LOG: Clearing Images Buffers\n");
 	for ( bufferType = 0; bufferType < BUFFER_MAX_TYPES; bufferType++ ) {
 		if ( !imageBufferPtr[bufferType] ) {
-			return;
+			continue;
 		}
 		free( imageBufferPtr[bufferType] );
-//DAJ TEST		Z_Free( imageBufferPtr[bufferType] );
 		imageBufferSize[bufferType] = 0;
 		imageBufferPtr[bufferType] = NULL;
 	}

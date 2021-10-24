@@ -933,7 +933,7 @@ void SV_Init( void )
 	Cvar_Get ("nextmap", "", CVAR_TEMP );
 
 	sv_allowDownload = Cvar_Get( "sv_allowDownload", "1", CVAR_ARCHIVE|CVAR_SERVERINFO );
-	Cvar_Get ("sv_dlURL", "", CVAR_SERVERINFO | CVAR_ARCHIVE);
+	Cvar_Get( "sv_dlURL", "", CVAR_SERVERINFO | CVAR_ARCHIVE );
 
 	// moved to Com_Init()
 	//sv_master[0] = Cvar_Get( "sv_master1", MASTER_SERVER_NAME, CVAR_INIT );
@@ -1003,10 +1003,17 @@ void SV_Init( void )
 
 	sv_levelTimeReset = Cvar_Get( "sv_levelTimeReset", "0", CVAR_ARCHIVE_ND );
 
+	Cvar_SetDescription( sv_levelTimeReset, "Whether to reset leveltime after new map loads\n"
+		" Note: when enabled - fixes gfx for clients affected by \"frameloss\" bug,\n"
+		" however it may be necessary to disable in case of troubles with custom mods similar to ettv" );
+
 	sv_filter = Cvar_Get( "sv_filter", "filter.txt", CVAR_ARCHIVE );
 
 	sv_filterCommands = Cvar_Get( "sv_filterCommands", "1", CVAR_ARCHIVE );
-	Cvar_SetDescription( sv_filterCommands, "0: Disabled\n1: Filter newlines and carriage returns in reliable commands.\n2: Also filter semicolons" );
+	Cvar_SetDescription( sv_filterCommands, "Controls whether reliable commands are filtered for security with old game modules\n"
+		" 0 - disabled\n"
+		" 1 - filter newlines and carriage returns in reliable commands.\n"
+		" 2 - also filter semicolons" );
 
 	// initialize bot cvars so they are listed and can be set before loading the botlib
 	SV_BotInitCvars();

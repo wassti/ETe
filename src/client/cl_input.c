@@ -1113,46 +1113,65 @@ void CL_InitInput( void ) {
 	cl_showSend = Cvar_Get( "cl_showSend", "0", CVAR_TEMP );
 
 	cl_yawspeed = Cvar_Get( "cl_yawspeed", "140", CVAR_ARCHIVE_ND );
+	Cvar_SetDescription( cl_yawspeed, "Yaw change speed when holding down +left or +right button" );
 	cl_pitchspeed = Cvar_Get( "cl_pitchspeed", "140", CVAR_ARCHIVE_ND );
+	Cvar_SetDescription( cl_pitchspeed, "Pitch change speed when holding down look +lookup or +lookdown button" );
 	cl_anglespeedkey = Cvar_Get( "cl_anglespeedkey", "1.5", 0 );
+	Cvar_SetDescription( cl_anglespeedkey, "Angle change scale when holding down +speed button" );
 
 	cl_maxpackets = Cvar_Get ("cl_maxpackets", "60", CVAR_ARCHIVE );
 	Cvar_CheckRange( cl_maxpackets, "15", "125", CV_INTEGER );
+	Cvar_SetDescription( cl_maxpackets, "Controls how many updates you send to the server" );
 	cl_packetdup = Cvar_Get( "cl_packetdup", "1", CVAR_ARCHIVE_ND );
 	Cvar_CheckRange( cl_packetdup, "0", "5", CV_INTEGER );
+	Cvar_SetDescription( cl_packetdup, "Determines how many duplicate packets you send to the server to avoid packet loss" );
 
 	cl_run = Cvar_Get( "cl_run", "1", CVAR_ARCHIVE_ND );
+	Cvar_SetDescription( cl_run, "Enables \"Always run\"" );
 	cl_sensitivity = Cvar_Get( "sensitivity", "5", CVAR_ARCHIVE );
+	Cvar_SetDescription( cl_sensitivity, "Mouse view sensitivity" );
 	cl_mouseAccel = Cvar_Get( "cl_mouseAccel", "0", CVAR_ARCHIVE_ND );
+	Cvar_SetDescription( cl_mouseAccel, "Mouse acceleration" );
 	cl_freelook = Cvar_Get( "cl_freelook", "1", CVAR_ARCHIVE_ND );
+	Cvar_SetDescription( cl_freelook, "Mouse aiming" );
 
 	// 0: legacy mouse acceleration
 	// 1: new implementation
 	cl_mouseAccelStyle = Cvar_Get( "cl_mouseAccelStyle", "0", CVAR_ARCHIVE_ND );
+	Cvar_SetDescription( cl_mouseAccelStyle, "Mouse Acceleration Style:\n" 
+		" 0 - Vanilla Quake 3 / Enemy Territory style\n"
+		" 1 - QuakeLive style" );
 	// offset for the power function (for style 1, ignored otherwise)
 	// this should be set to the max rate value
 	cl_mouseAccelOffset = Cvar_Get( "cl_mouseAccelOffset", "5", CVAR_ARCHIVE_ND );
 	Cvar_CheckRange( cl_mouseAccelOffset, "0.001", "50000", CV_FLOAT );
+	Cvar_SetDescription( cl_mouseAccelOffset, "Offset for the power function (Only used with \\cl_mouseAccelStyle 1)" );
 
 	cl_showMouseRate = Cvar_Get( "cl_showmouserate", "0", 0 );
 
 	m_pitch = Cvar_Get( "m_pitch", "0.022", CVAR_ARCHIVE_ND );
+	Cvar_SetDescription( m_pitch, "Mouse pitch scale" );
 	m_yaw = Cvar_Get( "m_yaw", "0.022", CVAR_ARCHIVE_ND );
+	Cvar_SetDescription( m_yaw, "Mouse yaw scale" );
 	m_forward = Cvar_Get( "m_forward", "0.25", CVAR_ARCHIVE_ND );
+	Cvar_SetDescription( m_forward, "Mouse forward scale" );
 	m_side = Cvar_Get( "m_side", "0.25", CVAR_ARCHIVE_ND );
+	Cvar_SetDescription( m_side, "Mouse side scale" );
 //#ifdef __APPLE__
 	// Input is jittery on OS X w/o this
 //	m_filter = Cvar_Get( "m_filter", "1", CVAR_ARCHIVE_ND );
 //#else
 	m_filter = Cvar_Get( "m_filter", "0", CVAR_ARCHIVE_ND );
 //#endif
+	Cvar_SetDescription( m_filter, "Smooths mouse movement" );
 
 	// RF
-	cl_recoilPitch = Cvar_Get( "cg_recoilPitch", "0", CVAR_ROM );
+	cl_recoilPitch = Cvar_Get( "cg_recoilPitch", "0", CVAR_ROM | CVAR_NOTABCOMPLETE );
 
 	cl_bypassMouseInput = Cvar_Get( "cl_bypassMouseInput", "0", 0 ); //CVAR_ROM );			// NERVE - SMF
 
 	cl_doubletapdelay = Cvar_Get( "cl_doubletapdelay", "350", CVAR_ARCHIVE_ND ); // Arnout: double tap
+	Cvar_SetDescription( cl_doubletapdelay, "Time in ms between keypresses required for double tap actions" );
 }
 
 

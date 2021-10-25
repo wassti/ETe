@@ -260,7 +260,7 @@ baseline will be transmitted
 */
 static void SV_CreateBaseline( void ) {
 	sharedEntity_t *ent;
-	int				entnum;	
+	int				entnum;
 
 	for ( entnum = 0; entnum < sv.num_entities ; entnum++ ) {
 		ent = SV_GentityNum( entnum );
@@ -319,7 +319,7 @@ static void SV_BoundMaxClients( int minimum ) {
 SV_SetSnapshotParams
 ===============
 */
-static void SV_SetSnapshotParams( void ) 
+static void SV_SetSnapshotParams( void )
 {
 	// PACKET_BACKUP frames is just about 6.67MB so use that even on listen servers
 	svs.numSnapshotEntities = PACKET_BACKUP * MAX_GENTITIES;
@@ -364,7 +364,7 @@ static void SV_Startup( void ) {
 	}
 
 	Cvar_Set( "sv_running", "1" );
-	
+
 	// Join the ipv6 multicast group now that a map is running so clients can scan for us on the local network.
 #ifdef USE_IPV6
 	NET_JoinMulticast6();
@@ -506,7 +506,7 @@ static void SV_ClearServer( void ) {
 	}
 
 	if ( !sv_levelTimeReset->integer ) {
-		i = sv.time; 
+		i = sv.time;
 		Com_Memset( &sv, 0, sizeof( sv ) );
 		sv.time = i;
 	} else {
@@ -585,7 +585,7 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 	// Restart renderer?
 	// CL_StartHunkUsers( );
 
-	// init client structures and svs.numSnapshotEntities 
+	// init client structures and svs.numSnapshotEntities
 	if ( !Cvar_VariableIntegerValue( "sv_running" ) ) {
 		SV_Startup();
 	} else {
@@ -615,7 +615,7 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 	// server has changed
 	svs.snapFlagServerBit ^= SNAPFLAG_SERVERCOUNT;
 
-	// set nextmap to the same map, but it may be overriden
+	// set nextmap to the same map, but it may be overridden
 	// by the game startup or another console command
 	Cvar_Set( "nextmap", "map_restart 0" );
 //	Cvar_Set( "nextmap", va("map %s", server) );
@@ -623,8 +623,9 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 	// try to reset level time if server is empty
 	if ( !sv_levelTimeReset->integer && !sv.restartTime ) {
 		for ( i = 0; i < sv_maxclients->integer; i++ ) {
-			if ( svs.clients[ i ].state != CS_FREE )
+			if ( svs.clients[i].state >= CS_CONNECTED ) {
 				break;
+			}
 		}
 		if ( i == sv_maxclients->integer ) {
 			sv.time = 0;
@@ -685,7 +686,7 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 
 	// clear physics interaction links
 	SV_ClearWorld();
-	
+
 	// media configstring setting should be done during
 	// the loading stage, so connected clients don't have
 	// to load during actual gameplay
@@ -753,7 +754,7 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 					ent->s.number = i;
 					client->gentity = ent;
 
-					client->deltaMessage = -1;
+					client->deltaMessage = client->netchan.outgoingSequence - ( PACKET_BACKUP + 1 ); // force delta reset
 					client->lastSnapshotTime = svs.time - 9999; // generate a snapshot immediately
 
 					VM_Call( gvm, 1, GAME_CLIENT_BEGIN, i );
@@ -897,7 +898,7 @@ void SV_Init( void )
 	sv_clientTLD = Cvar_Get( "sv_clientTLD", "0", CVAR_ARCHIVE_ND );
 	Cvar_CheckRange( sv_clientTLD, NULL, NULL, CV_INTEGER );
 
-	sv_minRate = Cvar_Get ("sv_minRate", "0", CVAR_ARCHIVE_ND | CVAR_SERVERINFO );
+	sv_minRate = Cvar_Get( "sv_minRate", "0", CVAR_ARCHIVE_ND | CVAR_SERVERINFO );
 	sv_maxRate = Cvar_Get( "sv_maxRate", "0", CVAR_ARCHIVE_ND | CVAR_SERVERINFO );
 	sv_floodProtect = Cvar_Get( "sv_floodProtect", "1", CVAR_ARCHIVE | CVAR_SERVERINFO );
 	sv_friendlyFire = Cvar_Get( "g_friendlyFire", "1", CVAR_SERVERINFO | CVAR_ARCHIVE );           // NERVE - SMF
@@ -945,10 +946,9 @@ void SV_Init( void )
 	Cvar_CheckRange( sv_reconnectlimit, "0", "12", CV_INTEGER );
 
 	sv_tempbanmessage = Cvar_Get( "sv_tempbanmessage", "You have been kicked and are temporarily banned from joining this server.", 0 );
-	sv_padPackets = Cvar_Get( "sv_padPackets", "0", 0 );
+	sv_padPackets = Cvar_Get( "sv_padPackets", "0", CVAR_DEVELOPER );
 	sv_killserver = Cvar_Get( "sv_killserver", "0", 0 );
 	sv_mapChecksum = Cvar_Get( "sv_mapChecksum", "", CVAR_ROM );
-
 	sv_lanForceRate = Cvar_Get( "sv_lanForceRate", "1", CVAR_ARCHIVE_ND );
 
 	sv_onlyVisibleClients = Cvar_Get( "sv_onlyVisibleClients", "0", 0 );       // DHM - Nerve

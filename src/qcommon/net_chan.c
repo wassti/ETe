@@ -296,7 +296,7 @@ qboolean Netchan_Process( netchan_t *chan, msg_t *msg ) {
 	//
 	// discard out of order or duplicated packets
 	//
-	if ( sequence <= chan->incomingSequence ) {
+	if ( sequence - chan->incomingSequence <= 0 ) {
 		if ( showdrop->integer || showpackets->integer ) {
 			Com_Printf( "%s:Out of order packet %i at %i\n"
 				, NET_AdrToString( &chan->remoteAddress )
@@ -377,7 +377,7 @@ qboolean Netchan_Process( netchan_t *chan, msg_t *msg ) {
 		// copy the full message over the partial fragment
 
 		// make sure the sequence number is still there
-		*(int *)msg->data = LittleLong( sequence );
+		*(int32_t *)msg->data = LittleLong( sequence );
 
 		Com_Memcpy( msg->data + 4, chan->fragmentBuffer, chan->fragmentLength );
 		msg->cursize = chan->fragmentLength + 4;
@@ -436,10 +436,10 @@ qboolean NET_GetLoopPacket( netsrc_t sock, netadr_t *net_from, msg_t *net_messag
 
 	loop = &loopbacks[sock];
 
-	if (loop->send - loop->get > MAX_LOOPBACK)
+	if ( loop->send - loop->get > MAX_LOOPBACK )
 		loop->get = loop->send - MAX_LOOPBACK;
 
-	if (loop->get >= loop->send)
+	if ( loop->send - loop->get <= 0 )
 		return qfalse;
 
 	i = loop->get & (MAX_LOOPBACK-1);
@@ -450,7 +450,6 @@ qboolean NET_GetLoopPacket( netsrc_t sock, netadr_t *net_from, msg_t *net_messag
 	Com_Memset (net_from, 0, sizeof(*net_from));
 	net_from->type = NA_LOOPBACK;
 	return qtrue;
-
 }
 
 
@@ -548,7 +547,7 @@ void NET_SendPacket( netsrc_t sock, int length, const void *data, const netadr_t
 	}
 
 	// sequenced packets are shown in netchan, so just show oob
-	if ( showpackets->integer && *(int *)data == -1 )	{
+	if ( showpackets->integer && *(int32_t *)data == -1 ) {
 		Com_Printf ("send packet %4i\n", length);
 	}
 

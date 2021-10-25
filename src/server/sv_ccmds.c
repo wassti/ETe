@@ -333,7 +333,10 @@ static void SV_MapRestart_f( void ) {
 
 	if ( delay ) {
 		sv.restartTime = sv.time + delay * 1000;
-		SV_SetConfigstring( CS_WARMUP, va("%i", sv.restartTime) );
+		if ( sv.restartTime == 0 ) {
+			sv.restartTime = 1;
+		}
+		SV_SetConfigstring( CS_WARMUP, va( "%i", sv.restartTime ) );
 		return;
 	}
 
@@ -357,7 +360,7 @@ static void SV_MapRestart_f( void ) {
 	// check for changes in variables that can't just be restarted
 	// check for maxclients change
 	if ( sv_maxclients->modified || sv_pure->modified ) {
-		char mapname[MAX_QPATH];
+		char	mapname[MAX_QPATH];
 
 		Com_Printf( "variable change -- restarting.\n" );
 		// restart the map the slow way

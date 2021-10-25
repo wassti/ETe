@@ -776,7 +776,7 @@ gotnewcl:
 	// when we receive the first packet from the client, we will
 	// notice that it is from a different serverid and that the
 	// gamestate message was not just sent, forcing a retransmit
-	newcl->gamestateMessageNum = -1;
+	newcl->gamestateMessageNum = newcl->messageAcknowledge - 1; // force gamestate retransmit
 
 	// if this was the first client on the server, or the last client
 	// the server can hold, send a heartbeat to the master.
@@ -1091,7 +1091,7 @@ void SV_ClientEnterWorld( client_t *client, usercmd_t *cmd ) {
 	ent->s.number = clientNum;
 	client->gentity = ent;
 
-	client->deltaMessage = -1;
+	client->deltaMessage = client->netchan.outgoingSequence - (PACKET_BACKUP + 1); // force delta reset
 	client->lastSnapshotTime = svs.time - 9999; // generate a snapshot immediately
 
 	if(cmd)
@@ -1292,39 +1292,6 @@ void SV_WWWDownload_f( client_t *cl ) {
 	SV_DropClient( cl, va( "SV_WWWDownload: unknown wwwdl subcommand '%s'", subcmd ) );
 }
 
-// abort an attempted download
-void SV_BadDownload( client_t *cl, msg_t *msg ) {
-	MSG_WriteByte( msg, svc_download );
-	MSG_WriteShort( msg, 0 ); // client is expecting block zero
-	MSG_WriteLong( msg, -1 ); // illegal file size
-
-	*cl->downloadName = '\0';
-}
-
-/*
-==================
-SV_CheckFallbackURL
-
-sv_wwwFallbackURL can be used to redirect clients to a web URL in case direct ftp/http didn't work (or is disabled on client's end)
-return true when a redirect URL message was filled up
-when the cvar is set to something, the download server will effectively never use a legacy download strategy
-==================
-*/
-static qboolean SV_CheckFallbackURL( client_t *cl, msg_t *msg ) {
-	if ( !sv_wwwFallbackURL->string || sv_wwwFallbackURL->string[0] == '\0'/*strlen( sv_wwwFallbackURL->string ) == 0*/ ) {
-		return qfalse;
-	}
-
-	Com_Printf( "clientDownload: sending client '%s' to fallback URL '%s'\n", cl->name, sv_wwwFallbackURL->string );
-
-	MSG_WriteByte( msg, svc_download );
-	MSG_WriteShort( msg, -1 ); // block -1 means ftp/http download
-	MSG_WriteString( msg, sv_wwwFallbackURL->string );
-	MSG_WriteLong( msg, 0 );
-	MSG_WriteLong( msg, 2 ); // DL_FLAG_URL
-
-	return qtrue;
-}
 
 /*
 ==================
@@ -1334,7 +1301,7 @@ Check to see if the client wants a file, open it if needed and start pumping the
 Fill up msg with data, return number of download blocks added
 ==================
 */
-static int SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
+static int SV_WriteDownloadToClient( client_t *cl )
 {
 	int curindex;
 	int unreferenced = 1;
@@ -1342,11 +1309,10 @@ static int SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 	int download_flag;
 	char pakbuf[MAX_QPATH], *pakptr;
 	int numRefPaks;
+	msg_t msg;
+	byte msgBuffer[MAX_DOWNLOAD_BLKSIZE*2+8];
 
 //	qboolean bTellRate = qfalse; // verbosity
-
-	if (!*cl->downloadName)
-		return 0;	// Nothing being downloaded
 
 	if ( cl->bWWWing )
 		return 0; // The client acked and is downloading with ftp/http
@@ -1392,6 +1358,7 @@ static int SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 			(sv_allowDownload->integer & DLF_NO_UDP) ||
 			idPack || unreferenced ||
 			( cl->downloadSize = FS_SV_FOpenFileRead( cl->downloadName, &cl->download ) ) < 0 ) {
+
 			// cannot auto-download file
 			if(unreferenced)
 			{
@@ -1422,10 +1389,17 @@ static int SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 				Com_Printf("clientDownload: %d : \"%s\" file not found on server\n", (int) (cl - svs.clients), cl->downloadName);
 				Com_sprintf(errorMessage, sizeof(errorMessage), "File \"%s\" not found on server for autodownloading.\n", cl->downloadName);
 			}
-			MSG_WriteByte( msg, svc_download );
-			MSG_WriteShort( msg, 0 ); // client is expecting block zero
-			MSG_WriteLong( msg, -1 ); // illegal file size
-			MSG_WriteString( msg, errorMessage );
+
+			MSG_Init( &msg, msgBuffer, sizeof( msgBuffer ) - 8 );
+			MSG_WriteLong( &msg, cl->lastClientCommand );
+
+			MSG_WriteByte( &msg, svc_download );
+			MSG_WriteShort( &msg, 0 ); // client is expecting block zero
+			MSG_WriteLong( &msg, -1 ); // illegal file size
+			MSG_WriteString( &msg, errorMessage );
+
+			MSG_WriteByte( &msg, svc_EOF );
+			SV_Netchan_Transmit( cl, &msg );
 
 			*cl->downloadName = '\0';
 
@@ -1458,17 +1432,24 @@ static int SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 						}
 						// once cl->downloadName is set (and possibly we have our listening socket), let the client know
 						cl->bWWWDl = qtrue;
-						MSG_WriteByte( msg, svc_download );
-						MSG_WriteShort( msg, -1 ); // block -1 means ftp/http download
+						
+						MSG_Init( &msg, msgBuffer, sizeof( msgBuffer ) - 8 );
+						MSG_WriteLong( &msg, cl->lastClientCommand );
+
+						MSG_WriteByte( &msg, svc_download );
+						MSG_WriteShort( &msg, -1 ); // block -1 means ftp/http download
 						// compatible with legacy svc_download protocol: [size] [size bytes]
 						// download URL, size of the download file, download flags
-						MSG_WriteString( msg, cl->downloadURL );
-						MSG_WriteLong( msg, downloadSize );
+						MSG_WriteString( &msg, cl->downloadURL );
+						MSG_WriteLong( &msg, downloadSize );
 						download_flag = 0;
 						if ( sv_wwwDlDisconnected->integer ) {
 							download_flag |= ( 1 << DL_FLAG_DISCON );
 						}
-						MSG_WriteLong( msg, download_flag ); // flags
+						MSG_WriteLong( &msg, download_flag ); // flags
+
+						MSG_WriteByte( &msg, svc_EOF );
+						SV_Netchan_Transmit( cl, &msg );
 						return 1;
 					} else {
 						// that should NOT happen - even regular download would fail then anyway
@@ -1476,13 +1457,40 @@ static int SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 					}
 				} else {
 					cl->bFallback = qfalse;
-					if ( SV_CheckFallbackURL( cl, msg ) ) {
+
+					if ( sv_wwwFallbackURL->string && sv_wwwFallbackURL->string[0] != '\0') {
+						Com_Printf( "clientDownload: sending client '%s' to fallback URL '%s'\n", cl->name, sv_wwwFallbackURL->string );
+
+						MSG_Init( &msg, msgBuffer, sizeof( msgBuffer ) - 8 );
+						MSG_WriteLong( &msg, cl->lastClientCommand );
+
+						MSG_WriteByte( &msg, svc_download );
+						MSG_WriteShort( &msg, -1 ); // block -1 means ftp/http download
+						MSG_WriteString( &msg, sv_wwwFallbackURL->string );
+						MSG_WriteLong( &msg, 0 );
+						MSG_WriteLong( &msg, 2 ); // // DL_FLAG_URL
+
+						MSG_WriteByte( &msg, svc_EOF );
+						SV_Netchan_Transmit( cl, &msg );
 						return 0;
 					}
 					Com_Printf( "Client '%s': falling back to regular downloading for failed file %s\n", cl->name, cl->downloadName );
 				}
 			} else {
-				if ( SV_CheckFallbackURL( cl, msg ) ) {
+				if ( sv_wwwFallbackURL->string && sv_wwwFallbackURL->string[0] != '\0') {
+					Com_Printf( "clientDownload: sending client '%s' to fallback URL '%s'\n", cl->name, sv_wwwFallbackURL->string );
+
+					MSG_Init( &msg, msgBuffer, sizeof( msgBuffer ) - 8 );
+					MSG_WriteLong( &msg, cl->lastClientCommand );
+
+					MSG_WriteByte( &msg, svc_download );
+					MSG_WriteShort( &msg, -1 ); // block -1 means ftp/http download
+					MSG_WriteString( &msg, sv_wwwFallbackURL->string );
+					MSG_WriteLong( &msg, 0 );
+					MSG_WriteLong( &msg, 2 ); // // DL_FLAG_URL
+
+					MSG_WriteByte( &msg, svc_EOF );
+					SV_Netchan_Transmit( cl, &msg );
 					return 0;
 				}
 				Com_Printf( "Client '%s' is not configured for www download\n", cl->name );
@@ -1495,8 +1503,18 @@ static int SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 		if ( cl->downloadSize <= 0 ) {
 			Com_Printf( "clientDownload: %d : \"%s\" file not found on server\n", (int)(cl - svs.clients), cl->downloadName );
 			Com_sprintf( errorMessage, sizeof( errorMessage ), "File \"%s\" not found on server for autodownloading.\n", cl->downloadName );
-			SV_BadDownload( cl, msg );
-			MSG_WriteString( msg, errorMessage ); // (could SV_DropClient isntead?)
+
+			MSG_Init( &msg, msgBuffer, sizeof( msgBuffer ) - 8 );
+			MSG_WriteLong( &msg, cl->lastClientCommand );
+
+			MSG_WriteByte( &msg, svc_download );
+			MSG_WriteShort( &msg, 0 ); // client is expecting block zero
+			MSG_WriteLong( &msg, -1 ); // illegal file size
+			*cl->downloadName = '\0';
+			MSG_WriteString( &msg, errorMessage ); // (could SV_DropClient isntead?)
+
+			MSG_WriteByte( &msg, svc_EOF );
+			SV_Netchan_Transmit( cl, &msg );
 			if ( cl->download != FS_INVALID_HANDLE ) {
 				FS_FCloseFile( cl->download );
 				cl->download = FS_INVALID_HANDLE;
@@ -1567,18 +1585,24 @@ static int SV_WriteDownloadToClient( client_t *cl, msg_t *msg )
 	// Send current block
 	curindex = (cl->downloadXmitBlock % MAX_DOWNLOAD_WINDOW);
 
-	MSG_WriteByte( msg, svc_download );
-	MSG_WriteShort( msg, cl->downloadXmitBlock );
+	MSG_Init( &msg, msgBuffer, sizeof( msgBuffer ) - 8 );
+	MSG_WriteLong( &msg, cl->lastClientCommand );
+
+	MSG_WriteByte( &msg, svc_download );
+	MSG_WriteShort( &msg, cl->downloadXmitBlock );
 
 	// block zero is special, contains file size
 	if ( cl->downloadXmitBlock == 0 )
-		MSG_WriteLong( msg, cl->downloadSize );
+		MSG_WriteLong( &msg, cl->downloadSize );
 
-	MSG_WriteShort( msg, cl->downloadBlockSize[curindex] );
+	MSG_WriteShort( &msg, cl->downloadBlockSize[curindex] );
 
 	// Write the block
-	if(cl->downloadBlockSize[curindex])
-		MSG_WriteData(msg, cl->downloadBlocks[curindex], cl->downloadBlockSize[curindex]);
+	if ( cl->downloadBlockSize[curindex] > 0 )
+		MSG_WriteData( &msg, cl->downloadBlocks[curindex], cl->downloadBlockSize[curindex] );
+
+	MSG_WriteByte( &msg, svc_EOF );
+	SV_Netchan_Transmit( cl, &msg );
 
 	Com_DPrintf( "clientDownload: %d : writing block %d\n", (int) (cl - svs.clients), cl->downloadXmitBlock );
 
@@ -1633,28 +1657,15 @@ Send one round of download messages to all clients
 */
 int SV_SendDownloadMessages( void )
 {
-	int i, numDLs = 0, retval;
+	int i, numDLs = 0;
 	client_t *cl;
-	msg_t msg;
-	byte msgBuffer[ MAX_MSGLEN_BUF ];
 
 	for( i = 0; i < sv_maxclients->integer; i++ )
 	{
-		cl = &svs.clients[i];
-
+		cl = &svs.clients[ i ];
 		if ( cl->state >= CS_CONNECTED && *cl->downloadName )
 		{
-			MSG_Init( &msg, msgBuffer, MAX_MSGLEN );
-			MSG_WriteLong( &msg, cl->lastClientCommand );
-
-			retval = SV_WriteDownloadToClient( cl, &msg );
-
-			if ( retval )
-			{
-				MSG_WriteByte( &msg, svc_EOF );
-				SV_Netchan_Transmit( cl, &msg );
-				numDLs += retval;
-			}
+			numDLs += SV_WriteDownloadToClient( cl );
 		}
 	}
 
@@ -1724,7 +1735,7 @@ static void SV_VerifyPaks_f( client_t *cl ) {
 			// show_bug.cgi?id=475
 			// we may get incoming cp sequences from a previous checksumFeed, which we need to ignore
 			// since serverId is a frame count, it always goes up
-			if ( atoi( pArg ) < sv.checksumFeedServerId )
+			if ( atoi( pArg ) - sv.checksumFeedServerId < 0 )
 			{
 				Com_DPrintf( "ignoring outdated cp command from client %s\n", cl->name );
 				return;
@@ -2258,7 +2269,7 @@ static void SV_UserMove( client_t *cl, msg_t *msg, qboolean delta ) {
 	if ( delta ) {
 		cl->deltaMessage = cl->messageAcknowledge;
 	} else {
-		cl->deltaMessage = -1;
+		cl->deltaMessage = cl->netchan.outgoingSequence - ( PACKET_BACKUP + 1 ); // force delta reset
 	}
 
 	cmdCount = MSG_ReadByte( msg );
@@ -2314,7 +2325,7 @@ static void SV_UserMove( client_t *cl, msg_t *msg, qboolean delta ) {
 	}
 
 	if ( cl->state != CS_ACTIVE ) {
-		cl->deltaMessage = -1;
+		cl->deltaMessage = cl->netchan.outgoingSequence - ( PACKET_BACKUP + 1 ); // force delta reset
 		return;
 	}
 
@@ -2333,8 +2344,8 @@ static void SV_UserMove( client_t *cl, msg_t *msg, qboolean delta ) {
 		if ( !SV_GameIsSinglePlayer() ) { // We need to allow this in single player, where loadgame's can cause the player to freeze after reloading if we do this check
 			// don't execute if this is an old cmd which is already executed
 			// these old cmds are included when cl_packetdup > 0
-			if ( cmds[i].serverTime <= cl->lastUsercmd.serverTime ) {   // Q3_MISSIONPACK
-//			if ( cmds[i].serverTime > cmds[cmdCount-1].serverTime ) {
+			//if ( cmds[i].serverTime <= cl->lastUsercmd.serverTime ) {
+			if ( cmds[i].serverTime - cl->lastUsercmd.serverTime <= 0 ) {
 				continue;   // from just before a map_restart
 			}
 		}
@@ -2377,15 +2388,16 @@ Parse a client packet
 ===================
 */
 void SV_ExecuteClientMessage( client_t *cl, msg_t *msg ) {
-	int			c;
-	int			serverId;
+	int	c;
+	int	serverId;
 
-	MSG_Bitstream(msg);
+	MSG_Bitstream( msg );
 
 	serverId = MSG_ReadLong( msg );
 	cl->messageAcknowledge = MSG_ReadLong( msg );
 
-	if (cl->messageAcknowledge < 0) {
+	//if ( cl->messageAcknowledge < 0 ) {
+	if ( cl->netchan.outgoingSequence - cl->messageAcknowledge <= 0 ) {
 		// usually only hackers create messages like this
 		// it is more annoying for them to let them hanging
 #ifndef NDEBUG
@@ -2399,7 +2411,7 @@ void SV_ExecuteClientMessage( client_t *cl, msg_t *msg ) {
 	// NOTE: when the client message is fux0red the acknowledgement numbers
 	// can be out of range, this could cause the server to send thousands of server
 	// commands which the server thinks are not yet acknowledged in SV_UpdateServerCommandsToClient
-	if (cl->reliableAcknowledge < cl->reliableSequence - MAX_RELIABLE_COMMANDS) {
+	if ( cl->reliableSequence - cl->reliableAcknowledge > MAX_RELIABLE_COMMANDS ) {
 		// usually only hackers create messages like this
 		// it is more annoying for them to let them hanging
 #ifndef NDEBUG
@@ -2424,16 +2436,17 @@ void SV_ExecuteClientMessage( client_t *cl, msg_t *msg ) {
 	// but we still need to read the next message to move to next download or send gamestate
 	// I don't like this hack though, it must have been working fine at some point, suspecting the fix is somewhere else
 	if ( serverId != sv.serverId && !*cl->downloadName && !strstr(cl->lastClientCommandString, "nextdl") ) {
-		if ( serverId >= sv.restartedServerId && serverId < sv.serverId ) { // TTimo - use a comparison here to catch multiple map_restart
-			// they just haven't caught the map_restart yet
-			Com_DPrintf("%s : ignoring pre map_restart / outdated client message\n", cl->name);
+		// TTimo - use a comparison here to catch multiple map_restart
+		if ( serverId - sv.restartedServerId >= 0 && serverId - sv.serverId < 0 ) {
+			// they just haven't caught the \map_restart yet
+			Com_DPrintf( "%s: ignoring pre map_restart / outdated client message\n", cl->name );
 			return;
 		}
-		// if we can tell that the client has dropped the last
-		// gamestate we sent them, resend it
-		if ( cl->state != CS_ACTIVE && cl->messageAcknowledge > cl->gamestateMessageNum ) {
+		// if we can tell that the client has dropped the last gamestate we sent them, resend it
+		if ( cl->state != CS_ACTIVE && cl->messageAcknowledge - cl->gamestateMessageNum > 0 ) {
 			if ( !SVC_RateLimit( &cl->gamestate_rate, 4, 1000 ) ) {
-				Com_DPrintf( "%s : dropped gamestate, resending\n", cl->name );
+				if ( cl->gentity )
+					Com_DPrintf( "%s: dropped gamestate, resending\n", cl->name );
 				SV_SendClientGameState( cl );
 			}
 		}

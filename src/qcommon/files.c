@@ -650,13 +650,13 @@ void FS_CopyFile( const char *fromOSPath, const char *toOSPath ) {
 	buf = malloc( len );
 	if ( !buf ) {
 		fclose( f );
-		Com_Error( ERR_FATAL, "Memory alloc error in FS_Copyfiles()\n" );
+		Com_Error( ERR_FATAL, "Memory alloc error in FS_Copyfiles()" );
 	}
 
 	if (fread( buf, 1, len, f ) != len) {
 		free( buf );
 		fclose( f );
-		Com_Error( ERR_FATAL, "Short read in FS_Copyfiles()\n" );
+		Com_Error( ERR_FATAL, "Short read in FS_Copyfiles()" );
 	}
 	fclose( f );
 
@@ -676,7 +676,7 @@ void FS_CopyFile( const char *fromOSPath, const char *toOSPath ) {
 	if ( fwrite( buf, 1, len, f ) != len ) {
 		free( buf );
 		fclose( f );
-		Com_Error( ERR_FATAL, "Short write in FS_Copyfiles()\n" );
+		Com_Error( ERR_FATAL, "Short write in FS_Copyfiles()" );
 	}
 	fclose( f );
 	free( buf );
@@ -1623,7 +1623,7 @@ int FS_FOpenFileRead( const char *filename, fileHandle_t *file, qboolean uniqueF
 	}
 
 	if ( !filename ) {
-		Com_Error( ERR_FATAL, "FS_FOpenFileRead: NULL 'filename' parameter passed\n" );
+		Com_Error( ERR_FATAL, "FS_FOpenFileRead: NULL 'filename' parameter passed" );
 	}
 
 	// qpaths are not supposed to have a leading slash
@@ -1992,8 +1992,9 @@ static int FS_DeleteDir( const char *dirname, qboolean nonEmpty, qboolean recurs
 	char **pFiles = NULL;
 	int i, nFiles = 0;
 
-	if ( !fs_searchpaths ) {
-		Com_Error( ERR_FATAL, "Filesystem call made without initialization\n" );
+	if (!fs_searchpaths)
+	{
+		Com_Error(ERR_FATAL, "Filesystem call made without initialization");
 	}
 
 	if ( !dirname || dirname[0] == 0 ) {
@@ -2057,8 +2058,9 @@ int FS_Delete( const char *filename ) {
 	const char *ospath;
 	int stat;
 
-	if ( !fs_searchpaths ) {
-		Com_Error( ERR_FATAL, "Filesystem call made without initialization\n" );
+	if (!fs_searchpaths)
+	{
+		Com_Error(ERR_FATAL, "Filesystem call made without initialization");
 	}
 
 	if ( !filename || filename[0] == 0 ) {

@@ -558,7 +558,7 @@ static intptr_t SV_GameSystemCalls( intptr_t *args ) {
 	case G_REGISTERSOUND:
 		return 0;
 	case G_GET_SOUND_LENGTH:
-		Com_Error( ERR_DROP, "S_GetSoundLength shouldn't be used in server mods\n" );
+		Com_Error( ERR_DROP, "S_GetSoundLength shouldn't be used in server mods" );
 		return 0;
 
 		//====================================

@@ -1867,7 +1867,7 @@ int SV_LoadTag( const char *mod_name ) {
 
 	if ( sv.num_tagheaders >= MAX_TAG_FILES ) {
 		FS_FreeFile( buffer );
-		Com_Error( ERR_DROP, "MAX_TAG_FILES reached\n" );
+		Com_Error( ERR_DROP, "MAX_TAG_FILES reached" );
 		return 0;
 	}
 
@@ -1882,7 +1882,7 @@ int SV_LoadTag( const char *mod_name ) {
 
 	if ( sv.num_tags + pinmodel->numTags >= MAX_SERVER_TAGS ) {
 		FS_FreeFile( buffer );
-		Com_Error( ERR_DROP, "MAX_SERVER_TAGS reached\n" );
+		Com_Error( ERR_DROP, "MAX_SERVER_TAGS reached" );
 		return qfalse;
 	}
 

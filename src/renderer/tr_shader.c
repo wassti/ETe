@@ -3313,14 +3313,14 @@ qboolean RE_LoadDynamicShader( const char *shadername, const char *shadertext ) 
 	//create a new shader
 	dptr = (dynamicshader_t *)Z_Malloc( sizeof( *dptr ) );
 	if ( !dptr ) {
-		Com_Error( ERR_FATAL, "%s: Couldn't allocate struct for dynamic shader %s\n", __func__, shadername );
+		Com_Error( ERR_FATAL, "%s: Couldn't allocate struct for dynamic shader %s", __func__, shadername );
 	}
 	if ( lastdptr ) {
 		lastdptr->next = dptr;
 	}
 	dptr->shadertext = Z_Malloc( strlen( shadertext ) + 1 );
 	if ( !dptr->shadertext ) {
-		Com_Error( ERR_FATAL, "%s: Couldn't allocate buffer for dynamic shader %s\n", __func__, shadername );
+		Com_Error( ERR_FATAL, "%s: Couldn't allocate buffer for dynamic shader %s", __func__, shadername );
 	}
 	Q_strncpyz( dptr->shadertext, shadertext, strlen( shadertext ) + 1 );
 	dptr->next = NULL;

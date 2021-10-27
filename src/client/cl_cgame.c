@@ -1231,19 +1231,19 @@ void CL_UpdateLevelHunkUsage( void ) {
 					Q_strcat( outbuftrav, len + 1, token );
 					Q_strcat( outbuftrav, len + 1, "\n" );
 				} else {
-					Com_Error( ERR_DROP, "hunkusage.dat file is corrupt\n" );
+					Com_Error( ERR_DROP, "hunkusage.dat file is corrupt" );
 				}
 			}
 		}
 
 		handle = FS_FOpenFileWrite( HUNKUSAGE_FILENAME );
 		if ( handle < 0 ) {
-			Com_Error( ERR_DROP, "cannot create %s\n", HUNKUSAGE_FILENAME );
+			Com_Error( ERR_DROP, "cannot create %s", HUNKUSAGE_FILENAME );
 		}
 		// input file is parsed, now output to the new file
 		len = strlen( outbuf );
 		if ( FS_Write( (void *)outbuf, len, handle ) != len ) {
-			Com_Error( ERR_DROP, "cannot write to %s\n", HUNKUSAGE_FILENAME );
+			Com_Error( ERR_DROP, "cannot write to %s", HUNKUSAGE_FILENAME );
 		}
 		FS_FCloseFile( handle );
 
@@ -1253,7 +1253,7 @@ void CL_UpdateLevelHunkUsage( void ) {
 	// now append the current map to the current file
 	FS_FOpenFileByMode( HUNKUSAGE_FILENAME, &handle, FS_APPEND );
 	if ( handle < 0 ) {
-		Com_Error( ERR_DROP, "cannot write to hunkusage.dat, check disk full\n" );
+		Com_Error( ERR_DROP, "cannot write to hunkusage.dat, check disk full" );
 	}
 	Com_sprintf( outstr, sizeof( outstr ), "\"%s\" %i\n", cl.mapname, memusage );
 	FS_Write( outstr, strlen( outstr ), handle );

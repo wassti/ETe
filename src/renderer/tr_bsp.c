@@ -146,6 +146,7 @@ static void R_ColorShiftLightingBytes( const byte in[4], byte out[4] ) {
 	out[3] = in[3];
 }
 
+
 /*
 ===============
 R_ProcessLightmap
@@ -434,7 +435,7 @@ static void R_LoadVisibility( const lump_t *l ) {
 	s_worldData.novis = ri.Hunk_Alloc( len, h_low );
 	Com_Memset( s_worldData.novis, 0xff, len );
 
-    len = l->filelen;
+	len = l->filelen;
 	if ( !len ) {
 		return;
 	}

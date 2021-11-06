@@ -4539,6 +4539,7 @@ void R_BackupShaders( void ) {
 	memcpy( backupHashTable, hashTable, sizeof( hashTable ) );
 
 	numBackupShaders = tr.numShaders;
+	tr.numShaders = 0;
 
 	// Gordon: ditch all lightmapped shaders
 	R_PurgeLightmapShaders();
@@ -4690,7 +4691,7 @@ void R_LoadCacheShaders( void ) {
 
 	while ( ( token = COM_ParseExt( &pString, qtrue ) ) != NULL && token[0] ) {
 		Q_strncpyz( name, token, sizeof( name ) );
-		RE_RegisterModel( name );
+		RE_RegisterShader( name );
 	}
 
 	ri.Hunk_FreeTempMemory( buf );

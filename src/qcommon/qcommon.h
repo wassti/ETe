@@ -1276,9 +1276,9 @@ void CL_KeyEvent (int key, qboolean down, unsigned time);
 void CL_CharEvent( int key );
 // char events are for field typing, not game control
 
-void CL_MouseEvent( int dx, int dy, int time );
+void CL_MouseEvent( int dx, int dy /*, int time*/ );
 
-void CL_JoystickEvent( int axis, int value, int time );
+void CL_JoystickEvent( int axis, int value /*, int time*/ );
 
 void CL_PacketEvent( const netadr_t *from, msg_t *msg );
 

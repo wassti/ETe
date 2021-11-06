@@ -188,7 +188,6 @@ typedef struct client_s {
 	char reliableCommands[MAX_RELIABLE_COMMANDS][MAX_STRING_CHARS];
 	int reliableSequence;                   // last added reliable message, not necesarily sent or acknowledged yet
 	int reliableAcknowledge;                // last acknowledged reliable message
-	int reliableSent;                       // last sent reliable message, not necesarily acknowledged yet
 	int messageAcknowledge;
 
 	int binaryMessageLength;
@@ -199,7 +198,6 @@ typedef struct client_s {
 	int challenge;
 
 	usercmd_t lastUsercmd;
-	int lastMessageNum;                 // for delta compression
 	int lastClientCommand;              // reliable client message sequence
 	char lastClientCommandString[MAX_STRING_CHARS];
 	sharedEntity_t  *gentity;           // SV_GentityNum(clientnum)

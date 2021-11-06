@@ -4422,6 +4422,8 @@ static void Com_Shutdown( qboolean badProfile ) {
 		FS_FCloseFile( com_journalDataFile );
 		com_journalDataFile = FS_INVALID_HANDLE;
 	}
+
+	VM_Shutdown();
 }
 
 //------------------------------------------------------------------------

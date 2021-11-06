@@ -79,6 +79,11 @@ void VM_Init( void ) {
 }
 
 
+void VM_Shutdown( void ) {
+	Cmd_RemoveCommand( "vminfo" );
+}
+
+
 /*
 ============
 VM_DllSyscall

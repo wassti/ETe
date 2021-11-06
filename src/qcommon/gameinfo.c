@@ -36,64 +36,77 @@ If you have questions concerning this license or the applicable additional terms
 gameInfo_t com_gameInfo;
 static qboolean firstLaunch = qtrue;
 
+void Com_InitGameInfo( void ) {
+	memset( &com_gameInfo, 0, sizeof( com_gameInfo ) );
+}
+
 void Com_GetGameInfo( void ) {
-	char    *f;
+	union {
+		char* c;
+		void* v;
+	} text;
 	const char *buf, *token;
 
 	memset( &com_gameInfo, 0, sizeof( com_gameInfo ) );
 
-	if ( FS_ReadFile( "gameinfo.dat", (void **)&f ) > 0 ) {
-
-		buf = f;
+	if ( FS_ReadFile( "gameinfo.dat", &text.v ) > 0 ) {
+		buf = text.c;
 
 		while ( ( token = COM_Parse( &buf ) ) != NULL && token[0] ) {
 			if ( !Q_stricmp( token, "spEnabled" ) ) {
 				com_gameInfo.spEnabled = qtrue;
 			} else if ( !Q_stricmp( token, "spGameTypes" ) ) {
 				while ( ( token = COM_ParseExt( &buf, qfalse ) ) != NULL && token[0] ) {
-					com_gameInfo.spGameTypes |= ( 1 << atoi( token ) );
+					int val = atoi( token );
+					if ( val >= 0 )
+						com_gameInfo.spGameTypes |= ( 1 << val );
+					else
+						com_gameInfo.spGameTypes = 0;
 				}
 			} else if ( !Q_stricmp( token, "defaultSPGameType" ) ) {
 				if ( ( token = COM_ParseExt( &buf, qfalse ) ) != NULL && token[0] ) {
 					com_gameInfo.defaultSPGameType = atoi( token );
 				} else {
-					FS_FreeFile( f );
+					FS_FreeFile( text.v );
 					Com_Error( ERR_FATAL, "Com_GetGameInfo: bad syntax." );
 				}
 			} else if ( !Q_stricmp( token, "coopGameTypes" ) ) {
-
 				while ( ( token = COM_ParseExt( &buf, qfalse ) ) != NULL && token[0] ) {
-					com_gameInfo.coopGameTypes |= ( 1 << atoi( token ) );
+					int val = atoi( token );
+					if ( val >= 0 )
+						com_gameInfo.coopGameTypes |= ( 1 << val );
+					else
+						com_gameInfo.coopGameTypes = 0;
 				}
 			} else if ( !Q_stricmp( token, "defaultCoopGameType" ) ) {
 				if ( ( token = COM_ParseExt( &buf, qfalse ) ) != NULL && token[0] ) {
 					com_gameInfo.defaultCoopGameType = atoi( token );
 				} else {
-					FS_FreeFile( f );
+					FS_FreeFile( text.v );
 					Com_Error( ERR_FATAL, "Com_GetGameInfo: bad syntax." );
 				}
 			} else if ( !Q_stricmp( token, "defaultGameType" ) ) {
 				if ( ( token = COM_ParseExt( &buf, qfalse ) ) != NULL && token[0] ) {
 					com_gameInfo.defaultGameType = atoi( token );
 				} else {
-					FS_FreeFile( f );
+					FS_FreeFile( text.v );
 					Com_Error( ERR_FATAL, "Com_GetGameInfo: bad syntax." );
 				}
 			} else if ( !Q_stricmp( token, "usesProfiles" ) ) {
 				if ( ( token = COM_ParseExt( &buf, qfalse ) ) != NULL && token[0] ) {
 					com_gameInfo.usesProfiles = atoi( token );
 				} else {
-					FS_FreeFile( f );
+					FS_FreeFile( text.v );
 					Com_Error( ERR_FATAL, "Com_GetGameInfo: bad syntax." );
 				}
 			} else {
-				FS_FreeFile( f );
+				FS_FreeFile( text.v );
 				Com_Error( ERR_FATAL, "Com_GetGameInfo: bad syntax." );
 			}
 		}
 
 		// all is good
-		FS_FreeFile( f );
+		FS_FreeFile( text.v );
 	}
 
 	if ( !firstLaunch )

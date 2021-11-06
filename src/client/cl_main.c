@@ -2089,10 +2089,9 @@ CL_Wolfinfo_f
 */
 static void CL_Wolfinfo_f( void ) {
 	int ofs;
-	const char *gamedir = FS_GetCurrentGameDir();
 
 	// WOLFINFO cvars are unused in ETF
-	if ( !Q_stricmp( gamedir, "etf" ) )
+	if ( currentGameMod == GAMEMOD_ETF )
 		return;
 
 	ofs = cl.gameState.stringOffsets[ CS_WOLFINFO ];
@@ -3826,6 +3825,10 @@ static qboolean CL_IsMininized( void ) {
 	return gw_minimized;
 }
 
+static int CL_CurrentGameMod( void ) {
+	return currentGameMod;
+}
+
 
 /*
 ============
@@ -3942,6 +3945,7 @@ static void CL_InitRef( void ) {
 	//rimp.FS_FileIsInPAK = FS_FileIsInPAK;
 	rimp.FS_FileExists = FS_FileExists;
 	rimp.FS_GetCurrentGameDir = FS_GetCurrentGameDir;
+	rimp.CL_CurrentGameMod = CL_CurrentGameMod;
 
 	rimp.Cvar_Get = Cvar_Get;
 	rimp.Cvar_Set = Cvar_Set;

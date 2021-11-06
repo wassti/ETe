@@ -534,6 +534,7 @@ void CL_SystemInfoChanged( qboolean onlyGame ) {
 	}
 
 #ifdef USE_DISCORD
+	// Have to use FS_CurrentGameDir here, called before game restarting happens
 	Q_strncpyz(cl.discord.gameDir, FS_GetCurrentGameDir(), sizeof(cl.discord.gameDir));
 	if (!Q_stricmp(cl.discord.gameDir, "etf"))
 		cl.discord.isETF = qtrue;

@@ -1132,6 +1132,7 @@ extern	cvar_t	*com_buildScript;		// for building release pak files
 extern	cvar_t	*com_journal;
 extern	cvar_t	*com_cameraMode;
 extern	cvar_t	*com_protocol;
+extern	cvar_t	*com_legacyVersion;
 
 // watchdog
 extern cvar_t  *com_watchdog;

@@ -1928,14 +1928,10 @@ void R_Init( void ) {
 	GLenum	err;
 	int i;
 	byte *ptr;
-	const char *gamedir;
 
 	ri.Printf( PRINT_ALL, "----- R_Init -----\n" );
 
-	gamedir = ri.FS_GetCurrentGameDir();
-	if ( *gamedir ) {
-		modIsETF = ( !Q_stricmp( gamedir, "etf" ) ) ? qtrue : qfalse;
-	}
+	modIsETF = ( ri.CL_CurrentGameMod() == GAMEMOD_ETF ) ? qtrue : qfalse;
 
 	// clear all our internal state
 	Com_Memset( &tr, 0, sizeof( tr ) );

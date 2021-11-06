@@ -1277,7 +1277,6 @@ void CL_InitCGame( void ) {
 	const char          *info;
 	const char          *mapname;
 	int t1, t2;
-	const char *gamedir = FS_GetCurrentGameDir();
 
 	t1 = Sys_Milliseconds();
 
@@ -1296,8 +1295,8 @@ void CL_InitCGame( void ) {
 	}
 	cls.state = CA_LOADING;
 
-	if ( !Q_stricmp( gamedir, "legacy" ) ) {
-		VM_Call( cgvm, 7, CG_INIT, clc.serverMessageSequence, clc.lastExecutedServerCommand, clc.clientNum, clc.demoplaying, qfalse, NULL, 0 );
+	if ( currentGameMod == GAMEMOD_LEGACY ) {
+		VM_Call( cgvm, 7, CG_INIT, clc.serverMessageSequence, clc.lastExecutedServerCommand, clc.clientNum, clc.demoplaying, qtrue, NULL, com_legacyVersion->integer );
 	}
 	else {
 		// init for this gamestate

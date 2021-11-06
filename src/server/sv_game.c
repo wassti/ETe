@@ -1105,7 +1105,6 @@ Called for both a full init and a restart
 */
 static void SV_InitGameVM( qboolean restart ) {
 	int		i;
-	const char *gamedir = NULL;
 
 	// start the entity parsing at the beginning
 	sv.entityParsePoint = CM_EntityString();
@@ -1120,11 +1119,12 @@ static void SV_InitGameVM( qboolean restart ) {
 	
 	// use the current msec count for a random seed
 	// init for this gamestate
-	VM_Call( gvm, 3, GAME_INIT, sv.time, Com_Milliseconds(), restart );
+	if ( currentGameMod == GAMEMOD_LEGACY )
+		VM_Call( gvm, 5, GAME_INIT, sv.time, Com_Milliseconds(), restart, qtrue, com_legacyVersion->integer );
+	else
+		VM_Call( gvm, 3, GAME_INIT, sv.time, Com_Milliseconds(), restart );
 
-	gamedir = FS_GetCurrentGameDir();
-
-	if ( !Q_stricmp( gamedir, "etf" ) ) {
+	if ( currentGameMod == GAMEMOD_ETF ) {
 		Cmd_AddCommand( "etfmap", NULL );
 		Cmd_AddCommand( "etfdevmap", NULL );
 		Cmd_SetCommandCompletionFunc( "etfmap", SV_CompleteMapName );

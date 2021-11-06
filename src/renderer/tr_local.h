@@ -758,6 +758,8 @@ typedef struct srfGeneric_s
 
 	// dynamic lighting information
 	int dlightBits;
+
+	int vboItemIndex;
 }
 srfGeneric_t;
 

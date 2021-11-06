@@ -364,7 +364,7 @@ typedef enum {
 
 // parameters to the main Error routine
 typedef enum {
-	ERR_FATAL = 0,                  // exit the entire game with a popup window
+	ERR_FATAL = 0,              // exit the entire game with a popup window
 	ERR_VID_FATAL,              // exit the entire game with a popup window and doesn't delete profile.pid
 	ERR_DROP,                   // print to console and disconnect from game
 	ERR_SERVERDISCONNECT,       // don't kill server

@@ -35,7 +35,7 @@ CM_PointLeafnum_r
 
 ==================
 */
-int CM_PointLeafnum_r( const vec3_t p, int num ) {
+static int CM_PointLeafnum_r( const vec3_t p, int num ) {
 	float d;
 	cNode_t     *node;
 	cplane_t    *plane;
@@ -339,7 +339,7 @@ AREAPORTALS
 ===============================================================================
 */
 
-void CM_FloodArea_r( int areaNum, int floodnum ) {
+static void CM_FloodArea_r( int areaNum, int floodnum) {
 	int i;
 	cArea_t *area;
 	int     *con;

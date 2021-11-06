@@ -42,8 +42,7 @@ void RE_LoadWorldMap( const char *name );
 static	world_t		s_worldData;
 static	byte		*fileBase;
 
-int			c_subdivisions;
-int			c_gridVerts;
+static int	c_gridVerts;
 
 //===============================================================================
 
@@ -2324,7 +2323,7 @@ void RE_LoadWorldMap( const char *name ) {
 	fileBase = (byte *)header;
 
 	// swap all the lumps
-	for ( i = 0; i < sizeof( dheader_t ) / 4; i++ ) {
+	for ( i = 0; i < sizeof( dheader_t ) / sizeof(int32_t); i++ ) {
 		( (int32_t *)header )[i] = LittleLong( ( (int32_t *)header )[i] );
 	}
 

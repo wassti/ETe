@@ -166,9 +166,9 @@ punctuation_t default_punctuations[] =
 };
 
 #ifdef BSPC
-char basefolder[MAX_PATH];
+static char basefolder[MAX_PATH];
 #else
-char basefolder[MAX_QPATH];
+static char basefolder[MAX_QPATH];
 #endif
 
 //===========================================================================
@@ -1320,7 +1320,7 @@ int COM_Compress( char *data_p );
 script_t *LoadScriptFile( const char *filename ) {
 #ifdef BOTLIB
 	fileHandle_t fp;
-	char pathname[MAX_QPATH];
+	char pathname[MAX_QPATH*2];
 #else
 	FILE *fp;
 #endif
@@ -1329,22 +1329,18 @@ script_t *LoadScriptFile( const char *filename ) {
 	script_t *script;
 
 #ifdef BOTLIB
-	if ( strlen( basefolder ) ) {
+	if ( basefolder[0] != '\0' )
 		Com_sprintf( pathname, sizeof( pathname ), "%s/%s", basefolder, filename );
-	} else {
+	else
 		Com_sprintf( pathname, sizeof( pathname ), "%s", filename );
-	}
-	length = botimport.FS_FOpenFile( pathname, &fp, FS_READ );
-	if ( !fp ) {
-		return NULL;
-	}
-#else
-	fp = fopen( filename, "rb" );
-	if ( !fp ) {
-		return NULL;
-	}
 
-	length = FileLength( fp );
+	length = botimport.FS_FOpenFile( pathname, &fp, FS_READ );
+	if (!fp) return NULL;
+#else
+	fp = Sys_FOpen(filename, "rb");
+	if (!fp) return NULL;
+
+	length = FileLength(fp);
 #endif
 
 	buffer = GetClearedMemory( sizeof( script_t ) + (unsigned int)length + 1 );

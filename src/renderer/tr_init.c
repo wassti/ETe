@@ -206,10 +206,10 @@ cvar_t	*r_screenshotJpegQuality;
 
 cvar_t	*r_useFirstPersonEnvMaps;
 
-cvar_t  *r_maxpolys;
-int max_polys;
-cvar_t  *r_maxpolyverts;
-int max_polyverts;
+static cvar_t *r_maxpolys;
+static cvar_t* r_maxpolyverts;
+int		max_polys;
+int		max_polyverts;
 
 static const char *gl_extensions = NULL;
 

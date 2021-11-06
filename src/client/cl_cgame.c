@@ -1511,7 +1511,7 @@ static float CL_AvgPing( void ) {
 
 	// use median average ping
 	if ( (count % 2) == 0 )
-		result = (ping[count / 2] + ping[(count / 2) - 1]) / 2.0;
+		result = (ping[count / 2] + ping[(count / 2) - 1]) / 2.0f;
 	else
 		result = ping[count / 2];
 

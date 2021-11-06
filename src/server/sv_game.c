@@ -237,8 +237,7 @@ static qboolean SV_EntityContact( const vec3_t mins, const vec3_t maxs, const sh
 	angles = gEnt->r.currentAngles;
 
 	ch = SV_ClipHandleForEntity( gEnt );
-	CM_TransformedBoxTrace( &trace, vec3_origin, vec3_origin, mins, maxs,
-		ch, -1, origin, angles, capsule );
+	CM_TransformedBoxTrace( &trace, vec3_origin, vec3_origin, mins, maxs, ch, -1, origin, angles, capsule );
 
 	return trace.startsolid;
 }
@@ -247,7 +246,6 @@ static qboolean SV_EntityContact( const vec3_t mins, const vec3_t maxs, const sh
 /*
 ===============
 SV_GetServerinfo
-
 ===============
 */
 static void SV_GetServerinfo( char *buffer, int bufferSize ) {
@@ -285,11 +283,13 @@ SV_GetUsercmd
 ===============
 */
 static void SV_GetUsercmd( int clientNum, usercmd_t *cmd ) {
-	if ( clientNum < 0 || clientNum >= sv_maxclients->integer ) {
-		Com_Error( ERR_DROP, "SV_GetUsercmd: bad clientNum: %i", clientNum );
+	if ( (unsigned) clientNum < sv_maxclients->integer ) {
+		*cmd = svs.clients[ clientNum ].lastUsercmd;
+	} else {
+		Com_Error( ERR_DROP, "%s(): bad clientNum: %i", __func__, clientNum );
 	}
-	*cmd = svs.clients[clientNum].lastUsercmd;
 }
+
 
 /*
 ====================
@@ -297,20 +297,20 @@ SV_SendBinaryMessage
 ====================
 */
 static void SV_SendBinaryMessage( int cno, char *buf, int buflen ) {
-	if ( cno < 0 || cno >= sv_maxclients->integer ) {
-		Com_Error( ERR_DROP, "SV_SendBinaryMessage: bad client %i", cno );
-		return;
-	}
+	if ( (unsigned) cno < sv_maxclients->integer ) {
+		if ( buflen < 0 || buflen > MAX_BINARY_MESSAGE ) {
+			svs.clients[cno].binaryMessageLength = 0;
+			Com_Error( ERR_DROP, "%s(): bad length %i", __func__, buflen );
+			return;
+		}
 
-	if ( buflen < 0 || buflen > MAX_BINARY_MESSAGE ) {
-		svs.clients[cno].binaryMessageLength = 0;
-		Com_Error( ERR_DROP, "SV_SendBinaryMessage: bad length %i", buflen );
-		return;
+		svs.clients[cno].binaryMessageLength = buflen;
+		memcpy( svs.clients[cno].binaryMessage, buf, buflen );
+	} else {
+		Com_Error( ERR_DROP, "%s(): bad clientNum: %i", __func__, cno );
 	}
-
-	svs.clients[cno].binaryMessageLength = buflen;
-	memcpy( svs.clients[cno].binaryMessage, buf, buflen );
 }
+
 
 /*
 ====================
@@ -333,6 +333,7 @@ static int SV_BinaryMessageStatus( int cno ) {
 	return MESSAGE_WAITING;
 }
 
+
 /*
 ====================
 SV_GameBinaryMessageReceived
@@ -344,11 +345,13 @@ void SV_GameBinaryMessageReceived( int cno, const char *buf, int buflen, int com
 	VM_Call( gvm, 4, GAME_MESSAGERECEIVED, cno, buf, buflen, commandTime );
 }
 
+
 qboolean SV_GameSnapshotCallback( int entityNum, int clientNum ) {
 	if ( !gvm )
 		return qtrue;
 	return VM_Call( gvm, 2, GAME_SNAPSHOT_CALLBACK, entityNum, clientNum );
 }
+
 
 //==============================================
 
@@ -369,10 +372,7 @@ static void *VM_ArgPtr( intptr_t intValue ) {
 	if ( !intValue || gvm == NULL )
 		return NULL;
 
-	//if ( gvm->entryPoint )
 	return (void *)(intValue);
-	//else
-	//	return (void *)(gvm->dataBase + (intValue & gvm->dataMask));
 }
 
 

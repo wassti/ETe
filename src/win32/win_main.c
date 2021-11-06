@@ -1004,7 +1004,7 @@ static LONG WINAPI ExceptionFilter( struct _EXCEPTION_POINTERS *ExceptionInfo )
 			vma = qfalse;
 		}
 
-		sprintf( msg, "Exception Code: %s\nException Address: %p%s",
+		Com_sprintf( msg, sizeof(msg), "Exception Code: %s\nException Address: %p%s",
 			GetExceptionName( ExceptionInfo->ExceptionRecord->ExceptionCode ),
 			addr, vma ? " (VMA)" : "" );
 

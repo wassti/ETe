@@ -38,9 +38,9 @@ typedef struct {
 	int cursize;
 } cmd_t;
 
-int    cmd_wait;
-cmd_t  cmd_text;
-byte   cmd_text_buf[MAX_CMD_BUFFER];
+static int   cmd_wait;
+static cmd_t cmd_text;
+static byte  cmd_text_buf[MAX_CMD_BUFFER];
 
 
 //=============================================================================
@@ -116,7 +116,7 @@ Adds command text immediately after the current command
 Adds a \n to the text
 ============
 */
-void Cbuf_InsertText( const char *text ) {
+static void Cbuf_InsertText( const char *text ) {
 	int		len;
 	int		i;
 
@@ -805,8 +805,7 @@ void Cmd_RemoveCommandSafe( const char *cmd_name )
 	{
 		const char *ret = (const char *)Q_LinearSearch( cmd_name, safeCommands, numSafeCommands, sizeof( safeCommands[0] ), (cmpFunc_t)Q_stricmp );
 		if ( ret ) {
-			Com_Printf( S_COLOR_RED "Restricted source tried to remove "
-				"system command \"%s\"", cmd_name );
+			Com_Printf( S_COLOR_RED "Restricted source tried to remove system command \"%s\"\n", cmd_name );
 		}
 		//else {
 			//Com_Error( ERR_DROP, "Restricted source tried to remove "

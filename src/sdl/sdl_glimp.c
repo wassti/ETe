@@ -562,6 +562,13 @@ static rserr_t GLimp_StartDriverAndSetMode( int mode, const char *modeFS, qboole
 			SDL_setenv("SDL_VIDEODRIVER", r_sdlDriver->string, 0 );
 		}
 
+		/*
+			Starting from SDL2 2.0.14 The default value for SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS 
+			is now false for better compatibility with modern window managers, however it 
+			prevented the game from alt-tab/minimize, set to 1 before calling SDL_Init fix it.
+		*/
+		SDL_SetHint( SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, "1" );
+
 		if ( SDL_Init( SDL_INIT_VIDEO ) != 0 )
 		{
 			Com_Printf( "SDL_Init( SDL_INIT_VIDEO ) FAILED (%s)\n", SDL_GetError() );

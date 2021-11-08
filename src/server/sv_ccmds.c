@@ -1443,7 +1443,6 @@ Examine the wolfinfo string
 */
 static void SV_Wolfinfo_f( void ) {
 	const char *info;
-	const char *gamedir = FS_GetCurrentGameDir();
 
 	// make sure server is running
 	if ( !com_sv_running->integer ) {
@@ -1452,7 +1451,7 @@ static void SV_Wolfinfo_f( void ) {
 	}
 
 	// WOLFINFO cvars are unused in ETF
-	if ( !Q_stricmp( gamedir, "etf" ) )
+	if ( currentGameMod == GAMEMOD_ETF )
 		return;
 
 	Com_Printf( "Wolf info settings:\n" );

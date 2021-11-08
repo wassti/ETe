@@ -1216,7 +1216,7 @@ static void R_ScreenShot_f( void ) {
 	char		checkname[MAX_OSPATH];
 	qboolean	silent;
 	int			typeMask;
-	const char	*ext;
+	const char	*ext, *nameext;
 
 	if ( ri.CL_IsMinimized() && !RE_CanMinimize() ) {
 		ri.Printf( PRINT_WARNING, "WARNING: unable to take screenshot when minimized because FBO is not available/enabled.\n" );
@@ -1228,10 +1228,12 @@ static void R_ScreenShot_f( void ) {
 		return;
 	}
 
-	if ( Q_stricmp( ri.Cmd_Argv(0), "screenshotJPEG" ) == 0 ) {
+	nameext = COM_GetExtension( ri.Cmd_Argv(1) );
+
+	if ( Q_stricmp( ri.Cmd_Argv(0), "screenshotJPEG" ) == 0 || Q_stricmp( nameext, "jpg") == 0 || Q_stricmp( nameext, "jpeg") == 0 ) {
 		typeMask = SCREENSHOT_JPG;
 		ext = "jpg";
-	} else if ( Q_stricmp( ri.Cmd_Argv(0), "screenshotBMP" ) == 0 ) {
+	} else if ( Q_stricmp( ri.Cmd_Argv(0), "screenshotBMP" ) == 0 || Q_stricmp( nameext, "bmp") == 0 ) {
 		typeMask = SCREENSHOT_BMP;
 		ext = "bmp";
 	} else {
@@ -2110,7 +2112,6 @@ void RB_DebugPolygon( int color, int numPoints, float *points );
 /*
 @@@@@@@@@@@@@@@@@@@@@
 GetRefAPI
-
 @@@@@@@@@@@@@@@@@@@@@
 */
 #ifdef USE_RENDERER_DLOPEN
@@ -2126,7 +2127,7 @@ refexport_t *GetRefAPI ( int apiVersion, refimport_t *rimp ) {
 	Com_Memset( &re, 0, sizeof( re ) );
 
 	if ( apiVersion != REF_API_VERSION ) {
-		ri.Printf(PRINT_ALL, "Mismatched REF_API_VERSION: expected %i, got %i\n", 
+		ri.Printf(PRINT_ALL, "Mismatched REF_API_VERSION: expected %i, got %i\n",
 			REF_API_VERSION, apiVersion );
 		return NULL;
 	}

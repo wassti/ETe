@@ -1501,15 +1501,6 @@ void S_Base_UpdateEntityPosition( int entityNum, const vec3_t origin ) {
 	VectorCopy( origin, entityPositions[entityNum] );
 }
 
-static void SND_TransposeMatrix( const vec3_t matrix[3], vec3_t transpose[3] ) {
-	int i, j;
-	for ( i = 0; i < 3; i++ ) {
-		for ( j = 0; j < 3; j++ ) {
-			transpose[i][j] = matrix[j][i];
-		}
-	}
-}
-
 
 /*
 ============
@@ -1532,7 +1523,6 @@ void S_Base_Respatialize( int entityNum, const vec3_t head, vec3_t axis[3], int 
 	VectorCopy(axis[0], listener_axis[0]);
 	VectorCopy(axis[1], listener_axis[1]);
 	VectorCopy(axis[2], listener_axis[2]);
-	SND_TransposeMatrix(listener_axis, listener_axis);
 
 	// update spatialization for dynamic sounds	
 	ch = s_channels;

@@ -28,10 +28,10 @@ If you have questions concerning this license or the applicable additional terms
 // tr_image.c
 #include "tr_local.h"
 
-static byte			 s_intensitytable[256];
-static unsigned char s_gammatable[256];
+static byte	s_intensitytable[256];
+static byte	s_gammatable[256];
 
-static unsigned char s_gammatable_linear[256];
+static byte	s_gammatable_linear[256];
 
 GLint	gl_filter_min = GL_LINEAR_MIPMAP_NEAREST;
 GLint	gl_filter_max = GL_LINEAR;
@@ -94,6 +94,8 @@ void R_FreeImageBuffer( void ) {
 void R_GammaCorrect( byte *buffer, int bufSize ) {
 	int i;
 	if ( fboEnabled )
+		return;
+	if ( !gls.deviceSupportsGamma )
 		return;
 	for ( i = 0; i < bufSize; i++ ) {
 		buffer[i] = s_gammatable[buffer[i]];
@@ -1497,7 +1499,7 @@ void R_SetColorMappings( void ) {
 		s_intensitytable[i] = j;
 	}
 
-	if ( glConfig.deviceSupportsGamma ) {
+	if ( gls.deviceSupportsGamma ) {
 		if ( fboEnabled )
 			ri.GLimp_SetGamma( s_gammatable_linear, s_gammatable_linear, s_gammatable_linear );
 		else

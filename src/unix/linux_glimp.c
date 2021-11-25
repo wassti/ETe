@@ -1848,7 +1848,7 @@ int qXErrorHandler( Display *dpy, XErrorEvent *ev )
 	Com_Printf( "  Minor opcode of failed request: %d\n", ev->minor_code );
 	Com_Printf( "  Serial number of failed request: %d\n", (int)ev->serial );
 
-#ifdef DEBUG
+#ifdef _DEBUG
 	raise( SIGABRT );
 #endif
 

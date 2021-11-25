@@ -1871,6 +1871,7 @@ int FS_Home_FOpenFileRead( const char *filename, fileHandle_t *file )
 	return -1;
 }
 
+
 // TTimo
 // relevant to client only
 #if !defined(DEDICATED)
@@ -1962,7 +1963,7 @@ qboolean FS_CL_ExtractFromPakFile(const char *fullpath, const char *gamedir, con
 
 		// Com_DPrintf("FS_ExtractFromPakFile: FS_FOpenFileWrite '%s'\n", filename);
 		f = FS_FOpenDLLWrite(filename);
-		if (!f)
+		if (f == FS_INVALID_HANDLE)
 		{
 			Com_Printf("Failed to open %s\n", filename);
 			FS_FreeFile(srcData);

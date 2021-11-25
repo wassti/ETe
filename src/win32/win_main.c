@@ -640,95 +640,8 @@ void Sys_UnloadLibrary( void *handle )
 }
 
 
-/*
-=================
-Sys_UnloadDll
-=================
-*/
-void Sys_UnloadDll( void *dllHandle ) {
-	if ( !dllHandle ) {
-		return;
-	}
-	if ( !FreeLibrary( dllHandle ) ) {
-		Com_Error( ERR_FATAL, "Sys_UnloadDll FreeLibrary failed" );
-	}
-}
-
+#ifndef DEDICATED
 extern int cl_connectedToPureServer;
-
-#if 0
-enum SearchPathFlag
-{
-	SEARCH_PATH_MOD = 1 << 0,
-	SEARCH_PATH_BASE = 1 << 1,
-	SEARCH_PATH_ROOT = 1 << 2
-};
-
-static void *Sys_LoadDllFromPaths( const char *filename, const char *gamedir, const char **searchPaths,
-	size_t numPaths, uint32_t searchFlags, const char *callerName ) {
-	char *fn;
-	void *libHandle;
-	size_t i;
-
-	if ( searchFlags & SEARCH_PATH_MOD ) {
-		for ( i = 0; i < numPaths; i++ ) {
-			const char *libDir = searchPaths[i];
-			if ( !libDir[0] )
-				continue;
-
-			fn = FS_BuildOSPath( libDir, gamedir, filename );
-			libHandle = Sys_LoadLibrary( fn );
-			if ( libHandle )
-				return libHandle;
-
-			Com_Printf( "%s(%s) failed: \"%s\"\n", callerName, fn, Sys_LibraryError() );
-		}
-	}
-
-	if ( searchFlags & SEARCH_PATH_BASE ) {
-		for ( i = 0; i < numPaths; i++ ) {
-			const char *libDir = searchPaths[i];
-			if ( !libDir[0] )
-				continue;
-
-			fn = FS_BuildOSPath( libDir, BASEGAME, filename );
-			libHandle = Sys_LoadLibrary( fn );
-			if ( libHandle )
-				return libHandle;
-
-			Com_Printf( "%s(%s) failed: \"%s\"\n", callerName, fn, Sys_LibraryError() );
-		}
-	}
-
-	if ( searchFlags & SEARCH_PATH_ROOT ) {
-		for ( i = 0; i < numPaths; i++ ) {
-			const char *libDir = searchPaths[i];
-			if ( !libDir[0] )
-				continue;
-
-			fn = va( "%s%c%s", libDir, PATH_SEP, filename );
-			libHandle = Sys_LoadLibrary( fn );
-			if ( libHandle )
-				return libHandle;
-
-			Com_Printf( "%s(%s) failed: \"%s\"\n", callerName, fn, Sys_LibraryError() );
-		}
-	}
-
-	return NULL;
-}
-
-
-qboolean Sys_DLLNeedsUnpacking( void )
-{
-#ifdef DEDICATED
-	return qfalse;
-#else
-	return cl_connectedToPureServer != 0;
-#endif
-}
-#endif
-
 static qboolean Sys_DLLNeedsUnpacking( const char* name ) {
 #if defined(DEDICATED)
 	return qfalse;
@@ -742,6 +655,8 @@ static qboolean Sys_DLLNeedsUnpacking( const char* name ) {
 #endif
 #endif
 }
+#endif
+
 
 /*
 =================
@@ -751,24 +666,59 @@ Used to load a development dll instead of a virtual machine
 =================
 */
 
+static const char *win_dlerror(void) {
+	char			temp[1024+1];
+	static char		ospath[2][sizeof(temp)];
+	static int		toggle;
+
+	toggle ^= 1; // flip-flop to allow two returns without clash
+
+	FormatMessage( FORMAT_MESSAGE_FROM_SYSTEM, NULL, GetLastError(), MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT ), temp, sizeof(temp)/sizeof(temp[0]), NULL );
+	Q_strncpyz( ospath[toggle], temp, sizeof(ospath[0]) );
+
+	return ospath[toggle];
+}
+
+static void *try_dlopen(const char *base, const char *gamedir, const char *fname)
+{
+	void *libHandle;
+	char *fn;
+
+	fn = FS_BuildOSPath(base, gamedir, fname);
+	Com_Printf("Sys_LoadGameDLL(%s)... \n", fn);
+
+	libHandle = Sys_LoadLibrary(fn);
+
+	if (!libHandle)
+	{
+		Com_Printf("Sys_LoadGameDLL(%s) failed:\n\"%s\"\n", fn, win_dlerror());
+		return NULL;
+	}
+
+	Com_Printf("Sys_LoadGameDLL(%s): succeeded ...\n", fn);
+
+	return libHandle;
+}
+
 const char* Sys_GetDLLName( const char *name ) {
 	return va( "%s_mp_" ARCH_STRING DLL_EXT, name );
 }
 
-void *QDECL Sys_LoadDll( const char *name, dllSyscall_t *entryPoint, dllSyscall_t systemcalls ) {
+void *QDECL Sys_LoadGameDll( const char *name, dllSyscall_t *entryPoint, dllSyscall_t systemcalls ) {
 	HINSTANCE libHandle;
 	dllEntry_t	dllEntry;
 	const char	*basepath;
 	const char	*homepath;
 	const char	*gamedir;
-	char		*fn;
 	char		filename[ MAX_QPATH ];
 #if !defined( DEDICATED )
+	char		*fn;
 	qboolean	unpack = qfalse;
 #endif
 #ifdef _DEBUG
 	TCHAR currpath[ MAX_OSPATH ];
 #endif
+	const char *err = NULL;
 
 	Q_strncpyz( filename, Sys_GetDLLName( name ), sizeof( filename ) );
 
@@ -778,15 +728,13 @@ void *QDECL Sys_LoadDll( const char *name, dllSyscall_t *entryPoint, dllSyscall_
 	if ( !*gamedir ) {
 		gamedir = Cvar_VariableString( "fs_basegame" );
 	}
-	fn = filename;
 
 #ifdef _DEBUG
-	if ( GetCurrentDirectory( ARRAY_LEN( currpath ), currpath ) < ARRAY_LEN( currpath ) ) {
-		fn = FS_BuildOSPath( WtoA( currpath ), gamedir, filename );
-		libHandle = LoadLibrary( AtoW( filename ) );
-	} else
+	if ( GetCurrentDirectory( ARRAY_LEN( currpath ), currpath ) < ARRAY_LEN( currpath ) )
+		libHandle = try_dlopen( WtoA( currpath ), gamedir, filename );
+	else
 #endif
-	libHandle = NULL;
+		libHandle = NULL;
 
 	// try gamepath first
 	fn = FS_BuildOSPath( basepath, gamedir, filename );
@@ -800,58 +748,76 @@ void *QDECL Sys_LoadDll( const char *name, dllSyscall_t *entryPoint, dllSyscall_
 	// TTimo - passing the exact path to check against
 	//   (compatibility with other OSes loading procedure)
 	if ( unpack ) {
-	//if ( cl_connectedToPureServer && Q_strncmp( name, "qagame", 6 ) ) {
 		if ( !FS_CL_ExtractFromPakFile( fn, gamedir, filename, NULL ) ) {
-			Com_Printf( "Sys_LoadDLL(%s/%s) failed to extract library\n", gamedir, name );
-			//Com_Error( ERR_DROP, "Game code(%s) failed Pure Server check", filename );
+			Com_Printf( "Sys_LoadGameDLL(%s/%s) failed to extract library\n", gamedir, name );
 		}
 		else {
-			Com_Printf( "Sys_LoadDLL(%s/%s) library extraction succeeded\n", gamedir, name );
+			Com_Printf( "Sys_LoadGameDLL(%s/%s) library extraction succeeded\n", gamedir, name );
 		}
 	}
 #endif
 	if ( !libHandle ) {
-		libHandle = LoadLibrary( AtoW( fn ) );
+		libHandle = try_dlopen(basepath, gamedir, filename);
 	}
 
-	if ( !libHandle && *homepath && Q_stricmp( basepath, homepath ) ) {
-		fn = FS_BuildOSPath( homepath, gamedir, filename );
-		libHandle = LoadLibrary( AtoW( fn ) );
+	if ( !libHandle && homepath && homepath[0] && Q_stricmp( basepath, homepath ) ) {
+		libHandle = try_dlopen(homepath, gamedir, filename);
 	}
 
-	if ( !libHandle && !strcmp( name, "ui" ) && strcmp( gamedir, BASEGAME ) != 0 ) {
-		const char *basefn = va( "%s%c%s", BASEGAME, PATH_SEP, filename );
-		Com_Printf( "Sys_LoadDLL(%s/%s) trying %s override\n", gamedir, name, BASEGAME );
-
-		if ( FS_SV_FileExists( basefn ) ) {
-			fn = FS_BuildOSPath( basepath, BASEGAME, filename );
-			libHandle = LoadLibrary( AtoW( fn ) );
-			if ( !libHandle && *homepath && Q_stricmp( basepath, homepath ) ) {
-				fn = FS_BuildOSPath( homepath, BASEGAME, filename );
-				libHandle = LoadLibrary( AtoW( fn ) );
+#ifndef DEDICATED
+	if ( Q_stricmpn( name, "qagame", 6) != 0 ) {
+		if ( !libHandle && !unpack ) {
+			fn = FS_BuildOSPath( basepath, gamedir, filename );
+			if (!FS_CL_ExtractFromPakFile(fn, gamedir, fname, NULL))
+			{
+				Com_Printf("Sys_LoadGameDLL(%s/%s) failed to extract library\n", gamedir, name);
+				return NULL;
 			}
-		} else {
-			// TODO extract from basegame to moddir
+			Com_Printf("Sys_LoadGameDLL(%s/%s) library extraction succeeded\n", gamedir, name);
+			libHandle = try_dlopen(basepath, gamedir, filename);
 		}
+	}
+#endif
+
+	// Last resort for missing DLLs or media mods
+	// If mod requires a different cgame/ui this could cause problems
+	if ( !libHandle && strcmp( gamedir, BASEGAME ) != 0 ) {
+		Com_Printf( "Sys_LoadDLL(%s/%s) trying %s override\n", gamedir, name, BASEGAME );
+		libHandle = try_dlopen(basepath, BASEGAME, filename);
 	}
 
 	if ( !libHandle ) {
-		Com_Printf( "LoadLibrary '%s' failed\n", fn );
+#ifdef _DEBUG // in debug abort on failure
+		Com_Error(ERR_FATAL, "Sys_LoadGameDLL(%s/%s) failed LoadLibrary() completely!", gamedir, name);
+#else
+		Com_Printf( "Sys_LoadGameDLL(%s/%s) failed LoadLibrary() completely!\n", gamedir, name );
+#endif
 		return NULL;
 	}
 
-	Com_Printf( "LoadLibrary '%s' ok\n", fn );
+	Sys_LoadFunctionErrors(); // reset counter
 
-	dllEntry = ( dllEntry_t ) GetProcAddress( libHandle, "dllEntry" ); 
-	*entryPoint = ( dllSyscall_t ) GetProcAddress( libHandle, "vmMain" );
+	dllEntry = ( dllEntry_t ) Sys_LoadFunction( libHandle, "dllEntry" ); 
+	*entryPoint = ( dllSyscall_t ) Sys_LoadFunction( libHandle, "vmMain" );
 	if ( !*entryPoint || !dllEntry ) {
-		FreeLibrary( libHandle );
+		err = win_dlerror();
+#ifdef _DEBUG
+		Com_Error(ERR_FATAL, "Sys_LoadGameDLL(%s/%s) failed GetProcAddress(vmMain):\n\"%s\" !", gamedir, name, err);
+#else
+		Com_Printf("Sys_LoadGameDLL(%s/%s) failed GetProcAddress(vmMain):\n\"%s\"\n", gamedir, name, err);
+#endif
+		Sys_UnloadLibrary( libHandle );
+		err = win_dlerror();
+		if (err != NULL)
+		{
+			Com_Printf("Sys_LoadGameDLL(%s/%s) failed FreeLibrary:\n\"%s\"\n", gamedir, name, err);
+		}
 		return NULL;
 	}
 
-	Com_Printf( "Sys_LoadDll(%s/%s) found **vmMain** at %p\n", gamedir, name, *entryPoint );
+	Com_Printf( "Sys_LoadGameDLL(%s/%s) found **vmMain** at %p\n", gamedir, name, *entryPoint );
 	dllEntry( systemcalls );
-	Com_Printf( "Sys_LoadDll(%s/%s) succeeded!\n", gamedir, name );
+	Com_Printf( "Sys_LoadGameDLL(%s/%s) succeeded!\n", gamedir, name );
 
 	return libHandle;
 }

@@ -269,7 +269,7 @@ vm_t *VM_Create( vmIndex_t index, syscall_t systemCalls, dllSyscall_t dllSyscall
 	if ( interpret == VMI_NATIVE ) {
 		// try to load as a system dll
 		Com_Printf( "Loading dll file %s.\n", name );
-		vm->dllHandle = Sys_LoadDll( name, &vm->entryPoint, dllSyscalls );
+		vm->dllHandle = Sys_LoadGameDll( name, &vm->entryPoint, dllSyscalls );
 		// TTimo - never try qvm
 		if ( vm->dllHandle ) {
 			vm->privateFlag = 0; // allow reading private cvars
@@ -306,7 +306,7 @@ void VM_Free( vm_t *vm ) {
 		vm->destroy( vm );
 
 	if ( vm->dllHandle )
-		Sys_UnloadDll( vm->dllHandle );
+		Sys_UnloadLibrary( vm->dllHandle );
 
 #if 0	// now automatically freed by hunk
 	if ( vm->codeBase.ptr ) {

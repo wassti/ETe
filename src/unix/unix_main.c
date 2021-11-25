@@ -49,12 +49,12 @@ If you have questions concerning this license or the applicable additional terms
 
 #ifdef __linux__
 #ifdef __GLIBC__
-  #include <fpu_control.h> // bk001213 - force dumps on divide by zero
+#include <fpu_control.h> // bk001213 - force dumps on divide by zero
 #endif
 #endif
 
 #if defined(__sun)
-  #include <sys/file.h>
+#include <sys/file.h>
 #endif
 
 // FIXME TTimo should we gard this? most *nix system should comply?
@@ -73,13 +73,14 @@ If you have questions concerning this license or the applicable additional terms
 unsigned sys_frame_time;
 
 qboolean stdin_active = qfalse;
-int      stdin_flags = 0;
+int stdin_flags = 0;
 
 // =============================================================
 // tty console variables
 // =============================================================
 
-typedef enum {
+typedef enum
+{
 	TTY_ENABLED,
 	TTY_DISABLED,
 	TTY_ERROR
@@ -109,28 +110,29 @@ static field_t tty_con;
 static cvar_t *ttycon_ansicolor = NULL;
 static qboolean ttycon_color_on = qfalse;
 
-tty_err Sys_ConsoleInputInit( void );
+tty_err Sys_ConsoleInputInit(void);
 
 // =======================================================================
 // General routines
 // =======================================================================
 
-#define MEM_THRESHOLD 96*1024
+#define MEM_THRESHOLD 96 * 1024
 
 /*
 ==================
 Sys_LowPhysicalMemory
 ==================
 */
-qboolean Sys_LowPhysicalMemory( void )
+qboolean Sys_LowPhysicalMemory(void)
 {
 	FILE *fp;
 	uint32_t totalkb;
 
-	fp = fopen( "/proc/meminfo", "r" );
-	if( !fp )
+	fp = fopen("/proc/meminfo", "r");
+	if (!fp)
 		return qfalse;
-	if(fscanf (fp, "MemTotal: %d kB", &totalkb) < 1) {
+	if (fscanf(fp, "MemTotal: %d kB", &totalkb) < 1)
+	{
 		// failed to parse for some reason, abort;
 		fclose(fp);
 		return qfalse;
@@ -139,12 +141,9 @@ qboolean Sys_LowPhysicalMemory( void )
 	return (totalkb <= MEM_THRESHOLD) ? qtrue : qfalse;
 }
 
-
-void Sys_BeginProfiling( void )
+void Sys_BeginProfiling(void)
 {
-
 }
-
 
 // =============================================================
 // tty console routines
@@ -154,45 +153,44 @@ void Sys_BeginProfiling( void )
 
 // flush stdin, I suspect some terminals are sending a LOT of shit
 // FIXME TTimo relevant?
-static void tty_FlushIn( void )
+static void tty_FlushIn(void)
 {
 #if 1
-	tcflush( STDIN_FILENO, TCIFLUSH );
+	tcflush(STDIN_FILENO, TCIFLUSH);
 #else
 	char key;
-	while ( read( STDIN_FILENO, &key, 1 ) > 0 );
+	while (read(STDIN_FILENO, &key, 1) > 0)
+		;
 #endif
 }
-
 
 // do a backspace
 // TTimo NOTE: it seems on some terminals just sending '\b' is not enough
 //   so for now, in any case we send "\b \b" .. yeah well ..
 //   (there may be a way to find out if '\b' alone would work though)
-static void tty_Back( void )
+static void tty_Back(void)
 {
-	(void)!write( STDOUT_FILENO, "\b \b", 3 );
+	(void)!write(STDOUT_FILENO, "\b \b", 3);
 }
-
 
 // clear the display of the line currently edited
 // bring cursor back to beginning of line
-void tty_Hide( void )
+void tty_Hide(void)
 {
 	int i;
 
-	if ( !ttycon_on )
+	if (!ttycon_on)
 		return;
 
-	if ( ttycon_hide )
+	if (ttycon_hide)
 	{
 		ttycon_hide++;
 		return;
 	}
 
-	if ( tty_con.cursor > 0 )
+	if (tty_con.cursor > 0)
 	{
-		for ( i = 0; i < tty_con.cursor; i++ )
+		for (i = 0; i < tty_con.cursor; i++)
 		{
 			tty_Back();
 		}
@@ -201,48 +199,46 @@ void tty_Hide( void )
 	ttycon_hide++;
 }
 
-
 // show the current line
 // FIXME TTimo need to position the cursor if needed??
-void tty_Show( void )
+void tty_Show(void)
 {
-	if ( !ttycon_on )
+	if (!ttycon_on)
 		return;
 
-	if ( ttycon_hide > 0 )
+	if (ttycon_hide > 0)
 	{
 		ttycon_hide--;
-		if ( ttycon_hide == 0 )
+		if (ttycon_hide == 0)
 		{
-			(void)!write( STDOUT_FILENO, "]", 1 ); // -EC-
+			(void)!write(STDOUT_FILENO, "]", 1); // -EC-
 
-			if ( tty_con.cursor > 0 )
+			if (tty_con.cursor > 0)
 			{
-				(void)!write( STDOUT_FILENO, tty_con.buffer, tty_con.cursor );
+				(void)!write(STDOUT_FILENO, tty_con.buffer, tty_con.cursor);
 			}
 		}
 	}
 }
 
-
 // never exit without calling this, or your terminal will be left in a pretty bad state
-void Sys_ConsoleInputShutdown( void )
+void Sys_ConsoleInputShutdown(void)
 {
-	if ( ttycon_on )
+	if (ttycon_on)
 	{
-//		Com_Printf( "Shutdown tty console\n" ); // -EC-
+		//		Com_Printf( "Shutdown tty console\n" ); // -EC-
 		tty_Back(); // delete "]" ? -EC-
-		tcsetattr( STDIN_FILENO, TCSADRAIN, &tty_tc );
+		tcsetattr(STDIN_FILENO, TCSADRAIN, &tty_tc);
 	}
 
 	// Restore blocking to stdin reads
-	if ( stdin_active )
+	if (stdin_active)
 	{
-		fcntl( STDIN_FILENO, F_SETFL, stdin_flags );
-//		fcntl( STDIN_FILENO, F_SETFL, fcntl( STDIN_FILENO, F_GETFL, 0 ) & ~O_NONBLOCK );
+		fcntl(STDIN_FILENO, F_SETFL, stdin_flags);
+		//		fcntl( STDIN_FILENO, F_SETFL, fcntl( STDIN_FILENO, F_GETFL, 0 ) & ~O_NONBLOCK );
 	}
 
-	Com_Memset( &tty_con, 0, sizeof( tty_con ) );
+	Com_Memset(&tty_con, 0, sizeof(tty_con));
 
 	stdin_active = qfalse;
 	ttycon_on = qfalse;
@@ -257,28 +253,26 @@ Reinitialize console input after receiving SIGCONT, as on Linux the terminal see
 set attributes if user did CTRL+Z and then does fg again.
 ==================
 */
-void CON_SigCont( int signum )
+void CON_SigCont(int signum)
 {
 	Sys_ConsoleInputInit();
 }
 
-
-void CON_SigTStp( int signum )
+void CON_SigTStp(int signum)
 {
 	sigset_t mask;
 
 	tty_FlushIn();
 	Sys_ConsoleInputShutdown();
 
-	sigemptyset( &mask );
-	sigaddset( &mask, SIGTSTP );
-	sigprocmask( SIG_UNBLOCK, &mask, NULL );
+	sigemptyset(&mask);
+	sigaddset(&mask, SIGTSTP);
+	sigprocmask(SIG_UNBLOCK, &mask, NULL);
 
-	signal( SIGTSTP, SIG_DFL );
+	signal(SIGTSTP, SIG_DFL);
 
-	kill( getpid(),  SIGTSTP );
+	kill(getpid(), SIGTSTP);
 }
-
 
 // =============================================================
 // general sys routines
@@ -286,143 +280,138 @@ void CON_SigTStp( int signum )
 
 #define MAX_CMD 1024
 static char exit_cmdline[MAX_CMD] = "";
-void Sys_DoStartProcess( const char *cmdline );
+void Sys_DoStartProcess(const char *cmdline);
 
 // single exit point (regular exit or in case of signal fault)
-void NORETURN Sys_Exit( int code )
+void NORETURN Sys_Exit(int code)
 {
 	Sys_ConsoleInputShutdown();
 
 	// we may be exiting to spawn another process
-	if ( exit_cmdline[0] != '\0' ) {
+	if (exit_cmdline[0] != '\0')
+	{
 		// possible race conditions?
 		// buggy kernels / buggy GL driver, I don't know for sure
 		// but it's safer to wait an eternity before and after the fork
-		sleep( 1 );
-		Sys_DoStartProcess( exit_cmdline );
-		sleep( 1 );
+		sleep(1);
+		Sys_DoStartProcess(exit_cmdline);
+		sleep(1);
 	}
 
 #ifdef NDEBUG // regular behavior
 	// We can't do this
 	//  as long as GL DLL's keep installing with atexit...
 	//exit(ex);
-	_exit( code );
+	_exit(code);
 #else
 	// Give me a backtrace on error exits.
-	assert( code == 0 );
-	exit( code );
+	assert(code == 0);
+	exit(code);
 #endif
 }
 
-
-void NORETURN Sys_Quit( void )
+void NORETURN Sys_Quit(void)
 {
 #ifndef DEDICATED
-	CL_Shutdown( "", qtrue );
+	CL_Shutdown("", qtrue);
 #endif
 
-	Sys_Exit( 0 );
+	Sys_Exit(0);
 }
 
-
-void Sys_Init( void )
+void Sys_Init(void)
 {
-	Cvar_Set( "arch", OS_STRING " " ARCH_STRING );
+	Cvar_Set("arch", OS_STRING " " ARCH_STRING);
 	//IN_Init();   // rcg08312005 moved into glimp.
 }
 
-
-void NORETURN FORMAT_PRINTF(1, 2) Sys_Error( const char *format, ... )
+void NORETURN FORMAT_PRINTF(1, 2) Sys_Error(const char *format, ...)
 {
 	va_list argptr;
 	char text[1024];
 
 	// change stdin to non blocking
 	// NOTE TTimo not sure how well that goes with tty console mode
-	if ( stdin_active )
+	if (stdin_active)
 	{
-//		fcntl( STDIN_FILENO, F_SETFL, fcntl( STDIN_FILENO, F_GETFL, 0) & ~FNDELAY );
-		fcntl( STDIN_FILENO, F_SETFL, stdin_flags );
+		//		fcntl( STDIN_FILENO, F_SETFL, fcntl( STDIN_FILENO, F_GETFL, 0) & ~FNDELAY );
+		fcntl(STDIN_FILENO, F_SETFL, stdin_flags);
 	}
 
 	// don't bother do a show on this one heh
-	if ( ttycon_on )
+	if (ttycon_on)
 	{
 		tty_Hide();
 	}
 
-	va_start( argptr, format );
-	Q_vsnprintf( text, sizeof( text ), format, argptr );
-	va_end( argptr );
+	va_start(argptr, format);
+	Q_vsnprintf(text, sizeof(text), format, argptr);
+	va_end(argptr);
 
 #ifndef DEDICATED
-	CL_Shutdown( text, qtrue );
+	CL_Shutdown(text, qtrue);
 #endif
 
-	fprintf( stderr, "Sys_Error: %s\n", text );
+	fprintf(stderr, "Sys_Error: %s\n", text);
 
-	Sys_Exit( 1 ); // bk010104 - use single exit point.
+	Sys_Exit(1); // bk010104 - use single exit point.
 }
 
-
-void floating_point_exception_handler( int whatever )
+void floating_point_exception_handler(int whatever)
 {
-	signal( SIGFPE, floating_point_exception_handler );
+	signal(SIGFPE, floating_point_exception_handler);
 }
-
 
 // initialize the console input (tty mode if wanted and possible)
 // warning: might be called from signal handler
-tty_err Sys_ConsoleInputInit( void )
+tty_err Sys_ConsoleInputInit(void)
 {
 	struct termios tc;
-	const char* term;
+	const char *term;
 
 	// TTimo
 	// https://zerowing.idsoftware.com/bugzilla/show_bug.cgi?id=390
 	// ttycon 0 or 1, if the process is backgrounded (running non interactively)
 	// then SIGTTIN or SIGTOU is emitted, if not catched, turns into a SIGSTP
-	signal( SIGTTIN, SIG_IGN );
-	signal( SIGTTOU, SIG_IGN );
+	signal(SIGTTIN, SIG_IGN);
+	signal(SIGTTOU, SIG_IGN);
 
 	// If SIGCONT is received, reinitialize console
-	signal( SIGCONT, CON_SigCont );
+	signal(SIGCONT, CON_SigCont);
 
-	if ( signal( SIGTSTP, SIG_IGN ) == SIG_DFL )
+	if (signal(SIGTSTP, SIG_IGN) == SIG_DFL)
 	{
-		signal( SIGTSTP, CON_SigTStp );
+		signal(SIGTSTP, CON_SigTStp);
 	}
 
-	stdin_flags = fcntl( STDIN_FILENO, F_GETFL, 0 );
-	if ( stdin_flags == -1 )
+	stdin_flags = fcntl(STDIN_FILENO, F_GETFL, 0);
+	if (stdin_flags == -1)
 	{
 		stdin_active = qfalse;
 		return TTY_ERROR;
 	}
 
 	// set non-blocking mode
-	fcntl( STDIN_FILENO, F_SETFL, stdin_flags | O_NONBLOCK );
+	fcntl(STDIN_FILENO, F_SETFL, stdin_flags | O_NONBLOCK);
 	stdin_active = qtrue;
 
 	// FIXME TTimo initialize this in Sys_Init or something?
-	if ( !ttycon || !ttycon->integer )
+	if (!ttycon || !ttycon->integer)
 	{
 		ttycon_on = qfalse;
 		return TTY_DISABLED;
-
 	}
-	term = getenv( "TERM" );
-	if ( isatty( STDIN_FILENO ) != 1 || !term || !strcmp( term, "dumb" ) || !strcmp( term, "raw" ) )
+	term = getenv("TERM");
+	if (isatty(STDIN_FILENO) != 1 || !term || !strcmp(term, "dumb") || !strcmp(term, "raw"))
 	{
 		ttycon_on = qfalse;
 		return TTY_ERROR;
 	}
 
-	Field_Clear( &tty_con );
-	tcgetattr( STDIN_FILENO, &tty_tc );
-	tty_erase = tty_tc.c_cc[ VERASE ];
-	tty_eof = tty_tc.c_cc[ VEOF ];
+	Field_Clear(&tty_con);
+	tcgetattr(STDIN_FILENO, &tty_tc);
+	tty_erase = tty_tc.c_cc[VERASE];
+	tty_eof = tty_tc.c_cc[VEOF];
 	tc = tty_tc;
 
 	/*
@@ -441,9 +430,9 @@ tty_err Sys_ConsoleInputInit( void )
 	tc.c_iflag &= ~(ISTRIP | INPCK);
 	tc.c_cc[VMIN] = 1;
 	tc.c_cc[VTIME] = 0;
-	tcsetattr( STDIN_FILENO, TCSADRAIN, &tc );
+	tcsetattr(STDIN_FILENO, TCSADRAIN, &tc);
 
-	if ( ttycon_ansicolor && ttycon_ansicolor->integer )
+	if (ttycon_ansicolor && ttycon_ansicolor->integer)
 	{
 		ttycon_color_on = qtrue;
 	}
@@ -456,19 +445,18 @@ tty_err Sys_ConsoleInputInit( void )
 	return TTY_ENABLED;
 }
 
-
-char *Sys_ConsoleInput( void )
+char *Sys_ConsoleInput(void)
 {
 	// we use this when sending back commands
-	static char text[ sizeof( tty_con.buffer ) ];
+	static char text[sizeof(tty_con.buffer)];
 	int avail;
 	char key;
 	char *s;
 	field_t history;
 
-	if ( ttycon_on )
+	if (ttycon_on)
 	{
-		avail = read( STDIN_FILENO, &key, 1 );
+		avail = read(STDIN_FILENO, &key, 1);
 		if (avail != -1)
 		{
 			// we have something
@@ -491,37 +479,37 @@ char *Sys_ConsoleInput( void )
 				if (key == '\n')
 				{
 					// push it in history
-					Con_SaveField( &tty_con );
+					Con_SaveField(&tty_con);
 					s = tty_con.buffer;
-					while ( *s == '\\' || *s == '/' ) // skip leading slashes
+					while (*s == '\\' || *s == '/') // skip leading slashes
 						s++;
-					Q_strncpyz( text, s, sizeof( text ) );
-					Field_Clear( &tty_con );
-					(void)!write( STDOUT_FILENO, "\n]", 2 );
+					Q_strncpyz(text, s, sizeof(text));
+					Field_Clear(&tty_con);
+					(void)!write(STDOUT_FILENO, "\n]", 2);
 					return text;
 				}
 
 				if (key == '\t')
 				{
 					tty_Hide();
-					Field_AutoComplete( &tty_con );
+					Field_AutoComplete(&tty_con);
 					tty_Show();
 					return NULL;
 				}
 
-				avail = read( STDIN_FILENO, &key, 1 );
+				avail = read(STDIN_FILENO, &key, 1);
 				if (avail != -1)
 				{
 					// VT 100 keys
 					if (key == '[' || key == 'O')
 					{
-						avail = read( STDIN_FILENO, &key, 1 );
+						avail = read(STDIN_FILENO, &key, 1);
 						if (avail != -1)
 						{
 							switch (key)
 							{
 							case 'A':
-								if ( Con_HistoryGetPrev( &history ) )
+								if (Con_HistoryGetPrev(&history))
 								{
 									tty_Hide();
 									tty_con = history;
@@ -531,7 +519,7 @@ char *Sys_ConsoleInput( void )
 								return NULL;
 								break;
 							case 'B':
-								if ( Con_HistoryGetNext( &history ) )
+								if (Con_HistoryGetNext(&history))
 								{
 									tty_Hide();
 									tty_con = history;
@@ -542,69 +530,69 @@ char *Sys_ConsoleInput( void )
 								break;
 							case 'C': // right
 							case 'D': // left
-							//case 'H': // home
-							//case 'F': // end
+									  //case 'H': // home
+									  //case 'F': // end
 								return NULL;
 							}
 						}
 					}
 				}
 
-				if ( key == 12 ) // clear teaminal
+				if (key == 12) // clear teaminal
 				{
-					(void)!write( STDOUT_FILENO, "\ec]", 3 );
-					if ( tty_con.cursor )
+					(void)!write(STDOUT_FILENO, "\ec]", 3);
+					if (tty_con.cursor)
 					{
-						(void)!write( STDOUT_FILENO, tty_con.buffer, tty_con.cursor );
+						(void)!write(STDOUT_FILENO, tty_con.buffer, tty_con.cursor);
 					}
 					tty_FlushIn();
 					return NULL;
 				}
 
-				Com_DPrintf( "dropping ISCTL sequence: %d, tty_erase: %d\n", key, tty_erase );
+				Com_DPrintf("dropping ISCTL sequence: %d, tty_erase: %d\n", key, tty_erase);
 				tty_FlushIn();
 				return NULL;
 			}
-			if ( tty_con.cursor >= sizeof( text ) - 1 )
+			if (tty_con.cursor >= sizeof(text) - 1)
 				return NULL;
 			// push regular character
-			tty_con.buffer[ tty_con.cursor ] = key;
+			tty_con.buffer[tty_con.cursor] = key;
 			tty_con.cursor++;
 			// print the current line (this is differential)
-			(void)!write( STDOUT_FILENO, &key, 1 );
+			(void)!write(STDOUT_FILENO, &key, 1);
 		}
 		return NULL;
 	}
-	else if ( stdin_active && com_dedicated->integer )
+	else if (stdin_active && com_dedicated->integer)
 	{
 		int len;
 		fd_set fdset;
 		struct timeval timeout;
 
-		FD_ZERO( &fdset );
-		FD_SET( STDIN_FILENO, &fdset ); // stdin
+		FD_ZERO(&fdset);
+		FD_SET(STDIN_FILENO, &fdset); // stdin
 		timeout.tv_sec = 0;
 		timeout.tv_usec = 0;
-		if ( select( STDIN_FILENO + 1, &fdset, NULL, NULL, &timeout) == -1 || !FD_ISSET( STDIN_FILENO, &fdset ) )
+		if (select(STDIN_FILENO + 1, &fdset, NULL, NULL, &timeout) == -1 || !FD_ISSET(STDIN_FILENO, &fdset))
 		{
 			return NULL;
 		}
 
-		len = read( STDIN_FILENO, text, sizeof( text ) );
-		if ( len == 0 ) // eof!
+		len = read(STDIN_FILENO, text, sizeof(text));
+		if (len == 0) // eof!
 		{
-			fcntl( STDIN_FILENO, F_SETFL, stdin_flags );
+			fcntl(STDIN_FILENO, F_SETFL, stdin_flags);
 			stdin_active = qfalse;
 			return NULL;
 		}
 
-		if ( len < 1 )
+		if (len < 1)
 			return NULL;
 
-		text[len-1] = '\0'; // rip off the /n and terminate
+		text[len - 1] = '\0'; // rip off the /n and terminate
 		s = text;
 
-		while ( *s == '\\' || *s == '/' ) // skip leading slashes
+		while (*s == '\\' || *s == '/') // skip leading slashes
 			s++;
 
 		return s;
@@ -613,7 +601,6 @@ char *Sys_ConsoleInput( void )
 	return NULL;
 }
 
-
 /*
 =================
 Sys_SendKeyEvents
@@ -621,44 +608,12 @@ Sys_SendKeyEvents
 Platform-dependent event handling
 =================
 */
-void Sys_SendKeyEvents( void )
+void Sys_SendKeyEvents(void)
 {
 #ifndef DEDICATED
 	HandleEvents();
 #endif
 }
-
-
-/*****************************************************************************/
-
-char *do_dlerror( void )
-{
-	return dlerror();
-}
-
-
-/*
-=================
-Sys_UnloadDll
-=================
-*/
-void Sys_UnloadDll( void *dllHandle ) {
-
-	if ( !dllHandle )
-	{
-		Com_Printf( "Sys_UnloadDll(NULL)\n" );
-		return;
-	}
-
-	dlclose( dllHandle );
-	{
-		const char* err; // rb010123 - now const
-		err = dlerror();
-		if ( err != NULL )
-			Com_Printf ( "Sys_UnloadDLL failed on dlclose: \"%s\"!\n", err );
-	}
-}
-
 
 /*
 ==================
@@ -667,46 +622,72 @@ Sys_Sleep
 Block execution for msec or until input is received.
 ==================
 */
-void Sys_Sleep( int msec ) {
+void Sys_Sleep(int msec)
+{
 	struct timeval timeout;
 	fd_set fdset;
 	int res;
 
-	if ( msec == 0 )
+	if (msec == 0)
 		return;
 
-	if ( msec < 0 ) {
+	if (msec < 0)
+	{
 		// special case: wait for console input or network packet
-		if ( stdin_active ) {
+		if (stdin_active)
+		{
 			msec = 300;
-			do {
-				FD_ZERO( &fdset );
-				FD_SET( STDIN_FILENO, &fdset );
+			do
+			{
+				FD_ZERO(&fdset);
+				FD_SET(STDIN_FILENO, &fdset);
 				timeout.tv_sec = msec / 1000;
 				timeout.tv_usec = (msec % 1000) * 1000;
-				res = select( STDIN_FILENO + 1, &fdset, NULL, NULL, &timeout );
-			} while ( res == 0 && NET_Sleep( 10 * 1000 ) );
-		} else {
+				res = select(STDIN_FILENO + 1, &fdset, NULL, NULL, &timeout);
+			} while (res == 0 && NET_Sleep(10 * 1000));
+		}
+		else
+		{
 			// can happen only if no map loaded
 			// which means we totally stuck as stdin is also disabled :P
 			//usleep( 300 * 1000 );
-			while ( NET_Sleep( 3000 * 1000 ) )
+			while (NET_Sleep(3000 * 1000))
 				;
 		}
 		return;
 	}
 
-	if ( com_dedicated->integer && stdin_active ) {
-		FD_ZERO( &fdset );
-		FD_SET( STDIN_FILENO, &fdset );
+	if (com_dedicated->integer && stdin_active)
+	{
+		FD_ZERO(&fdset);
+		FD_SET(STDIN_FILENO, &fdset);
 		timeout.tv_sec = msec / 1000;
 		timeout.tv_usec = (msec % 1000) * 1000;
-		select( STDIN_FILENO + 1, &fdset, NULL, NULL, &timeout );
-	} else {
-		usleep( msec * 1000 );
+		select(STDIN_FILENO + 1, &fdset, NULL, NULL, &timeout);
+	}
+	else
+	{
+		usleep(msec * 1000);
 	}
 }
 
+#ifndef DEDICATED
+extern int cl_connectedToPureServer;
+static qboolean Sys_DLLNeedsUnpacking(const char *name)
+{
+#if defined(DEDICATED)
+	return qfalse;
+#else
+	if (!Q_stricmpn(name, "qagame", 6))
+		return qfalse;
+#ifdef _DEBUG
+	return cl_connectedToPureServer != 0 ? qtrue : qfalse;
+#else
+	return qtrue;
+#endif
+#endif
+}
+#endif
 
 /*
 =================
@@ -733,378 +714,318 @@ DLL to the main installation prior to run (sv_pure 1 would have a tendency
 to kill their compiled DLL with extracted ones though :-( )
 =================
 */
-static void* try_dlopen( const char* base, const char* gamedir, const char* fname )
+static void *try_dlopen(const char *base, const char *gamedir, const char *fname)
 {
-	void* libHandle;
-	char* fn;
+	void *libHandle;
+	char *fn;
 
-	fn = FS_BuildOSPath( base, gamedir, fname );
-	Com_Printf( "Sys_LoadDll(%s)... \n", fn );
+	fn = FS_BuildOSPath(base, gamedir, fname);
+	Com_Printf("Sys_LoadGameDLL(%s)... \n", fn);
 
-	libHandle = dlopen( fn, RTLD_NOW );
+	libHandle = Sys_LoadLibrary(fn);
 
-	if( !libHandle ) 
+	if (!libHandle)
 	{
-		Com_Printf( "Sys_LoadDll(%s) failed:\n\"%s\"\n", fn, do_dlerror() );
+		Com_Printf("Sys_LoadGameDLL(%s) failed:\n\"%s\"\n", fn, dlerror());
 		return NULL;
 	}
 
-	Com_Printf ( "Sys_LoadDll(%s): succeeded ...\n", fn );
+	Com_Printf("Sys_LoadGameDLL(%s): succeeded ...\n", fn);
 
 	return libHandle;
 }
 
-/*
-=================
-Try_CopyDLLForMod
-little utility function for media-only mods
-tries to copy a reference DLL to the mod's fs_homepath
-return false if failed, or if we are not in a mod situation
-returns true if successful, *p_fn is set to the correct path
-this is used when we are loading a mod and realize we don't have the DLL in the standard path
-=================
-*/
-qboolean CopyDLLForMod( char **p_fn, const char* gamedir, const char *pwdpath, const char  *homepath, const char *basepath, const char *fname ) {
-	char *fn = *p_fn;
-
-	// this may be a media only mod, so next we need to search in the basegame
-	if ( strlen( gamedir ) && Q_stricmp( gamedir, BASEGAME ) ) {
-		// walk for a base file
-		// NOTE TTimo: we don't attempt to validate version-wise, it could be a problem
-		// (acceptable tradeoff I say, should not cause major issues)
-#ifndef NDEBUG
-		fn = FS_BuildOSPath( pwdpath, BASEGAME, fname );
-		if ( access( fn, R_OK ) == -1 ) {
-#endif
-		fn = FS_BuildOSPath( homepath, BASEGAME, fname );
-		if ( access( fn, R_OK ) == -1 ) {
-			fn = FS_BuildOSPath( basepath, BASEGAME, fname );
-			if ( access( fn, R_OK ) == -1 ) {
-				return qfalse; // this one is hopeless
-			}
-		}
-#ifndef NDEBUG
-	}
-#endif
-		// basefile found, we copy to homepath in all cases
-		// fortunately FS_BuildOSPath does a flip flop, we have 'from path' in fn and 'to path' in *p_fn
-		*p_fn = FS_BuildOSPath( homepath, gamedir, fname );
-		// copy to destination
-		FS_CopyFile( fn, *p_fn );
-		if ( access( *p_fn, R_OK ) == -1 ) { // could do with FS_CopyFile returning a boolean actually
-			Com_DPrintf( "Copy operation failed\n" );
-			return qfalse;
-		}
-		return qtrue;
-	} else
-	{
-		return qfalse;
-	}
-}
 
 // TTimo - Wolf MP specific, adding .mp. to shared objects
 #ifdef __APPLE__
-const char *Sys_GetDLLName( const char *name ) {
-	return va( "%s_mac", name );
+const char *Sys_GetDLLName(const char *name)
+{
+	return va("%s_mac", name);
 }
 #else
-const char *Sys_GetDLLName( const char *name ) {
-	return va( "%s.mp." ARCH_STRING DLL_EXT, name );
+const char *Sys_GetDLLName(const char *name)
+{
+	return va("%s.mp." ARCH_STRING DLL_EXT, name);
 }
 #endif
 
-void *Sys_LoadDll( const char *name, dllSyscall_t *entryPoint, dllSyscall_t systemcalls )
+void *Sys_LoadGameDll(const char *name, dllSyscall_t *entryPoint, dllSyscall_t systemcalls)
 {
-	void		*libHandle;
-	dllEntry_t	dllEntry;
-//#ifdef DEBUG
-//	char		currpath[MAX_OSPATH];
-//#endif
-	char		fname[MAX_OSPATH];
-	const char	*basepath;
-	const char	*homepath;
-	const char	*gamedir;
-#if !defined( DEDICATED )
-	const char	*fn = NULL;
-	const char	*cvar_name = NULL;
+	void *libHandle;
+	dllEntry_t dllEntry;
+	#ifdef _DEBUG
+		char		currpath[MAX_OSPATH];
+	#endif
+	char fname[MAX_OSPATH];
+	const char *basepath;
+	const char *homepath;
+	const char *gamedir;
+#if !defined(DEDICATED)
+	char *fn = NULL;
+	qboolean unpack = qfalse;
 #endif
-	const char	*err = NULL;
+	const char *err = NULL;
 
-	assert( name ); // let's have some paranoia
+	Q_strncpyz(fname, Sys_GetDLLName(name), sizeof(fname));
 
-	Q_strncpyz( fname, Sys_GetDLLName( name ), sizeof( fname ) );
-	basepath = Cvar_VariableString( "fs_basepath" );
-	homepath = Cvar_VariableString( "fs_homepath" );
-	gamedir = Cvar_VariableString( "fs_game" );
+	basepath = Cvar_VariableString("fs_basepath");
+	homepath = Cvar_VariableString("fs_homepath");
+	gamedir = Cvar_VariableString("fs_game");
 	if ( !*gamedir ) {
-		gamedir = Cvar_VariableString( "fs_basegame" );
+		gamedir = Cvar_VariableString("fs_basegame");
 	}
 
-#ifdef DEBUG
-	if ( getcwd( currpath, sizeof( currpath ) ) )
-		libHandle = try_dlopen( currpath, gamedir, fname );
+	// Use Sys_Pwd() instead?
+#ifdef _DEBUG
+	if (getcwd(currpath, sizeof(currpath)))
+		libHandle = try_dlopen(currpath, gamedir, fname);
 	else
 #endif
-	libHandle = NULL;
+		libHandle = NULL;
 
-	// this is relevant to client only
-	// this code is in for full client hosting a game, but it's not affected by it
-#if !defined( DEDICATED )
-	// do a first scan to identify what we are going to dlopen
-	// we need to pass this to FS_ExtractFromPakFile so that it checksums the right file
-	// NOTE: if something fails (not found, or file operation failed), we will ERR_FATAL (in the checksum itself, we only ERR_DROP)
-/*#ifdef _DEBUG
-	fn = FS_BuildOSPath( pwdpath, gamedir, fname );
-	if ( access( fn, R_OK ) == -1 ) {
-#endif*/
-	{
-		const char	*pwdpath = Sys_Pwd();
-		fn = FS_BuildOSPath( homepath, gamedir, fname );
-		if ( access( fn, R_OK ) == 0 ) {
-			// there is a .so in fs_homepath, but is it a valid one version-wise?
-			// we use a persistent variable in config.cfg to make sure
-			// this is set in FS_CL_ExtractFromPakFile when the file is extracted
-			cvar_t *lastVersion;
-			cvar_name = va( "cl_lastVersion%s", name );
-			lastVersion = Cvar_Get( cvar_name, "(uninitialized)", CVAR_ARCHIVE );
-			if ( Q_stricmp( Cvar_VariableString( "version" ), lastVersion->string ) ) {
-				Com_DPrintf( "clearing non matching version of %s .so: %s\n", name, fn );
-				if ( remove( fn ) == -1 ) {
-					Com_Error( ERR_FATAL, "failed to remove outdated '%s' file:\n\"%s\"", fn, strerror( errno ) );
-				}
-				// we cancelled fs_homepath, go work on basepath now
-				fn = FS_BuildOSPath( basepath, gamedir, fname );
-				if ( access( fn, R_OK ) == -1 ) {
-					// we may be dealing with a media-only mod, check wether we can find 'reference' DLLs and copy them over
-					if ( !CopyDLLForMod( (char **)&fn, gamedir, pwdpath, homepath, basepath, fname ) ) {
-						Com_Error( ERR_FATAL, "Sys_LoadDll(%s) failed, no corresponding .so file found in fs_homepath or fs_basepath", fname );
-					}
-				}
-			}
-			// the .so in fs_homepath is valid version-wise .. FS_CL_ExtractFromPakFile will have to decide wether it's valid pk3-wise later
-		} else {
-			fn = FS_BuildOSPath( basepath, gamedir, fname );
-			if ( access( fn, R_OK ) == -1 ) {
-				// we may be dealing with a media-only mod, check whether we can find 'reference' DLLs and copy them over
-				if ( !CopyDLLForMod( (char **)&fn, gamedir, pwdpath, homepath, basepath, fname ) ) {
-					Com_Error( ERR_FATAL, "Sys_LoadDll(%s) failed, no corresponding .so file found in fs_homepath or fs_basepath", fname );
-				}
-			}
-		}
-	}
-/*#ifdef _DEBUG
-}
-#endif*/
+#ifdef _DEBUG
+#define SEARCHPATH1 basepath
+#define SEARCHPATH2 homepath
+#else
+#define SEARCHPATH1 homepath
+#define SEARCHPATH2 basepath
+#endif
+
+		// this is relevant to client only
+		// this code is in for full client hosting a game, but it's not affected by it
+#if !defined(DEDICATED)
+	fn = FS_BuildOSPath( homepath, gamedir, fname );
+	unpack = Sys_DLLNeedsUnpacking(name);
 
 	// NERVE - SMF - extract dlls from pak file for security
 	// we have to handle the game dll a little differently
 	// NOTE #2: we may have found a file in fs_basepath, and if the checksum is wrong, FS_Extract will write in fs_homepath
 	//   won't be a problem since we start a brand new scan next
-	if ( cl_connectedToPureServer && Q_strncmp( name, "qagame", 6 ) ) {
-		if ( !FS_CL_ExtractFromPakFile( fn, gamedir, fname, cvar_name ) ) {
-			Com_Printf( "Sys_LoadDLL(%s/%s) failed to extract library\n", gamedir, name );
-			//Com_Error( ERR_DROP, "Game code(%s) failed Pure Server check", fname );
-		} else {
-			Com_Printf( "Sys_LoadDLL(%s/%s) library extraction succeeded\n", gamedir, name );
+	if (unpack)
+	{
+		if (!FS_CL_ExtractFromPakFile(fn, gamedir, fname, NULL))
+		{
+			Com_Printf("Sys_LoadGameDLL(%s/%s) failed to extract library\n", gamedir, name);
+		}
+		else
+		{
+			Com_Printf("Sys_LoadGameDLL(%s/%s) library extraction succeeded\n", gamedir, name);
 		}
 	}
 #endif
 
-/*#ifdef _DEBUG
-	// current directory
-	// NOTE: only for debug build, see Sys_LoadDll discussion
-	libHandle = try_dlopen( pwdpath, gamedir, fname );
-#else
-	libHandle = NULL;
-#endif*/
+	if (!libHandle && SEARCHPATH1 && SEARCHPATH1[0])
+		libHandle = try_dlopen(SEARCHPATH1, gamedir, fname);
 
-	// homepath
-	if ( !libHandle && homepath && homepath[0] )
-		libHandle = try_dlopen( homepath, gamedir, fname );
+	if (!libHandle && SEARCHPATH2 && SEARCHPATH2[0])
+		libHandle = try_dlopen(SEARCHPATH2, gamedir, fname);
 
-	if( !libHandle && basepath && basepath[0] )
-		libHandle = try_dlopen( basepath, gamedir, fname );
+#ifndef DEDICATED
+	if ( Q_stricmpn( name, "qagame", 6) != 0 ) {
+		if ( !libHandle && !unpack ) {
+			fn = FS_BuildOSPath( homepath, gamedir, fname );
+			if (!FS_CL_ExtractFromPakFile(fn, gamedir, fname, NULL))
+			{
+				Com_Printf("Sys_LoadGameDLL(%s/%s) failed to extract library\n", gamedir, name);
+				return NULL;
+			}
+			Com_Printf("Sys_LoadGameDLL(%s/%s) library extraction succeeded\n", gamedir, name);
+			libHandle = try_dlopen(homepath, gamedir, fname);
+		}
+	}
+#endif
 
-	if ( !libHandle ) 
+	// Last resort for missing DLLs or media mods
+	// If mod requires a different cgame/ui this could cause problems
+	if ( !libHandle && strcmp( gamedir, BASEGAME ) != 0 )
+	{
+		Com_Printf( "Sys_LoadDLL(%s/%s) trying %s override\n", gamedir, name, BASEGAME );
+		if (!libHandle && SEARCHPATH1 && SEARCHPATH1[0])
+			libHandle = try_dlopen(SEARCHPATH1, BASEGAME, fname);
+
+		if (!libHandle && SEARCHPATH2 && SEARCHPATH2[0])
+			libHandle = try_dlopen(SEARCHPATH2, BASEGAME, fname);
+	}
+
+	if (!libHandle)
 	{
 #ifdef _DEBUG // in debug abort on failure
-		Com_Error( ERR_FATAL, "Sys_LoadDll(%s%s) failed dlopen() completely!", gamedir, name  );
+		Com_Error(ERR_FATAL, "Sys_LoadGameDLL(%s/%s) failed dlopen() completely!", gamedir, name);
 #else
-		Com_Printf( "Sys_LoadDll(%s/%s) failed dlopen() completely!\n", gamedir, name );
+		Com_Printf("Sys_LoadGameDLL(%s/%s) failed dlopen() completely!\n", gamedir, name);
 #endif
 		return NULL;
 	}
 
-	dllEntry = dlsym( libHandle, "dllEntry" );
-	*entryPoint = dlsym( libHandle, "vmMain" );
+	Sys_LoadFunctionErrors(); // reset counter
 
-	if ( !*entryPoint || !dllEntry )
+	dllEntry = (dllEntry_t)Sys_LoadFunction(libHandle, "dllEntry");
+	*entryPoint = (dllSyscall_t)Sys_LoadFunction(libHandle, "vmMain");
+
+	if (!*entryPoint || !dllEntry)
 	{
-		err = do_dlerror();
+		err = dlerror();
 #ifdef _DEBUG
-		Com_Error ( ERR_FATAL, "Sys_LoadDll(%s/%s) failed dlsym(vmMain):\n\"%s\" !", gamedir, name, err );
+		Com_Error(ERR_FATAL, "Sys_LoadGameDLL(%s/%s) failed dlsym(vmMain):\n\"%s\" !", gamedir, name, err);
 #else
-		Com_Printf ( "Sys_LoadDll(%s/%s) failed dlsym(vmMain):\n\"%s\" !\n", gamedir, name, err );
+		Com_Printf("Sys_LoadGameDLL(%s/%s) failed dlsym(vmMain):\n\"%s\"\n", gamedir, name, err);
 #endif
-		dlclose( libHandle );
-		err = do_dlerror();
-		if ( err != NULL ) 
+		Sys_UnloadLibrary(libHandle);
+		err = dlerror();
+		if (err != NULL)
 		{
-			Com_Printf( "Sys_LoadDll(%s/%s) failed dlcose:\n\"%s\"\n", gamedir, name, err );
+			Com_Printf("Sys_LoadGameDLL(%s/%s) failed dlcose:\n\"%s\"\n", gamedir, name, err);
 		}
 		return NULL;
 	}
 
-	Com_Printf( "Sys_LoadDll(%s/%s) found **vmMain** at %p\n", gamedir, name, *entryPoint );
-	dllEntry( systemcalls );
-	Com_Printf( "Sys_LoadDll(%s/%s) succeeded!\n", gamedir, name );
+	Com_Printf("Sys_LoadGameDLL(%s/%s) found **vmMain** at %p\n", gamedir, name, *entryPoint);
+	dllEntry(systemcalls);
+	Com_Printf("Sys_LoadGameDLL(%s/%s) succeeded!\n", gamedir, name);
 
 	return libHandle;
 }
 
 /*****************************************************************************/
 
-
 static const struct ETToAnsiColorTable_s
 {
 	const char ETcolor;
 	const char *ANSIcolor;
-} tty_colorTable[ ] =
+} tty_colorTable[] =
+	{
+		{COLOR_BLACK, "30"},
+		{COLOR_RED, "31"},
+		{COLOR_GREEN, "32"},
+		{COLOR_YELLOW, "33"},
+		{COLOR_BLUE, "34"},
+		{COLOR_CYAN, "36"},
+		{COLOR_MAGENTA, "35"},
+		{COLOR_WHITE, "0"},
+		{COLOR_ORANGE, "33"},
+		{COLOR_MDGREY, "30"},
+		{COLOR_LTGREY, "30"},
+		//	{ COLOR_LTGREY,   "30" },
+		{COLOR_MDGREEN, "32"},
+		{COLOR_MDYELLOW, "33"},
+		{COLOR_MDBLUE, "34"},
+		{COLOR_MDRED, "31"},
+		{COLOR_LTORANGE, "33"},
+		{COLOR_MDCYAN, "36"},
+		{COLOR_MDPURPLE, "35"}};
+
+static const char *getANSIcolor(char ETcolor)
 {
-	{ COLOR_BLACK,    "30" },
-	{ COLOR_RED,      "31" },
-	{ COLOR_GREEN,    "32" },
-	{ COLOR_YELLOW,   "33" },
-	{ COLOR_BLUE,     "34" },
-	{ COLOR_CYAN,     "36" },
-	{ COLOR_MAGENTA,  "35" },
-	{ COLOR_WHITE,    "0"  },
-	{ COLOR_ORANGE,	  "33" },
-	{ COLOR_MDGREY,   "30" },
-	{ COLOR_LTGREY,   "30" },
-//	{ COLOR_LTGREY,   "30" },
-	{ COLOR_MDGREEN,  "32" },
-	{ COLOR_MDYELLOW, "33" },
-	{ COLOR_MDBLUE,   "34" },
-	{ COLOR_MDRED,    "31" },
-	{ COLOR_LTORANGE, "33" },
-	{ COLOR_MDCYAN,   "36" },
-	{ COLOR_MDPURPLE, "35" }
-};
-
-
-static const char *getANSIcolor( char ETcolor ) {
 	int i;
-	for ( i = 0; i < ARRAY_LEN( tty_colorTable ); i++ ) {
-		if ( ETcolor == tty_colorTable[ i ].ETcolor ) {
-			return tty_colorTable[ i ].ANSIcolor;
+	for (i = 0; i < ARRAY_LEN(tty_colorTable); i++)
+	{
+		if (ETcolor == tty_colorTable[i].ETcolor)
+		{
+			return tty_colorTable[i].ANSIcolor;
 		}
 	}
 	return NULL;
 }
 
-
-static qboolean printableChar( char c ) {
-	if ( ( c >= ' ' && c <= '~' ) || c == '\n' || c == '\r' || c == '\t' )
+static qboolean printableChar(char c)
+{
+	if ((c >= ' ' && c <= '~') || c == '\n' || c == '\r' || c == '\t')
 		return qtrue;
 	else
 		return qfalse;
 }
 
-
-void Sys_ANSIColorify( const char *msg, char *buffer, int bufferSize )
+void Sys_ANSIColorify(const char *msg, char *buffer, int bufferSize)
 {
-  int   msgLength;
-  int   i;
-  char  tempBuffer[ 8 ];
-  const char *ANSIcolor;
+	int msgLength;
+	int i;
+	char tempBuffer[8];
+	const char *ANSIcolor;
 
-  if ( !msg || !buffer )
-    return;
+	if (!msg || !buffer)
+		return;
 
-  msgLength = strlen( msg );
-  i = 0;
-  buffer[ 0 ] = '\0';
+	msgLength = strlen(msg);
+	i = 0;
+	buffer[0] = '\0';
 
-  while ( i < msgLength )
-  {
-    if ( msg[ i ] == '\n' )
-    {
-      Com_sprintf( tempBuffer, sizeof( tempBuffer ), "%c[0m\n", 0x1B );
-      strncat( buffer, tempBuffer, bufferSize - 1 );
-      i += 1;
-    }
-    else if ( msg[ i ] == Q_COLOR_ESCAPE && ( ANSIcolor = getANSIcolor( msg[ i+1 ] ) ) != NULL )
-    {
-      Com_sprintf( tempBuffer, sizeof( tempBuffer ), "%c[%sm", 0x1B, ANSIcolor );
-      strncat( buffer, tempBuffer, bufferSize - 1 );
-      i += 2;
-    }
-    else
-    {
-      if ( printableChar( msg[ i ] ) ) {
-        Com_sprintf( tempBuffer, sizeof( tempBuffer ), "%c", msg[ i ] );
-        strncat( buffer, tempBuffer, bufferSize - 1 );
-      }
-      i += 1;
-    }
-  }
+	while (i < msgLength)
+	{
+		if (msg[i] == '\n')
+		{
+			Com_sprintf(tempBuffer, sizeof(tempBuffer), "%c[0m\n", 0x1B);
+			strncat(buffer, tempBuffer, bufferSize - 1);
+			i += 1;
+		}
+		else if (msg[i] == Q_COLOR_ESCAPE && (ANSIcolor = getANSIcolor(msg[i + 1])) != NULL)
+		{
+			Com_sprintf(tempBuffer, sizeof(tempBuffer), "%c[%sm", 0x1B, ANSIcolor);
+			strncat(buffer, tempBuffer, bufferSize - 1);
+			i += 2;
+		}
+		else
+		{
+			if (printableChar(msg[i]))
+			{
+				Com_sprintf(tempBuffer, sizeof(tempBuffer), "%c", msg[i]);
+				strncat(buffer, tempBuffer, bufferSize - 1);
+			}
+			i += 1;
+		}
+	}
 }
 
-
-void Sys_Print( const char *msg )
+void Sys_Print(const char *msg)
 {
-	char printmsg[ MAXPRINTMSG ];
+	char printmsg[MAXPRINTMSG];
 	size_t len;
 
-	if ( ttycon_on )
+	if (ttycon_on)
 	{
 		tty_Hide();
 	}
 
-	if ( ttycon_on && ttycon_color_on )
+	if (ttycon_on && ttycon_color_on)
 	{
-		Sys_ANSIColorify( msg, printmsg, sizeof( printmsg ) );
-		len = strlen( printmsg );
+		Sys_ANSIColorify(msg, printmsg, sizeof(printmsg));
+		len = strlen(printmsg);
 	}
 	else
 	{
 		char *out = printmsg;
-		while ( *msg != '\0' && out < printmsg + sizeof( printmsg ) )
+		while (*msg != '\0' && out < printmsg + sizeof(printmsg))
 		{
-			if ( printableChar( *msg ) )
+			if (printableChar(*msg))
 				*out++ = *msg;
 			msg++;
 		}
 		len = out - printmsg;
 	}
 
-	(void)!write( STDERR_FILENO, printmsg, len );
+	(void)!write(STDERR_FILENO, printmsg, len);
 
-	if ( ttycon_on )
+	if (ttycon_on)
 	{
 		tty_Show();
 	}
 }
 
-
-void QDECL Sys_SetStatus( const char *format, ... )
+void QDECL Sys_SetStatus(const char *format, ...)
 {
 	return;
 }
 
-
-void Sys_ConfigureFPU( void )  // bk001213 - divide by zero
+void Sys_ConfigureFPU(void) // bk001213 - divide by zero
 {
 #ifdef __linux__
 #if id386
 #ifdef __GLIBC__
-#ifndef NDEBUG
+#ifdef _DEBUG
 	// bk0101022 - enable FPE's in debug mode
 	static int fpu_word = _FPU_DEFAULT & ~(_FPU_MASK_ZM | _FPU_MASK_IM);
 	int current = 0;
-	_FPU_GETCW( current );
-	if ( current!=fpu_word)
+	_FPU_GETCW(current);
+	if (current != fpu_word)
 	{
 #if 0
 		Com_Printf("FPU Control 0x%x (was 0x%x)\n", fpu_word, current );
@@ -1113,52 +1034,52 @@ void Sys_ConfigureFPU( void )  // bk001213 - divide by zero
 		assert(fpu_word==current);
 #endif
 	}
-#else // NDEBUG
+#else  // NDEBUG
 	static int fpu_word = _FPU_DEFAULT;
-	_FPU_SETCW( fpu_word );
+	_FPU_SETCW(fpu_word);
 #endif // NDEBUG
 #endif // __GLIBC__
 #endif // id386
 #endif // __linux
 }
 
-
-void Sys_PrintBinVersion( const char* name )
+void Sys_PrintBinVersion(const char *name)
 {
 	const char *date = __DATE__;
 	const char *time = __TIME__;
 	const char *sep = "==============================================================";
 
-	fprintf( stdout, "\n\n%s\n", sep );
+	fprintf(stdout, "\n\n%s\n", sep);
 #ifdef DEDICATED
-	fprintf( stdout, "Linux %s Dedicated Server [%s %s]\n", Q3_VERSION, date, time );
+	fprintf(stdout, "Linux %s Dedicated Server [%s %s]\n", Q3_VERSION, date, time);
 #else
-	fprintf( stdout, "Linux %s Full Executable  [%s %s]\n", Q3_VERSION, date, time );
+	fprintf(stdout, "Linux %s Full Executable  [%s %s]\n", Q3_VERSION, date, time);
 #endif
-	fprintf( stdout, " local install: %s\n", name );
-	fprintf( stdout, "%s\n\n", sep );
+	fprintf(stdout, " local install: %s\n", name);
+	fprintf(stdout, "%s\n\n", sep);
 }
-
 
 /*
 ==================
 chmod OR on a file
 ==================
 */
-void Sys_Chmod( const char *file, int mode ) {
+void Sys_Chmod(const char *file, int mode)
+{
 	struct stat s_buf;
 	int perm;
-	if ( stat( file, &s_buf ) != 0 ) {
-		Com_Printf( "stat('%s')  failed: errno %d\n", file, errno );
+	if (stat(file, &s_buf) != 0)
+	{
+		Com_Printf("stat('%s')  failed: errno %d\n", file, errno);
 		return;
 	}
 	perm = s_buf.st_mode | mode;
-	if ( chmod( file, perm ) != 0 ) {
-		Com_Printf( "chmod('%s', %d) failed: errno %d\n", file, perm, errno );
+	if (chmod(file, perm) != 0)
+	{
+		Com_Printf("chmod('%s', %d) failed: errno %d\n", file, perm, errno);
 	}
-	Com_DPrintf( "chmod +%d '%s'\n", mode, file );
+	Com_DPrintf("chmod +%d '%s'\n", mode, file);
 }
-
 
 /*
 ==================
@@ -1178,27 +1099,31 @@ UGLY HACK:
   The clean solution would be Sys_StartProcess and Sys_StartProcess_Args..
 ==================
 */
-void Sys_DoStartProcess( const char *cmdline ) {
-	switch ( fork() )
+void Sys_DoStartProcess(const char *cmdline)
+{
+	switch (fork())
 	{
 	case -1:
 		// main thread
 		break;
 	case 0:
-		if ( strchr( cmdline, ' ' ) ) {
-			int res = system( cmdline );
-			if (!res) {
-				printf( "system call for %s failed with result: %d\n", cmdline, res );
+		if (strchr(cmdline, ' '))
+		{
+			int res = system(cmdline);
+			if (!res)
+			{
+				printf("system call for %s failed with result: %d\n", cmdline, res);
 			}
-		} else {
-            execl( cmdline, cmdline, NULL );
-			printf( "execl failed: %s\n", strerror( errno ) );
 		}
-		_exit( 0 );
+		else
+		{
+			execl(cmdline, cmdline, NULL);
+			printf("execl failed: %s\n", strerror(errno));
+		}
+		_exit(0);
 		break;
 	}
 }
-
 
 /*
 ==================
@@ -1209,54 +1134,57 @@ otherwise, push it for execution at exit
 NOTE: might even want to add a small delay?
 ==================
 */
-void Sys_StartProcess( const char *cmdline, qboolean doexit ) {
+void Sys_StartProcess(const char *cmdline, qboolean doexit)
+{
 
-	if ( doexit ) {
-		Com_DPrintf( "Sys_StartProcess %s (delaying to final exit)\n", cmdline );
-		Q_strncpyz( exit_cmdline, cmdline, MAX_CMD );
-		Cbuf_ExecuteText( EXEC_APPEND, "quit\n" );
+	if (doexit)
+	{
+		Com_DPrintf("Sys_StartProcess %s (delaying to final exit)\n", cmdline);
+		Q_strncpyz(exit_cmdline, cmdline, MAX_CMD);
+		Cbuf_ExecuteText(EXEC_APPEND, "quit\n");
 		return;
 	}
 
-	Com_DPrintf( "Sys_StartProcess %s\n", cmdline );
-	Sys_DoStartProcess( cmdline );
+	Com_DPrintf("Sys_StartProcess %s\n", cmdline);
+	Sys_DoStartProcess(cmdline);
 }
-
 
 /*
 =================
 Sys_OpenURL
 =================
 */
-void Sys_OpenURL( const char *url, qboolean doexit ) {
+void Sys_OpenURL(const char *url, qboolean doexit)
+{
 #ifndef DEDICATED
 	char cmdline[MAX_CMD];
 
 	static qboolean doexit_spamguard = qfalse;
 
-	if ( doexit_spamguard ) {
-		Com_DPrintf( "Sys_OpenURL: already in a doexit sequence, ignoring %s\n", url );
+	if (doexit_spamguard)
+	{
+		Com_DPrintf("Sys_OpenURL: already in a doexit sequence, ignoring %s\n", url);
 		return;
 	}
 
-	Com_Printf( "Open URL: %s\n", url );
+	Com_Printf("Open URL: %s\n", url);
 	// opening an URL on *nix can mean a lot of things ..
 	// just spawn a script instead of deciding for the user :-)
 
 #ifdef __APPLE__
-	Com_sprintf( cmdline, sizeof(cmdline), "open '%s' &", url );
+	Com_sprintf(cmdline, sizeof(cmdline), "open '%s' &", url);
 #else
-	Com_sprintf( cmdline, sizeof(cmdline), "xdg-open '%s' &", url );
+	Com_sprintf(cmdline, sizeof(cmdline), "xdg-open '%s' &", url);
 #endif
 
-	if ( doexit ) {
+	if (doexit)
+	{
 		doexit_spamguard = qtrue;
 	}
 
-	Sys_StartProcess( cmdline, doexit );
+	Sys_StartProcess(cmdline, doexit);
 #endif
 }
-
 
 /*
 =================
@@ -1270,46 +1198,45 @@ to symlink to binaries and /not/ have the links resolved.
 #ifdef __APPLE__
 #include <mach-o/dyld.h>
 #endif
-const char *Sys_BinName( const char *arg0 )
+const char *Sys_BinName(const char *arg0)
 {
-	static char dst[ PATH_MAX ];
+	static char dst[PATH_MAX];
 
 #ifdef NDEBUG
 
-#if defined (__linux__)
-	int n = readlink( "/proc/self/exe", dst, PATH_MAX - 1 );
+#if defined(__linux__)
+	int n = readlink("/proc/self/exe", dst, PATH_MAX - 1);
 
-	if ( n >= 0 && n < PATH_MAX )
-		dst[ n ] = '\0';
+	if (n >= 0 && n < PATH_MAX)
+		dst[n] = '\0';
 	else
-		Q_strncpyz( dst, arg0, PATH_MAX );
-#elif defined (__APPLE__)
-	uint32_t bufsize = sizeof( dst );
+		Q_strncpyz(dst, arg0, PATH_MAX);
+#elif defined(__APPLE__)
+	uint32_t bufsize = sizeof(dst);
 
-	if ( _NSGetExecutablePath( dst, &bufsize ) == -1 )
+	if (_NSGetExecutablePath(dst, &bufsize) == -1)
 	{
-		Q_strncpyz( dst, arg0, PATH_MAX );
+		Q_strncpyz(dst, arg0, PATH_MAX);
 	}
 #else
 
 #warning Sys_BinName not implemented
-	Q_strncpyz( dst, arg0, PATH_MAX );
+	Q_strncpyz(dst, arg0, PATH_MAX);
 #endif
 
 #else // DEBUG
-	Q_strncpyz( dst, arg0, PATH_MAX );
+	Q_strncpyz(dst, arg0, PATH_MAX);
 #endif
 	return dst;
 }
 
-
-int Sys_ParseArgs( int argc, const char* argv[] )
+int Sys_ParseArgs(int argc, const char *argv[])
 {
-	if ( argc == 2 )
+	if (argc == 2)
 	{
-		if ( ( !strcmp( argv[1], "--version" ) ) || ( !strcmp( argv[1], "-v" ) ) )
+		if ((!strcmp(argv[1], "--version")) || (!strcmp(argv[1], "-v")))
 		{
-			Sys_PrintBinVersion( Sys_BinName( argv[0] ) );
+			Sys_PrintBinVersion(Sys_BinName(argv[0]));
 			return 1;
 		}
 	}
@@ -1317,18 +1244,17 @@ int Sys_ParseArgs( int argc, const char* argv[] )
 	return 0;
 }
 
-
 #if USE_SDL && !defined(DEDICATED)
 void Sys_GetSDLVersion(uint8_t *minor, uint8_t *major, uint8_t *patch);
 #endif
-int main( int argc, const char* argv[] )
+int main(int argc, const char *argv[])
 {
-	char con_title[ MAX_CVAR_VALUE_STRING ];
+	char con_title[MAX_CVAR_VALUE_STRING];
 	int xpos, ypos;
 	//qboolean useXYpos;
-	char  *cmdline;
-	int   len, i;
-	tty_err	err;
+	char *cmdline;
+	int len, i;
+	tty_err err;
 #if USE_SDL && !defined(DEDICATED)
 	uint8_t minor, major, patch;
 	Sys_GetSDLVersion(&minor, &major, &patch);
@@ -1336,62 +1262,62 @@ int main( int argc, const char* argv[] )
 
 #ifdef __APPLE__
 	// This is passed if we are launched by double-clicking
-	if ( argc >= 2 && Q_strncmp( argv[1], "-psn", 4 ) == 0 )
+	if (argc >= 2 && Q_strncmp(argv[1], "-psn", 4) == 0)
 		argc = 1;
 #endif
 
-	if ( Sys_ParseArgs( argc, argv ) ) // added this for support
+	if (Sys_ParseArgs(argc, argv)) // added this for support
 		return 0;
 
 	// merge the command line, this is kinda silly
-	for ( len = 1, i = 1; i < argc; i++ )
-		len += strlen( argv[i] ) + 1;
+	for (len = 1, i = 1; i < argc; i++)
+		len += strlen(argv[i]) + 1;
 
-	cmdline = malloc( len );
+	cmdline = malloc(len);
 	*cmdline = '\0';
-	for ( i = 1; i < argc; i++ )
+	for (i = 1; i < argc; i++)
 	{
-		if ( i > 1 )
-			strcat( cmdline, " " );
-		strcat( cmdline, argv[i] );
+		if (i > 1)
+			strcat(cmdline, " ");
+		strcat(cmdline, argv[i]);
 	}
 
-	/*useXYpos = */ Com_EarlyParseCmdLine( cmdline, con_title, sizeof( con_title ), &xpos, &ypos );
+	/*useXYpos = */ Com_EarlyParseCmdLine(cmdline, con_title, sizeof(con_title), &xpos, &ypos);
 
 	// bk000306 - clear queues
-//	memset( &eventQue[0], 0, sizeof( eventQue ) );
-//	memset( &sys_packetReceived[0], 0, sizeof( sys_packetReceived ) );
+	//	memset( &eventQue[0], 0, sizeof( eventQue ) );
+	//	memset( &sys_packetReceived[0], 0, sizeof( sys_packetReceived ) );
 
 	// get the initial time base
 	Sys_Milliseconds();
 
-	Com_Init( cmdline );
+	Com_Init(cmdline);
 	NET_Init();
 
-	Com_Printf( "Working directory: %s\n", Sys_Pwd() );
+	Com_Printf("Working directory: %s\n", Sys_Pwd());
 
 #if USE_SDL && !defined(DEDICATED)
-	Com_Printf( "Using SDL Version %u.%u.%u\n", (uint32_t)major, (uint32_t)minor, (uint32_t)patch );
+	Com_Printf("Using SDL Version %u.%u.%u\n", (uint32_t)major, (uint32_t)minor, (uint32_t)patch);
 #endif
 
 	// Sys_ConsoleInputInit() might be called in signal handler
 	// so modify/init any cvars here
-	ttycon = Cvar_Get( "ttycon", "1", 0 );
-	Cvar_SetDescription( ttycon, "Terminal tab-completion and history support" );
-	ttycon_ansicolor = Cvar_Get( "ttycon_ansicolor", "0", CVAR_ARCHIVE );
-	Cvar_SetDescription( ttycon_ansicolor, "Terminal display console color codes" );
+	ttycon = Cvar_Get("ttycon", "1", 0);
+	Cvar_SetDescription(ttycon, "Terminal tab-completion and history support");
+	ttycon_ansicolor = Cvar_Get("ttycon_ansicolor", "0", CVAR_ARCHIVE);
+	Cvar_SetDescription(ttycon_ansicolor, "Terminal display console color codes");
 
 	err = Sys_ConsoleInputInit();
-	if ( err == TTY_ENABLED )
+	if (err == TTY_ENABLED)
 	{
-		Com_Printf( "Started tty console (use +set ttycon 0 to disable)\n" );
+		Com_Printf("Started tty console (use +set ttycon 0 to disable)\n");
 	}
 	else
 	{
-		if ( err == TTY_ERROR )
+		if (err == TTY_ERROR)
 		{
-			Com_Printf( "stdin is not a tty, tty console mode failed\n" );
-			Cvar_Set( "ttycon", "0" );
+			Com_Printf("stdin is not a tty, tty console mode failed\n");
+			Cvar_Set("ttycon", "0");
 		}
 	}
 
@@ -1408,28 +1334,28 @@ int main( int argc, const char* argv[] )
 
 #ifdef DEDICATED
 		// run the game
-		Com_Frame( qfalse );
+		Com_Frame(qfalse);
 #else
 		// check for other input devices
 		IN_Frame();
 		// run the game
-		Com_Frame( CL_NoDelay() );
+		Com_Frame(CL_NoDelay());
 #endif
 	}
 	// never gets here
 	return 0;
 }
 
-
 #ifndef USE_SDL
-qboolean Sys_IsNumLockDown( void ) {
+qboolean Sys_IsNumLockDown(void)
+{
 	// Gordon: FIXME for timothee
 	return qfalse;
 }
 #endif
 
-
-int Sys_GetPID( void ) {
+int Sys_GetPID(void)
+{
 	return (int)getpid();
 }
 
@@ -1439,31 +1365,29 @@ pfnOmnibotRenderOGL gOmnibotRenderFunc = 0;
 
 void Sys_OmnibotLoad()
 {
-	const char *omnibotLibrary = Cvar_VariableString( "omnibot_library" );
-	if ( omnibotLibrary != NULL && omnibotLibrary[0] != '\0' )
+	const char *omnibotLibrary = Cvar_VariableString("omnibot_library");
+	if (omnibotLibrary != NULL && omnibotLibrary[0] != '\0')
 	{
-		omnibotHandle = Sys_LoadLibrary( va("%s.so", omnibotLibrary ) );
-		if ( omnibotHandle )
+		omnibotHandle = Sys_LoadLibrary(va("%s.so", omnibotLibrary));
+		if (omnibotHandle)
 		{
-			gOmnibotRenderFunc = (pfnOmnibotRenderOGL)Sys_LoadFunction( omnibotHandle, "RenderOpenGL" );
+			gOmnibotRenderFunc = (pfnOmnibotRenderOGL)Sys_LoadFunction(omnibotHandle, "RenderOpenGL");
 		}
 	}
 }
 
-
 void Sys_OmnibotUnLoad()
 {
-	Sys_UnloadLibrary( omnibotHandle );
+	Sys_UnloadLibrary(omnibotHandle);
 	omnibotHandle = NULL;
 }
 
-
-const void * Sys_OmnibotRender( const void * data )
+const void *Sys_OmnibotRender(const void *data)
 {
-	renderOmnibot_t * cmd = (renderOmnibot_t*)data;
-	if ( gOmnibotRenderFunc )
+	renderOmnibot_t *cmd = (renderOmnibot_t *)data;
+	if (gOmnibotRenderFunc)
 	{
 		gOmnibotRenderFunc();
 	}
-	return (const void *)( cmd + 1 );
+	return (const void *)(cmd + 1);
 }

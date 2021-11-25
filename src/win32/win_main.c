@@ -667,14 +667,14 @@ Used to load a development dll instead of a virtual machine
 */
 
 static const char *win_dlerror(void) {
-	char			temp[1024+1];
+	TCHAR			temp[1024+1];
 	static char		ospath[2][sizeof(temp)];
 	static int		toggle;
 
 	toggle ^= 1; // flip-flop to allow two returns without clash
 
 	FormatMessage( FORMAT_MESSAGE_FROM_SYSTEM, NULL, GetLastError(), MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT ), temp, sizeof(temp)/sizeof(temp[0]), NULL );
-	Q_strncpyz( ospath[toggle], temp, sizeof(ospath[0]) );
+	Q_strncpyz( ospath[toggle], WtoA(temp), sizeof(ospath[0]) );
 
 	return ospath[toggle];
 }

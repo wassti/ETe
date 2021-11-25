@@ -2553,8 +2553,6 @@ void *R_Hunk_Alloc( size_t size ) {
 	void    *buf;
 #endif
 
-	//Com_Printf("R_Hunk_Alloc(%d)\n", size);
-
 	// round to cacheline
 	size = PAD( size, 32 );
 
@@ -2567,25 +2565,19 @@ void *R_Hunk_Alloc( size_t size ) {
 	buf = VirtualAlloc( membase, cursize + size, MEM_COMMIT, PAGE_READWRITE );
 
 	if ( !buf ) {
-		char msg[512];
-		FormatMessage( FORMAT_MESSAGE_FROM_SYSTEM, NULL, GetLastError(), MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT ), msg, sizeof(msg), NULL );
-		ri.Error( ERR_DROP, "VirtualAlloc commit failed.\n%s", msg );
+		TCHAR msg[512];
+		FormatMessage( FORMAT_MESSAGE_FROM_SYSTEM, NULL, GetLastError(), MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT ), msg, sizeof(msg)/sizeof(msg[0]), NULL );
+		ri.Error( ERR_DROP, "VirtualAlloc commit failed.\n%s", WtoA(msg) );
 	}
-
 #endif
 
 	cursize += size;
-	/*if ( cursize > R_HUNK_SIZE ) {
-		ri.Error( ERR_DROP, "R_Hunk_Alloc overflow" );
-	}*/
 
 	return ( void * )( membase + cursize - size );
 }
 
 // this is only called when we shutdown GL
 void R_Hunk_End( void ) {
-	//Com_Printf("R_Hunk_End\n");
-
 	if ( membase ) {
 #ifdef _WIN32
 		VirtualFree( membase, 0, MEM_RELEASE );
@@ -2598,8 +2590,6 @@ void R_Hunk_End( void ) {
 }
 
 void R_Hunk_Reset( void ) {
-	//Com_Printf("R_Hunk_Reset\n");
-
 	if ( !membase ) {
 		ri.Error( ERR_DROP, "R_Hunk_Reset called without a membase!" );
 	}

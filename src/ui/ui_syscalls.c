@@ -217,7 +217,7 @@ void trap_S_StartLocalSound( sfxHandle_t sfx, int channelNum ) {
 
 sfxHandle_t trap_S_RegisterSound( const char *sample, qboolean compressed ) {
 	int i = syscall( UI_S_REGISTERSOUND, sample, qfalse /* compressed */ );
-#ifdef DEBUG
+#ifdef _DEBUG
 	if ( i == 0 ) {
 		Com_Printf( "^1Warning: Failed to load sound: %s\n", sample );
 	}

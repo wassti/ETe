@@ -233,7 +233,7 @@ sfxHandle_t trap_RegisterSound( const char *sample, qboolean compressed ) {
 	return syscall( G_REGISTERSOUND, sample, compressed );
 }
 
-#ifdef DEBUG
+#ifdef _DEBUG
 //#define FAKELAG
 #ifdef FAKELAG
 #define MAX_USERCMD_BACKUP  256

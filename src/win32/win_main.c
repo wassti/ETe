@@ -736,12 +736,12 @@ void *QDECL Sys_LoadGameDll( const char *name, dllSyscall_t *entryPoint, dllSysc
 #endif
 		libHandle = NULL;
 
-	// try gamepath first
-	fn = FS_BuildOSPath( basepath, gamedir, filename );
-
 	// TTimo - this is only relevant for full client
 	// if a full client runs a dedicated server, it's not affected by this
 #if !defined( DEDICATED )
+	// try gamepath first
+	fn = FS_BuildOSPath( basepath, gamedir, filename );
+
 	unpack = Sys_DLLNeedsUnpacking( name );
 	// NERVE - SMF - extract dlls from pak file for security
 	// we have to handle the game dll a little differently

@@ -2563,13 +2563,13 @@ void *R_Hunk_Alloc( size_t size ) {
 	}
 
 #ifdef _WIN32
-
 	// commit pages as needed
 	buf = VirtualAlloc( membase, cursize + size, MEM_COMMIT, PAGE_READWRITE );
 
 	if ( !buf ) {
-		FormatMessage( FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, NULL, GetLastError(), MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT ), (LPTSTR) &buf, 0, NULL );
-		ri.Error( ERR_DROP, "VirtualAlloc commit failed.\n%s", buf );
+		char msg[512];
+		FormatMessage( FORMAT_MESSAGE_FROM_SYSTEM, NULL, GetLastError(), MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT ), msg, sizeof(msg), NULL );
+		ri.Error( ERR_DROP, "VirtualAlloc commit failed.\n%s", msg );
 	}
 
 #endif

@@ -768,7 +768,7 @@ void *QDECL Sys_LoadGameDll( const char *name, dllSyscall_t *entryPoint, dllSysc
 	if ( Q_stricmpn( name, "qagame", 6) != 0 ) {
 		if ( !libHandle && !unpack ) {
 			fn = FS_BuildOSPath( basepath, gamedir, filename );
-			if (!FS_CL_ExtractFromPakFile(fn, gamedir, fname, NULL))
+			if (!FS_CL_ExtractFromPakFile(fn, gamedir, filename, NULL))
 			{
 				Com_Printf("Sys_LoadGameDLL(%s/%s) failed to extract library\n", gamedir, name);
 				return NULL;

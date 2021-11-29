@@ -2565,9 +2565,9 @@ void *R_Hunk_Alloc( size_t size ) {
 	buf = VirtualAlloc( membase, cursize + size, MEM_COMMIT, PAGE_READWRITE );
 
 	if ( !buf ) {
-		TCHAR msg[512];
-		FormatMessage( FORMAT_MESSAGE_FROM_SYSTEM, NULL, GetLastError(), MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT ), msg, sizeof(msg)/sizeof(msg[0]), NULL );
-		ri.Error( ERR_DROP, "VirtualAlloc commit failed.\n%s", WtoA(msg) );
+		char msg[512];
+		FormatMessageA( FORMAT_MESSAGE_FROM_SYSTEM, NULL, GetLastError(), MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT ), msg, sizeof(msg)/sizeof(msg[0]), NULL );
+		ri.Error( ERR_DROP, "VirtualAlloc commit failed.\n%s", msg );
 	}
 #endif
 

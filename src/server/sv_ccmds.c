@@ -1177,6 +1177,77 @@ int SV_Strlen( const char *str ) {
 }
 
 
+static void SV_GUIDStatus_f( void ) {
+	int i, j, l;
+	const client_t *cl;
+	const char *s;
+	int max_namelength;
+	char names[ MAX_CLIENTS * MAX_NAME_LENGTH ], *np[ MAX_CLIENTS ], nl[ MAX_CLIENTS ], *nc;
+
+	// make sure server is running
+	if ( !com_sv_running->integer ) {
+		Com_Printf( "Server is not running.\n" );
+		return;
+	}
+
+	max_namelength = 4; // strlen( "name" )
+
+	nc = names; *nc = '\0';
+
+	Com_Memset( np, 0, sizeof( np ) );
+	Com_Memset( nl, 0, sizeof( nl ) );
+
+	// first pass: save and determine max.lengths of name field
+	for ( i = 0, cl = svs.clients ; i < sv_maxclients->integer ; i++, cl++ )
+	{
+		if ( cl->state == CS_FREE )
+			continue;
+
+		l = strlen( cl->name ) + 1;
+		strcpy( nc, cl->name );
+		np[ i ] = nc; nc += l;			// name pointer in name buffer
+		nl[ i ] = SV_Strlen( cl->name );// name length without color sequences
+		if ( nl[ i ] > max_namelength )
+			max_namelength = nl[ i ];
+	}
+
+	Com_Printf( "cl name" );
+	for ( i = 0; i < max_namelength - 4; i++ )
+		Com_Printf( " " );
+	Com_Printf( " guid" );
+	//for ( i = 0; i < MAX_GUID_LENGTH - 4; i++ )
+	//	Com_Printf( " " );
+	Com_Printf( "\n" );
+
+	Com_Printf( "-- " );
+	for ( i = 0; i < max_namelength; i++ )
+		Com_Printf( "-" );
+	Com_Printf( " " );
+	for ( i = 0; i < MAX_GUID_LENGTH; i++ )
+		Com_Printf( "-" );
+	Com_Printf( "\n" );
+
+	for ( i = 0, cl = svs.clients ; i < sv_maxclients->integer ; i++, cl++ )
+	{
+		if ( cl->state == CS_FREE )
+			continue;
+
+		Com_Printf( "%2i ", i ); // id
+
+		// variable-length name field
+		s = np[ i ];
+		Com_Printf( "%s", s );
+		l = max_namelength - nl[ i ];
+		for ( j = 0; j < l; j++ )
+			Com_Printf( " " );
+
+		Com_Printf( S_COLOR_WHITE " %s\n", cl->guid );
+	}
+
+	Com_Printf( "\n" );
+}
+
+
 /*
 ================
 SV_Status_f
@@ -1210,7 +1281,7 @@ static void SV_Status_f( void ) {
 	Com_Memset( ap, 0, sizeof( ap ) );
 	Com_Memset( al, 0, sizeof( al ) );
 
-	// first pass: save and determine max.legths of name/address fields
+	// first pass: save and determine max.lengths of name/address fields
 	for ( i = 0, cl = svs.clients ; i < sv_maxclients->integer ; i++, cl++ )
 	{
 		if ( cl->state == CS_FREE )
@@ -1573,6 +1644,7 @@ void SV_AddOperatorCommands( void ) {
 	/*Cmd_AddCommand ("kick", SV_Kick_f);
 	Cmd_AddCommand ("clientkick", SV_KickNum_f);*/
 	Cmd_AddCommand( "status", SV_Status_f );
+	Cmd_AddCommand( "guidstatus", SV_GUIDStatus_f );
 	Cmd_AddCommand( "dumpuser", SV_DumpUser_f );
 	Cmd_AddCommand( "map_restart", SV_MapRestart_f );
 #ifdef MSG_FIELDINFO_SORT_DEBUG

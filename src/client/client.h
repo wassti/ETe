@@ -38,8 +38,10 @@ If you have questions concerning this license or the applicable additional terms
 #include "../cgame/cg_public.h"
 #include "../game/bg_public.h"
 
+#ifndef DEDICATED
 #ifndef USE_CURL
 #define USE_CURL
+#endif
 #endif
 
 #ifdef USE_CURL

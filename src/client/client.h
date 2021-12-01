@@ -38,6 +38,10 @@ If you have questions concerning this license or the applicable additional terms
 #include "../cgame/cg_public.h"
 #include "../game/bg_public.h"
 
+#ifndef USE_CURL
+#define USE_CURL
+#endif
+
 #ifdef USE_CURL
 #include "cl_curl.h"
 #endif /* USE_CURL */

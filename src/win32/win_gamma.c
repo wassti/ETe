@@ -95,6 +95,7 @@ void GLimp_InitGamma( glconfig_t *config )
 
 	if ( IsCurrentSessionRemoteable() )
 	{
+		glw_state.deviceSupportsGamma = qfalse;
 		return; // no hardware gamma control via RDP
 	}
 
@@ -259,6 +260,10 @@ void GLW_RestoreGamma( void )
 {
 	HDC hDC;
 	BOOL ret;
+
+	if ( !glw_state.gammaSet ) {
+		return;
+	}
 
 	if ( !glw_state.deviceSupportsGamma ) {
 		return;

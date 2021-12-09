@@ -793,6 +793,8 @@ static void InitOpenGL( void )
 
 	// set default state
 	GL_SetDefaultState();
+
+	tr.inited = qtrue;
 }
 
 
@@ -2085,6 +2087,7 @@ static void RE_Shutdown( refShutdownCode_t code ) {
 	}
 
 	tr.registered = qfalse;
+	tr.inited = qfalse;
 }
 
 

@@ -433,6 +433,8 @@ typedef struct {
 	int			captureWidth;
 	int			captureHeight;
 
+	float		con_factor;
+
 	float		scale;
 	float		biasX;
 	float		biasY;
@@ -702,6 +704,8 @@ typedef struct {
 } console_t;
 
 extern console_t con;
+
+extern cvar_t *con_scale;
 
 void Con_CheckResize( void );
 void Con_Init( void );

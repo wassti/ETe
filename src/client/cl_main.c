@@ -5670,7 +5670,7 @@ static trans_t* transTable[FILE_HASH_SIZE];
 AllocTrans
 =======================
 */
-static trans_t* AllocTrans( char *original, char *translated[MAX_LANGUAGES] ) {
+static trans_t* AllocTrans( const char *original, char *translated[MAX_LANGUAGES] ) {
 	trans_t *t;
 	int i;
 
@@ -5692,37 +5692,19 @@ static trans_t* AllocTrans( char *original, char *translated[MAX_LANGUAGES] ) {
 	return t;
 }
 
-/*
-=======================
-generateHashValue
-=======================
-*/
-static long generateHashValue( const char *fname ) {
-	int i;
-	long hash;
-	char letter;
 
-	hash = 0;
-	i = 0;
-	while ( fname[i] != '\0' ) {
-		letter = tolower( fname[i] );
-		hash += (long)( letter ) * ( i + 119 );
-		i++;
-	}
-	hash &= ( FILE_HASH_SIZE - 1 );
-	return hash;
-}
+#define generateHashValue Com_GenerateHashValue
 
 /*
 =======================
 LookupTrans
 =======================
 */
-static trans_t* LookupTrans( char *original, char *translated[MAX_LANGUAGES], qboolean isLoading ) {
+static trans_t* LookupTrans( const char *original, char *translated[MAX_LANGUAGES], qboolean isLoading ) {
 	trans_t *t, *newt, *prev = NULL;
-	long hash;
+	int hash;
 
-	hash = generateHashValue( original );
+	hash = generateHashValue( original, FILE_HASH_SIZE );
 
 	for ( t = transTable[hash]; t; prev = t, t = t->next ) {
 		if ( !Q_stricmp( original, t->original ) ) {

@@ -1041,7 +1041,7 @@ void SV_Init( void )
 
 	sv_paksOverflowMode = Cvar_Get( "sv_paksOverflowMode", "1", CVAR_ARCHIVE );
 	Cvar_CheckRange( sv_paksOverflowMode, "1", "2", CV_INTEGER );
-	Cvar_SetDescription( sv_filterCommands, "Which style of overflow protection is used when systeminfo is too large to accomodate pak list\n"
+	Cvar_SetDescription( sv_paksOverflowMode, "Which style of overflow protection is used when systeminfo is too large to accomodate pak list\n"
 		" 1 - refuse to set sv_paks and sv_pakNames (Quake3e+ETe style).\n"
 		" 2 - set sv_paks and sv_pakNames to referenced if won't still overflow (ET:Legacy style)" );
 

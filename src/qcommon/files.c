@@ -5416,6 +5416,11 @@ static qboolean FS_IsOfficialPak(const pack_t *pack)
 		if ((unsigned)pack->checksum == pak_checksums[i])
 			return qtrue;
 	}
+
+	// Also want to ensure the mod bin paks are always referenced
+	if (pack->referenced & (FS_CGAME_REF | FS_UI_REF ))
+		return qtrue;
+
 	return qfalse;
 }
 
@@ -5495,22 +5500,44 @@ Returns a space separated string containing the checksums of all referenced pk3 
 The server will send this to the clients so they can check which files should be auto-downloaded. 
 =====================
 */
-const char *FS_ReferencedPakChecksums( void ) {
+const char *FS_ReferencedPakChecksums( qboolean *overflowed ) {
 	static char	info[BIG_INFO_STRING];
-	searchpath_t *search;
+	const searchpath_t *search;
+	char buf[ 32 ];
+	char *s, *max;
+	int len = 0;
 
+	s = info;
 	info[0] = '\0';
+	max = &info[sizeof(info)-1];
+	if ( overflowed )
+		*overflowed = qfalse;
 
 	for ( search = fs_searchpaths ; search ; search = search->next ) {
 		// is the element a pak file?
-		if ( search->pack ) {
-			if ( search->pack->exclude ) {
-				continue;
-			}
-			if ( search->pack->referenced || Q_stricmp( search->pack->pakGamename, fs_basegame->string ) ) {
-				Q_strcat( info, sizeof( info ), va( "%i ", search->pack->checksum ) );
-			}
+		if ( !search->pack )
+			continue;
+
+		if ( search->pack->exclude )
+			continue;
+
+		if ( search->pack->referenced || Q_stricmp( search->pack->pakGamename, fs_basegame->string ) ) {
+			if ( info[0] )
+				len = sprintf( buf, " %i", search->pack->checksum );
+			else
+				len = sprintf( buf, "%i", search->pack->checksum );
 		}
+		else
+			continue;
+
+
+		if ( s + len > max ) {
+			if ( overflowed )
+				*overflowed = qtrue;
+			break;
+		}
+
+		s = Q_stradd( s, buf );
 	}
 
 	return info;
@@ -5620,27 +5647,46 @@ Returns a space separated string containing the names of all referenced pk3 file
 The server will send this to the clients so they can check which files should be auto-downloaded. 
 =====================
 */
-const char *FS_ReferencedPakNames( void ) {
+const char *FS_ReferencedPakNames( qboolean *overflowed ) {
 	static char	info[BIG_INFO_STRING];
 	const searchpath_t *search;
-	const char *pakName;
+	char *s, *max;
+	int len = 0;
+
+	s = info;
 	info[0] = '\0';
+	max = &info[sizeof(info)-1];
+	if ( overflowed )
+		*overflowed = qfalse;
 
 	// we want to return ALL pk3's from the fs_game path
 	// and referenced one's from baseq3
 	for ( search = fs_searchpaths ; search ; search = search->next ) {
 		// is the element a pak file?
-		if ( search->pack ) {
-			if ( search->pack->exclude ) {
-				continue;
+		if ( !search->pack )
+			continue;
+
+		if ( search->pack->exclude )
+			continue;
+
+		if ( search->pack->referenced || Q_stricmp( search->pack->pakGamename, fs_basegame->string ) ) {
+			len = (int)strlen( search->pack->pakGamename ) + (int)strlen( search->pack->pakBasename ) + 1;
+
+			if ( info[0] )
+				len++;
+
+			if ( s + len > max ) {
+				if ( overflowed )
+					*overflowed = qtrue;
+				break;
 			}
-			if ( search->pack->referenced || Q_stricmp( search->pack->pakGamename, fs_basegame->string ) ) {
-				pakName = va( "%s/%s", search->pack->pakGamename, search->pack->pakBasename );
-				if ( *info != '\0' ) {
-					Q_strcat( info, sizeof( info ), " " );
-				}
-				Q_strcat( info, sizeof( info ), pakName );
-			}
+
+			if ( info[0] )
+				s = Q_stradd( s, " " );
+
+			s = Q_stradd( s, search->pack->pakGamename );
+			s = Q_stradd( s, "/" );
+			s = Q_stradd( s, search->pack->pakBasename );
 		}
 	}
 

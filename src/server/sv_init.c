@@ -775,17 +775,17 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 
 	// the server sends these to the clients so they can figure
 	// out which pk3s should be auto-downloaded
-	p = FS_ReferencedPakNames();
+	p = FS_ReferencedPakNames( NULL );
 	if ( FS_ExcludeReference() ) {
 		// \fs_excludeReference may mask our current ui/cgame binaries
 		SV_TouchDLLFile( "cgame" );
 		SV_TouchDLLFile( "ui" );
 		// rebuild referenced paks list
-		p = FS_ReferencedPakNames();
+		p = FS_ReferencedPakNames( NULL );
 	}
 	Cvar_Set( "sv_referencedPakNames", p );
 
-	p = FS_ReferencedPakChecksums();
+	p = FS_ReferencedPakChecksums( NULL );
 	Cvar_Set( "sv_referencedPaks", p );
 
 	Cvar_Set( "sv_paks", "" );
@@ -813,8 +813,31 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 			// this could *potentially* lead to a false "unpure client" detection
 			// which is better than guaranteed drop
 			// however due to requirement for sv_pakNames in ET over Q3, it is very likely that drops will happen for vanilla clients
-			Com_Printf( S_COLOR_YELLOW "WARNING: skipping sv_paks setup to avoid gamestate overflow\n" );
-			Com_Printf( S_COLOR_YELLOW "WARNING: clients not running ETe (%s) will be unlikely to join this server\n", Q3_VERSION );
+			if ( sv_paksOverflowMode->integer == 2 ) {
+				qboolean refoverflowed = qfalse, refnameoverflowed = qfalse;
+				p = FS_ReferencedPakChecksums( &refoverflowed );
+				pnames = FS_ReferencedPakNames( &refnameoverflowed );
+
+				pakslen = strlen( p ) + 9; // + strlen( "\\sv_paks\\" )
+				paknameslen = strlen( pnames ) + 13; // strlen( "\\sv_pakNames\\" )
+				if ( pakslen > freespace || paknameslen > freespace || infolen + paknameslen + pakslen >= BIG_INFO_STRING || refoverflowed || refnameoverflowed ) {
+					Com_Error( ERR_FATAL, "Server is referencing too many pk3s and cannot compensate with referenced only mode" );
+				}
+				else {
+					Com_Printf( S_COLOR_ORANGE "WARNING: Using alternate sv_paks setup with sv_referencedPaks to avoid gamestate overflow\n" );
+					// the server sends these to the clients so they will only
+					// load pk3s also loaded at the server
+					Cvar_Set( "sv_paks", p );
+					if ( *p == '\0' ) {
+						Com_Printf( S_COLOR_YELLOW "WARNING: sv_pure set but no PK3 files loaded\n" );
+					}
+					Cvar_Set( "sv_pakNames", pnames );
+				}
+			}
+			else {
+				Com_Printf( S_COLOR_YELLOW "WARNING: skipping sv_paks setup to avoid gamestate overflow\n" );
+				Com_Printf( S_COLOR_YELLOW "WARNING: clients not running ETe (%s) will be unlikely to join this server\n", Q3_VERSION );
+			}
 		} else {
 			// the server sends these to the clients so they will only
 			// load pk3s also loaded at the server
@@ -1010,10 +1033,17 @@ void SV_Init( void )
 	sv_filter = Cvar_Get( "sv_filter", "filter.txt", CVAR_ARCHIVE );
 
 	sv_filterCommands = Cvar_Get( "sv_filterCommands", "1", CVAR_ARCHIVE );
+	Cvar_CheckRange( sv_filterCommands, "0", "2", CV_INTEGER );
 	Cvar_SetDescription( sv_filterCommands, "Controls whether reliable commands are filtered for security with old game modules\n"
 		" 0 - disabled\n"
 		" 1 - filter newlines and carriage returns in reliable commands.\n"
 		" 2 - also filter semicolons" );
+
+	sv_paksOverflowMode = Cvar_Get( "sv_paksOverflowMode", "1", CVAR_ARCHIVE );
+	Cvar_CheckRange( sv_paksOverflowMode, "1", "2", CV_INTEGER );
+	Cvar_SetDescription( sv_filterCommands, "Which style of overflow protection is used when systeminfo is too large to accomodate pak list\n"
+		" 1 - refuse to set sv_paks and sv_pakNames (Quake3e+ETe style).\n"
+		" 2 - set sv_paks and sv_pakNames to referenced if won't still overflow (ET:Legacy style)" );
 
 	// initialize bot cvars so they are listed and can be set before loading the botlib
 	SV_BotInitCvars();

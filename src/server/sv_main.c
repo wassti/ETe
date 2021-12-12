@@ -95,6 +95,8 @@ cvar_t *sv_filter;
 
 cvar_t  *sv_filterCommands;
 
+cvar_t	*sv_paksOverflowMode;
+
 #ifdef USE_BANS
 cvar_t	*sv_banFile;
 serverBan_t serverBans[SERVER_MAXBANS];
@@ -855,6 +857,7 @@ static void SVC_Status( const netadr_t *from ) {
 	NET_OutOfBandPrint( NS_SERVER, from, "statusResponse\n%s\n%s", infostring, status );
 }
 
+
 /*
 =================
 SVC_GameCompleteStatus
@@ -931,6 +934,7 @@ void SVC_GameCompleteStatus( const netadr_t *from ) {
 
 	NET_OutOfBandPrint( NS_SERVER, from, "gameCompleteStatus\n%s\n%s", infostring, status );
 }
+
 
 /*
 ================

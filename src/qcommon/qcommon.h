@@ -866,8 +866,8 @@ const char *FS_LoadedPakChecksums( qboolean *overflowed );
 // Servers with sv_pure set will get this string and pass it to clients.
 
 qboolean FS_ExcludeReference( void );
-const char *FS_ReferencedPakNames( void );
-const char *FS_ReferencedPakChecksums( void );
+const char *FS_ReferencedPakNames( qboolean *overflowed );
+const char *FS_ReferencedPakChecksums( qboolean *overflowed );
 const char *FS_ReferencedPakPureChecksums( int maxlen );
 // Returns a space separated string containing the checksums of all loaded 
 // AND referenced pk3 files. Servers with sv_pure set will get this string 

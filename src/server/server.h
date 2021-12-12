@@ -373,6 +373,8 @@ extern cvar_t* sv_gameType;
 
 extern cvar_t  *sv_filterCommands;
 
+extern cvar_t  *sv_paksOverflowMode;
+
 // Rafael gameskill
 //extern	cvar_t	*sv_gameskill;
 // done

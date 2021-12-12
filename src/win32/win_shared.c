@@ -92,6 +92,7 @@ LPWSTR AtoW( const char *s )
 	return buffer;
 }
 
+
 const char *WtoA( const LPWSTR s ) 
 {
 	static char buffer[MAXPRINTMSG*2];
@@ -99,6 +100,7 @@ const char *WtoA( const LPWSTR s )
 	return buffer;
 }
 #endif
+
 
 static qboolean StrIsAscii( const signed char *text, size_t len ) {
 	size_t i;
@@ -168,8 +170,6 @@ const char *Sys_DefaultHomePath( void )
     return NULL;
 #endif
 }
-
-
 
 
 /*

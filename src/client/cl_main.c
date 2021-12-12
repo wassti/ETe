@@ -1272,7 +1272,7 @@ static void CL_GenerateETKey(void)
 		Com_sprintf(buff, sizeof(buff), "0000001002%04i%02i%02i%02i%02i%02i%03i", t->tm_year, t->tm_mon, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, last);
 
 		f = FS_SV_FOpenFileWrite(BASEGAME "/" ETKEY_FILE);
-		if (!f)
+		if (f == FS_INVALID_HANDLE)
 		{
 			Com_Printf(S_COLOR_RED "ERROR: Could not open %s for write.\n", ETKEY_FILE);
 			return;
@@ -4426,7 +4426,7 @@ void CL_Init( void ) {
 	Cvar_CheckRange( cl_wwwDownload, "0", "0", CV_INTEGER );
 #endif
 
-	cl_profile = Cvar_Get( "cl_profile", "", CVAR_ROM );
+	cl_profile = Cvar_Get( "cl_profile", "", CVAR_INIT );
 	cl_defaultProfile = Cvar_Get( "cl_defaultProfile", "", CVAR_ROM );
 
 	// init autoswitch so the ui will have it correctly even

@@ -1115,6 +1115,9 @@ static ID_INLINE unsigned int log2pad( unsigned int v, int roundup )
 void Com_TrackProfile( const char *profile_path );
 qboolean Com_CheckProfile( const char *profile_path );
 qboolean Com_WriteProfile( const char *profile_path );
+#ifndef DEDICATED
+void Com_CheckDefaultProfile( void );
+#endif
 
 extern cvar_t  *com_crashed;
 

@@ -824,7 +824,7 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 					Com_Error( ERR_FATAL, "Server is referencing too many pk3s and cannot compensate with referenced only mode" );
 				}
 				else {
-					Com_Printf( S_COLOR_ORANGE "WARNING: Using alternate sv_paks setup with sv_referencedPaks to avoid gamestate overflow\n" );
+					Com_Printf( S_COLOR_ORANGE "WARNING: using alternate sv_paks setup with sv_referencedPaks to avoid gamestate overflow\n" );
 					// the server sends these to the clients so they will only
 					// load pk3s also loaded at the server
 					Cvar_Set( "sv_paks", p );

@@ -1018,6 +1018,7 @@ void Cvar_Reset( const char *var_name ) {
 	Cvar_Set2( var_name, NULL, qfalse );
 }
 
+
 /*
 ============
 Cvar_ForceReset
@@ -1027,6 +1028,7 @@ void Cvar_ForceReset(const char *var_name)
 {
 	Cvar_Set2(var_name, NULL, qtrue);
 }
+
 
 /*
 ============
@@ -1056,6 +1058,7 @@ void Cvar_SetCheatState(void)
 		}
 	}
 }
+
 
 /*
 ============
@@ -2290,6 +2293,13 @@ void Cvar_Register( vmCvar_t *vmCvar, const char *varName, const char *defaultVa
 			"since it is also CVAR_ARCHIVE\n", varName );
 		flags &= ~CVAR_ROM;
 	}
+
+#ifndef DEDICATED
+	if ( (flags & CVAR_ROM) && !Q_stricmp( varName, "cl_profile" ) ) {
+		flags &= ~CVAR_ROM;
+		flags |= CVAR_INIT;
+	}
+#endif
 
 	// Don't allow VM to specific a different creator or other internal flags.
 	if ( flags & INVALID_FLAGS ) {

@@ -3145,6 +3145,8 @@ void Com_GameRestart( int checksumFeed, qboolean clientRestart )
 				}
 			}
 		}
+
+		Com_CheckDefaultProfile();
 #endif
 
 		// Shutdown FS early so Cvar_Restart will not reset old game cvars
@@ -3354,7 +3356,7 @@ qboolean Com_WriteProfile( const char *profile_path ) {
 	}
 
 	f = FS_FOpenFileWrite( profile_path );
-	if ( f < 0 ) {
+	if ( f == FS_INVALID_HANDLE ) {
 		Com_Printf( "Com_WriteProfile: Can't write %s.\n", profile_path );
 		return qfalse;
 	}
@@ -3368,6 +3370,33 @@ qboolean Com_WriteProfile( const char *profile_path ) {
 
 	return qtrue;
 }
+
+
+#ifndef DEDICATED
+// Called on shutdown or mod switch before the filesystem changes directories
+void Com_CheckDefaultProfile( void ) {
+	const char *defaultProfile = Cvar_VariableString("cl_defaultProfile");
+
+	if ( !com_gameInfo.usesProfiles ) {
+		return;
+	}
+
+	if ( defaultProfile[0] && !FS_FileExists( "profiles/defaultprofile.dat") ) {
+		fileHandle_t f;
+		char cleanProfile[MAX_CVAR_VALUE_STRING];
+		f = FS_FOpenFileWrite( "profiles/defaultprofile.dat" );
+		if ( f == FS_INVALID_HANDLE ) {
+			Com_Printf( "Com_CheckDefaultProfile: Can't write 'profiles/defaultprofile.dat'.\n" );
+			return;
+		}
+		Q_strncpyz( cleanProfile, defaultProfile, sizeof(cleanProfile) );
+		Q_CleanStr( cleanProfile );
+		Q_CleanDirName( cleanProfile );
+		FS_Printf( f, "\"%s\"", cleanProfile );
+		FS_FCloseFile( f );
+	}
+}
+#endif
 
 
 /*
@@ -3756,6 +3785,10 @@ void Com_Init( char *commandLine ) {
 	com_pid = Cvar_Get( "com_pid", s, CVAR_ROM | CVAR_PROTECTED );
 
 	Cvar_SetDescription( com_pid, "Process ID" );
+
+#ifndef DEDICATED
+	Com_StartupVariable( "cl_profile" );
+#endif
 
 	// done early so bind command exists
 	Com_InitKeyCommands();
@@ -4407,6 +4440,10 @@ static void Com_Shutdown( qboolean badProfile ) {
 			FS_Delete( va( "profiles/%s/profile.pid", cl_profileStr ) );
 		}
 	}
+
+#ifndef DEDICATED
+	Com_CheckDefaultProfile();
+#endif
 
 	if ( logfile != FS_INVALID_HANDLE ) {
 		FS_FCloseFile( logfile );

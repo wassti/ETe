@@ -1237,7 +1237,7 @@ void CL_UpdateLevelHunkUsage( void ) {
 		}
 
 		handle = FS_FOpenFileWrite( HUNKUSAGE_FILENAME );
-		if ( handle < 0 ) {
+		if ( handle == FS_INVALID_HANDLE ) {
 			Com_Error( ERR_DROP, "cannot create %s", HUNKUSAGE_FILENAME );
 		}
 		// input file is parsed, now output to the new file
@@ -1252,7 +1252,7 @@ void CL_UpdateLevelHunkUsage( void ) {
 	}
 	// now append the current map to the current file
 	FS_FOpenFileByMode( HUNKUSAGE_FILENAME, &handle, FS_APPEND );
-	if ( handle < 0 ) {
+	if ( handle == FS_INVALID_HANDLE ) {
 		Com_Error( ERR_DROP, "cannot write to hunkusage.dat, check disk full" );
 	}
 	Com_sprintf( outstr, sizeof( outstr ), "\"%s\" %i\n", cl.mapname, memusage );

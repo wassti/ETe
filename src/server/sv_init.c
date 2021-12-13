@@ -808,7 +808,7 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 			Com_Printf( S_COLOR_YELLOW "WARNING: truncated systeminfo!\n" );
 		}
 
-		if ( pakslen > freespace || paknameslen > freespace || infolen + paknameslen + pakslen >= BIG_INFO_STRING || overflowed || nameoverflowed ) {
+		if ( pakslen > freespace || paknameslen > freespace || pakslen + paknameslen > freespace || infolen + paknameslen + pakslen >= BIG_INFO_STRING || overflowed || nameoverflowed ) {
 			// switch to degraded pure mode
 			// this could *potentially* lead to a false "unpure client" detection
 			// which is better than guaranteed drop
@@ -820,7 +820,7 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 
 				pakslen = strlen( p ) + 9; // + strlen( "\\sv_paks\\" )
 				paknameslen = strlen( pnames ) + 13; // strlen( "\\sv_pakNames\\" )
-				if ( pakslen > freespace || paknameslen > freespace || infolen + paknameslen + pakslen >= BIG_INFO_STRING || refoverflowed || refnameoverflowed ) {
+				if ( pakslen > freespace || paknameslen > freespace || pakslen + paknameslen > freespace || infolen + paknameslen + pakslen >= BIG_INFO_STRING || refoverflowed || refnameoverflowed ) {
 					Com_Error( ERR_FATAL, "Server is referencing too many pk3s and cannot compensate with referenced only mode" );
 				}
 				else {

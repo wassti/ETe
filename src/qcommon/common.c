@@ -3776,7 +3776,7 @@ void Com_Init( char *commandLine ) {
 	Cvar_SetDescription( com_protocol, "Network protocol version" );
 
 	Com_StartupVariable( "com_legacyVersion" );
-	com_legacyVersion = Cvar_Get( "com_legacyVersion", "278000063", CVAR_INIT | CVAR_NOTABCOMPLETE | CVAR_PRIVATE | CVAR_PROTECTED | CVAR_NORESTART );
+	com_legacyVersion = Cvar_Get( "com_legacyVersion", "279000000", CVAR_INIT | CVAR_NOTABCOMPLETE | CVAR_PRIVATE | CVAR_PROTECTED | CVAR_NORESTART );
 
 	Cvar_SetDescription( com_legacyVersion, "Version which mimics running the ET:Legacy engine" );
 

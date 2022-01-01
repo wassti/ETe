@@ -298,14 +298,14 @@ static	cvar_t		*fs_locked;
 static	cvar_t		*fs_excludeReference;
 
 static	searchpath_t	*fs_searchpaths;
-static	int			fs_readCount;			// total bytes read
-static	int			fs_loadCount;			// total files read
-static	int			fs_loadStack;			// total files in memory
-static	int			fs_packFiles;			// total number of files in all loaded packs
+static	int			fs_readCount UNUSED_VAR;	// total bytes read
+static	int			fs_loadCount;				// total files read
+static	int			fs_loadStack;				// total files in memory
+static	int			fs_packFiles;				// total number of files in all loaded packs
 
-static	int			fs_pk3dirCount;			// total number of pk3 directories in searchpath
-static	int			fs_packCount;			// total number of packs in searchpath
-static	int			fs_dirCount;			// total number of directories in searchpath
+static	int			fs_pk3dirCount;				// total number of pk3 directories in searchpath
+static	int			fs_packCount;				// total number of packs in searchpath
+static	int			fs_dirCount;				// total number of directories in searchpath
 
 static	int			fs_checksumFeed;
 
@@ -5557,7 +5557,7 @@ The string has a specific order, "cgame ui @ ref1 ref2 ref3 ..."
 const char *FS_ReferencedPakPureChecksums( int maxlen ) {
 	static char	info[ MAX_STRING_CHARS*2 ];
 	char *s, *max;
-	searchpath_t	*search;
+	const searchpath_t	*search;
 	int nFlags, numPaks, checksum;
 
 	max = info + maxlen; // maxlen is always smaller than MAX_STRING_CHARS so we can overflow a bit

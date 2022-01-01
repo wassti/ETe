@@ -2028,7 +2028,7 @@ void Com_TouchMemory( void ) {
 	const memzone_t *zone;
 	int		start, end;
 	int		i, j;
-	unsigned int sum;
+	unsigned int sum UNUSED_VAR;
 
 	Z_CheckHeap();
 
@@ -3849,7 +3849,7 @@ void Com_Init( char *commandLine ) {
 		" 4 - append mode, synced\n" );
 
 	com_timescale = Cvar_Get( "timescale", "1", CVAR_CHEAT | CVAR_SYSTEMINFO );
-	Cvar_CheckRange( com_timescale, "0", NULL, CV_FLOAT );
+	Cvar_CheckRange( com_timescale, "0", "100", CV_FLOAT );
 	com_fixedtime = Cvar_Get( "fixedtime", "0", CVAR_CHEAT );
 	com_showtrace = Cvar_Get( "com_showtrace", "0", CVAR_CHEAT );
 	com_viewlog = Cvar_Get( "viewlog", "0", 0 );
@@ -3857,8 +3857,10 @@ void Com_Init( char *commandLine ) {
 	com_cameraMode = Cvar_Get( "com_cameraMode", "0", CVAR_CHEAT );
 
 	com_watchdog = Cvar_Get( "com_watchdog", "60", CVAR_ARCHIVE_ND );
-	Cvar_CheckRange( com_watchdog, "1", NULL, CV_INTEGER );
+	Cvar_CheckRange( com_watchdog, "1", "240", CV_INTEGER );
+	Cvar_SetDescription( com_watchdog, "Seconds before idle (no map loaded) dedicated server will shutdown or execute \\com_watchdog_cmd contents" );
 	com_watchdog_cmd = Cvar_Get( "com_watchdog_cmd", "", CVAR_ARCHIVE_ND );
+	Cvar_SetDescription( com_watchdog, "Command to execute when \\com_watchdog conditions are met, if set otherwise server process will quit");
 
 #ifndef DEDICATED	
 	com_timedemo = Cvar_Get( "timedemo", "0", CVAR_CHEAT );

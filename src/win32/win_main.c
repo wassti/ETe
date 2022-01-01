@@ -1078,10 +1078,16 @@ pfnOmnibotRenderOGL gOmnibotRenderFunc = 0;
 
 void	Sys_OmnibotLoad()
 {
+	const char *omnibotPath = Cvar_VariableString( "omnibot_path" );
 	const char *omnibotLibrary = Cvar_VariableString( "omnibot_library" );
 	if ( omnibotLibrary != NULL && omnibotLibrary[0] != '\0' )
 	{
-		omnibotHandle = Sys_LoadLibrary( va("%s.dll", omnibotLibrary ) );
+		if ( omnibotPath != NULL && omnibotPath[0] != '\0' ) {
+			omnibotHandle = Sys_LoadLibrary(va("%s/%s.dll", omnibotPath, omnibotLibrary));	
+		}
+		else {
+			omnibotHandle = Sys_LoadLibrary( va("%s.dll", omnibotLibrary ) );
+		}
 		if ( omnibotHandle )
 		{
 			gOmnibotRenderFunc = (pfnOmnibotRenderOGL)Sys_LoadFunction( omnibotHandle, "RenderOpenGL" );

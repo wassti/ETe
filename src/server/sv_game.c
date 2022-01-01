@@ -1086,7 +1086,7 @@ void SV_ShutdownGameProgs( void ) {
 		return;
 	}
 
-	Sys_OmnibotUnLoad();
+	//Sys_OmnibotUnLoad();
 
 	VM_Call( gvm, 1, GAME_SHUTDOWN, qfalse );
 	VM_Free( gvm );
@@ -1146,7 +1146,7 @@ void SV_RestartGameProgs( void ) {
 	}
 
 	// unload the refs during a restart
-	Sys_OmnibotUnLoad();
+	//Sys_OmnibotUnLoad();
 
 	VM_Call( gvm, 1, GAME_SHUTDOWN, qtrue );
 
@@ -1183,7 +1183,7 @@ void SV_InitGameProgs( void ) {
 	SV_InitGameVM( qfalse );
 
 	// unload the refs during a map change
-	Sys_OmnibotLoad();
+	//Sys_OmnibotLoad();
 
 	// load userinfo filters
 	SV_LoadFilters( sv_filter->string );

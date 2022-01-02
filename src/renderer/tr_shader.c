@@ -3009,7 +3009,7 @@ from the current global working shader
 =========================
 */
 static shader_t *FinishShader( void ) {
-	int			stage, i;
+	int			stage, i, n, m;
 	qboolean	hasLightmapStage;
 	qboolean	colorBlend;
 	qboolean	depthMask;
@@ -3056,7 +3056,7 @@ static shader_t *FinishShader( void ) {
 		if ( pStage->isDetail && !r_detailTextures->integer )
 		{
 			int index;
-			
+
 			for(index = stage + 1; index < MAX_SHADER_STAGES; index++)
 			{
 				if(!stages[index].active)
@@ -3222,6 +3222,26 @@ static shader_t *FinishShader( void ) {
 #ifdef USE_PMLIGHT
 	FindLightingStages();
 #endif
+
+	// make sure that amplitude for TMOD_STRETCH is not zero
+	for ( i = 0; i < shader.numUnfoggedPasses; i++ ) {
+		if ( !stages[i].active ) {
+			continue;
+		}
+		for ( n = 0; n < 2; n++ ) {
+			for ( m = 0; m < stages[i].bundle[n].numTexMods; m++ ) {
+				if ( stages[i].bundle[n].texMods[m].type == TMOD_STRETCH ) {
+					if ( fabsf( stages[i].bundle[n].texMods[m].wave.amplitude ) < 1e-6 ) {
+						if ( stages[i].bundle[n].texMods[m].wave.amplitude >= 0.0f ) {
+							stages[i].bundle[n].texMods[m].wave.amplitude = 1e-6;
+						} else {
+							stages[i].bundle[n].texMods[m].wave.amplitude = -1e-6;
+						}
+					}
+				}
+			}
+		}
+	}
 
 	// determine which stage iterator function is appropriate
 	ComputeStageIteratorFunc();

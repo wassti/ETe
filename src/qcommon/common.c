@@ -3860,7 +3860,7 @@ void Com_Init( char *commandLine ) {
 	Cvar_CheckRange( com_watchdog, "1", "240", CV_INTEGER );
 	Cvar_SetDescription( com_watchdog, "Seconds before idle (no map loaded) dedicated server will shutdown or execute \\com_watchdog_cmd contents" );
 	com_watchdog_cmd = Cvar_Get( "com_watchdog_cmd", "", CVAR_ARCHIVE_ND );
-	Cvar_SetDescription( com_watchdog, "Command to execute when \\com_watchdog conditions are met, if set otherwise server process will quit");
+	Cvar_SetDescription( com_watchdog_cmd, "Command to execute when \\com_watchdog conditions are met, if set otherwise server process will quit");
 
 #ifndef DEDICATED	
 	com_timedemo = Cvar_Get( "timedemo", "0", CVAR_CHEAT );

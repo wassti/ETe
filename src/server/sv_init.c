@@ -580,7 +580,7 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 	CM_ClearMap();
 
 	// timescale can be updated before SV_Frame() and cause division-by-zero in SV_RateMsec()
-	Cvar_CheckRange( com_timescale, "0.001", NULL, CV_FLOAT );
+	Cvar_CheckRange( com_timescale, "0.001", "100", CV_FLOAT );
 
 	// Restart renderer?
 	// CL_StartHunkUsers( );
@@ -1160,8 +1160,7 @@ void SV_Shutdown( const char *finalmsg ) {
 	Cvar_Set( "sv_running", "0" );
 
 	// allow setting timescale 0 for demo playback
-	Cvar_CheckRange( com_timescale, "0", NULL, CV_FLOAT );
-
+	Cvar_CheckRange( com_timescale, "0", "100", CV_FLOAT );
 
 	Com_Printf( "---------------------------\n" );
 

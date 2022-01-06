@@ -1707,7 +1707,7 @@ void CG_MortarMiss( centity_t *cent, vec3_t origin ) {
 }
 
 // a convenience function for all footstep sound playing
-static void CG_StartFootStepSound( bg_playerclass_t* classInfo, entityState_t *es, sfxHandle_t sfx ) {
+static void CG_StartFootStepSound( entityState_t *es, sfxHandle_t sfx ) {
 	if ( cg_footsteps.integer ) {
 		trap_S_StartSound( NULL, es->number, CHAN_BODY, sfx );
 	}
@@ -1733,10 +1733,8 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 	vec3_t dir;
 	const char          *s;
 	int clientNum;
-	clientInfo_t        *ci;
 	char tempStr[MAX_QPATH];
-	bg_playerclass_t    *classInfo;
-	bg_character_t      *character;
+	bg_character_t      *character = NULL;
 
 // JPW NERVE copied here for mg42 SFX event
 	vec3_t porg, gorg, norm;                // player/gun origin
@@ -1762,9 +1760,6 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 	if ( clientNum < 0 || clientNum >= MAX_CLIENTS ) {
 		clientNum = 0;
 	}
-	ci = &cgs.clientinfo[ clientNum ];
-	classInfo = CG_PlayerClassForClientinfo( ci, cent );
-	character = CG_CharacterForClientinfo( ci, cent );
 
 	switch ( event ) {
 		//
@@ -1774,23 +1769,24 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 		DEBUGNAME( "EV_FOOTSTEP" );
 		if ( es->eventParm != FOOTSTEP_TOTAL ) {
 			if ( es->eventParm ) {
-				CG_StartFootStepSound( classInfo, es, cgs.media.footsteps[ es->eventParm ][footstepcnt] );
+				CG_StartFootStepSound( es, cgs.media.footsteps[ es->eventParm ][footstepcnt] );
 			} else {
-				CG_StartFootStepSound( classInfo, es, cgs.media.footsteps[ character->animModelInfo->footsteps ][footstepcnt] );
+				character = CG_CharacterForClientinfo( &cgs.clientinfo[ clientNum ], cent );
+				CG_StartFootStepSound( es, cgs.media.footsteps[ character->animModelInfo->footsteps ][footstepcnt] );
 			}
 		}
 		break;
 	case EV_FOOTSPLASH:
 		DEBUGNAME( "EV_FOOTSPLASH" );
-		CG_StartFootStepSound( classInfo, es, cgs.media.footsteps[ FOOTSTEP_SPLASH ][splashfootstepcnt] );
+		CG_StartFootStepSound( es, cgs.media.footsteps[ FOOTSTEP_SPLASH ][splashfootstepcnt] );
 		break;
 	case EV_FOOTWADE:
 		DEBUGNAME( "EV_FOOTWADE" );
-		CG_StartFootStepSound( classInfo, es, cgs.media.footsteps[ FOOTSTEP_SPLASH ][splashfootstepcnt] );
+		CG_StartFootStepSound( es, cgs.media.footsteps[ FOOTSTEP_SPLASH ][splashfootstepcnt] );
 		break;
 	case EV_SWIM:
 		DEBUGNAME( "EV_SWIM" );
-		CG_StartFootStepSound( classInfo, es, cgs.media.footsteps[ FOOTSTEP_SPLASH ][footstepcnt] );
+		CG_StartFootStepSound( es, cgs.media.footsteps[ FOOTSTEP_SPLASH ][footstepcnt] );
 		break;
 
 	case EV_FALL_SHORT:
@@ -1799,6 +1795,7 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 			if ( es->eventParm ) {
 				trap_S_StartSound( NULL, es->number, CHAN_AUTO, cgs.media.landSound[ es->eventParm ] );
 			} else {
+				character = CG_CharacterForClientinfo( &cgs.clientinfo[ clientNum ], cent );
 				trap_S_StartSound( NULL, es->number, CHAN_AUTO, cgs.media.landSound[ character->animModelInfo->footsteps ] );
 			}
 		}
@@ -1815,6 +1812,7 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 			if ( es->eventParm ) {
 				trap_S_StartSound( NULL, es->number, CHAN_AUTO, cgs.media.landSound[ es->eventParm ] );
 			} else {
+				character = CG_CharacterForClientinfo( &cgs.clientinfo[ clientNum ], cent );
 				trap_S_StartSound( NULL, es->number, CHAN_AUTO, cgs.media.landSound[ character->animModelInfo->footsteps ] );
 			}
 		}
@@ -1832,6 +1830,7 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 			if ( es->eventParm ) {
 				trap_S_StartSound( NULL, es->number, CHAN_AUTO, cgs.media.landSound[ es->eventParm ] );
 			} else {
+				character = CG_CharacterForClientinfo( &cgs.clientinfo[ clientNum ], cent );
 				trap_S_StartSound( NULL, es->number, CHAN_AUTO, cgs.media.landSound[ character->animModelInfo->footsteps ] );
 			}
 		}
@@ -1849,6 +1848,7 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 			if ( es->eventParm ) {
 				trap_S_StartSound( NULL, es->number, CHAN_AUTO, cgs.media.landSound[ es->eventParm ] );
 			} else {
+				character = CG_CharacterForClientinfo( &cgs.clientinfo[ clientNum ], cent );
 				trap_S_StartSound( NULL, es->number, CHAN_AUTO, cgs.media.landSound[ character->animModelInfo->footsteps ] );
 			}
 		}
@@ -1866,6 +1866,7 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 			if ( es->eventParm ) {
 				trap_S_StartSound( NULL, es->number, CHAN_AUTO, cgs.media.landSound[ es->eventParm ] );
 			} else {
+				character = CG_CharacterForClientinfo( &cgs.clientinfo[ clientNum ], cent );
 				trap_S_StartSound( NULL, es->number, CHAN_AUTO, cgs.media.landSound[ character->animModelInfo->footsteps ] );
 			}
 		}
@@ -1883,6 +1884,7 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 			if ( es->eventParm ) {
 				trap_S_StartSound( NULL, es->number, CHAN_AUTO, cgs.media.landSound[ es->eventParm ] );
 			} else {
+				character = CG_CharacterForClientinfo( &cgs.clientinfo[ clientNum ], cent );
 				trap_S_StartSound( NULL, es->number, CHAN_AUTO, cgs.media.landSound[ character->animModelInfo->footsteps ] );
 			}
 		}

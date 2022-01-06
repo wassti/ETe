@@ -1182,11 +1182,15 @@ static void CG_PlayerAngles( centity_t *cent, vec3_t legs[3], vec3_t torso[3], v
 CG_BreathPuffs
 ==============
 */
-static void CG_BreathPuffs( centity_t *cent, refEntity_t *head ) {
+/*static void CG_BreathPuffs( centity_t *cent, refEntity_t *head ) {
 	clientInfo_t    *ci;
 	vec3_t up, forward;
 	int contents;
 	vec3_t mang, morg, maxis[3];
+
+	if ( cent->currentState.eType == ET_CORPSE ) {
+		return;
+	}
 
 	ci = &cgs.clientinfo[ cent->currentState.number ];
 
@@ -1198,7 +1202,7 @@ static void CG_BreathPuffs( centity_t *cent, refEntity_t *head ) {
 		return;
 	}
 
-	if ( !( cent->currentState.eFlags & EF_DEAD ) ) {
+	if ( cent->currentState.eFlags & EF_DEAD ) {
 		return;
 	}
 
@@ -1230,6 +1234,7 @@ static void CG_BreathPuffs( centity_t *cent, refEntity_t *head ) {
 
 	ci->breathPuffTime = cg.time + 3000 + random() * 1000;
 }
+*/
 
 /*
 ===============
@@ -2159,7 +2164,7 @@ void CG_Player( centity_t *cent ) {
 	// set the shadowplane for accessories
 	acc.shadowPlane = shadowPlane;
 
-	CG_BreathPuffs( cent, &head );
+	//CG_BreathPuffs( cent, &head );
 
 	//
 	// add the gun / barrel / flash

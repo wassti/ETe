@@ -42,15 +42,13 @@ CG_CheckAmmo
 If the ammo has gone low enough to generate the warning, play a sound
 ==============
 */
-void CG_CheckAmmo( void ) {
+static void CG_CheckAmmo( const playerState_t *ps ) {
 	int i;
 	int total;
-	int weapons[MAX_WEAPONS / ( sizeof( int ) * 8 )];
 
 	// see about how many seconds of ammo we have remaining
-	memcpy( weapons, cg.snap->ps.weapons, sizeof( weapons ) );
 
-	if ( !weapons[0] && !weapons[1] ) { // (SA) we start out with no weapons, so don't make a click on startup
+	if ( !ps->weapons[0] && !ps->weapons[1] ) { // (SA) we start out with no weapons, so don't make a click on startup
 		return;
 	}
 
@@ -58,7 +56,7 @@ void CG_CheckAmmo( void ) {
 
 	for ( i = 0 ; i < WP_NUM_WEAPONS ; i++ )
 	{
-		if ( !( weapons[0] & ( 1 << i ) ) ) {
+		if (!(COM_BitCheck(ps->weapons, i))) {
 			continue;
 		}
 		switch ( i )
@@ -88,10 +86,10 @@ void CG_CheckAmmo( void ) {
 		case WP_K43:
 		case WP_MORTAR_SET:
 		default:
-			total += cg.snap->ps.ammo[BG_FindAmmoForWeapon( i )] * 1000;
+			total += ps->ammo[BG_FindAmmoForWeapon( i )] * 1000;
 			break;
 //			default:
-//				total += cg.snap->ps.ammo[BG_FindAmmoForWeapon(i)] * 200;
+//				total += ps->ammo[BG_FindAmmoForWeapon(i)] * 200;
 //				break;
 		}
 
@@ -540,7 +538,7 @@ void CG_TransitionPlayerState( playerState_t *ps, playerState_t *ops ) {
 	}
 
 	// check for going low on ammo
-	CG_CheckAmmo();
+	CG_CheckAmmo( ps );
 
 	if ( ps->eFlags & EF_PRONE_MOVING ) {
 		if ( ps->weapon == WP_BINOCULARS ) {

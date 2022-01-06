@@ -568,7 +568,7 @@ void trap_EA_Gesture( int client ) {
 	syscall( BOTLIB_EA_GESTURE, client );
 }
 
-void trap_EA_Command( int client, char *command ) {
+void trap_EA_Command( int client, const char *command ) {
 	syscall( BOTLIB_EA_COMMAND, client, command );
 }
 

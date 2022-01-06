@@ -1499,7 +1499,6 @@ extern vmCvar_t g_privatepassword;
 extern vmCvar_t g_gravity;
 extern vmCvar_t g_speed;
 extern vmCvar_t g_knockback;
-extern vmCvar_t g_quadfactor;
 extern vmCvar_t g_forcerespawn;
 extern vmCvar_t g_inactivity;
 extern vmCvar_t g_debugMove;
@@ -1796,7 +1795,7 @@ void    trap_EA_DropItem( int client, char *it );
 void    trap_EA_UseInv( int client, char *inv );
 void    trap_EA_DropInv( int client, char *inv );
 void    trap_EA_Gesture( int client );
-void    trap_EA_Command( int client, char *command );
+void    trap_EA_Command( int client, const char *command );
 
 void    trap_EA_SelectWeapon( int client, int weapon );
 void    trap_EA_Talk( int client );

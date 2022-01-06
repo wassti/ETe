@@ -3082,7 +3082,10 @@ void UI_Update( const char *name ) {
 		trap_Cvar_Set( "name", UI_Cvar_VariableString( "ui_Name" ) );
 	} else if ( Q_stricmp( name, "ui_setRate" ) == 0 ) {
 		float rate = trap_Cvar_VariableValue( "ui_rate" );
-		if ( rate >= 5000 ) {
+		if ( rate >= 25000 ) {
+			trap_Cvar_Set( "ui_cl_maxpackets", "60" );
+			trap_Cvar_Set( "ui_cl_packetdup", "1" );
+		} else if ( rate >= 5000 ) {
 			trap_Cvar_Set( "ui_cl_maxpackets", "30" );
 			trap_Cvar_Set( "ui_cl_packetdup", "1" );
 		} else if ( rate >= 4000 ) {
@@ -4149,8 +4152,8 @@ void UI_RunMenuScript( const char **args ) {
 
 			// failsafe
 			if ( ui_rate == 0 ) {
-				ui_rate = 5000;
-				ui_cl_maxpackets = 30;
+				ui_rate = 25000;
+				ui_cl_maxpackets = 60;
 				ui_cl_packetdup = 1;
 			}
 

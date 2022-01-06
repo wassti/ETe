@@ -63,7 +63,6 @@ vmCvar_t g_speed;
 vmCvar_t g_gravity;
 vmCvar_t g_cheats;
 vmCvar_t g_knockback;
-vmCvar_t g_quadfactor;
 vmCvar_t g_forcerespawn;
 vmCvar_t g_inactivity;
 vmCvar_t g_debugMove;
@@ -94,8 +93,6 @@ vmCvar_t g_restarted;
 vmCvar_t g_mapname;
 vmCvar_t g_logFile;
 vmCvar_t g_logSync;
-vmCvar_t g_podiumDist;
-vmCvar_t g_podiumDrop;
 vmCvar_t voteFlags;
 vmCvar_t g_complaintlimit;          // DHM - Nerve
 vmCvar_t g_ipcomplaintlimit;
@@ -305,7 +302,6 @@ cvarTable_t gameCvarTable[] = {
 	{ &g_speed, "g_speed", "320", 0, 0, qtrue, qtrue },
 	{ &g_gravity, "g_gravity", "800", 0, 0, qtrue, qtrue },
 	{ &g_knockback, "g_knockback", "1000", 0, 0, qtrue, qtrue },
-	{ &g_quadfactor, "g_quadfactor", "3", 0, 0, qtrue },
 
 	{ &g_needpass, "g_needpass", "0", CVAR_SERVERINFO | CVAR_ROM, 0, qtrue },
 	{ &g_balancedteams, "g_balancedteams", "0", CVAR_SERVERINFO | CVAR_ROM, 0, qtrue },

@@ -167,7 +167,7 @@ vmCvar_t cg_tracerSpeed;
 vmCvar_t cg_autoswitch;
 vmCvar_t cg_ignore;
 vmCvar_t cg_fov;
-vmCvar_t cg_zoomFov;
+//vmCvar_t cg_zoomFov;
 vmCvar_t cg_zoomStepBinoc;
 vmCvar_t cg_zoomStepSniper;
 vmCvar_t cg_zoomStepSnooper;
@@ -330,7 +330,7 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_drawGun, "cg_drawGun", "1", CVAR_ARCHIVE },
 	{ &cg_gun_frame, "cg_gun_frame", "0", CVAR_TEMP },
 	{ &cg_cursorHints, "cg_cursorHints", "1", CVAR_ARCHIVE },
-	{ &cg_zoomFov, "cg_zoomfov", "22.5", CVAR_ARCHIVE },
+	//{ &cg_zoomFov, "cg_zoomfov", "22.5", CVAR_ARCHIVE },
 	{ &cg_zoomDefaultBinoc, "cg_zoomDefaultBinoc", "22.5", CVAR_ARCHIVE },
 	{ &cg_zoomDefaultSniper, "cg_zoomDefaultSniper", "20", CVAR_ARCHIVE }, // JPW NERVE changed per atvi req
 	{ &cg_zoomDefaultSnooper, "cg_zoomDefaultSnooper", "40", CVAR_ARCHIVE }, // JPW NERVE made temp
@@ -495,7 +495,7 @@ static cvarTable_t cvarTable[] = {
 #endif
 
 	// Engine mappings
-	{ &int_cl_maxpackets, "cl_maxpackets", "30", CVAR_ARCHIVE },
+	{ &int_cl_maxpackets, "cl_maxpackets", "60", CVAR_ARCHIVE },
 	{ &int_cl_timenudge, "cl_timenudge", "0", CVAR_ARCHIVE },
 	{ &int_m_pitch, "m_pitch", "0.022", CVAR_ARCHIVE },
 	{ &int_sensitivity, "sensitivity", "5", CVAR_ARCHIVE },

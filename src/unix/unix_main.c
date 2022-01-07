@@ -749,7 +749,7 @@ const char *Sys_GetDLLName(const char *name)
 }
 #endif
 
-void *Sys_LoadGameDll(const char *name, dllSyscall_t *entryPoint, dllSyscall_t systemcalls)
+void *Sys_LoadGameDll(const char *name, vmMain_t *entryPoint, dllSyscall_t systemcalls)
 {
 	void *libHandle;
 	dllEntry_t dllEntry;
@@ -860,7 +860,7 @@ void *Sys_LoadGameDll(const char *name, dllSyscall_t *entryPoint, dllSyscall_t s
 	Sys_LoadFunctionErrors(); // reset counter
 
 	dllEntry = (dllEntry_t)Sys_LoadFunction(libHandle, "dllEntry");
-	*entryPoint = (dllSyscall_t)Sys_LoadFunction(libHandle, "vmMain");
+	*entryPoint = (vmMain_t)Sys_LoadFunction(libHandle, "vmMain");
 
 	if (!*entryPoint || !dllEntry)
 	{

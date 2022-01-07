@@ -704,7 +704,7 @@ const char* Sys_GetDLLName( const char *name ) {
 	return va( "%s_mp_" ARCH_STRING DLL_EXT, name );
 }
 
-void *QDECL Sys_LoadGameDll( const char *name, dllSyscall_t *entryPoint, dllSyscall_t systemcalls ) {
+void *QDECL Sys_LoadGameDll( const char *name, vmMain_t *entryPoint, dllSyscall_t systemcalls ) {
 	HINSTANCE libHandle;
 	dllEntry_t	dllEntry;
 	const char	*basepath;
@@ -798,7 +798,7 @@ void *QDECL Sys_LoadGameDll( const char *name, dllSyscall_t *entryPoint, dllSysc
 	Sys_LoadFunctionErrors(); // reset counter
 
 	dllEntry = ( dllEntry_t ) Sys_LoadFunction( libHandle, "dllEntry" ); 
-	*entryPoint = ( dllSyscall_t ) Sys_LoadFunction( libHandle, "vmMain" );
+	*entryPoint = ( vmMain_t ) Sys_LoadFunction( libHandle, "vmMain" );
 	if ( !*entryPoint || !dllEntry ) {
 		err = win_dlerror();
 #ifdef _DEBUG

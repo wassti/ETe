@@ -1032,6 +1032,7 @@ char *Q_CleanDirName( char *dirname );
 //=============================================
 
 typedef intptr_t (*syscall_t)( intptr_t *parms );
+typedef intptr_t (QDECL *vmMain_t)( int command, intptr_t arg0, intptr_t arg1, intptr_t arg2, intptr_t arg3, intptr_t arg4, intptr_t arg5, intptr_t arg6 );
 typedef intptr_t (QDECL *dllSyscall_t)( intptr_t callNum, ... );
 typedef void (QDECL *dllEntry_t)( dllSyscall_t syscallptr );
 

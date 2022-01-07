@@ -1404,7 +1404,7 @@ qboolean	Sys_IsNumLockDown( void );
 int Sys_GetPID( void );
 
 // general development dll loading for virtual machine testing
-void	*QDECL Sys_LoadGameDll( const char *name, dllSyscall_t *entryPoint, dllSyscall_t systemcalls );
+void	*QDECL Sys_LoadGameDll( const char *name, vmMain_t *entryPoint, dllSyscall_t systemcalls );
 
 void	NORETURN QDECL Sys_Error( const char *error, ...) FORMAT_PRINTF(1, 2);
 void	NORETURN Sys_Quit (void);

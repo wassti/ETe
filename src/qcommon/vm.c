@@ -174,57 +174,6 @@ vm_t *VM_Restart( vm_t *vm ) {
 
 
 /*
-=================
-Sys_LoadDll
-
-Used to load a development dll instead of a virtual machine
-
-TTimo: added some verbosity in debug
-=================
-*/
-const char* Sys_GetDLLName(const char* name);
-
-#if 0
-static void * QDECL VM_LoadDll( const char *name, dllSyscall_t *entryPoint, dllSyscall_t systemcalls ) {
-
-	const char	*gamedir = Cvar_VariableString( "fs_game" );
-	char		filename[ MAX_QPATH ];
-	void		*libHandle;
-	dllEntry_t	dllEntry;
-	
-	if ( !*gamedir ) {
-		gamedir = Cvar_VariableString( "fs_basegame" );
-	}
-
-	Com_sprintf( filename, sizeof( filename ), "%s", Sys_GetDLLName( name ) );
-	//Com_sprintf( filename, sizeof( filename ), "%s%c%s", gamedir, PATH_SEP, Sys_GetDLLName( name ) );
-
-	libHandle = FS_LoadLibrary( filename );
-
-	if ( !libHandle ) {
-		Com_Printf( "VM_LoadDLL '%s' failed\n", filename );
-		return NULL;
-	}
-
-	Com_Printf( "VM_LoadDLL '%s' ok\n", filename );
-
-	dllEntry = /* ( dllEntry_t ) */ Sys_LoadFunction( libHandle, "dllEntry" ); 
-	*entryPoint = /* ( dllSyscall_t ) */ Sys_LoadFunction( libHandle, "vmMain" );
-	if ( !*entryPoint || !dllEntry ) {
-		Sys_UnloadLibrary( libHandle );
-		return NULL;
-	}
-
-	Com_Printf( "VM_LoadDll(%s) found **vmMain** at %p\n", name, *entryPoint );
-	dllEntry( systemcalls );
-	Com_Printf( "VM_LoadDll(%s) succeeded!\n", name );
-
-	return libHandle;
-}
-#endif
-
-
-/*
 ================
 VM_Create
 

@@ -597,8 +597,9 @@ void CL_SystemInfoChanged( qboolean onlyGame ) {
 			continue; // already processed
 		}
 
-		if ( ( cvar_flags = Cvar_Flags( key ) ) == CVAR_NONEXISTENT )
+		if ( ( cvar_flags = Cvar_Flags( key ) ) == CVAR_NONEXISTENT ) {
 			Cvar_Get( key, value, CVAR_SERVER_CREATED | CVAR_ROM );
+		}
 		else
 		{
 			// If this cvar may not be modified by a server discard the value.
@@ -614,6 +615,7 @@ void CL_SystemInfoChanged( qboolean onlyGame ) {
 				}
 			}
 
+			Com_Printf( S_COLOR_CYAN "NOTICE: server cvar replication %s=%s\n", key, value );
 			Cvar_SetSafe( key, value );
 		}
 	}

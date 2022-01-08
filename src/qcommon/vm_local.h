@@ -44,9 +44,9 @@ struct vm_s {
 	vmIndex_t	index;
 
 	// for dynamic linked modules
-	void		*dllHandle;
-	dllSyscall_t entryPoint;
-	dllSyscall_t dllSyscall;
+	void			*dllHandle;
+	vmMain_t		entryPoint;
+	dllSyscall_t	dllSyscall;
 	void (*destroy)(vm_t* self);
 
 	int callLevel;                  // for debug indenting

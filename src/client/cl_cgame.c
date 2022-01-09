@@ -685,7 +685,20 @@ static intptr_t CL_CgameSystemCalls( intptr_t *args ) {
 	case CG_FS_DELETEFILE:
 		return FS_Delete( VMA(1) );
 	case CG_SENDCONSOLECOMMAND:
-		Cbuf_AddText( VMA(1) );
+		{
+			char *cmd = (char *)VMA(1);
+			int len = (int)strlen(cmd);
+			// workaround etjump 2.4.0 silly exec badness
+			if ( len > 9 && !Q_stricmpn(cmd, "cmd exec ", 9) ) {
+				qboolean need_newline = (cmd[len-1] != '\n') ? qtrue : qfalse;
+				Cbuf_AddText( cmd+4 );
+				if ( need_newline ) {
+					Cbuf_AddText( "\n" );
+				}
+				return 0;
+			}
+			Cbuf_AddText( cmd );
+		}
 		return 0;
 	case CG_ADDCOMMAND:
 		CL_AddCgameCommand( VMA(1) );

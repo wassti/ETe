@@ -468,7 +468,6 @@ int cl_optimizedPatchServer;
 
 static const char *ignoredCvars[] = {
 	"cm_optimizePatchPlanes",
-	"sv_pure",
 	"sv_paks",
 	"sv_pakNames",
 	"sv_referencedPaks",

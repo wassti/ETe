@@ -56,7 +56,7 @@ static const char *imageBufferTypeStrs[BUFFER_MAX_TYPES] = {
 };
 
 void *R_GetImageBuffer( int size, bufferMemType_t bufferType ) {
-	if ( imageBufferSize[bufferType] < R_IMAGE_BUFFER_SIZE && size <= imageBufferSize[bufferType] ) {
+	if ( imageBufferSize[bufferType] < R_IMAGE_BUFFER_SIZE ) {
 		imageBufferSize[bufferType] = R_IMAGE_BUFFER_SIZE;
 		imageBufferPtr[bufferType] = malloc( imageBufferSize[bufferType] );
 	}

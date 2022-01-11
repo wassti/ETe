@@ -446,7 +446,12 @@ void RE_AddLightToScene( const vec3_t org, float radius, float intensity, float 
 	}
 
 	// RF, allow us to force some dlights under all circumstances
-	if ( !( flags & REF_FORCE_DLIGHT ) ) {
+	// Ensiform - notice: This is changing of behavior of this flag.
+	// Reason for change is that 1 << 31 does not fit properly into type `int`
+	// There may be alternative solutions to retain compatibility but I can't think of them
+	// Obviously would have been better if they didn't use 1<<31 at all here
+	// However all uses in etmain seem to only use it by itself and no other bitmask
+	if ( flags != REF_FORCE_DLIGHT ) {
 		if ( r_dynamiclight->integer == 0 ) {
 			return;
 		}

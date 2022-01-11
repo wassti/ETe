@@ -298,7 +298,7 @@ static	cvar_t		*fs_locked;
 static	cvar_t		*fs_excludeReference;
 
 static	searchpath_t	*fs_searchpaths;
-static	int			fs_readCount UNUSED_VAR;	// total bytes read
+//static	int			fs_readCount UNUSED_VAR;	// total bytes read
 static	int			fs_loadCount;				// total files read
 static	int			fs_loadStack;				// total files in memory
 static	int			fs_packFiles;				// total number of files in all loaded packs
@@ -2161,7 +2161,7 @@ int FS_Read( void *buffer, int len, fileHandle_t f ) {
 	}
 
 	buf = (byte *)buffer;
-	fs_readCount += len;
+	//fs_readCount += len;
 
 	if ( !fsh[f].zipFile ) {
 		remaining = len;

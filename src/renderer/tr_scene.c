@@ -450,7 +450,7 @@ void RE_AddLightToScene( const vec3_t org, float radius, float intensity, float 
 	// There may be alternative solutions to retain compatibility but I can't think of them
 	// Obviously would have been better if they didn't use 1<<31 at all here
 	// However all uses in etmain seem to only use it by itself and no other bitmask
-	if ( !((unsigned)flags & 0x80000000u) ) {
+	if ( !((unsigned)flags & REF_FORCE_DLIGHT) ) {
 		if ( r_dynamiclight->integer == 0 ) {
 			return;
 		}
@@ -500,7 +500,7 @@ void RE_AddLightToScene( const vec3_t org, float radius, float intensity, float 
 	if ( dl->shader == tr.defaultShader ) {
 		dl->shader = NULL;
 	}
-	dl->flags = flags;
+	dl->flags = (unsigned)flags;
 	dl->linear = qfalse;
 }
 

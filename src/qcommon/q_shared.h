@@ -1367,9 +1367,9 @@ typedef enum
 	MAX_AISTATES
 } aistateEnum_t;
 
-#define REF_FORCE_DLIGHT    ( 1 << 31 ) // RF, passed in through overdraw parameter, force this dlight under all conditions
-#define REF_JUNIOR_DLIGHT   ( 1 << 30 ) // (SA) this dlight does not light surfaces.  it only affects dynamic light grid
-#define REF_DIRECTED_DLIGHT ( 1 << 29 ) // ydnar: global directional light, origin should be interpreted as a normal vector
+#define REF_FORCE_DLIGHT    0x80000000u // RF, passed in through overdraw parameter, force this dlight under all conditions
+#define REF_JUNIOR_DLIGHT   0x40000000u // (SA) this dlight does not light surfaces.  it only affects dynamic light grid
+#define REF_DIRECTED_DLIGHT 0x20000000u // ydnar: global directional light, origin should be interpreted as a normal vector
 
 // bit field limits
 #define MAX_STATS               16

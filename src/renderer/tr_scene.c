@@ -434,7 +434,6 @@ ydnar: modified dlight system to support seperate radius and intensity
 void RE_AddLightToScene( const vec3_t org, float radius, float intensity, float r, float g, float b, qhandle_t hShader, int flags ) {
 	dlight_t    *dl;
 
-
 	// early out
 	if ( !tr.registered || r_numdlights >= ARRAY_LEN( backEndData->dlights ) || radius <= 0 || intensity <= 0 ) {
 		return;
@@ -451,7 +450,7 @@ void RE_AddLightToScene( const vec3_t org, float radius, float intensity, float 
 	// There may be alternative solutions to retain compatibility but I can't think of them
 	// Obviously would have been better if they didn't use 1<<31 at all here
 	// However all uses in etmain seem to only use it by itself and no other bitmask
-	if ( flags != REF_FORCE_DLIGHT ) {
+	if ( !((unsigned)flags & 0x80000000u) ) {
 		if ( r_dynamiclight->integer == 0 ) {
 			return;
 		}
@@ -648,7 +647,6 @@ void RE_RenderScene( const refdef_t *fd ) {
 			tr.refdef.areamaskModified = qtrue;
 		}
 	}
-
 
 	// derived info
 

@@ -197,7 +197,15 @@ void RE_ProjectDecal(qhandle_t hShader, int numPoints, vec3_t *points, vec4_t pr
 	temp.color[3]      = (byte)(color[3] * 255);
 	temp.numPlanes     = numPoints + 2;
 	temp.fadeStartTime = tr.refdef.time + lifeTime - fadeTime; // FIXME: stale refdef time
+	if ( temp.fadeStartTime <= 0 && fadeTime > 0 ) {
+		ri.Printf( PRINT_WARNING, "WARNING: RE_ProjectDecal() malformed fade\n" );
+		return;
+	}
 	temp.fadeEndTime   = temp.fadeStartTime + fadeTime;
+	if ( ( temp.fadeEndTime - temp.fadeStartTime ) < 0 ) {
+		ri.Printf( PRINT_WARNING, "WARNING: RE_ProjectDecal() (fadeEndTime - fadeStartTime) < 0\n" );
+		return;
+	}
 	temp.projectorNum  = 0;
 
 	// set up decal texcoords (FIXME: support arbitrary projector st coordinates in trapcall)
@@ -943,11 +951,22 @@ void R_AddDecalSurface(decal_t *decal)
 	Com_Memcpy(srf->verts, decal->verts, srf->numVerts * sizeof(*srf->verts));
 
 	// fade colors
-	if (decal->fadeStartTime < tr.refdef.time && decal->fadeStartTime < decal->fadeEndTime)
+	//if ( ( tr.refdef.time - decal->fadeStartTime) > 0 && (tr.refdef.time - decal->fadeEndTime) <= 0 )
+	if ( decal->fadeStartTime && (tr.refdef.time - decal->fadeStartTime) > 0 )
 	{
 		int   i;
-		float fade = (float) (decal->fadeEndTime - tr.refdef.time) /
-		             (float) (decal->fadeEndTime - decal->fadeStartTime);
+		float fade;
+		if ( ( tr.refdef.time - decal->fadeEndTime) > 0 ) {
+			fade = 0.0f;
+		}
+		else {
+			fade = (decal->fadeEndTime - tr.refdef.time) /
+							(decal->fadeEndTime - decal->fadeStartTime);
+		}
+
+		if( fade < 0.0f || fade > 1.0f ) {
+			ri.Printf( PRINT_DEVELOPER, "Decal fade(%g)\n", fade );
+		}
 
 		for (i = 0; i < decal->numVerts; i++)
 		{

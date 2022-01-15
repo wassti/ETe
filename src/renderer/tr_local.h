@@ -1018,7 +1018,7 @@ typedef struct decal_s
 {
 	msurface_t      *parent;
 	shader_t        *shader;
-	float fadeStartTime, fadeEndTime;
+	int fadeStartTime, fadeEndTime;
 	int fogIndex;
 	int numVerts;
 	polyVert_t verts[ MAX_DECAL_VERTS ];

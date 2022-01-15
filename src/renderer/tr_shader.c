@@ -40,7 +40,6 @@ static int s_extendedShader;
 static shaderStage_t stages[MAX_SHADER_STAGES];
 static shader_t shader;
 static texModInfo_t texMods[MAX_SHADER_STAGES][TR_MAX_TEXMODS];
-static qboolean shader_allowCompress;
 
 // ydnar: these are here because they are only referenced while parsing a shader
 static char implicitMap[ MAX_QPATH ];
@@ -1479,9 +1478,6 @@ static void ParseSkyParms( const char **text ) {
 		imgFlags = IMGFLAG_NONE;
 	}
 
-	if ( !shader_allowCompress )
-		imgFlags |= IMGFLAG_NO_COMPRESSION;
-	
 	// outerbox
 	token = COM_ParseExt( text, qfalse );
 	if ( token[0] == 0 ) {
@@ -1876,6 +1872,7 @@ static qboolean ParseShader( const char **text )
 	int s;
 
 	s = 0;
+	tr.allowCompress = compress_allowed;   // allow compression by default
 
 	s_extendedShader = (*text >= s_extensionOffset);
 
@@ -1900,6 +1897,7 @@ static qboolean ParseShader( const char **text )
 		// end of shader definition
 		if ( token[0] == '}' )
 		{
+			tr.allowCompress = compress_allowed;   // allow compression by default
 			break;
 		}
 		// stage definition
@@ -2186,10 +2184,10 @@ static qboolean ParseShader( const char **text )
 		// done.
 		// RF, allow each shader to permit compression if available
 		else if ( !Q_stricmp( token, "allowcompress" ) ) {
-			shader_allowCompress = qtrue;
+			tr.allowCompress = compress_allowed;
 			continue;
 		} else if ( !Q_stricmp( token, "nocompress" ) )   {
-			shader_allowCompress = qfalse;
+			tr.allowCompress = compress_explicitBlock;
 			continue;
 		}
 		// done.
@@ -3246,6 +3244,12 @@ static shader_t *FinishShader( void ) {
 	// determine which stage iterator function is appropriate
 	ComputeStageIteratorFunc();
 
+	// default back to no compression for next shader
+	if (r_ext_compressed_textures->integer == 2)
+	{
+		tr.allowCompress = compress_implicitBlock;
+	}
+
 	return GeneratePermanentShader();
 }
 
@@ -3738,13 +3742,6 @@ shader_t *R_FindShader( const char *name, int lightmapIndex, qboolean mipRawImag
 
 	InitShader( strippedName, lightmapIndex );
 
-	if ( r_ext_compressed_textures->integer == 2 ) {
-		// if the shader hasn't specifically asked for it, don't allow compression
-		shader_allowCompress = qfalse;
-	} else {
-		shader_allowCompress = qtrue;
-	}
-
 	// FIXME: set these "need" values apropriately
 	//shader.needsNormal = qtrue;
 	//shader.needsST1 = qtrue;
@@ -3809,9 +3806,6 @@ shader_t *R_FindShader( const char *name, int lightmapIndex, qboolean mipRawImag
 			flags |= IMGFLAG_MIPMAP | IMGFLAG_PICMIP;
 		else
 			flags |= IMGFLAG_CLAMPTOEDGE;
-
-		if ( !shader_allowCompress )
-			flags |= IMGFLAG_NO_COMPRESSION;
 
 		image = R_FindImageFile( fileName, flags );
 		if ( !image ) {

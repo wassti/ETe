@@ -832,42 +832,30 @@ image_t *R_CreateImage( const char *name, const char *name2, byte *pic, int widt
 	} else {
 		namelen2 = 0;
 	}
-	//if ( flags & IMGFLAG_LIGHTMAP && !(flags & IMGFLAG_NO_COMPRESSION) ) {
-	//	flags |= IMGFLAG_NO_COMPRESSION;
-	//}
-	if ( !(flags & IMGFLAG_NO_COMPRESSION) && strstr( name, "skies" ) ) {
+
+	if ( !(flags & IMGFLAG_LIGHTMAP) && namelen > 9 && !Q_stricmpn( name, "*lightmap", 9 ) ) {
+		flags |= IMGFLAG_LIGHTMAP;
+	}
+
+	if ( !(flags & IMGFLAG_NO_COMPRESSION) && namelen > 6 && Q_stristr( name, "skies" ) == name ) {
 		flags |= IMGFLAG_NO_COMPRESSION;
 	}
-	if ( !(flags & IMGFLAG_NO_COMPRESSION) && strstr( name, "weapons" ) ) {    // don't compress view weapon skins
+	if ( !(flags & IMGFLAG_NO_COMPRESSION) && namelen > 8 && Q_stristr( name, "weapons" ) == name ) {    // don't compress view weapon skins
 		flags |= IMGFLAG_NO_COMPRESSION;
 	}
-#if 0
 	// RF, if the shader hasn't specifically asked for it, don't allow compression
-	if ( r_ext_compressed_textures->integer == 2 && ( tr.allowCompress != qtrue ) ) {
+	if ( r_ext_compressed_textures->integer == 2 && ( tr.allowCompress != compress_allowed ) ) {
 		flags |= IMGFLAG_NO_COMPRESSION;
-	} else if ( r_ext_compressed_textures->integer == 1 && ( tr.allowCompress < 0 ) ) {
-		flags |= IMGFLAG_NO_COMPRESSION;
-	}
-#endif
-#if defined(__APPLE__) || defined(__APPLE_CC__)
-	// LBO 2/8/05. Work around apparent bug in OSX. Some mipmap textures draw incorrectly when
-	// texture compression is enabled. Examples include brick edging on fueldump level appearing
-	// bluish-green from a distance.
-	/*else */if ( flags & IMGFLAG_MIPMAP ) {
+	} else if ( r_ext_compressed_textures->integer == 1 && ( tr.allowCompress == compress_explicitBlock ) ) {
 		flags |= IMGFLAG_NO_COMPRESSION;
 	}
-#endif
 	// ydnar: don't compress textures smaller or equal to 128x128 pixels
-	/*else */if ( ( width * height ) <= ( 128 * 128 ) ) {
+	if ( ( width * height ) <= Square( 128 ) ) {
 		flags |= IMGFLAG_NO_COMPRESSION;
 	}
 
 	if ( tr.numImages == MAX_DRAWIMAGES ) {
 		ri.Error( ERR_DROP, "R_CreateImage: MAX_DRAWIMAGES hit" );
-	}
-
-	if ( !(flags & IMGFLAG_LIGHTMAP) && !strncmp( name, "*lightmap", 9 ) ) {
-		flags |= IMGFLAG_LIGHTMAP;
 	}
 
 	// Ridah

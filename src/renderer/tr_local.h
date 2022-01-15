@@ -346,7 +346,7 @@ struct shaderCommands_s;
 typedef enum {
 	FP_NONE,        // surface is translucent and will just be adjusted properly
 	FP_EQUAL,       // surface is opaque but possibly alpha tested
-	FP_LE           // surface is trnaslucent, but still needs a fog pass (fog surface)
+	FP_LE           // surface is translucent, but still needs a fog pass (fog surface)
 } fogPass_t;
 
 typedef struct {
@@ -1361,6 +1361,12 @@ typedef struct {
 
 } backEndState_t;
 
+typedef enum {
+	compress_explicitBlock = -1,
+	compress_implicitBlock = 0,
+	compress_allowed = 1
+} compressionState_t;
+
 /*
 ** trGlobals_t
 **
@@ -1477,6 +1483,8 @@ typedef struct {
 
 	qboolean				mapLoading;
 	qboolean				needScreenMap;
+
+	compressionState_t		allowCompress; // temporary variable for shader parsing
 
 } trGlobals_t;
 

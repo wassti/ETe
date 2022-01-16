@@ -28,6 +28,12 @@
 typedef unsigned char boolean;
 #endif
 #define HAVE_BOOLEAN		/* prevent jmorecfg.h from redefining it */
+#ifndef FALSE			/* in case these macros already exist */
+#define FALSE	0		/* values of boolean */
+#endif
+#ifndef TRUE
+#define TRUE	1
+#endif
 #endif
 
 /* #undef RIGHT_SHIFT_IS_UNSIGNED */

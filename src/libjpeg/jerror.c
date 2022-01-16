@@ -2,6 +2,7 @@
  * jerror.c
  *
  * Copyright (C) 1991-1998, Thomas G. Lane.
+ * Modified 2012-2015 by Guido Vollbeding.
  * This file is part of the Independent JPEG Group's software.
  * For conditions of distribution and use, see the accompanying README file.
  *
@@ -18,6 +19,10 @@
  * These routines are used by both the compression and decompression code.
  */
 
+#ifdef USE_WINDOWS_MESSAGEBOX
+#include <windows.h>
+#endif
+
 /* this is not a core library module, so it doesn't define JPEG_INTERNALS */
 #include "jinclude.h"
 #include "jpeglib.h"
@@ -25,10 +30,6 @@
 #include "jerror.h"
 
 #include <stdlib.h>
-
-#ifdef USE_WINDOWS_MESSAGEBOX
-#include <windows.h>
-#endif
 
 #ifndef EXIT_FAILURE		/* define exit() codes if not provided */
 #define EXIT_FAILURE  1
@@ -68,7 +69,7 @@ const char * const jpeg_std_message_table[] = {
  * or jpeg_destroy) at some point.
  */
 
-METHODDEF(void)
+METHODDEF(noreturn_t)
 error_exit (j_common_ptr cinfo)
 {
   /* Always display the message */

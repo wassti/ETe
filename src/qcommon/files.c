@@ -1661,6 +1661,16 @@ int FS_FOpenFileRead( const char *filename, fileHandle_t *file, qboolean uniqueF
 			if ( search->pack && search->pack->hashTable[ (hash = fullHash & (search->pack->hashSize-1)) ] ) {
 				if (fs_filter_flag & FS_EXCLUDE_PK3)
 					continue;
+				if (fs_filter_flag & FS_EXCLUDE_ETMAIN)
+				{
+					if (!Q_stricmp(search->pack->pakGamename, fs_basegame->string))
+						continue;
+				}
+				if (fs_filter_flag & FS_EXCLUDE_OTHERGAMES)
+				{
+					if (Q_stricmp(search->pack->pakGamename, fs_gamedir) != 0)
+						continue;
+				}
 				// skip non-pure files
 				if ( !FS_PakIsPure( search->pack ) )
 					continue;
@@ -1678,6 +1688,16 @@ int FS_FOpenFileRead( const char *filename, fileHandle_t *file, qboolean uniqueF
 			} else if ( search->dir && search->policy != DIR_DENY ) {
 				if (fs_filter_flag & FS_EXCLUDE_DIR)
 					continue;
+				if (fs_filter_flag & FS_EXCLUDE_ETMAIN)
+				{
+					if (!Q_stricmp(search->dir->gamedir, fs_basegame->string))
+						continue;
+				}
+				if (fs_filter_flag & FS_EXCLUDE_OTHERGAMES)
+				{
+					if (Q_stricmp(search->dir->gamedir, fs_gamedir) != 0)
+						continue;
+				}
 				dir = search->dir;
 				netpath = FS_BuildOSPath( dir->path, dir->gamedir, filename );
 				temp = Sys_FOpen( netpath, "rb" );
@@ -1708,6 +1728,20 @@ int FS_FOpenFileRead( const char *filename, fileHandle_t *file, qboolean uniqueF
 			{
 				continue;
 			}
+			if (fs_filter_flag & FS_EXCLUDE_ETMAIN)
+			{
+				if (!Q_stricmp(search->pack->pakGamename, fs_basegame->string))
+				{
+					continue;
+				}
+			}
+			if (fs_filter_flag & FS_EXCLUDE_OTHERGAMES)
+			{
+				if (Q_stricmp(search->pack->pakGamename, fs_gamedir) != 0)
+				{
+					continue;
+				}
+			}
 			// disregard if it doesn't match one of the allowed pure pak files
 			if ( !FS_PakIsPure( search->pack ) ) {
 				continue;
@@ -1728,7 +1762,20 @@ int FS_FOpenFileRead( const char *filename, fileHandle_t *file, qboolean uniqueF
 			{
 				continue;
 			}
-
+			if (fs_filter_flag & FS_EXCLUDE_ETMAIN)
+			{
+				if (!Q_stricmp(search->dir->gamedir, fs_basegame->string))
+				{
+					continue;
+				}
+			}
+			if (fs_filter_flag & FS_EXCLUDE_OTHERGAMES)
+			{
+				if (Q_stricmp(search->dir->gamedir, fs_gamedir) != 0)
+				{
+					continue;
+				}
+			}
 			// check a file in the directory tree
 			dir = search->dir;
 
@@ -2390,6 +2437,10 @@ qboolean FS_FileIsInPAK( const char *filename, int *pChecksum, char *pakName ) {
 		return qfalse;
 	}
 
+	if (fs_filter_flag & FS_EXCLUDE_PK3) {
+		return qfalse;
+	}
+
 	fullHash = FS_HashFileName( filename, 0U );
 
 	//
@@ -2406,6 +2457,21 @@ qboolean FS_FileIsInPAK( const char *filename, int *pChecksum, char *pakName ) {
 			//
 			if ( search->pack->exclude ) {
 				continue;
+			}
+
+			if (fs_filter_flag & FS_EXCLUDE_ETMAIN)
+			{
+				if (!Q_stricmp(search->pack->pakGamename, fs_basegame->string))
+				{
+					continue;
+				}
+			}
+			if (fs_filter_flag & FS_EXCLUDE_OTHERGAMES)
+			{
+				if (Q_stricmp(search->pack->pakGamename, fs_gamedir) != 0)
+				{
+					continue;
+				}
 			}
 
 			// look through all the pak file elements
@@ -2545,6 +2611,17 @@ int FS_ReadFile( const char *qpath, void **buffer ) {
 		FS_Flush( com_journalDataFile );
 	}
 	return len;
+}
+
+
+int FS_ReadFile_Filtered( const char *qpath, void **buffer, int filter_flag  ) {
+	int ret;
+
+	fs_filter_flag = filter_flag;
+	ret = FS_ReadFile( qpath, buffer );
+	fs_filter_flag = 0;
+
+	return ret;
 }
 
 

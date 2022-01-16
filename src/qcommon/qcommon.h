@@ -796,6 +796,8 @@ but that's a C++ construct ..
 */
 #define FS_EXCLUDE_DIR 0x1
 #define FS_EXCLUDE_PK3 0x2
+#define FS_EXCLUDE_ETMAIN 0x4
+#define FS_EXCLUDE_OTHERGAMES 0x8
 int FS_FOpenFileRead_Filtered( const char *qpath, fileHandle_t *file, qboolean uniqueFILE, int filter_flag );
 
 void FS_SetFilterFlag( int flag );
@@ -828,6 +830,7 @@ void	FS_FCloseFile( fileHandle_t f );
 // note: you can't just fclose from another DLL, due to MS libc issues
 
 int		FS_ReadFile( const char *qpath, void **buffer );
+int		FS_ReadFile_Filtered( const char *qpath, void **buffer, int filter_flag );
 // returns the length of the file
 // a null buffer will just return the file length without loading
 // as a quick check for existence. -1 length == not present

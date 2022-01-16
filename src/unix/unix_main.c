@@ -839,12 +839,17 @@ void *Sys_LoadGameDll(const char *name, vmMain_t *entryPoint, dllSyscall_t syste
 	// If mod requires a different cgame/ui this could cause problems
 	if ( !libHandle && strcmp( gamedir, BASEGAME ) != 0 )
 	{
-		Com_Printf( "Sys_LoadDLL(%s/%s) trying %s override\n", gamedir, name, BASEGAME );
-		if (!libHandle && SEARCHPATH1 && SEARCHPATH1[0])
-			libHandle = try_dlopen(SEARCHPATH1, BASEGAME, fname);
+		const char *temp = va( "%s%c%s", gamedir, PATH_SEP, fname );
+		FS_SetFilterFlag( FS_EXCLUDE_OTHERGAMES );
+		if ( !FS_SV_FileExists( temp ) && !FS_FileIsInPAK( fname, NULL, NULL ) ) {
+			Com_Printf( "Sys_LoadDLL(%s/%s) trying %s override\n", gamedir, name, BASEGAME );
+			if (!libHandle && SEARCHPATH1 && SEARCHPATH1[0])
+				libHandle = try_dlopen(SEARCHPATH1, BASEGAME, fname);
 
-		if (!libHandle && SEARCHPATH2 && SEARCHPATH2[0])
-			libHandle = try_dlopen(SEARCHPATH2, BASEGAME, fname);
+			if (!libHandle && SEARCHPATH2 && SEARCHPATH2[0])
+				libHandle = try_dlopen(SEARCHPATH2, BASEGAME, fname);
+		}
+		FS_SetFilterFlag( 0 );
 	}
 
 	if (!libHandle)

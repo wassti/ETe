@@ -782,8 +782,13 @@ void *QDECL Sys_LoadGameDll( const char *name, vmMain_t *entryPoint, dllSyscall_
 	// Last resort for missing DLLs or media mods
 	// If mod requires a different cgame/ui this could cause problems
 	if ( !libHandle && strcmp( gamedir, BASEGAME ) != 0 ) {
-		Com_Printf( "Sys_LoadDLL(%s/%s) trying %s override\n", gamedir, name, BASEGAME );
-		libHandle = try_dlopen(basepath, BASEGAME, filename);
+		const char *temp = va( "%s%c%s", gamedir, PATH_SEP, fname );
+		FS_SetFilterFlag( FS_EXCLUDE_OTHERGAMES );
+		if ( !FS_SV_FileExists( temp ) && !FS_FileIsInPAK( fname, NULL, NULL ) ) {
+			Com_Printf( "Sys_LoadDLL(%s/%s) trying %s override\n", gamedir, name, BASEGAME );
+			libHandle = try_dlopen(basepath, BASEGAME, filename);
+		}
+		FS_SetFilterFlag( 0 );
 	}
 
 	if ( !libHandle ) {

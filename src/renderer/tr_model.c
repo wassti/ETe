@@ -177,8 +177,12 @@ qhandle_t R_RegisterMDC(const char *name, model_t *mod)
 		ident = LittleLong( *buf.u );
 		if ( ident == MDC_IDENT )
 			loaded = R_LoadMDC( mod, lod, buf.u, fileSize, name );
+		else if ( ident == MD3_IDENT ) {
+			loaded = R_LoadMD3( mod, lod, buf.u, fileSize, name );
+			ri.Printf( PRINT_WARNING, "%s: mismatched fileid for %s, loading as md3\n", __func__, name);
+		}
 		else
-			ri.Printf( PRINT_WARNING,"%s: unknown fileid for %s\n", __func__, name);
+			ri.Printf( PRINT_WARNING, "%s: unknown fileid for %s\n", __func__, name);
 		
 		ri.FS_FreeFile( buf.v );
 

@@ -52,7 +52,7 @@ qhandle_t R_RegisterMD3(const char *name, model_t *mod)
 		void *v;
 	} buf;
 	int			lod;
-	uint32_t	ident;
+	uint32_t	ident = 0;
 	qboolean	loaded = qfalse;
 	int			numLoaded;
 	int			fileSize;
@@ -92,6 +92,10 @@ qhandle_t R_RegisterMD3(const char *name, model_t *mod)
 		ident = LittleLong( *buf.u );
 		if ( ident == MD3_IDENT )
 			loaded = R_LoadMD3( mod, lod, buf.v, fileSize, name );
+		else if ( ident == MDC_IDENT ) {
+			loaded = R_LoadMDC( mod, lod, buf.u, fileSize, name );
+			ri.Printf( PRINT_WARNING, "%s: mismatched fileid for %s, loading as mdc\n", __func__, name);
+		}
 		else
 			ri.Printf( PRINT_WARNING, "%s: unknown fileid for %s\n", __func__, name );
 		
@@ -113,7 +117,10 @@ qhandle_t R_RegisterMD3(const char *name, model_t *mod)
 		for ( lod--; lod >= 0; lod-- )
 		{
 			mod->numLods++;
-			mod->model.md3[lod] = mod->model.md3[lod + 1];
+			if ( ident == MDC_IDENT )
+				mod->model.mdc[lod] = mod->model.mdc[lod + 1];
+			else
+				mod->model.md3[lod] = mod->model.md3[lod + 1];
 		}
 
 		return mod->index;
@@ -137,7 +144,7 @@ qhandle_t R_RegisterMDC(const char *name, model_t *mod)
 		void *v;
 	} buf;
 	int			lod;
-	int			ident;
+	uint32_t	ident = 0;
 	qboolean	loaded = qfalse;
 	int			numLoaded;
 	int			fileSize;
@@ -202,7 +209,10 @@ qhandle_t R_RegisterMDC(const char *name, model_t *mod)
 		for(lod--; lod >= 0; lod--)
 		{
 			mod->numLods++;
-			mod->model.mdc[lod] = mod->model.mdc[lod + 1];
+			if ( ident == MD3_IDENT )
+				mod->model.md3[lod] = mod->model.md3[lod + 1];
+			else
+				mod->model.mdc[lod] = mod->model.mdc[lod + 1];
 		}
 
 		return mod->index;

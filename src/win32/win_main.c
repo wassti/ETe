@@ -988,28 +988,28 @@ static LONG WINAPI ExceptionFilter( struct _EXCEPTION_POINTERS *ExceptionInfo )
 // Gets whether the current process has UAC virtualization enabled.
 // Returns TRUE on success and FALSE on failure.
 static qboolean WIN_IsVirtualizationEnabled(qboolean *status) {
-    HANDLE token;
-    DWORD temp;
-    DWORD len;
-    qboolean ret = qtrue;
+	HANDLE token;
+	DWORD temp;
+	DWORD len;
+	qboolean ret = qtrue;
 
 	if(!status)
 		return qfalse;
 
-    if(!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token))
-        return qfalse;
+	if(!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token))
+		return qfalse;
 
-    if(!GetTokenInformation(token, TokenVirtualizationEnabled, &temp, sizeof(temp), &len)) {
-        retVal = qfalse;
-        goto err;
-    }
+	if(!GetTokenInformation(token, TokenVirtualizationEnabled, &temp, sizeof(temp), &len)) {
+		retVal = qfalse;
+		goto err;
+	}
 
-    *status = temp != 0 ? qtrue : qfalse;
+	*status = temp != 0 ? qtrue : qfalse;
 
 err:
-    CloseHandle(token);
+	CloseHandle(token);
 
-    return retVal;
+	return retVal;
 }
 
 

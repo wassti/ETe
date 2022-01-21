@@ -36,23 +36,21 @@ If you have questions concerning this license or the applicable additional terms
  *****************************************************************************/
 
 #include "../qcommon/q_shared.h"
-#include "../game/botlib.h"
-#include "l_log.h"
+#include "botlib.h"
+#include "l_memory.h"
 #include "be_interface.h"
 
-#ifdef _DEBUG
-//	#define MEMDEBUG
-	#define MEMORYMANEGER
-#endif
+//#define MEMDEBUG
+//#define MEMORYMANAGER
 
-#define MEM_ID      0x12345678l
-#define HUNK_ID     0x87654321l
+#define MEM_ID		0x12345678l
+#define HUNK_ID		0x87654321l
 
-int allocatedmemory;
-int totalmemorysize;
-int numblocks;
+#ifdef MEMORYMANAGER
 
-#ifdef MEMORYMANEGER
+static int allocatedmemory;
+static int totalmemorysize;
+static int numblocks;
 
 typedef struct memoryblock_s
 {
@@ -338,13 +336,13 @@ void *GetMemory( unsigned long size )
 	void *ptr;
 	unsigned long int *memid;
 
-	ptr = botimport.GetMemory( size + sizeof( unsigned long int ) );
+	ptr = botimport.GetMemory( size + sizeof( max_align_t ) );
 	if ( !ptr ) {
 		return NULL;
 	}
 	memid = (unsigned long int *) ptr;
 	*memid = MEM_ID;
-	return (char *) ptr + sizeof( unsigned long int );
+	return (unsigned long int *) ((char *) ptr + sizeof(max_align_t));
 } //end of the function GetMemory
 //===========================================================================
 //
@@ -382,13 +380,13 @@ void *GetHunkMemory( unsigned long size )
 	void *ptr;
 	unsigned long int *memid;
 
-	ptr = botimport.HunkAlloc( size + sizeof( unsigned long int ) );
+	ptr = botimport.HunkAlloc( size + sizeof( max_align_t ) );
 	if ( !ptr ) {
 		return NULL;
 	}
 	memid = (unsigned long int *) ptr;
 	*memid = HUNK_ID;
-	return (char *) ptr + sizeof( unsigned long int );
+	return (unsigned long int *) ((char *) ptr + sizeof(max_align_t));
 } //end of the function GetHunkMemory
 //===========================================================================
 //
@@ -420,7 +418,7 @@ return ptr;
 void FreeMemory( void *ptr ) {
 	unsigned long int *memid;
 
-	memid = (unsigned long int *) ( (char *) ptr - sizeof( unsigned long int ) );
+	memid = (unsigned long int *) ( (char *) ptr - sizeof( max_align_t ) );
 
 	if ( *memid == MEM_ID ) {
 		botimport.FreeMemory( memid );

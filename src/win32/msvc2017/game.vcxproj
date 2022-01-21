@@ -277,7 +277,6 @@
     <ClInclude Include="..\..\game\bg_classes.h" />
     <ClInclude Include="..\..\game\bg_local.h" />
     <ClInclude Include="..\..\game\bg_public.h" />
-    <ClInclude Include="..\..\game\botlib.h" />
     <ClInclude Include="..\..\game\g_local.h" />
     <ClInclude Include="..\..\game\g_public.h" />
     <ClInclude Include="..\..\game\g_team.h" />

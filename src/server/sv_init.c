@@ -885,8 +885,6 @@ SV_Init
 Only called at main exe startup, not for each game
 ===============
 */
-void SV_BotInitBotLib( void );
-
 void SV_Init( void )
 {
 	//int index;
@@ -1044,9 +1042,6 @@ void SV_Init( void )
 	Cvar_SetDescription( sv_paksOverflowMode, "Which style of overflow protection is used when systeminfo is too large to accomodate pak list\n"
 		" 1 - refuse to set sv_paks and sv_pakNames (Quake3e+ETe style).\n"
 		" 2 - set sv_paks and sv_pakNames to referenced if won't still overflow (ET:Legacy style)" );
-
-	// initialize bot cvars so they are listed and can be set before loading the botlib
-	SV_BotInitCvars();
 
 	// init the botlib here because we need the pre-compiler in the UI
 	SV_BotInitBotLib();

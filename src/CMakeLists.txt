@@ -123,35 +123,10 @@ endif()
 set(SRCDIR "${CMAKE_SOURCE_DIR}")
 
 set(botlib_files 
-    "botlib/be_aas_bspq3.c"
-    "botlib/be_aas_cluster.c"
-    "botlib/be_aas_debug.c"
-    "botlib/be_aas_entity.c"
-    "botlib/be_aas_file.c"
-    "botlib/be_aas_main.c"
-    "botlib/be_aas_move.c"
-    "botlib/be_aas_optimize.c"
-    "botlib/be_aas_reach.c"
-    "botlib/be_aas_route.c"
-    "botlib/be_aas_routealt.c"
-    "botlib/be_aas_routetable.c"
-    "botlib/be_aas_sample.c"
-    "botlib/be_ai_char.c"
-    "botlib/be_ai_chat.c"
-    "botlib/be_ai_gen.c"
-    "botlib/be_ai_goal.c"
-    "botlib/be_ai_move.c"
-    "botlib/be_ai_weap.c"
-    "botlib/be_ai_weight.c"
-    "botlib/be_ea.c"
     "botlib/be_interface.c"
-    "botlib/l_crc.c"
-    "botlib/l_libvar.c"
-    "botlib/l_log.c"
     "botlib/l_memory.c"
     "botlib/l_precomp.c"
     "botlib/l_script.c"
-    "botlib/l_struct.c"
 )
 
 set(client_files

@@ -35,6 +35,9 @@ If you have questions concerning this license or the applicable additional terms
  *
  *****************************************************************************/
 
+#ifndef L_SCRIPT_H
+#define L_SCRIPT_H
+
 // Ridah, can't get it to compile without this
 #ifndef QDECL
 
@@ -263,6 +266,4 @@ void PS_SetBaseFolder( const char *path );
 void QDECL ScriptError( script_t *script, const char *fmt, ... );
 //print a script warning with filename and line number
 void QDECL ScriptWarning( script_t *script, const char *fmt, ... );
-
-
-
+#endif

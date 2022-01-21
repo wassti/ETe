@@ -35,6 +35,9 @@ If you have questions concerning this license or the applicable additional terms
  *
  *****************************************************************************/
 
+#ifndef L_MEMORY_H
+#define L_MEMORY_H
+
 #ifdef _DEBUG
 //	#define MEMDEBUG
 #endif
@@ -80,3 +83,5 @@ void PrintMemoryLabels( void );
 int MemoryByteSize( void *ptr );
 //free all allocated memory
 void DumpMemory( void );
+
+#endif

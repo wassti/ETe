@@ -351,7 +351,7 @@
     <ClInclude Include="..\..\client\snd_local.h" />
     <ClInclude Include="..\..\client\snd_public.h" />
     <ClInclude Include="..\..\game\bg_public.h" />
-    <ClInclude Include="..\..\game\botlib.h" />
+    <ClInclude Include="..\..\botlib\botlib.h" />
     <ClInclude Include="..\..\game\g_public.h" />
     <ClInclude Include="..\..\qcommon\q_platform.h" />
     <ClInclude Include="..\..\qcommon\q_shared.h" />

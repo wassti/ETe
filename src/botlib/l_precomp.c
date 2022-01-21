@@ -58,12 +58,11 @@ typedef enum {qfalse, qtrue}    qboolean;
 
 #ifdef BOTLIB
 #include "../qcommon/q_shared.h"
-#include "../game/botlib.h"
+#include "botlib.h"
 #include "be_interface.h"
 #include "l_memory.h"
 #include "l_script.h"
 #include "l_precomp.h"
-#include "l_log.h"
 #endif //BOTLIB
 
 #ifdef MEQCC
@@ -73,7 +72,6 @@ typedef enum {qfalse, qtrue}    qboolean;
 #include "l_memory.h"
 #include "l_script.h"
 #include "l_precomp.h"
-#include "l_log.h"
 
 #define qtrue   true
 #define qfalse  false
@@ -103,10 +101,6 @@ typedef struct pc_token_s
 	char string[MAX_TOKENLENGTH];
 } pc_token_t;
 #endif //BSPC
-
-#if defined( QUAKE ) && !defined( BSPC )
-#include "l_utils.h"
-#endif //QUAKE
 
 //#define DEBUG_EVAL
 
@@ -539,7 +533,7 @@ void PC_PrintDefine(define_t *define)
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-void PC_PrintDefineHashTable( define_t **definehash ) {
+/*void PC_PrintDefineHashTable( define_t **definehash ) {
 	int i;
 	define_t *d;
 
@@ -553,6 +547,7 @@ void PC_PrintDefineHashTable( define_t **definehash ) {
 		Log_Write( "\n" );
 	} //end for
 } //end of the function PC_PrintDefineHashTable
+*/
 //============================================================================
 //
 // Parameter:				-

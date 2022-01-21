@@ -133,7 +133,7 @@
     <ClInclude Include="..\..\game\bg_public.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\game\botlib.h">
+    <ClInclude Include="..\..\botlib\botlib.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\cgame\cg_public.h">
@@ -200,15 +200,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\qcommon\q_platform.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\client\cl_curl.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\client\snd_codec.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\qcommon\dl_public.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

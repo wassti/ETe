@@ -237,19 +237,19 @@ char PS_NextWhiteSpaceChar( script_t *script );
 //remove any leading and trailing double quotes from the token
 void StripDoubleQuotes( char *string );
 //remove any leading and trailing single quotes from the token
-void StripSingleQuotes( char *string );
+//void StripSingleQuotes( char *string );
 //read a possible signed integer
-signed long int ReadSignedInt( script_t *script );
+//signed long int ReadSignedInt( script_t *script );
 //read a possible signed floating point number
-long double ReadSignedFloat( script_t *script );
+//long double ReadSignedFloat( script_t *script );
 //set an array with punctuations, NULL restores default C/C++ set
 void SetScriptPunctuations( script_t *script, punctuation_t *p );
 //set script flags
-void SetScriptFlags( script_t *script, int flags );
+//void SetScriptFlags( script_t *script, int flags );
 //get script flags
-int GetScriptFlags( script_t *script );
+//int GetScriptFlags( script_t *script );
 //reset a script
-void ResetScript( script_t *script );
+//void ResetScript( script_t *script );
 //returns true if at the end of the script
 int EndOfScript( script_t *script );
 //returns a pointer to the punctuation with the given number

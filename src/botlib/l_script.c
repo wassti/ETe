@@ -181,7 +181,7 @@ void PS_CreatePunctuationTable( script_t *script, punctuation_t *punctuations ) 
 	//get memory for the table
 	if ( !script->punctuationtable ) {
 		script->punctuationtable = (punctuation_t **)
-								   GetMemory( 256 * sizeof( punctuation_t * ) );
+								   botimport.GetMemory( 256 * sizeof( punctuation_t * ) );
 	}
 	memset( script->punctuationtable, 0, 256 * sizeof( punctuation_t * ) );
 	//add the punctuations in the list to the punctuation table
@@ -1155,21 +1155,21 @@ void StripDoubleQuotes( char *string ) {
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-void StripSingleQuotes( char *string ) {
+/*void StripSingleQuotes( char *string ) {
 	if ( *string == '\'' ) {
 		strcpy( string, string + 1 );
 	} //end if
 	if ( string[strlen( string ) - 1] == '\'' ) {
 		string[strlen( string ) - 1] = '\0';
 	} //end if
-} //end of the function StripSingleQuotes
+}*/ //end of the function StripSingleQuotes
 //============================================================================
 //
 // Parameter:				-
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-long double ReadSignedFloat( script_t *script ) {
+/*long double ReadSignedFloat( script_t *script ) {
 	token_t token;
 	long double sign = 1;
 
@@ -1182,14 +1182,14 @@ long double ReadSignedFloat( script_t *script ) {
 		ScriptError( script, "expected float value, found %s\n", token.string );
 	} //end else if
 	return sign * token.floatvalue;
-} //end of the function ReadSignedFloat
+}*/ //end of the function ReadSignedFloat
 //============================================================================
 //
 // Parameter:				-
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-signed long int ReadSignedInt( script_t *script ) {
+/*signed long int ReadSignedInt( script_t *script ) {
 	token_t token;
 	signed long int sign = 1;
 
@@ -1202,32 +1202,32 @@ signed long int ReadSignedInt( script_t *script ) {
 		ScriptError( script, "expected integer value, found %s\n", token.string );
 	} //end else if
 	return sign * token.intvalue;
-} //end of the function ReadSignedInt
+}*/ //end of the function ReadSignedInt
 //============================================================================
 //
 // Parameter:				-
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-void SetScriptFlags( script_t *script, int flags ) {
+/*void SetScriptFlags( script_t *script, int flags ) {
 	script->flags = flags;
-} //end of the function SetScriptFlags
+}*/ //end of the function SetScriptFlags
 //============================================================================
 //
 // Parameter:				-
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-int GetScriptFlags( script_t *script ) {
+/*int GetScriptFlags( script_t *script ) {
 	return script->flags;
-} //end of the function GetScriptFlags
+}*/ //end of the function GetScriptFlags
 //============================================================================
 //
 // Parameter:				-
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-void ResetScript( script_t *script ) {
+/*void ResetScript( script_t *script ) {
 	//pointer in script buffer
 	script->script_p = script->buffer;
 	//pointer in script buffer before reading token
@@ -1243,7 +1243,7 @@ void ResetScript( script_t *script ) {
 	script->lastline = 1;
 	//clear the saved token
 	memset( &script->token, 0, sizeof( token_t ) );
-} //end of the function ResetScript
+}*/ //end of the function ResetScript
 //============================================================================
 // returns true if at the end of the script
 //
@@ -1260,16 +1260,16 @@ int EndOfScript( script_t *script ) {
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-int NumLinesCrossed( script_t *script ) {
+/*int NumLinesCrossed( script_t *script ) {
 	return script->line - script->lastline;
-} //end of the function NumLinesCrossed
+}*/ //end of the function NumLinesCrossed
 //============================================================================
 //
 // Parameter:				-
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-int ScriptSkipTo( script_t *script, char *value ) {
+/*int ScriptSkipTo( script_t *script, char *value ) {
 	int len;
 	char firstchar;
 
@@ -1287,7 +1287,7 @@ int ScriptSkipTo( script_t *script, char *value ) {
 		} //end if
 		script->script_p++;
 	} while ( 1 );
-} //end of the function ScriptSkipTo
+}*/ //end of the function ScriptSkipTo
 #ifndef BOTLIB
 //============================================================================
 //
@@ -1366,7 +1366,7 @@ script_t *LoadScriptFile( const char *filename ) {
 	botimport.FS_FCloseFile( fp );
 #else
 	if ( fread( script->buffer, length, 1, fp ) != 1 ) {
-		FreeMemory( buffer );
+		botimport.FreeMemory( buffer );
 		script = NULL;
 	} //end if
 	fclose( fp );
@@ -1420,10 +1420,10 @@ script_t *LoadScriptMemory(const char *ptr, int length, const char *name)
 void FreeScript( script_t *script ) {
 #ifdef PUNCTABLE
 	if ( script->punctuationtable ) {
-		FreeMemory( script->punctuationtable );
+		botimport.FreeMemory( script->punctuationtable );
 	}
 #endif //PUNCTABLE
-	FreeMemory( script );
+	botimport.FreeMemory( script );
 } //end of the function FreeScript
 //============================================================================
 //

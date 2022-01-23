@@ -186,7 +186,7 @@ void QDECL SourceWarning(source_t *source, const char *fmt, ...)
 void PC_PushIndent( source_t *source, int type, int skip ) {
 	indent_t *indent;
 
-	indent = (indent_t *) GetMemory( sizeof( indent_t ) );
+	indent = (indent_t *) botimport.GetMemory( sizeof( indent_t ) );
 	indent->type = type;
 	indent->script = source->scriptstack;
 	indent->skip = ( skip != 0 );
@@ -220,7 +220,7 @@ void PC_PopIndent( source_t *source, int *type, int *skip ) {
 	*skip = indent->skip;
 	source->indentstack = source->indentstack->next;
 	source->skip -= indent->skip;
-	FreeMemory( indent );
+	botimport.FreeMemory( indent );
 } //end of the function PC_PopIndent
 //============================================================================
 //
@@ -271,7 +271,7 @@ void PC_InitTokenHeap( void ) {
 token_t *PC_CopyToken( token_t *token ) {
 	token_t *t;
 
-	t = (token_t *) GetMemory( sizeof( token_t ) );
+	t = (token_t *) botimport.GetMemory( sizeof( token_t ) );
 	if ( !t ) {
 #ifdef BSPC
 		Error("out of token space");
@@ -293,7 +293,7 @@ token_t *PC_CopyToken( token_t *token ) {
 // Changes Globals:		-
 //============================================================================
 void PC_FreeToken( token_t *token ) {
-	FreeMemory( token );
+	botimport.FreeMemory( token );
 	numtokens--;
 } //end of the function PC_FreeToken
 //============================================================================
@@ -662,7 +662,7 @@ void PC_FreeDefine( define_t *define ) {
 		PC_FreeToken( t );
 	} //end for
 	  //free the define
-	FreeMemory( define );
+	botimport.FreeMemory( define );
 } //end of the function PC_FreeDefine
 //============================================================================
 //
@@ -688,7 +688,7 @@ void PC_AddBuiltinDefines( source_t *source ) {
 
 	for ( i = 0; builtin[i].string; i++ )
 	{
-		define = (define_t *) GetMemory( sizeof( define_t ) + strlen( builtin[i].string ) + 1 );
+		define = (define_t *) botimport.GetMemory( sizeof( define_t ) + strlen( builtin[i].string ) + 1 );
 		memset( define, 0, sizeof( define_t ) );
 		define->name = (char *) define + sizeof( define_t );
 		strcpy( define->name, builtin[i].string );
@@ -1206,7 +1206,7 @@ int PC_Directive_define( source_t *source ) {
 #endif //DEFINEHASHING
 	} //end if
 	  //allocate define
-	define = (define_t *) GetMemory( sizeof( define_t ) + strlen( token.string ) + 1 );
+	define = (define_t *) botimport.GetMemory( sizeof( define_t ) + strlen( token.string ) + 1 );
 	memset( define, 0, sizeof( define_t ) );
 	define->name = (char *) define + sizeof( define_t );
 	strcpy( define->name, token.string );
@@ -1344,7 +1344,7 @@ define_t *PC_DefineFromString(const char *string)
 #endif //DEFINEHASHING
 	   //
 #if DEFINEHASHING
-	FreeMemory( src.definehash );
+	botimport.FreeMemory( src.definehash );
 #endif //DEFINEHASHING
 	   //
 	FreeScript( script );
@@ -1446,7 +1446,7 @@ define_t *PC_CopyDefine( source_t *source, define_t *define ) {
 
 	(void)source;
 
-	newdefine = (define_t *) GetMemory( sizeof( define_t ) + strlen( define->name ) + 1 );
+	newdefine = (define_t *) botimport.GetMemory( sizeof( define_t ) + strlen( define->name ) + 1 );
 	//copy the define name
 	newdefine->name = (char *) newdefine + sizeof( define_t );
 	strcpy( newdefine->name, define->name );
@@ -3020,7 +3020,7 @@ source_t *LoadSourceFile( const char *filename ) {
 
 	script->next = NULL;
 
-	source = (source_t *) GetMemory( sizeof( source_t ) );
+	source = (source_t *) botimport.GetMemory( sizeof( source_t ) );
 	memset( source, 0, sizeof( source_t ) );
 
 	Q_strncpyz(source->filename, filename, sizeof(source->filename));
@@ -3054,7 +3054,7 @@ source_t *LoadSourceMemory( char *ptr, int length, char *name ) {
 	}
 	script->next = NULL;
 
-	source = (source_t *) GetMemory( sizeof( source_t ) );
+	source = (source_t *) botimport.GetMemory( sizeof( source_t ) );
 	memset( source, 0, sizeof( source_t ) );
 
 	strncpy( source->filename, name, _MAX_PATH );
@@ -3122,16 +3122,16 @@ void FreeSource( source_t *source ) {
 	{
 		indent = source->indentstack;
 		source->indentstack = source->indentstack->next;
-		FreeMemory( indent );
+		botimport.FreeMemory( indent );
 	} //end for
 #if DEFINEHASHING
 	//
 	if ( source->definehash ) {
-		FreeMemory( source->definehash );
+		botimport.FreeMemory( source->definehash );
 	}
 #endif //DEFINEHASHING
 	   //free the source itself
-	FreeMemory( source );
+	botimport.FreeMemory( source );
 } //end of the function FreeSource
 //============================================================================
 //

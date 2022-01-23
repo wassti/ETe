@@ -38,7 +38,7 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef L_PRECOMP_H
 #define L_PRECOMP_H
 
-#ifndef _MAX_PATH
+#ifndef MAX_PATH
 	#define MAX_PATH            MAX_QPATH
 #endif
 
@@ -99,8 +99,8 @@ typedef struct indent_s
 //source file
 typedef struct source_s
 {
-	char filename[_MAX_PATH];               //file name of the script
-	char includepath[_MAX_PATH];            //path to include files
+	char filename[1024];               //file name of the script
+	char includepath[1024];            //path to include files
 	punctuation_t *punctuations;            //punctuations to use
 	script_t *scriptstack;                  //stack with scripts of the source
 	token_t *tokens;                        //tokens to read first
@@ -157,9 +157,9 @@ source_t *LoadSourceMemory( char *ptr, int length, char *name );
 //free the given source
 void FreeSource( source_t *source );
 //print a source error
-void QDECL SourceError( source_t *source, const char *fmt, ... );
+void FORMAT_PRINTF(2, 3) QDECL SourceError( source_t *source, const char *fmt, ... );
 //print a source warning
-void QDECL SourceWarning( source_t *source, const char *fmt, ... );
+void FORMAT_PRINTF(2, 3) QDECL SourceWarning( source_t *source, const char *fmt, ... );
 
 //
 int PC_LoadSourceHandle( const char *filename );

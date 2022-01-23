@@ -135,7 +135,7 @@ define_t *globaldefines;
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-void QDECL SourceError(source_t *source, const char *fmt, ...)
+void FORMAT_PRINTF(2, 3) QDECL SourceError(source_t *source, const char *fmt, ...)
 {
 	char text[1024];
 	va_list ap;
@@ -159,7 +159,7 @@ void QDECL SourceError(source_t *source, const char *fmt, ...)
 // Returns:					-
 // Changes Globals:		-
 //===========================================================================
-void QDECL SourceWarning(source_t *source, const char *fmt, ...)
+void FORMAT_PRINTF(2, 3) QDECL SourceWarning(source_t *source, const char *fmt, ...)
 {
 	char text[1024];
 	va_list ap;
@@ -662,6 +662,7 @@ void PC_FreeDefine( define_t *define ) {
 		PC_FreeToken( t );
 	} //end for
 	  //free the define
+	botimport.FreeMemory( define->name );
 	botimport.FreeMemory( define );
 } //end of the function PC_FreeDefine
 //============================================================================
@@ -688,9 +689,9 @@ void PC_AddBuiltinDefines( source_t *source ) {
 
 	for ( i = 0; builtin[i].string; i++ )
 	{
-		define = (define_t *) botimport.GetMemory( sizeof( define_t ) + strlen( builtin[i].string ) + 1 );
+		define = (define_t *) botimport.GetMemory( sizeof( define_t ) );
 		memset( define, 0, sizeof( define_t ) );
-		define->name = (char *) define + sizeof( define_t );
+		define->name = (char *) botimport.GetMemory( strlen( builtin[i].string ) + 1 );
 		strcpy( define->name, builtin[i].string );
 		define->flags |= DEFINE_FIXED;
 		define->builtin = builtin[i].builtin;
@@ -750,7 +751,7 @@ int PC_ExpandBuiltinDefine( source_t *source, token_t *deftoken, define_t *defin
 		strcat( token->string, "\"" );
 //			free(curtime);
 		token->type = TT_NAME;
-		token->subtype = strlen( token->string );
+		token->subtype = (int)strlen( token->string );
 		*firsttoken = token;
 		*lasttoken = token;
 		break;
@@ -764,7 +765,7 @@ int PC_ExpandBuiltinDefine( source_t *source, token_t *deftoken, define_t *defin
 		strcat( token->string, "\"" );
 //			free(curtime);
 		token->type = TT_NAME;
-		token->subtype = strlen( token->string );
+		token->subtype = (int)strlen( token->string );
 		*firsttoken = token;
 		*lasttoken = token;
 		break;
@@ -971,7 +972,7 @@ void PC_ConvertPath(char *path)
 int PC_Directive_include( source_t *source ) {
 	script_t *script;
 	token_t token;
-	char path[_MAX_PATH];
+	char path[MAX_PATH];
 #ifdef QUAKE
 	foundfile_t file;
 #endif //QUAKE
@@ -993,13 +994,13 @@ int PC_Directive_include( source_t *source ) {
 		PC_ConvertPath( token.string );
 		script = LoadScriptFile( token.string );
 		if ( !script ) {
-			strcpy( path, source->includepath );
-			strcat( path, token.string );
+			Q_strncpyz(path, source->includepath, sizeof(path));
+			Q_strcat(path, sizeof(path), token.string);
 			script = LoadScriptFile( path );
 		} //end if
 	} //end if
 	else if ( token.type == TT_PUNCTUATION && *token.string == '<' ) {
-		strcpy( path, source->includepath );
+		Q_strncpyz(path, source->includepath, sizeof(path));
 		while ( PC_ReadSourceToken( source, &token ) )
 		{
 			if ( token.linescrossed > 0 ) {
@@ -1009,7 +1010,7 @@ int PC_Directive_include( source_t *source ) {
 			if ( token.type == TT_PUNCTUATION && *token.string == '>' ) {
 				break;
 			}
-			strncat( path, token.string, _MAX_PATH );
+			Q_strcat(path, sizeof(path), token.string);
 		} //end while
 		if ( *token.string != '>' ) {
 			SourceWarning( source, "#include missing trailing >" );
@@ -1031,7 +1032,7 @@ int PC_Directive_include( source_t *source ) {
 		memset( &file, 0, sizeof( foundfile_t ) );
 		script = LoadScriptFile( path );
 		if ( script ) {
-			strncpy( script->filename, path, _MAX_PATH );
+			Q_strncpyz( script->filename, path, sizeof(script->filename) );
 		}
 	} //end if
 #endif //QUAKE
@@ -1649,7 +1650,7 @@ int PC_OperatorPriority( int op ) {
 #define MAX_OPERATORS   64
 #define AllocValue( val )								  \
 	if ( numvalues >= MAX_VALUES ) {					  \
-		SourceError( source, "out of value space\n" );		\
+		SourceError( source, "out of value space" );		\
 		error = 1;										\
 		break;											\
 	}													\
@@ -1659,7 +1660,7 @@ int PC_OperatorPriority( int op ) {
 //
 #define AllocOperator( op )								  \
 	if ( numoperators >= MAX_OPERATORS ) {				  \
-		SourceError( source, "out of operator space\n" );	\
+		SourceError( source, "out of operator space" );	\
 		error = 1;										\
 		break;											\
 	}													\
@@ -1813,7 +1814,7 @@ int PC_EvaluateTokens( source_t *source, token_t *tokens, int *intvalue,
 					 t->subtype == P_RSHIFT || t->subtype == P_LSHIFT ||
 					 t->subtype == P_BIN_AND || t->subtype == P_BIN_OR ||
 					 t->subtype == P_BIN_XOR ) {
-					SourceError( source, "illigal operator %s on floating point operands\n", t->string );
+					SourceError( source, "illigal operator %s on floating point operands", t->string );
 					error = 1;
 					break;
 				}     //end if
@@ -1984,14 +1985,14 @@ int PC_EvaluateTokens( source_t *source, token_t *tokens, int *intvalue,
 		case P_MUL:             v1->intvalue *= v2->intvalue;
 			v1->floatvalue *= v2->floatvalue; break;
 		case P_DIV:             if ( !v2->intvalue || !v2->floatvalue ) {
-				SourceError( source, "divide by zero in #if/#elif\n" );
+				SourceError( source, "divide by zero in #if/#elif" );
 				error = 1;
 				break;
 		}
 			v1->intvalue /= v2->intvalue;
 			v1->floatvalue /= v2->floatvalue; break;
 		case P_MOD:             if ( !v2->intvalue ) {
-				SourceError( source, "divide by zero in #if/#elif\n" );
+				SourceError( source, "divide by zero in #if/#elif" );
 				error = 1;
 				break;
 		}
@@ -2406,7 +2407,7 @@ int PC_Directive_line( source_t *source ) {
 int PC_Directive_error( source_t *source ) {
 	token_t token;
 
-	strcpy( token.string, "" );
+	token.string[0] = '\0';
 	PC_ReadSourceToken( source, &token );
 	SourceError( source, "#error directive: %s", token.string );
 	return qfalse;
@@ -2754,7 +2755,7 @@ int PC_ReadToken( source_t *source, token_t *token ) {
 				if ( newtoken.type == TT_STRING ) {
 					token->string[strlen( token->string ) - 1] = '\0';
 					if ( strlen( token->string ) + strlen( newtoken.string + 1 ) + 1 >= MAX_TOKEN ) {
-						SourceError( source, "string longer than MAX_TOKEN %d\n", MAX_TOKEN );
+						SourceError( source, "string longer than MAX_TOKEN %d", MAX_TOKEN );
 						return qfalse;
 					}
 					strcat( token->string, newtoken.string + 1 );
@@ -2822,7 +2823,7 @@ int PC_ExpectTokenType( source_t *source, int type, int subtype, token_t *token 
 	} //end if
 
 	if ( token->type != type ) {
-		strcpy( str, "" );
+		str[0] = '\0';
 		if ( type == TT_STRING ) {
 			strcpy( str, "string" );
 		}
@@ -2843,6 +2844,7 @@ int PC_ExpectTokenType( source_t *source, int type, int subtype, token_t *token 
 	} //end if
 	if ( token->type == TT_NUMBER ) {
 		if ( ( token->subtype & subtype ) != subtype ) {
+			str[0] = '\0';
 			if ( subtype & TT_DECIMAL ) {
 				strcpy( str, "decimal" );
 			}
@@ -3057,7 +3059,7 @@ source_t *LoadSourceMemory( char *ptr, int length, char *name ) {
 	source = (source_t *) botimport.GetMemory( sizeof( source_t ) );
 	memset( source, 0, sizeof( source_t ) );
 
-	strncpy( source->filename, name, _MAX_PATH );
+	Q_strncpyz( source->filename, name, sizeof(source->filename) );
 	source->scriptstack = script;
 	source->tokens = NULL;
 	source->defines = NULL;

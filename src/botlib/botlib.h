@@ -63,12 +63,12 @@ typedef void ( *BotPolyFunc )( int color, int numPoints, float *points );
 typedef struct botlib_import_s
 {
 	//print messages from the bot library
-	void		(QDECL *Print)(int type, const char *fmt, ...) __attribute__ ((format (printf, 2, 3)));
+	void		(QDECL *Print)(int type, const char *fmt, ...) FORMAT_PRINTF(2, 3);
 	//memory allocation
 	void        *( *GetMemory )( int size );
 	void ( *FreeMemory )( void *ptr );
-	void ( *FreeZoneMemory )( void );
-	void        *( *HunkAlloc )( int size );
+	//void ( *FreeZoneMemory )( void );
+	//void        *( *HunkAlloc )( int size );
 	//file system access
 	int ( *FS_FOpenFile )( const char *qpath, fileHandle_t *file, fsMode_t mode );
 	int ( *FS_Read )( void *buffer, int len, fileHandle_t f );

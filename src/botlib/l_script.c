@@ -232,7 +232,7 @@ char *PunctuationFromNum( script_t *script, int num ) {
 // Returns:					-
 // Changes Globals:		-
 //===========================================================================
-void QDECL ScriptError(script_t *script, const char *fmt, ...)
+void FORMAT_PRINTF(2, 3) QDECL ScriptError(script_t *script, const char *fmt, ...)
 {
 	char text[1024];
 	va_list ap;
@@ -260,7 +260,7 @@ void QDECL ScriptError(script_t *script, const char *fmt, ...)
 // Returns:					-
 // Changes Globals:		-
 //===========================================================================
-void QDECL ScriptWarning(script_t *script, const char *fmt, ...)
+void FORMAT_PRINTF(2, 3) QDECL ScriptWarning(script_t *script, const char *fmt, ...)
 {
 	char text[1024];
 	va_list ap;
@@ -655,7 +655,7 @@ int PS_ReadNumber( script_t *script, token_t *token ) {
 		//hexadecimal
 		while ( ( c >= '0' && c <= '9' ) ||
 				( c >= 'a' && c <= 'f' ) ||
-				( c >= 'A' && c <= 'A' ) )
+				( c >= 'A' && c <= 'F' ) )
 		{
 			token->string[len++] = *script->script_p++;
 			if ( len >= MAX_TOKEN ) {
@@ -816,7 +816,7 @@ int PS_ReadPunctuation( script_t *script, token_t *token ) {
 		if ( script->script_p + len <= script->end_p ) {
 			//if the script contains the punctuation
 			if ( !strncmp( script->script_p, p, len ) ) {
-				strncpy( token->string, p, MAX_TOKEN );
+				Q_strncpyz( token->string, p, sizeof( token->string ) );
 				script->script_p += len;
 				token->type = TT_PUNCTUATION;
 				//sub type is the number of the punctuation
@@ -1017,7 +1017,7 @@ int PS_ExpectTokenType( script_t *script, int type, int subtype, token_t *token 
 		} //end if
 		if ( token->subtype != subtype ) {
 			ScriptError( script, "expected %s, found %s",
-						 script->punctuations[subtype], token->string );
+						 script->punctuations[subtype].p, token->string );
 			return 0;
 		} //end if
 	} //end else if
@@ -1141,9 +1141,7 @@ char PS_NextWhiteSpaceChar( script_t *script ) {
 //============================================================================
 void StripDoubleQuotes( char *string ) {
 	if ( *string == '\"' ) {
-		//strcpy(string, string+1);
-		// rain - strcpy arguments cannot overlap, memmove string+1 and NUL
-		memmove( string, string + 1, strlen( string + 1 ) + 1 );
+		memmove( string, string + 1, strlen( string ) );
 	} //end if
 	if ( string[strlen( string ) - 1] == '\"' ) {
 		string[strlen( string ) - 1] = '\0';

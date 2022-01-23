@@ -123,7 +123,7 @@ void BotDrawDebugPolygons( BotPolyFunc drawPoly, int value ) {
 BotImport_Print
 ==================
 */
-static void QDECL BotImport_Print( int type, const char *fmt, ... ) {
+static void FORMAT_PRINTF(2, 3) QDECL BotImport_Print( int type, const char *fmt, ... ) {
 	char str[2048];
 	va_list ap;
 
@@ -165,10 +165,7 @@ BotImport_GetMemory
 ==================
 */
 static void *BotImport_GetMemory( int size ) {
-	void *ptr;
-
-	ptr = Z_TagMalloc( size, TAG_BOTLIB );
-	return ptr;
+	return Z_TagMalloc( size, TAG_BOTLIB );
 }
 
 /*
@@ -185,21 +182,21 @@ static void BotImport_FreeMemory( void *ptr ) {
 BotImport_FreeZoneMemory
 ==================
 */
-void BotImport_FreeZoneMemory( void ) {
+/*void BotImport_FreeZoneMemory( void ) {
 	Z_FreeTags( TAG_BOTLIB );
-}
+}*/
 
 /*
 =================
 BotImport_HunkAlloc
 =================
 */
-static void *BotImport_HunkAlloc( int size ) {
+/*static void *BotImport_HunkAlloc( int size ) {
 	if ( Hunk_CheckMark() ) {
 		Com_Error( ERR_DROP, "%s(): Alloc with marks already set", __func__ );
 	}
 	return Hunk_Alloc( size, h_high );
-}
+}*/
 
 /*
 ==================
@@ -372,8 +369,8 @@ void SV_BotInitBotLib( void ) {
 	//memory management
 	botlib_import.GetMemory = BotImport_GetMemory;
 	botlib_import.FreeMemory = BotImport_FreeMemory;
-	botlib_import.FreeZoneMemory = BotImport_FreeZoneMemory;
-	botlib_import.HunkAlloc = BotImport_HunkAlloc;
+	//botlib_import.FreeZoneMemory = BotImport_FreeZoneMemory;
+	//botlib_import.HunkAlloc = BotImport_HunkAlloc;
 
 	// file system acess
 	botlib_import.FS_FOpenFile = FS_FOpenFileByMode;

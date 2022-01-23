@@ -60,12 +60,6 @@ If you have questions concerning this license or the applicable additional terms
 
 //maximum token length
 #define MAX_TOKEN                   1024
-//maximum path length
-#ifndef _MAX_PATH
-// TTimo: used to be MAX_QPATH, which is the game filesystem max len, and not the OS max len
-	#define _MAX_PATH               1024
-#endif
-
 
 //script flags
 #define SCFL_NOERRORS               0x0001
@@ -196,7 +190,7 @@ typedef struct token_s
 //script file
 typedef struct script_s
 {
-	char filename[_MAX_PATH];       //file name of the script
+	char filename[1024];       //file name of the script
 	char *buffer;                       //buffer containing the script
 	char *script_p;                 //current pointer in the script
 	char *end_p;                    //pointer to the end of the script
@@ -263,7 +257,7 @@ void FreeScript( script_t *script );
 //set the base folder to load files from
 void PS_SetBaseFolder( const char *path );
 //print a script error with filename and line number
-void QDECL ScriptError( script_t *script, const char *fmt, ... );
+void FORMAT_PRINTF(2, 3) QDECL ScriptError( script_t *script, const char *fmt, ... );
 //print a script warning with filename and line number
-void QDECL ScriptWarning( script_t *script, const char *fmt, ... );
+void FORMAT_PRINTF(2, 3) QDECL ScriptWarning( script_t *script, const char *fmt, ... );
 #endif

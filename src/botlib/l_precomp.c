@@ -1681,7 +1681,7 @@ int PC_EvaluateTokens( source_t *source, token_t *tokens, int *intvalue,
 	int questmarkintvalue = 0;
 	float questmarkfloatvalue = 0;
 	int gotquestmarkvalue = qfalse;
-	int lastoperatortype = 0;
+	//int lastoperatortype = 0;
 	//
 	operator_t operator_heap[MAX_OPERATORS];
 	int numoperators = 0;
@@ -2069,7 +2069,7 @@ int PC_EvaluateTokens( source_t *source, token_t *tokens, int *intvalue,
 		if ( error ) {
 			break;
 		}
-		lastoperatortype = o->operator;
+		//lastoperatortype = o->operator;
 		//if not an operator with arity 1
 		if ( o->operator != P_LOGIC_NOT
 			 && o->operator != P_BIN_NOT ) {
@@ -2502,7 +2502,7 @@ int PC_Directive_evalfloat( source_t *source ) {
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-directive_t directives[20] =
+static const directive_t directives[] =
 {
 	{"if", PC_Directive_if},
 	{"ifdef", PC_Directive_ifdef},
@@ -2616,7 +2616,7 @@ int PC_DollarDirective_evalfloat( source_t *source ) {
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-directive_t dollardirectives[20] =
+static const directive_t dollardirectives[] =
 {
 	{"evalint", PC_DollarDirective_evalint},
 	{"evalfloat", PC_DollarDirective_evalfloat},

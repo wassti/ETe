@@ -671,7 +671,7 @@ void PC_FreeDefine( define_t *define ) {
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-void PC_AddBuiltinDefines( source_t *source ) {
+/*void PC_AddBuiltinDefines( source_t *source ) {
 	int i;
 	define_t *define;
 	struct builtin
@@ -703,7 +703,7 @@ void PC_AddBuiltinDefines( source_t *source ) {
 		source->defines = define;
 #endif //DEFINEHASHING
 	} //end for
-} //end of the function PC_AddBuiltinDefines
+}*/ //end of the function PC_AddBuiltinDefines
 //============================================================================
 //
 // Parameter:				-
@@ -1207,9 +1207,9 @@ int PC_Directive_define( source_t *source ) {
 #endif //DEFINEHASHING
 	} //end if
 	  //allocate define
-	define = (define_t *) botimport.GetMemory( sizeof( define_t ) + strlen( token.string ) + 1 );
+	define = (define_t *) botimport.GetMemory( sizeof( define_t ) );
 	memset( define, 0, sizeof( define_t ) );
-	define->name = (char *) define + sizeof( define_t );
+	define->name = (char *) botimport.GetMemory( strlen( token.string ) + 1 );
 	strcpy( define->name, token.string );
 	//add the define to the source
 #if DEFINEHASHING

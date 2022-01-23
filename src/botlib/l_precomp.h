@@ -143,7 +143,7 @@ int PC_RemoveGlobalDefine( char *name );
 //remove all globals defines
 void PC_RemoveAllGlobalDefines( void );
 //add builtin defines
-void PC_AddBuiltinDefines( source_t *source );
+//void PC_AddBuiltinDefines( source_t *source );
 //set the source include path
 void PC_SetIncludePath( source_t *source, const char *path );
 //set the punction set

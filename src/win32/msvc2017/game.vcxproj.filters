@@ -178,9 +178,6 @@
     <ClInclude Include="..\..\game\bg_public.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\game\botlib.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\game\g_local.h">
       <Filter>Header Files</Filter>
     </ClInclude>

@@ -36,71 +36,12 @@ If you have questions concerning this license or the applicable additional terms
 
 //Notes:			fix: PC_StringizeTokens
 
-//#define SCREWUP
-//#define BOTLIB
-//#define QUAKE
-//#define QUAKEC
-//#define MEQCC
+#include "q_shared.h"
+#include "qcommon.h"
 
-#ifdef SCREWUP
-#include <stdio.h>
-#include <stdlib.h>
-#include <limits.h>
-#include <string.h>
-#include <stdarg.h>
-#include <time.h>
-#include "l_memory.h"
-#include "l_script.h"
-#include "l_precomp.h"
+#include "lexer.h"
+#include "parser.h"
 
-typedef enum {qfalse, qtrue}    qboolean;
-#endif //SCREWUP
-
-#ifdef BOTLIB
-#include "../qcommon/q_shared.h"
-#include "botlib.h"
-#include "be_interface.h"
-#include "l_memory.h"
-#include "l_script.h"
-#include "l_precomp.h"
-#endif //BOTLIB
-
-#ifdef MEQCC
-#include "qcc.h"
-#include "time.h"   //time & ctime
-#include "math.h"   //fabs
-#include "l_memory.h"
-#include "l_script.h"
-#include "l_precomp.h"
-
-#define qtrue   true
-#define qfalse  false
-#endif //MEQCC
-
-#ifdef BSPC
-//include files for usage in the BSP Converter
-#include "../bspc/qbsp.h"
-#include "../bspc/l_log.h"
-#include "../bspc/l_mem.h"
-#include "l_precomp.h"
-
-#define qtrue   true
-#define qfalse  false
-#define Q_stricmp   stricmp
-
-#define MAX_TOKENLENGTH     1024
-
-typedef struct pc_token_s
-{
-	int type;
-	int subtype;
-	int intvalue;
-	int line;
-	int linescrossed;
-	float floatvalue;
-	char string[MAX_TOKENLENGTH];
-} pc_token_t;
-#endif //BSPC
 
 //#define DEBUG_EVAL
 
@@ -143,15 +84,7 @@ void FORMAT_PRINTF(2, 3) QDECL SourceError(source_t *source, const char *fmt, ..
 	va_start(ap, fmt);
 	Q_vsnprintf(text, sizeof(text), fmt, ap);
 	va_end(ap);
-#ifdef BOTLIB
-	botimport.Print( PRT_ERROR, "file %s, line %d: %s\n", source->scriptstack->filename, source->scriptstack->line, text );
-#endif  //BOTLIB
-#ifdef MEQCC
-	printf( "error: file %s, line %d: %s\n", source->scriptstack->filename, source->scriptstack->line, text );
-#endif //MEQCC
-#ifdef BSPC
-	Log_Print( "error: file %s, line %d: %s\n", source->scriptstack->filename, source->scriptstack->line, text );
-#endif //BSPC
+	Com_Printf( S_COLOR_RED "Error: file %s, line %d: %s\n", source->scriptstack->filename, source->scriptstack->line, text );
 } //end of the function SourceError
 //===========================================================================
 //
@@ -167,15 +100,7 @@ void FORMAT_PRINTF(2, 3) QDECL SourceWarning(source_t *source, const char *fmt, 
 	va_start(ap, fmt);
 	Q_vsnprintf(text, sizeof(text), fmt, ap);
 	va_end(ap);
-#ifdef BOTLIB
-	botimport.Print( PRT_WARNING, "file %s, line %d: %s\n", source->scriptstack->filename, source->scriptstack->line, text );
-#endif //BOTLIB
-#ifdef MEQCC
-	printf( "warning: file %s, line %d: %s\n", source->scriptstack->filename, source->scriptstack->line, text );
-#endif //MEQCC
-#ifdef BSPC
-	Log_Print( "warning: file %s, line %d: %s\n", source->scriptstack->filename, source->scriptstack->line, text );
-#endif //BSPC
+	Com_Printf( S_COLOR_YELLOW "Warning: file %s, line %d: %s\n", source->scriptstack->filename, source->scriptstack->line, text );
 } //end of the function ScriptWarning
 //============================================================================
 //
@@ -186,7 +111,7 @@ void FORMAT_PRINTF(2, 3) QDECL SourceWarning(source_t *source, const char *fmt, 
 void PC_PushIndent( source_t *source, int type, int skip ) {
 	indent_t *indent;
 
-	indent = (indent_t *) botimport.GetMemory( sizeof( indent_t ) );
+	indent = (indent_t *) Z_TagMalloc( sizeof( indent_t ), TAG_BOTLIB );
 	indent->type = type;
 	indent->script = source->scriptstack;
 	indent->skip = ( skip != 0 );
@@ -220,7 +145,7 @@ void PC_PopIndent( source_t *source, int *type, int *skip ) {
 	*skip = indent->skip;
 	source->indentstack = source->indentstack->next;
 	source->skip -= indent->skip;
-	botimport.FreeMemory( indent );
+	Z_Free( indent );
 } //end of the function PC_PopIndent
 //============================================================================
 //
@@ -271,13 +196,9 @@ void PC_InitTokenHeap( void ) {
 token_t *PC_CopyToken( token_t *token ) {
 	token_t *t;
 
-	t = (token_t *) botimport.GetMemory( sizeof( token_t ) );
+	t = (token_t *) Z_TagMalloc( sizeof( token_t ), TAG_BOTLIB );
 	if ( !t ) {
-#ifdef BSPC
-		Error("out of token space");
-#else
 		Com_Error(ERR_FATAL, "out of token space");
-#endif
 		return NULL;
 	} //end if
 //	freetokens = freetokens->next;
@@ -293,7 +214,7 @@ token_t *PC_CopyToken( token_t *token ) {
 // Changes Globals:		-
 //============================================================================
 void PC_FreeToken( token_t *token ) {
-	botimport.FreeMemory( token );
+	Z_Free( token );
 	numtokens--;
 } //end of the function PC_FreeToken
 //============================================================================
@@ -662,8 +583,8 @@ void PC_FreeDefine( define_t *define ) {
 		PC_FreeToken( t );
 	} //end for
 	  //free the define
-	botimport.FreeMemory( define->name );
-	botimport.FreeMemory( define );
+	Z_Free( define->name );
+	Z_Free( define );
 } //end of the function PC_FreeDefine
 //============================================================================
 //
@@ -689,9 +610,9 @@ void PC_FreeDefine( define_t *define ) {
 
 	for ( i = 0; builtin[i].string; i++ )
 	{
-		define = (define_t *) botimport.GetMemory( sizeof( define_t ) );
+		define = (define_t *) Z_TagMalloc( sizeof( define_t ) );
 		memset( define, 0, sizeof( define_t ) );
-		define->name = (char *) botimport.GetMemory( strlen( builtin[i].string ) + 1 );
+		define->name = (char *) Z_TagMalloc( strlen( builtin[i].string ) + 1 );
 		strcpy( define->name, builtin[i].string );
 		define->flags |= DEFINE_FIXED;
 		define->builtin = builtin[i].builtin;
@@ -973,9 +894,6 @@ int PC_Directive_include( source_t *source ) {
 	script_t *script;
 	token_t token;
 	char path[MAX_PATH];
-#ifdef QUAKE
-	foundfile_t file;
-#endif //QUAKE
 
 	if ( source->skip > 0 ) {
 		return qtrue;
@@ -1027,23 +945,9 @@ int PC_Directive_include( source_t *source ) {
 		SourceError( source, "#include without file name" );
 		return qfalse;
 	} //end else
-#ifdef QUAKE
 	if ( !script ) {
-		memset( &file, 0, sizeof( foundfile_t ) );
-		script = LoadScriptFile( path );
-		if ( script ) {
-			Q_strncpyz( script->filename, path, sizeof(script->filename) );
-		}
-	} //end if
-#endif //QUAKE
-	if ( !script ) {
-#ifdef SCREWUP
-		SourceWarning( source, "file %s not found", path );
-		return qtrue;
-#else
 		SourceError( source, "file %s not found", path );
 		return qfalse;
-#endif //SCREWUP
 	} //end if
 	PC_PushScript( source, script );
 	return qtrue;
@@ -1207,9 +1111,9 @@ int PC_Directive_define( source_t *source ) {
 #endif //DEFINEHASHING
 	} //end if
 	  //allocate define
-	define = (define_t *) botimport.GetMemory( sizeof( define_t ) );
+	define = (define_t *) Z_TagMalloc( sizeof( define_t ), TAG_BOTLIB );
 	memset( define, 0, sizeof( define_t ) );
-	define->name = (char *) botimport.GetMemory( strlen( token.string ) + 1 );
+	define->name = (char *) Z_TagMalloc( strlen( token.string ) + 1, TAG_BOTLIB );
 	strcpy( define->name, token.string );
 	//add the define to the source
 #if DEFINEHASHING
@@ -1321,7 +1225,8 @@ define_t *PC_DefineFromString(const char *string)
 	Q_strncpyz( src.filename, "*extern", sizeof( src.filename ) );
 	src.scriptstack = script;
 #if DEFINEHASHING
-	src.definehash = GetClearedMemory( DEFINEHASHSIZE * sizeof( define_t * ) );
+	src.definehash = Z_TagMalloc( DEFINEHASHSIZE * sizeof( define_t * ), TAG_BOTLIB );
+	memset( src.definehash, 0, DEFINEHASHSIZE * sizeof( define_t * ) );
 #endif //DEFINEHASHING
 	   //create a define from the source
 	res = PC_Directive_define( &src );
@@ -1345,7 +1250,7 @@ define_t *PC_DefineFromString(const char *string)
 #endif //DEFINEHASHING
 	   //
 #if DEFINEHASHING
-	botimport.FreeMemory( src.definehash );
+	Z_Free( src.definehash );
 #endif //DEFINEHASHING
 	   //
 	FreeScript( script );
@@ -1447,9 +1352,9 @@ define_t *PC_CopyDefine( source_t *source, define_t *define ) {
 
 	(void)source;
 
-	newdefine = (define_t *) botimport.GetMemory( sizeof( define_t ) );
+	newdefine = (define_t *) Z_TagMalloc( sizeof( define_t ), TAG_BOTLIB );
 	//copy the define name
-	newdefine->name = (char *) botimport.GetMemory( strlen( define->name ) + 1 );
+	newdefine->name = (char *) Z_TagMalloc( strlen( define->name ) + 1, TAG_BOTLIB );
 	strcpy( newdefine->name, define->name );
 	newdefine->flags = define->flags;
 	newdefine->builtin = define->builtin;
@@ -2653,58 +2558,6 @@ int PC_ReadDollarDirective( source_t *source ) {
 	return qfalse;
 } //end of the function PC_ReadDirective
 
-#ifdef QUAKEC
-//============================================================================
-//
-// Parameter:				-
-// Returns:					-
-// Changes Globals:		-
-//============================================================================
-int BuiltinFunction( source_t *source ) {
-	token_t token;
-
-	if ( !PC_ReadSourceToken( source, &token ) ) {
-		return qfalse;
-	}
-	if ( token.type == TT_NUMBER ) {
-		PC_UnreadSourceToken( source, &token );
-		return qtrue;
-	} //end if
-	else
-	{
-		PC_UnreadSourceToken( source, &token );
-		return qfalse;
-	} //end else
-} //end of the function BuiltinFunction
-//============================================================================
-//
-// Parameter:				-
-// Returns:					-
-// Changes Globals:		-
-//============================================================================
-int QuakeCMacro( source_t *source ) {
-	int i;
-	token_t token;
-
-	if ( !PC_ReadSourceToken( source, &token ) ) {
-		return qtrue;
-	}
-	if ( token.type != TT_NAME ) {
-		PC_UnreadSourceToken( source, &token );
-		return qtrue;
-	} //end if
-	  //find the precompiler directive
-	for ( i = 0; dollardirectives[i].name; i++ )
-	{
-		if ( !strcmp( dollardirectives[i].name, token.string ) ) {
-			PC_UnreadSourceToken( source, &token );
-			return qfalse;
-		} //end if
-	} //end for
-	PC_UnreadSourceToken( source, &token );
-	return qtrue;
-} //end of the function QuakeCMacro
-#endif //QUAKEC
 //============================================================================
 //
 // Parameter:				-
@@ -2721,9 +2574,6 @@ int PC_ReadToken( source_t *source, token_t *token ) {
 		}
 		//check for precompiler directives
 		if ( token->type == TT_PUNCTUATION && *token->string == '#' ) {
-#ifdef QUAKEC
-			if ( !BuiltinFunction( source ) )
-#endif //QUAKC
 			{
 				//read the precompiler directive
 				if ( !PC_ReadDirective( source ) ) {
@@ -2733,9 +2583,6 @@ int PC_ReadToken( source_t *source, token_t *token ) {
 			} //end if
 		} //end if
 		if ( token->type == TT_PUNCTUATION && *token->string == '$' ) {
-#ifdef QUAKEC
-			if ( !QuakeCMacro( source ) )
-#endif //QUAKEC
 			{
 				//read the precompiler directive
 				if ( !PC_ReadDollarDirective( source ) ) {
@@ -3022,7 +2869,7 @@ source_t *LoadSourceFile( const char *filename ) {
 
 	script->next = NULL;
 
-	source = (source_t *) botimport.GetMemory( sizeof( source_t ) );
+	source = (source_t *) Z_TagMalloc( sizeof( source_t ), TAG_BOTLIB );
 	memset( source, 0, sizeof( source_t ) );
 
 	Q_strncpyz(source->filename, filename, sizeof(source->filename));
@@ -3033,7 +2880,8 @@ source_t *LoadSourceFile( const char *filename ) {
 	source->skip = 0;
 
 #if DEFINEHASHING
-	source->definehash = GetClearedMemory( DEFINEHASHSIZE * sizeof( define_t * ) );
+	source->definehash = Z_TagMalloc( DEFINEHASHSIZE * sizeof( define_t * ), TAG_BOTLIB );
+	memset( source->definehash, 0, DEFINEHASHSIZE * sizeof( define_t * ) );
 #endif //DEFINEHASHING
 	PC_AddGlobalDefinesToSource( source );
 	return source;
@@ -3056,7 +2904,7 @@ source_t *LoadSourceMemory( char *ptr, int length, char *name ) {
 	}
 	script->next = NULL;
 
-	source = (source_t *) botimport.GetMemory( sizeof( source_t ) );
+	source = (source_t *) Z_TagMalloc( sizeof( source_t ), TAG_BOTLIB );
 	memset( source, 0, sizeof( source_t ) );
 
 	Q_strncpyz( source->filename, name, sizeof(source->filename) );
@@ -3067,7 +2915,8 @@ source_t *LoadSourceMemory( char *ptr, int length, char *name ) {
 	source->skip = 0;
 
 #if DEFINEHASHING
-	source->definehash = GetClearedMemory( DEFINEHASHSIZE * sizeof( define_t * ) );
+	source->definehash = Z_TagMalloc( DEFINEHASHSIZE * sizeof( define_t * ), TAG_BOTLIB );
+	memset( source->definehash, 0, DEFINEHASHSIZE * sizeof( define_t * ) );
 #endif //DEFINEHASHING
 	PC_AddGlobalDefinesToSource( source );
 	return source;
@@ -3124,16 +2973,16 @@ void FreeSource( source_t *source ) {
 	{
 		indent = source->indentstack;
 		source->indentstack = source->indentstack->next;
-		botimport.FreeMemory( indent );
+		Z_Free( indent );
 	} //end for
 #if DEFINEHASHING
 	//
 	if ( source->definehash ) {
-		botimport.FreeMemory( source->definehash );
+		Z_Free( source->definehash );
 	}
 #endif //DEFINEHASHING
 	   //free the source itself
-	botimport.FreeMemory( source );
+	Z_Free( source );
 } //end of the function FreeSource
 //============================================================================
 //
@@ -3275,9 +3124,7 @@ void PC_CheckOpenSourceHandles( void ) {
 	for ( i = 1; i < MAX_SOURCEFILES; i++ )
 	{
 		if ( sourceFiles[i] ) {
-#ifdef BOTLIB
-			botimport.Print( PRT_ERROR, "file %s still open in precompiler\n", sourceFiles[i]->scriptstack->filename );
-#endif  //BOTLIB
+			Com_Printf( S_COLOR_RED "Error: file %s still open in precompiler\n", sourceFiles[i]->scriptstack->filename );
 		} //end if
 	} //end for
 } //end of the function PC_CheckOpenSourceHandles

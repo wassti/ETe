@@ -279,6 +279,7 @@
     <ClCompile Include="..\..\qcommon\history.c" />
     <ClCompile Include="..\..\qcommon\huffman_static.c" />
     <ClCompile Include="..\..\qcommon\keys.c" />
+    <ClCompile Include="..\..\qcommon\lexer.c" />
     <ClCompile Include="..\..\qcommon\md5.c" />
     <ClCompile Include="..\..\qcommon\net_ip.c" />
     <ClCompile Include="..\..\qcommon\q_math.c" />
@@ -296,6 +297,7 @@
     <ClCompile Include="..\..\qcommon\md4.c" />
     <ClCompile Include="..\..\qcommon\msg.c" />
     <ClCompile Include="..\..\qcommon\net_chan.c" />
+    <ClCompile Include="..\..\qcommon\parser.c" />
     <ClCompile Include="..\..\qcommon\unzip.c" />
     <ClCompile Include="..\..\qcommon\vm.c" />
     <ClCompile Include="..\..\server\sv_bot.c" />
@@ -351,7 +353,6 @@
     <ClInclude Include="..\..\client\snd_local.h" />
     <ClInclude Include="..\..\client\snd_public.h" />
     <ClInclude Include="..\..\game\bg_public.h" />
-    <ClInclude Include="..\..\botlib\botlib.h" />
     <ClInclude Include="..\..\game\g_public.h" />
     <ClInclude Include="..\..\qcommon\q_platform.h" />
     <ClInclude Include="..\..\qcommon\q_shared.h" />
@@ -362,6 +363,8 @@
     <ClInclude Include="..\..\qcommon\cm_public.h" />
     <ClInclude Include="..\..\qcommon\dl_public.h" />
     <ClInclude Include="..\..\qcommon\qcommon.h" />
+    <ClInclude Include="..\..\qcommon\lexer.h" />
+    <ClInclude Include="..\..\qcommon\parser.h" />
     <ClInclude Include="..\..\qcommon\qfiles.h" />
     <ClInclude Include="..\..\qcommon\unzip.h" />
     <ClInclude Include="..\..\qcommon\vm_local.h" />
@@ -375,10 +378,6 @@
     <ClInclude Include="..\resource.h" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="botlib.vcxproj">
-      <Project>{efa65954-05a8-43c4-b4fe-fafe8e678ab7}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
     <ProjectReference Include="libjpeg.vcxproj">
       <Project>{17867af4-12cb-4847-a13e-bf37d8bdf597}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>

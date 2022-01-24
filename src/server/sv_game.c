@@ -30,10 +30,6 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "server.h"
 
-#include "../botlib/botlib.h"
-
-botlib_export_t	*botlib_export;
-
 // these functions must be used instead of pointer arithmetic, because
 // the game allocates gentities with private information after the server shared part
 int	SV_NumForGentity( sharedEntity_t *ent ) {
@@ -547,9 +543,8 @@ static intptr_t SV_GameSystemCalls( intptr_t *args ) {
 	}
 
 	case G_DEBUG_POLYGON_CREATE:
-		return BotImport_DebugPolygonCreate( args[1], args[2], VMA( 3 ) );
+		return 0;
 	case G_DEBUG_POLYGON_DELETE:
-		BotImport_DebugPolygonDelete( args[1] );
 		return 0;
 	case G_REAL_TIME:
 		return Com_RealTime( VMA( 1 ) );
@@ -580,17 +575,17 @@ static intptr_t SV_GameSystemCalls( intptr_t *args ) {
 		return 0;
 
 	case BOTLIB_PC_ADD_GLOBAL_DEFINE:
-		return botlib_export->PC_AddGlobalDefine( VMA( 1 ) );
+		return PC_AddGlobalDefine( VMA( 1 ) );
 	case BOTLIB_PC_LOAD_SOURCE:
-		return botlib_export->PC_LoadSourceHandle( VMA( 1 ) );
+		return PC_LoadSourceHandle( VMA( 1 ) );
 	case BOTLIB_PC_FREE_SOURCE:
-		return botlib_export->PC_FreeSourceHandle( args[1] );
+		return PC_FreeSourceHandle( args[1] );
 	case BOTLIB_PC_READ_TOKEN:
-		return botlib_export->PC_ReadTokenHandle( args[1], VMA( 2 ) );
+		return PC_ReadTokenHandle( args[1], VMA( 2 ) );
 	case BOTLIB_PC_SOURCE_FILE_AND_LINE:
-		return botlib_export->PC_SourceFileAndLine( args[1], VMA( 2 ), VMA( 3 ) );
+		return PC_SourceFileAndLine( args[1], VMA( 2 ), VMA( 3 ) );
 	case BOTLIB_PC_UNREAD_TOKEN:
-		botlib_export->PC_UnreadLastTokenHandle( args[1] );
+		PC_UnreadLastTokenHandle( args[1] );
 		return 0;
 
 	case BOTLIB_GET_SNAPSHOT_ENTITY:

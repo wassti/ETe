@@ -6298,16 +6298,6 @@ void CL_OpenURL( const char *url ) {
 	Sys_OpenURL( url, qtrue );
 }
 
-// Gordon: TEST TEST TEST
-/*
-==================
-BotImport_DrawPolygon
-==================
-*/
-void BotImport_DrawPolygon( int color, int numpoints, float* points ) {
-	re.DrawDebugPolygon( color, numpoints, points );
-}
-
 #ifdef USE_CURL
 
 qboolean CL_Download( const char *cmd, const char *pakname, qboolean autoDownload )

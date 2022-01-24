@@ -113,7 +113,13 @@
     <ClCompile Include="..\..\qcommon\keys.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\qcommon\lexer.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\qcommon\md5.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\qcommon\parser.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\qcommon\huffman_static.c">
@@ -131,9 +137,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\game\bg_public.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\botlib\botlib.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\cgame\cg_public.h">
@@ -167,6 +170,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\qcommon\qcommon.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\qcommon\lexer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\qcommon\parser.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\qcommon\qfiles.h">

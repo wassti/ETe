@@ -1043,9 +1043,6 @@ void SV_Init( void )
 		" 1 - refuse to set sv_paks and sv_pakNames (Quake3e+ETe style).\n"
 		" 2 - set sv_paks and sv_pakNames to referenced if won't still overflow (ET:Legacy style)" );
 
-	// init the botlib here because we need the pre-compiler in the UI
-	SV_BotInitBotLib();
-
 #ifdef USE_BANS	
 	// Load saved bans
 	Cbuf_AddText("rehashbans\n");

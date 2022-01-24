@@ -122,13 +122,6 @@ endif()
 
 set(SRCDIR "${CMAKE_SOURCE_DIR}")
 
-set(botlib_files 
-    "botlib/be_interface.c"
-    "botlib/l_memory.c"
-    "botlib/l_precomp.c"
-    "botlib/l_script.c"
-)
-
 set(client_files
     "client/cl_avi.c"
     "client/cl_cgame.c"
@@ -182,11 +175,13 @@ set(qcommon_files
     "qcommon/huffman_static.c"
     "qcommon/huffman.c"
     "qcommon/keys.c"
+    "qcommon/lexer.c"
     "qcommon/md4.c"
     "qcommon/md5.c"
     "qcommon/msg.c"
     "qcommon/net_chan.c"
     "qcommon/net_ip.c"
+    "qcommon/parser.c"
     "qcommon/puff.c"
     "qcommon/q_math.c"
     "qcommon/q_shared.c"
@@ -454,18 +449,6 @@ if(BUILD_ETMAIN_MOD)
     )
 endif(BUILD_ETMAIN_MOD)
 
-add_library(botlib STATIC "${botlib_files}")
-target_compile_options(botlib
-    PRIVATE $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:DEBUG>>:${compiler_flags_debug}>
-            $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:RELEASE>>:${compiler_flags_release}>
-            $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:RELWITHDEBINFO>>:${compiler_flags_relwithdebinfo}>
-            $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:DEBUG>>:${compiler_flags_debug}>
-            $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:RELEASE>>:${compiler_flags_release}>
-            $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:RELWITHDEBINFO>>:${compiler_flags_relwithdebinfo}>
-)
-target_include_directories(botlib PUBLIC "${SRCDIR}/botlib ${SRCDIR}/qcommon")
-target_compile_definitions(botlib PUBLIC "BOTLIB")
-
 if(ENABLE_SPLINES)
 add_library(splines STATIC "${splines_files}")
 target_compile_options(splines
@@ -569,7 +552,7 @@ if(BUILD_CLIENT)
     else()
         set_target_properties(ete PROPERTIES SUFFIX ".${Architecture}") #NOTE changeme when multi-platform and multi-arch support is added
     endif(X86)
-    target_include_directories(ete PUBLIC "${SRCDIR}/botlib ${SRCDIR}/server ${SRCDIR}/client ${SRCDIR}/qcommon")
+    target_include_directories(ete PUBLIC "${SRCDIR}/server ${SRCDIR}/client ${SRCDIR}/qcommon")
     target_compile_definitions(ete PUBLIC "USE_CURL" "USE_CURL_DLOPEN")
     target_include_directories(ete PRIVATE ${CURL_INCLUDE_DIRS})
     if(APPLE)
@@ -594,7 +577,6 @@ if(BUILD_CLIENT)
         target_include_directories(ete PRIVATE ${JPEG_INCLUDE_DIRS})
         target_link_libraries(ete PRIVATE ${JPEG_LIBRARIES})
     endif()
-    target_link_libraries(ete PUBLIC botlib)
     if(ENABLE_SPLINES)
     target_compile_definitions(ete PUBLIC "ENABLE_SPLINES")
         target_link_libraries(ete PUBLIC splines)
@@ -619,10 +601,9 @@ if(BUILD_DEDSERVER)
     else()
         set_target_properties(ete-ded PROPERTIES SUFFIX ".${Architecture}")
     endif(X86)
-    target_include_directories(ete-ded PUBLIC "${SRCDIR}/botlib ${SRCDIR}/server ${SRCDIR}/client ${SRCDIR}/qcommon")
+    target_include_directories(ete-ded PUBLIC "${SRCDIR}/server ${SRCDIR}/client ${SRCDIR}/qcommon")
     target_compile_definitions(ete-ded PUBLIC "DEDICATED")
     target_link_libraries(ete-ded PRIVATE ${CMAKE_DL_LIBS} "m")
-    target_link_libraries(ete-ded PUBLIC botlib)
 endif(BUILD_DEDSERVER)
 
 if(BUILD_ETMAIN_MOD)

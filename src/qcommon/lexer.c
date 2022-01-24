@@ -35,52 +35,9 @@ If you have questions concerning this license or the applicable additional terms
  *
  *****************************************************************************/
 
-//#define SCREWUP
-//#define BOTLIB
-//#define MEQCC
-//#define BSPC
-
-#ifdef SCREWUP
-#include <stdio.h>
-#include <stdlib.h>
-#include <limits.h>
-#include <string.h>
-#include <stdarg.h>
-#include "../botlib/l_memory.h"
-#include "../botlib/l_script.h"
-
-typedef enum {qfalse, qtrue}    qboolean;
-
-#endif //SCREWUP
-
-#ifdef BOTLIB
-//include files for usage in the bot library
-#include "../qcommon/q_shared.h"
-#include "botlib.h"
-#include "be_interface.h"
-#include "l_script.h"
-#include "l_memory.h"
-#endif //BOTLIB
-
-#ifdef MEQCC
-//include files for usage in MrElusive's QuakeC Compiler
-#include "qcc.h"
-#include "l_script.h"
-#include "l_memory.h"
-
-#define qtrue   true
-#define qfalse  false
-#endif //MEQCC
-
-#ifdef BSPC
-//include files for usage in the BSP Converter
-#include "../bspc/qbsp.h"
-#include "../bspc/l_log.h"
-#include "../bspc/l_mem.h"
-
-#define qtrue   true
-#define qfalse  false
-#endif //BSPC
+#include "q_shared.h"
+#include "qcommon.h"
+#include "lexer.h"
 
 #define PUNCTABLE
 
@@ -162,11 +119,7 @@ punctuation_t default_punctuations[] =
 	{NULL, 0}
 };
 
-#ifdef BSPC
-static char basefolder[MAX_PATH];
-#else
 static char basefolder[MAX_QPATH];
-#endif
 
 //===========================================================================
 //
@@ -181,7 +134,7 @@ void PS_CreatePunctuationTable( script_t *script, punctuation_t *punctuations ) 
 	//get memory for the table
 	if ( !script->punctuationtable ) {
 		script->punctuationtable = (punctuation_t **)
-								   botimport.GetMemory( 256 * sizeof( punctuation_t * ) );
+								   Z_TagMalloc( 256 * sizeof( punctuation_t * ), TAG_BOTLIB );
 	}
 	memset( script->punctuationtable, 0, 256 * sizeof( punctuation_t * ) );
 	//add the punctuations in the list to the punctuation table
@@ -244,15 +197,7 @@ void FORMAT_PRINTF(2, 3) QDECL ScriptError(script_t *script, const char *fmt, ..
 	va_start(ap, fmt);
 	Q_vsnprintf(text, sizeof(text), fmt, ap);
 	va_end(ap);
-#ifdef BOTLIB
-	botimport.Print( PRT_ERROR, "file %s, line %d: %s\n", script->filename, script->line, text );
-#endif //BOTLIB
-#ifdef MEQCC
-	printf( "error: file %s, line %d: %s\n", script->filename, script->line, text );
-#endif //MEQCC
-#ifdef BSPC
-	Log_Print( "error: file %s, line %d: %s\n", script->filename, script->line, text );
-#endif //BSPC
+	Com_Printf( S_COLOR_RED "Error: file %s, line %d: %s\n", script->filename, script->line, text );
 } //end of the function ScriptError
 //===========================================================================
 //
@@ -272,15 +217,7 @@ void FORMAT_PRINTF(2, 3) QDECL ScriptWarning(script_t *script, const char *fmt, 
 	va_start(ap, fmt);
 	Q_vsnprintf(text, sizeof(text), fmt, ap);
 	va_end(ap);
-#ifdef BOTLIB
-	botimport.Print( PRT_WARNING, "file %s, line %d: %s\n", script->filename, script->line, text );
-#endif //BOTLIB
-#ifdef MEQCC
-	printf( "warning: file %s, line %d: %s\n", script->filename, script->line, text );
-#endif //MEQCC
-#ifdef BSPC
-	Log_Print( "warning: file %s, line %d: %s\n", script->filename, script->line, text );
-#endif //BSPC
+	Com_Printf( S_COLOR_YELLOW "Warning: file %s, line %d: %s\n", script->filename, script->line, text );
 } //end of the function ScriptWarning
 //===========================================================================
 //
@@ -1286,25 +1223,6 @@ int EndOfScript( script_t *script ) {
 		script->script_p++;
 	} while ( 1 );
 }*/ //end of the function ScriptSkipTo
-#ifndef BOTLIB
-//============================================================================
-//
-// Parameter:				-
-// Returns:					-
-// Changes Globals:		-
-//============================================================================
-int FileLength( FILE *fp ) {
-	int pos;
-	int end;
-
-	pos = ftell( fp );
-	fseek( fp, 0, SEEK_END );
-	end = ftell( fp );
-	fseek( fp, pos, SEEK_SET );
-
-	return end;
-} //end of the function FileLength
-#endif
 //============================================================================
 //
 // Parameter:				-
@@ -1313,32 +1231,22 @@ int FileLength( FILE *fp ) {
 //============================================================================
 int COM_Compress( char *data_p );
 script_t *LoadScriptFile( const char *filename ) {
-#ifdef BOTLIB
 	fileHandle_t fp;
 	char pathname[MAX_QPATH*2];
-#else
-	FILE *fp;
-#endif
 	int length;
 	void *buffer;
 	script_t *script;
 
-#ifdef BOTLIB
 	if ( basefolder[0] != '\0' )
 		Com_sprintf( pathname, sizeof( pathname ), "%s/%s", basefolder, filename );
 	else
 		Com_sprintf( pathname, sizeof( pathname ), "%s", filename );
 
-	length = botimport.FS_FOpenFile( pathname, &fp, FS_READ );
-	if (!fp) return NULL;
-#else
-	fp = Sys_FOpen(filename, "rb");
+	length = FS_FOpenFileByMode( pathname, &fp, FS_READ );
 	if (!fp) return NULL;
 
-	length = FileLength(fp);
-#endif
-
-	buffer = GetClearedMemory( sizeof( script_t ) + (unsigned int)length + 1 );
+	buffer = Z_TagMalloc( sizeof( script_t ) + (unsigned int)length + 1, TAG_BOTLIB );
+	memset( buffer, 0, sizeof( script_t ) + (unsigned int)length + 1 );
 	script = (script_t *) buffer;
 	Com_Memset(script, 0, sizeof(script_t));
 	Q_strncpyz(script->filename, filename, sizeof(script->filename));
@@ -1359,16 +1267,8 @@ script_t *LoadScriptFile( const char *filename ) {
 	//
 	SetScriptPunctuations( script, NULL );
 	//
-#ifdef BOTLIB
-	botimport.FS_Read( script->buffer, length, fp );
-	botimport.FS_FCloseFile( fp );
-#else
-	if ( fread( script->buffer, length, 1, fp ) != 1 ) {
-		botimport.FreeMemory( buffer );
-		script = NULL;
-	} //end if
-	fclose( fp );
-#endif
+	FS_Read( script->buffer, length, fp );
+	FS_FCloseFile( fp );
 	//
 
 	return script;
@@ -1384,7 +1284,8 @@ script_t *LoadScriptMemory(const char *ptr, int length, const char *name)
 	void *buffer;
 	script_t *script;
 
-	buffer = GetClearedMemory(sizeof(script_t) + (unsigned int)length + 1);
+	buffer = Z_TagMalloc(sizeof(script_t) + (unsigned int)length + 1, TAG_BOTLIB);
+	memset( buffer, 0, sizeof(script_t) + (unsigned int)length + 1 );
 	script = (script_t *) buffer;
 	Com_Memset(script, 0, sizeof(script_t));
 	Q_strncpyz(script->filename, name, sizeof(script->filename));
@@ -1418,10 +1319,10 @@ script_t *LoadScriptMemory(const char *ptr, int length, const char *name)
 void FreeScript( script_t *script ) {
 #ifdef PUNCTABLE
 	if ( script->punctuationtable ) {
-		botimport.FreeMemory( script->punctuationtable );
+		Z_Free( script->punctuationtable );
 	}
 #endif //PUNCTABLE
-	botimport.FreeMemory( script );
+	Z_Free( script );
 } //end of the function FreeScript
 //============================================================================
 //
@@ -1431,9 +1332,5 @@ void FreeScript( script_t *script ) {
 //============================================================================
 void PS_SetBaseFolder(const char *path)
 {
-#ifdef BSPC
-	sprintf(basefolder, path);
-#else
 	Q_strncpyz( basefolder, path, sizeof( basefolder ) );
-#endif
 } //end of the function PS_SetBaseFolder

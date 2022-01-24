@@ -967,6 +967,19 @@ typedef enum {
 	DL_FLAG_URL
 } dlFlags_t;
 
+
+int PC_AddGlobalDefine(const char *string);
+void PC_RemoveAllGlobalDefines( void );
+int PC_LoadSourceHandle( const char *filename );
+int PC_FreeSourceHandle( int handle );
+int PC_ReadTokenHandle( int handle, pc_token_t *pc_token );
+int PC_SourceFileAndLine( int handle, char *filename, int *line );
+void PC_UnreadLastTokenHandle( int handle );
+
+
+
+
+
 /*
 ==============================================================
 

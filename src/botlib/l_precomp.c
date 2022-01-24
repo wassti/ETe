@@ -1447,9 +1447,9 @@ define_t *PC_CopyDefine( source_t *source, define_t *define ) {
 
 	(void)source;
 
-	newdefine = (define_t *) botimport.GetMemory( sizeof( define_t ) + strlen( define->name ) + 1 );
+	newdefine = (define_t *) botimport.GetMemory( sizeof( define_t ) );
 	//copy the define name
-	newdefine->name = (char *) newdefine + sizeof( define_t );
+	newdefine->name = (char *) botimport.GetMemory( strlen( define->name ) + 1 );
 	strcpy( newdefine->name, define->name );
 	newdefine->flags = define->flags;
 	newdefine->builtin = define->builtin;

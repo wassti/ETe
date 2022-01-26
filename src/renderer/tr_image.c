@@ -69,7 +69,7 @@ void *R_GetImageBuffer( int size, bufferMemType_t bufferType ) {
 	}
 
 	if ( !imageBufferPtr[bufferType] ) {
-		ri.Error( ERR_DROP, "R_GetImageBuffer: unable to allocate %s buffer with size: %i\n", imageBufferTypeStrs[bufferType], size);
+		ri.Error( ERR_DROP, "R_GetImageBuffer: unable to allocate %s buffer with size: %i", imageBufferTypeStrs[bufferType], size);
 	}
 
 	return imageBufferPtr[bufferType];
@@ -1065,7 +1065,7 @@ image_t	*R_FindImageFile( const char *name, imgFlags_t flags )
 	char	strippedName[ MAX_QPATH ];
 	int		width, height;
 	byte	*pic;
-	int		hash;
+	long	hash;
 
 	if ( !name ) {
 		return NULL;
@@ -1524,10 +1524,6 @@ void R_InitImages( void ) {
 
 	Com_Memset( hashTable, 0, sizeof( hashTable ) );
 
-	// Ridah, caching system
-	//%	R_InitTexnumImages(qfalse);
-	// done.
-
 	// build brightness translation tables
 	R_SetColorMappings();
 
@@ -1553,10 +1549,6 @@ void R_DeleteTextures( void ) {
 		img = tr.images[ i ];
 		qglDeleteTextures( 1, &img->texnum );
 	}
-
-	// Ridah
-	//%	R_InitTexnumImages(qtrue);
-	// done.
 
 	if ( qglActiveTextureARB ) {
 		for ( i = glConfig.numTextureUnits - 1; i >= 0; i-- ) {
@@ -1959,8 +1951,8 @@ R_SkinList_f
 ===============
 */
 void	R_SkinList_f( void ) {
-	int			i, j;
-	skin_t		*skin;
+	int				i, j;
+	const skin_t	*skin;
 
 	ri.Printf (PRINT_ALL, "------------------\n");
 
@@ -2186,7 +2178,7 @@ qboolean R_TouchImage( image_t *inImage ) {
 		if ( bImage == inImage ) {
 			// add it to the current images
 			if ( tr.numImages == MAX_DRAWIMAGES ) {
-				ri.Error( ERR_DROP, "R_CreateImage: MAX_DRAWIMAGES hit\n" );
+				ri.Error( ERR_DROP, "R_CreateImage: MAX_DRAWIMAGES hit" );
 			}
 
 			tr.images[tr.numImages] = bImage;
@@ -2221,9 +2213,6 @@ R_PurgeImage
 ===============
 */
 void R_PurgeImage( image_t *image ) {
-
-	//%	texnumImages[image->texnum - 1024] = NULL;
-
 	qglDeleteTextures( 1, &image->texnum );
 
 	R_CacheImageFree( image );
@@ -2263,7 +2252,6 @@ void R_PurgeBackupImages( int purgeCount ) {
 	cnt = 0;
 	for ( i = lastPurged; i < FILE_HASH_SIZE; ) {
 		lastPurged = i;
-		// TTimo: assignment used as truth value
 		image = backupHashTable[i];
 		if ( image ) {
 			// kill it
@@ -2321,7 +2309,7 @@ void R_BackupImages( void ) {
 R_FindCachedImage
 =============
 */
-image_t *R_FindCachedImage( const char *name, int hash ) {
+image_t *R_FindCachedImage( const char *name, long hash ) {
 	image_t *bImage;
 
 	if ( !r_cacheShaders->integer ) {
@@ -2338,7 +2326,7 @@ image_t *R_FindCachedImage( const char *name, int hash ) {
 		if ( !Q_stricmp( name, bImage->imgName ) ) {
 			// add it to the current images
 			if ( tr.numImages == MAX_DRAWIMAGES ) {
-				ri.Error( ERR_DROP, "R_CreateImage: MAX_DRAWIMAGES hit\n" );
+				ri.Error( ERR_DROP, "R_CreateImage: MAX_DRAWIMAGES hit" );
 			}
 
 			R_TouchImage( bImage );
@@ -2370,58 +2358,6 @@ int R_GetTextureId( const char *name ) {
 //	ri.Printf( PRINT_ALL, "Image not found.\n" );
 	return -1;
 }
-
-// ydnar: glGenTextures, sir...
-
-#if 0
-/*
-===============
-R_InitTexnumImages
-===============
-*/
-static int last_i;
-void R_InitTexnumImages( qboolean force ) {
-	if ( force || !numBackupImages ) {
-		memset( texnumImages, 0, sizeof( texnumImages ) );
-		last_i = 0;
-	}
-}
-
-/*
-============
-R_FindFreeTexnum
-============
-*/
-void R_FindFreeTexnum( image_t *inImage ) {
-	int i, max;
-	image_t **image;
-
-	max = ( MAX_DRAWIMAGES * 2 );
-	if ( last_i && !texnumImages[last_i + 1] ) {
-		i = last_i + 1;
-	} else {
-		i = 0;
-		image = (image_t **)&texnumImages;
-		while ( i < max && *( image++ ) ) {
-			i++;
-		}
-	}
-
-	if ( i < max ) {
-		if ( i < max - 1 ) {
-			last_i = i;
-		} else {
-			last_i = 0;
-		}
-		inImage->texnum = 1024 + i;
-		texnumImages[i] = inImage;
-	} else {
-		ri.Error( ERR_DROP, "R_FindFreeTexnum: MAX_DRAWIMAGES hit\n" );
-	}
-}
-#endif
-
-
 
 /*
 ===============

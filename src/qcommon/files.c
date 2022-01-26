@@ -5262,6 +5262,22 @@ static void FS_Startup( void ) {
 	//if ( !Q_stricmp( fs_basegame->string, BASEGAME ) )
 	//	FS_CheckIdPaks();
 
+#if (idx64 || arm32 || arm64)
+	if ( fs_gamedirvar->string[0] == '\0' ) {
+#ifndef DEDICATED
+		const char *temp = va( "%s%c%s", fs_basegame->string, PATH_SEP, SYS_DLLNAME_UI );
+		if ( !FS_SV_FileExists( temp ) && !FS_FileIsInPAK( SYS_DLLNAME_UI, NULL, NULL ) ) {
+			Com_Error( ERR_FATAL, "Missing etmain UI module for your platform, consider loading a mod directly with shortcut or download etmain files for your platform (%s - %s)", OS_STRING, ARCH_STRING );
+		}
+#else
+		const char *temp = va( "%s%c%s", fs_basegame->string, PATH_SEP, SYS_DLLNAME_QAGAME );
+		if ( !FS_SV_FileExists( temp ) && !FS_FileIsInPAK( SYS_DLLNAME_QAGAME, NULL, NULL ) ) {
+			Com_Error( ERR_FATAL, "Missing etmain server qagame module for your platform, consider loading a mod directly with shortcut or download etmain files for your platform (%s - %s)", OS_STRING, ARCH_STRING );
+		}
+#endif
+	}
+#endif
+
 #ifdef FS_MISSING
 	if (missingFiles == NULL) {
 		missingFiles = Sys_FOpen( "\\missing.txt", "ab" );

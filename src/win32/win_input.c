@@ -203,11 +203,23 @@ IN_CaptureMouse
 */
 static void IN_CaptureMouse( const RECT *clipRect )
 {
-	while( ShowCursor( FALSE ) >= 0 )
-		;
+	CURSORINFO ci;
+
+	ClipCursor( clipRect );
 	SetCursorPos( window_center.x, window_center.y );
 	SetCapture( g_wv.hWnd );
-	ClipCursor( clipRect );
+
+	memset( &ci, 0, sizeof( ci ) );
+	ci.cbSize = sizeof( CURSORINFO );
+	if ( GetCursorInfo( &ci ) ) {
+		if ( ci.flags == CURSOR_SHOWING ) {
+			while ( ShowCursor( FALSE ) >= 0 )
+				;
+		}
+	} else {
+		while ( ShowCursor( FALSE ) >= 0 )
+			;
+	}
 }
 
 

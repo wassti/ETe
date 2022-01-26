@@ -545,7 +545,7 @@ clients along with it.
 This is NOT called for map_restart
 ================
 */
-void SV_SpawnServer( const char *mapname, qboolean killBots ) {
+void SV_SpawnServer( const char *mapname ) {
 	int			i;
 	int			checksum;
 	qboolean	isBot;
@@ -722,7 +722,7 @@ void SV_SpawnServer( const char *mapname, qboolean killBots ) {
 			const char *denied;
 
 			if ( svs.clients[i].netchan.remoteAddress.type == NA_BOT ) {
-				if ( killBots || SV_GameIsSinglePlayer() || SV_GameIsCoop() ) {
+				if ( SV_GameIsSinglePlayer() || SV_GameIsCoop() ) {
 					SV_DropClient( &svs.clients[i], "was kicked" );
 					continue;
 				}

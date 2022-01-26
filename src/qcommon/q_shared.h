@@ -279,6 +279,10 @@ typedef int		clipHandle_t;
 #define NULL ((void *)0)
 #endif
 
+#ifndef BIT
+#define BIT( num ) ( 1ULL << ( num ) )
+#endif
+
 #define	MAX_QINT			0x7fffffff
 #define	MIN_QINT			(-MAX_QINT-1)
 
@@ -1961,4 +1965,21 @@ typedef enum gameMod_e {
 	//GAMEMOD_MAX = 512
 } gameMod_t;
 
-#endif  // __Q_SHARED_H
+typedef enum ossInfoFlag_e {
+	OSS_AUTO = 0,
+	OSS_WIN32 = BIT(0),
+	OSS_WIN64 = BIT(1),
+	OSS_LINUX32 = BIT(2),
+	OSS_LINUX64 = BIT(3),
+	OSS_LINUXARM64 = BIT(4),
+	OSS_MACOSPPC = BIT(5),
+	OSS_MACOSINTEL32 = BIT(6),
+	OSS_MACOSINTEL64 = BIT(7),
+	OSS_MACOSARM64 = BIT(8),
+	OSS_ANDROID = BIT(9), // multiple android arches?
+	OSS_RASBERRYPI = BIT(10),
+	OSS_WINARM64 = BIT(11),
+	OSS_MAX = BIT(32)
+} ossInfoFlag_t;
+
+#endif  // __Q_SHARED_H__

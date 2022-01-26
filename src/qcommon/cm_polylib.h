@@ -28,6 +28,9 @@ If you have questions concerning this license or the applicable additional terms
 
 // this is only used for visualization tools in cm_ debug functions
 
+#ifndef __CM_POLYLIB_H__
+#define __CM_POLYLIB_H__
+
 typedef struct
 {
 	int		numpoints;
@@ -66,3 +69,4 @@ void	AddWindingToConvexHull( winding_t *w, winding_t **hull, vec3_t normal );
 
 void	ChopWindingInPlace( winding_t **w, const vec3_t normal, vec_t dist, vec_t epsilon );
 // frees the original if clipped
+#endif

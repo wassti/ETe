@@ -28,35 +28,15 @@ If you have questions concerning this license or the applicable additional terms
 
 
 /*****************************************************************************
- * name:		l_precomp.h
+ * name:		parser.h
  *
- * desc:		pre compiler
+ * desc:		c/c++ compatible pre-compiler
  *
  *
  *****************************************************************************/
 
-#ifndef L_PRECOMP_H
-#define L_PRECOMP_H
-
-#ifndef MAX_PATH
-	#define MAX_PATH            MAX_QPATH
-#endif
-
-#ifndef PATH_SEPERATORSTR
-	#if defined( WIN32 ) | defined( _WIN32 ) | defined( __NT__ ) | defined( __WINDOWS__ ) | defined( __WINDOWS_386__ )
-		#define PATHSEPERATOR_STR       "\\"
-	#else
-		#define PATHSEPERATOR_STR       "/"
-	#endif
-#endif
-#ifndef PATH_SEPERATORCHAR
-	#if defined( WIN32 ) | defined( _WIN32 ) | defined( __NT__ ) | defined( __WINDOWS__ ) | defined( __WINDOWS_386__ )
-		#define PATHSEPERATOR_CHAR      '\\'
-	#else
-		#define PATHSEPERATOR_CHAR      '/'
-	#endif
-#endif
-
+#ifndef __PARSER_H__
+#define __PARSER_H__
 
 #define DEFINE_FIXED            0x0001
 
@@ -111,23 +91,22 @@ typedef struct source_s
 	token_t token;                          //last read token
 } source_t;
 
-
 //read a token from the source
 int PC_ReadToken( source_t *source, token_t *token );
 //expect a certain token
-int PC_ExpectTokenString( source_t *source, char *string );
+//int PC_ExpectTokenString( source_t *source, char *string );
 //expect a certain token type
-int PC_ExpectTokenType( source_t *source, int type, int subtype, token_t *token );
+//int PC_ExpectTokenType( source_t *source, int type, int subtype, token_t *token );
 //expect a token
-int PC_ExpectAnyToken( source_t *source, token_t *token );
+//int PC_ExpectAnyToken( source_t *source, token_t *token );
 //returns true when the token is available
 int PC_CheckTokenString( source_t *source, char *string );
 //returns true an reads the token when a token with the given type is available
-int PC_CheckTokenType( source_t *source, int type, int subtype, token_t *token );
+//int PC_CheckTokenType( source_t *source, int type, int subtype, token_t *token );
 //skip tokens until the given token string is read
-int PC_SkipUntilString( source_t *source, char *string );
+//int PC_SkipUntilString( source_t *source, char *string );
 //unread the last token read from the script
-void PC_UnreadLastToken( source_t *source );
+//void PC_UnreadLastToken( source_t *source );
 //unread the given token
 void PC_UnreadToken( source_t *source, token_t *token );
 //read a token only if on the same line, lines are concatenated with a slash
@@ -135,25 +114,25 @@ int PC_ReadLine( source_t *source, token_t *token );
 //returns true if there was a white space in front of the token
 int PC_WhiteSpaceBeforeToken( token_t *token );
 //add a define to the source
-int PC_AddDefine( source_t *source, char *string );
+//int PC_AddDefine( source_t *source, char *string );
 //add a globals define that will be added to all opened sources
 int PC_AddGlobalDefine( const char *string );
 //remove the given global define
-int PC_RemoveGlobalDefine( char *name );
+//int PC_RemoveGlobalDefine( char *name );
 //remove all globals defines
 void PC_RemoveAllGlobalDefines( void );
 //add builtin defines
 //void PC_AddBuiltinDefines( source_t *source );
 //set the source include path
-void PC_SetIncludePath( source_t *source, const char *path );
+//void PC_SetIncludePath( source_t *source, const char *path );
 //set the punction set
-void PC_SetPunctuations( source_t *source, punctuation_t *p );
+//void PC_SetPunctuations( source_t *source, punctuation_t *p );
 //set the base folder to load files from
-void PC_SetBaseFolder( const char *path );
+//void PC_SetBaseFolder( const char *path );
 //load a source file
 source_t *LoadSourceFile( const char *filename );
 //load a source from memory
-source_t *LoadSourceMemory( char *ptr, int length, char *name );
+//source_t *LoadSourceMemory( char *ptr, int length, char *name );
 //free the given source
 void FreeSource( source_t *source );
 //print a source error

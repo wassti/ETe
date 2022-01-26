@@ -26,6 +26,9 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#ifndef __CL_KEYS_H__
+#define __CL_KEYS_H__
+
 #include "../ui/keycodes.h"
 
 typedef struct {
@@ -59,4 +62,5 @@ void Key_ClearStates( void );
 qboolean Key_GetOverstrikeMode( void );
 void Key_SetOverstrikeMode( qboolean state );
 
-void Com_InitKeyCommands( void ); 
+void Com_InitKeyCommands( void );
+#endif

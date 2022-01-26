@@ -27,6 +27,9 @@ If you have questions concerning this license or the applicable additional terms
 */
 // win_local.h: Win32-specific Quake3 header file
 
+#ifndef __WIN_LOCAL_H__
+#define __WIN_LOCAL_H__
+
 #define RAW_INPUT
 
 #define FAST_MODE_SWITCH
@@ -167,3 +170,5 @@ void WIN_EnableAltTab( void );
 void WIN_Minimize( void );
 
 void SetupDPIAwareness( void );
+
+#endif

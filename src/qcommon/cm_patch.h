@@ -66,6 +66,9 @@ degenerate a few triangles.  Completely degenerate rows and columns are handled
 properly.
 */
 
+#ifndef __CM_PATCH_H__
+#define __CM_PATCH_H__
+
 
 #define	MAX_FACETS			1024
 #define	MAX_PATCH_PLANES	(2048+128)
@@ -108,3 +111,4 @@ typedef struct {
 
 
 struct patchCollide_s	*CM_GeneratePatchCollide( int width, int height, vec3_t *points );
+#endif

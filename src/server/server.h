@@ -28,6 +28,9 @@ If you have questions concerning this license or the applicable additional terms
 
 // server.h
 
+#ifndef __SERVER_H__
+#define __SERVER_H__
+
 #include "../qcommon/q_shared.h"
 #include "../qcommon/qcommon.h"
 #include "../qcommon/vm_local.h"
@@ -606,3 +609,5 @@ void SV_AddFilterCmd_f( void );
 #define DLNOTIFY_REDIRECT   0x00000001  // "Redirecting client ..."
 #define DLNOTIFY_BEGIN      0x00000002  // "clientDownload: 4 : beginning ..."
 #define DLNOTIFY_ALL        ( DLNOTIFY_REDIRECT | DLNOTIFY_BEGIN )
+
+#endif

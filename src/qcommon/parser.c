@@ -27,9 +27,9 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 /*****************************************************************************
- * name:		l_precomp.c
+ * name:		parser.c
  *
- * desc:		pre compiler
+ * desc:		c/c++ compatible pre-compiler
  *
  *
  *****************************************************************************/
@@ -880,7 +880,7 @@ void PC_ConvertPath(char *path)
 	//set OS dependent path seperators
 	for (ptr = path; *ptr;)
 	{
-		if (*ptr == '/' || *ptr == '\\') *ptr = PATHSEPERATOR_CHAR;
+		if (*ptr == '/' || *ptr == '\\') *ptr = PATH_SEP;
 		ptr++;
 	} //end while
 } //end of the function PC_ConvertPath
@@ -893,7 +893,7 @@ void PC_ConvertPath(char *path)
 int PC_Directive_include( source_t *source ) {
 	script_t *script;
 	token_t token;
-	char path[MAX_PATH];
+	char path[MAX_QPATH];
 
 	if ( source->skip > 0 ) {
 		return qtrue;
@@ -1271,7 +1271,7 @@ define_t *PC_DefineFromString(const char *string)
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-int PC_AddDefine( source_t *source, char *string ) {
+/*int PC_AddDefine( source_t *source, char *string ) {
 	define_t *define;
 
 	define = PC_DefineFromString( string );
@@ -1285,7 +1285,7 @@ int PC_AddDefine( source_t *source, char *string ) {
 	source->defines = define;
 #endif //DEFINEHASHING
 	return qtrue;
-} //end of the function PC_AddDefine
+}*/ //end of the function PC_AddDefine
 //============================================================================
 // add a globals define that will be added to all opened sources
 //
@@ -1312,7 +1312,7 @@ int PC_AddGlobalDefine(const char *string)
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-int PC_RemoveGlobalDefine( char *name ) {
+/*int PC_RemoveGlobalDefine( char *name ) {
 	define_t *define;
 
 	define = PC_FindDefine( globaldefines, name );
@@ -1321,7 +1321,7 @@ int PC_RemoveGlobalDefine( char *name ) {
 		return qtrue;
 	} //end if
 	return qfalse;
-} //end of the function PC_RemoveGlobalDefine
+}*/ //end of the function PC_RemoveGlobalDefine
 //============================================================================
 // remove all globals defines
 //
@@ -2641,7 +2641,7 @@ int PC_ReadToken( source_t *source, token_t *token ) {
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-int PC_ExpectTokenString( source_t *source, char *string ) {
+/*int PC_ExpectTokenString( source_t *source, char *string ) {
 	token_t token;
 
 	if ( !PC_ReadToken( source, &token ) ) {
@@ -2654,14 +2654,14 @@ int PC_ExpectTokenString( source_t *source, char *string ) {
 		return qfalse;
 	} //end if
 	return qtrue;
-} //end of the function PC_ExpectTokenString
+}*/ //end of the function PC_ExpectTokenString
 //============================================================================
 //
 // Parameter:				-
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-int PC_ExpectTokenType( source_t *source, int type, int subtype, token_t *token ) {
+/*int PC_ExpectTokenType( source_t *source, int type, int subtype, token_t *token ) {
 	char str[MAX_TOKEN];
 
 	if ( !PC_ReadToken( source, token ) ) {
@@ -2727,14 +2727,14 @@ int PC_ExpectTokenType( source_t *source, int type, int subtype, token_t *token 
 		} //end if
 	} //end else if
 	return qtrue;
-} //end of the function PC_ExpectTokenType
+}*/ //end of the function PC_ExpectTokenType
 //============================================================================
 //
 // Parameter:				-
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-int PC_ExpectAnyToken( source_t *source, token_t *token ) {
+/*int PC_ExpectAnyToken( source_t *source, token_t *token ) {
 	if ( !PC_ReadToken( source, token ) ) {
 		SourceError( source, "couldn't read expected token" );
 		return qfalse;
@@ -2743,7 +2743,7 @@ int PC_ExpectAnyToken( source_t *source, token_t *token ) {
 	{
 		return qtrue;
 	} //end else
-} //end of the function PC_ExpectAnyToken
+}*/ //end of the function PC_ExpectAnyToken
 //============================================================================
 //
 // Parameter:				-
@@ -2770,7 +2770,7 @@ int PC_CheckTokenString( source_t *source, char *string ) {
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-int PC_CheckTokenType( source_t *source, int type, int subtype, token_t *token ) {
+/*int PC_CheckTokenType( source_t *source, int type, int subtype, token_t *token ) {
 	token_t tok;
 
 	if ( !PC_ReadToken( source, &tok ) ) {
@@ -2785,14 +2785,14 @@ int PC_CheckTokenType( source_t *source, int type, int subtype, token_t *token )
 	  //
 	PC_UnreadSourceToken( source, &tok );
 	return qfalse;
-} //end of the function PC_CheckTokenType
+}*/ //end of the function PC_CheckTokenType
 //============================================================================
 //
 // Parameter:				-
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-int PC_SkipUntilString( source_t *source, char *string ) {
+/*int PC_SkipUntilString( source_t *source, char *string ) {
 	token_t token;
 
 	while ( PC_ReadToken( source, &token ) )
@@ -2802,16 +2802,16 @@ int PC_SkipUntilString( source_t *source, char *string ) {
 		}
 	} //end while
 	return qfalse;
-} //end of the function PC_SkipUntilString
+}*/ //end of the function PC_SkipUntilString
 //============================================================================
 //
 // Parameter:				-
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-void PC_UnreadLastToken( source_t *source ) {
+/*void PC_UnreadLastToken( source_t *source ) {
 	PC_UnreadSourceToken( source, &source->token );
-} //end of the function PC_UnreadLastToken
+}*/ //end of the function PC_UnreadLastToken
 //============================================================================
 //
 // Parameter:				-
@@ -2827,7 +2827,7 @@ void PC_UnreadToken( source_t *source, token_t *token ) {
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-void PC_SetIncludePath(source_t *source, const char *path)
+/*void PC_SetIncludePath(source_t *source, const char *path)
 {
 	size_t len;
 
@@ -2838,18 +2838,18 @@ void PC_SetIncludePath(source_t *source, const char *path)
 	if (len > 0 && source->includepath[len-1] != '\\' &&
 		source->includepath[len-1] != '/')
 	{
-		strcat(source->includepath, PATHSEPERATOR_STR);
+		strcat(source->includepath, PATH_SEP_STR);
 	} //end if
-} //end of the function PC_SetIncludePath
+}*/ //end of the function PC_SetIncludePath
 //============================================================================
 //
 // Parameter:				-
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-void PC_SetPunctuations( source_t *source, punctuation_t *p ) {
+/*void PC_SetPunctuations( source_t *source, punctuation_t *p ) {
 	source->punctuations = p;
-} //end of the function PC_SetPunctuations
+}*/ //end of the function PC_SetPunctuations
 //============================================================================
 //
 // Parameter:			-
@@ -2892,7 +2892,7 @@ source_t *LoadSourceFile( const char *filename ) {
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-source_t *LoadSourceMemory( char *ptr, int length, char *name ) {
+/*source_t *LoadSourceMemory( char *ptr, int length, char *name ) {
 	source_t *source;
 	script_t *script;
 
@@ -2920,7 +2920,7 @@ source_t *LoadSourceMemory( char *ptr, int length, char *name ) {
 #endif //DEFINEHASHING
 	PC_AddGlobalDefinesToSource( source );
 	return source;
-} //end of the function LoadSourceMemory
+}*/ //end of the function LoadSourceMemory
 //============================================================================
 //
 // Parameter:				-
@@ -3108,10 +3108,10 @@ int PC_SourceFileAndLine( int handle, char *filename, int *line ) {
 // Returns:				-
 // Changes Globals:		-
 //============================================================================
-void PC_SetBaseFolder(const char *path)
+/*void PC_SetBaseFolder(const char *path)
 {
 	PS_SetBaseFolder(path);
-} //end of the function PC_SetBaseFolder
+}*/ //end of the function PC_SetBaseFolder
 //============================================================================
 //
 // Parameter:			-

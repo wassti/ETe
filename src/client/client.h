@@ -26,6 +26,9 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#ifndef __CLIENT_H__
+#define __CLIENT_H__
+
 // client.h -- primary header for client
 
 #include "../qcommon/q_shared.h"
@@ -838,4 +841,5 @@ void	VKimp_Init( glconfig_t *config );
 void	VKimp_Shutdown( qboolean unloadDLL );
 void	*VK_GetInstanceProcAddr( VkInstance instance, const char *name );
 qboolean VK_CreateSurface( VkInstance instance, VkSurfaceKHR* pSurface );
+#endif
 #endif

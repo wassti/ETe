@@ -26,8 +26,8 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#ifndef __Q_SHARED_H
-#define __Q_SHARED_H
+#ifndef __Q_SHARED_H__
+#define __Q_SHARED_H__
 
 // q_shared.h -- included first by ALL program modules.
 // A user mod should never modify this file

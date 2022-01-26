@@ -28,28 +28,18 @@ If you have questions concerning this license or the applicable additional terms
 
 
 /*****************************************************************************
- * name:		l_script.h
+ * name:		lexer.h
  *
  * desc:		lexicographical parser
  *
  *
  *****************************************************************************/
 
-#ifndef L_SCRIPT_H
-#define L_SCRIPT_H
+#ifndef __LEXER_H__
+#define __LEXER_H__
 
-// Ridah, can't get it to compile without this
-#ifndef QDECL
-
-// for windows fastcall option
-#define QDECL
-//======================= WIN32 DEFINES =================================
-#ifdef _WIN32
-#undef QDECL
-#define QDECL   __cdecl
-#endif
-#endif
-// done.
+// for QDECL
+#include "q_platform.h"
 
 //undef if binary numbers of the form 0b... or 0B... are not allowed
 #define BINARYNUMBERS
@@ -211,23 +201,23 @@ typedef struct script_s
 //read a token from the script
 int PS_ReadToken( script_t *script, token_t *token );
 //expect a certain token
-int PS_ExpectTokenString( script_t *script, char *string );
+//int PS_ExpectTokenString( script_t *script, char *string );
 //expect a certain token type
 int PS_ExpectTokenType( script_t *script, int type, int subtype, token_t *token );
 //expect a token
-int PS_ExpectAnyToken( script_t *script, token_t *token );
+//int PS_ExpectAnyToken( script_t *script, token_t *token );
 //returns true when the token is available
-int PS_CheckTokenString( script_t *script, char *string );
+//int PS_CheckTokenString( script_t *script, char *string );
 //returns true an reads the token when a token with the given type is available
-int PS_CheckTokenType( script_t *script, int type, int subtype, token_t *token );
+//int PS_CheckTokenType( script_t *script, int type, int subtype, token_t *token );
 //skip tokens until the given token string is read
-int PS_SkipUntilString( script_t *script, char *string );
+//int PS_SkipUntilString( script_t *script, char *string );
 //unread the last token read from the script
-void PS_UnreadLastToken( script_t *script );
+//void PS_UnreadLastToken( script_t *script );
 //unread the given token
-void PS_UnreadToken( script_t *script, token_t *token );
+//void PS_UnreadToken( script_t *script, token_t *token );
 //returns the next character of the read white space, returns NULL if none
-char PS_NextWhiteSpaceChar( script_t *script );
+//char PS_NextWhiteSpaceChar( script_t *script );
 //remove any leading and trailing double quotes from the token
 void StripDoubleQuotes( char *string );
 //remove any leading and trailing single quotes from the token

@@ -28,7 +28,7 @@ If you have questions concerning this license or the applicable additional terms
 
 
 /*****************************************************************************
- * name:		l_script.c
+ * name:		lexer.c
  *
  * desc:		lexicographical parser
  *
@@ -870,7 +870,7 @@ int PS_ReadToken( script_t *script, token_t *token ) {
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-int PS_ExpectTokenString( script_t *script, char *string ) {
+/*int PS_ExpectTokenString( script_t *script, char *string ) {
 	token_t token;
 
 	if ( !PS_ReadToken( script, &token ) ) {
@@ -883,7 +883,7 @@ int PS_ExpectTokenString( script_t *script, char *string ) {
 		return 0;
 	} //end if
 	return 1;
-} //end of the function PS_ExpectToken
+}*/ //end of the function PS_ExpectToken
 //============================================================================
 //
 // Parameter:				-
@@ -966,7 +966,7 @@ int PS_ExpectTokenType( script_t *script, int type, int subtype, token_t *token 
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-int PS_ExpectAnyToken( script_t *script, token_t *token ) {
+/*int PS_ExpectAnyToken( script_t *script, token_t *token ) {
 	if ( !PS_ReadToken( script, token ) ) {
 		ScriptError( script, "couldn't read expected token" );
 		return 0;
@@ -975,14 +975,14 @@ int PS_ExpectAnyToken( script_t *script, token_t *token ) {
 	{
 		return 1;
 	} //end else
-} //end of the function PS_ExpectAnyToken
+}*/ //end of the function PS_ExpectAnyToken
 //============================================================================
 //
 // Parameter:				-
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-int PS_CheckTokenString( script_t *script, char *string ) {
+/*int PS_CheckTokenString( script_t *script, char *string ) {
 	token_t tok;
 
 	if ( !PS_ReadToken( script, &tok ) ) {
@@ -995,14 +995,14 @@ int PS_CheckTokenString( script_t *script, char *string ) {
 	//token not available
 	script->script_p = script->lastscript_p;
 	return 0;
-} //end of the function PS_CheckTokenString
+}*/ //end of the function PS_CheckTokenString
 //============================================================================
 //
 // Parameter:				-
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-int PS_CheckTokenType( script_t *script, int type, int subtype, token_t *token ) {
+/*int PS_CheckTokenType( script_t *script, int type, int subtype, token_t *token ) {
 	token_t tok;
 
 	if ( !PS_ReadToken( script, &tok ) ) {
@@ -1017,14 +1017,14 @@ int PS_CheckTokenType( script_t *script, int type, int subtype, token_t *token )
 	  //token is not available
 	script->script_p = script->lastscript_p;
 	return 0;
-} //end of the function PS_CheckTokenType
+}*/ //end of the function PS_CheckTokenType
 //============================================================================
 //
 // Parameter:				-
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-int PS_SkipUntilString( script_t *script, char *string ) {
+/*int PS_SkipUntilString( script_t *script, char *string ) {
 	token_t token;
 
 	while ( PS_ReadToken( script, &token ) )
@@ -1034,26 +1034,26 @@ int PS_SkipUntilString( script_t *script, char *string ) {
 		}
 	} //end while
 	return 0;
-} //end of the function PS_SkipUntilString
+}*/ //end of the function PS_SkipUntilString
 //============================================================================
 //
 // Parameter:				-
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-void PS_UnreadLastToken( script_t *script ) {
+/*void PS_UnreadLastToken( script_t *script ) {
 	script->tokenavailable = 1;
-} //end of the function UnreadLastToken
+}*/ //end of the function UnreadLastToken
 //============================================================================
 //
 // Parameter:				-
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-void PS_UnreadToken( script_t *script, token_t *token ) {
+/*void PS_UnreadToken( script_t *script, token_t *token ) {
 	memcpy( &script->token, token, sizeof( token_t ) );
 	script->tokenavailable = 1;
-} //end of the function UnreadToken
+}*/ //end of the function UnreadToken
 //============================================================================
 // returns the next character of the read white space, returns NULL if none
 //
@@ -1061,7 +1061,7 @@ void PS_UnreadToken( script_t *script, token_t *token ) {
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-char PS_NextWhiteSpaceChar( script_t *script ) {
+/*char PS_NextWhiteSpaceChar( script_t *script ) {
 	if ( script->whitespace_p != script->endwhitespace_p ) {
 		return *script->whitespace_p++;
 	} //end if
@@ -1069,7 +1069,7 @@ char PS_NextWhiteSpaceChar( script_t *script ) {
 	{
 		return 0;
 	} //end else
-} //end of the function PS_NextWhiteSpaceChar
+}*/ //end of the function PS_NextWhiteSpaceChar
 //============================================================================
 //
 // Parameter:				-

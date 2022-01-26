@@ -243,8 +243,9 @@ IN_DeactivateWin32Mouse
 */
 static void IN_DeactivateWin32Mouse( void )
 {
-	if ( !gw_minimized )
-	{
+	CURSORINFO ci;
+
+	if ( !gw_minimized ) {
 		IN_UpdateWindow( NULL, qfalse );
 		// NERVE - SMF - dont do this in developer mode
 		// Ensi disabled this for merge
@@ -255,8 +256,18 @@ static void IN_DeactivateWin32Mouse( void )
 
 	ReleaseCapture();
 	ClipCursor( NULL );
-	while ( ShowCursor( TRUE ) < 0 )
-		;
+
+	memset( &ci, 0, sizeof( ci ) );
+	ci.cbSize = sizeof( CURSORINFO );
+	if ( GetCursorInfo( &ci ) ) {
+		if ( ci.flags == 0 ) {
+			while ( ShowCursor( TRUE ) < 0 )
+				;
+		}
+	} else {
+		while ( ShowCursor( TRUE ) < 0 )
+			;
+	}
 }
 
 

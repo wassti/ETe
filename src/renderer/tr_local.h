@@ -278,7 +278,7 @@ typedef struct {
 
 // RF increased this for onfire animation
 //#define	MAX_IMAGE_ANIMATIONS	8
-#define	MAX_IMAGE_ANIMATIONS	24
+#define	MAX_IMAGE_ANIMATIONS	48
 #define MAX_IMAGE_ANIMATIONS_VET	16
 
 // Arnout: FIXME change the is* qbooleans to a type index

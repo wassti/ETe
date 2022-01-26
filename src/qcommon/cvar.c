@@ -1550,7 +1550,7 @@ void Cvar_WriteVariables( fileHandle_t f )
 
 	for (var = cvar_vars; var; var = var->next)
 	{
-		const size_t strLength = (var->flags & CVAR_UNSAFE) ? 16 : 10;
+		const size_t strLength = (var->flags & CVAR_UNSAFE) ? 17 : 10;
 		if ( !var->name || Q_stricmp( var->name, "cl_cdkey" ) == 0 )
 			continue;
 

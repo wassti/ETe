@@ -52,7 +52,7 @@ If you have questions concerning this license or the applicable additional terms
 //directive name with parse function
 typedef struct directive_s
 {
-	char *name;
+	const char *name;
 	int ( *func )( source_t *source );
 } directive_t;
 
@@ -2993,7 +2993,7 @@ void FreeSource( source_t *source ) {
 
 #define MAX_SOURCEFILES     64
 
-source_t *sourceFiles[MAX_SOURCEFILES];
+static source_t *sourceFiles[MAX_SOURCEFILES];
 
 int PC_LoadSourceHandle( const char *filename ) {
 	source_t *source;
@@ -3008,7 +3008,7 @@ int PC_LoadSourceHandle( const char *filename ) {
 	if ( i >= MAX_SOURCEFILES ) {
 		return 0;
 	}
-	PS_SetBaseFolder( "" );
+	//PS_SetBaseFolder( "" );
 	source = LoadSourceFile( filename );
 	if ( !source ) {
 		return 0;

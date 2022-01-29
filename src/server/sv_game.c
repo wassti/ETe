@@ -287,6 +287,15 @@ static void SV_GetUsercmd( int clientNum, usercmd_t *cmd ) {
 }
 
 
+static void SV_BotUsercmd( int clientNum, usercmd_t *cmd ) {
+	if ( (unsigned) clientNum < sv_maxclients->integer ) {
+		SV_ClientThink( &svs.clients[ clientNum ], cmd );
+	} else {
+		Com_Error( ERR_DROP, "%s(): bad clientNum: %i", __func__, clientNum );
+	}
+}
+
+
 static void SV_BotClientCommand( int client, const char *command ) {
 	if ( (unsigned) client < sv_maxclients->integer ) {
 		SV_ExecuteClientCommand( &svs.clients[client], command, qfalse );
@@ -392,7 +401,7 @@ void *GVM_ArgPtr( intptr_t intValue )
 }
 
 
-static qboolean SV_GetValue( char* value, int valueSize, const char* key )
+static qboolean SV_G_GetValue( char* value, int valueSize, const char* key )
 {
 	return qfalse;
 }
@@ -593,13 +602,7 @@ static intptr_t SV_GameSystemCalls( intptr_t *args ) {
 	case BOTLIB_GET_CONSOLE_MESSAGE:
 		return SV_BotGetConsoleMessage( args[1], VMA( 2 ), args[3] );
 	case BOTLIB_USER_COMMAND:
-		{
-			unsigned clientNum = args[1];
-			if ( clientNum < sv_maxclients->integer )
-			{
-				SV_ClientThink( &svs.clients[ clientNum ], VMA(2) );
-			}
-		}
+		SV_BotUsercmd( args[1], VMA( 2 ) );
 		return 0;
 
 	case BOTLIB_EA_COMMAND:
@@ -658,7 +661,7 @@ static intptr_t SV_GameSystemCalls( intptr_t *args ) {
 		return SV_BinaryMessageStatus( args[1] );
 
 	case G_TRAP_GETVALUE:
-		return SV_GetValue( VMA(1), args[2], VMA(3) );
+		return SV_G_GetValue( VMA(1), args[2], VMA(3) );
 
 	default:
 		Com_Error( ERR_DROP, "Bad game system trap: %ld", (long int) args[0] );

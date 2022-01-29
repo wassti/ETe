@@ -42,7 +42,7 @@ If you have questions concerning this license or the applicable additional terms
 #define PUNCTABLE
 
 //longer punctuations first
-punctuation_t default_punctuations[] =
+static punctuation_t default_punctuations[] =
 {
 	//binary operators
 	{">>=",P_RSHIFT_ASSIGN, NULL},
@@ -119,7 +119,7 @@ punctuation_t default_punctuations[] =
 	{NULL, 0}
 };
 
-static char basefolder[MAX_QPATH];
+//static char basefolder[MAX_QPATH];
 
 //===========================================================================
 //
@@ -243,7 +243,7 @@ void SetScriptPunctuations( script_t *script, punctuation_t *p ) {
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-int PS_ReadWhiteSpace( script_t *script ) {
+static int PS_ReadWhiteSpace( script_t *script ) {
 	while ( 1 )
 	{
 		//skip white space
@@ -343,7 +343,7 @@ int PS_ReadEscapeCharacter( script_t *script, char *ch ) {
 				c = c - '0';
 			} else if ( c >= 'A' && c <= 'Z' ) {
 				c = c - 'A' + 10;
-			} else if ( c >= 'a' && c <= 'z' )                                            {
+			} else if ( c >= 'a' && c <= 'z' ) {
 				c = c - 'a' + 10;
 			} else { break;}
 			val = ( val << 4 ) + c;
@@ -1229,7 +1229,6 @@ int EndOfScript( script_t *script ) {
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-int COM_Compress( char *data_p );
 script_t *LoadScriptFile( const char *filename ) {
 	fileHandle_t fp;
 	char pathname[MAX_QPATH*2];
@@ -1237,9 +1236,9 @@ script_t *LoadScriptFile( const char *filename ) {
 	void *buffer;
 	script_t *script;
 
-	if ( basefolder[0] != '\0' )
-		Com_sprintf( pathname, sizeof( pathname ), "%s/%s", basefolder, filename );
-	else
+	//if ( basefolder[0] != '\0' )
+	//	Com_sprintf( pathname, sizeof( pathname ), "%s/%s", basefolder, filename );
+	//else
 		Com_sprintf( pathname, sizeof( pathname ), "%s", filename );
 
 	length = FS_FOpenFileByMode( pathname, &fp, FS_READ );
@@ -1330,7 +1329,7 @@ void FreeScript( script_t *script ) {
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-void PS_SetBaseFolder(const char *path)
+/*void PS_SetBaseFolder(const char *path)
 {
 	Q_strncpyz( basefolder, path, sizeof( basefolder ) );
-} //end of the function PS_SetBaseFolder
+}*/ //end of the function PS_SetBaseFolder

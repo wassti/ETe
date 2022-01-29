@@ -1914,7 +1914,7 @@ int Q_CountChar(const char *string, char tocount)
 }
 
 // ENSI NOTE use combination of Q3e and ioquake3 instead??
-int QDECL Com_sprintf( char *dest, int size, const char *fmt, ... ) {
+int FORMAT_PRINTF( 3, 4 ) QDECL Com_sprintf( char *dest, int size, const char *fmt, ... ) {
 	int ret;
 	va_list argptr;
 

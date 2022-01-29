@@ -164,7 +164,6 @@ const char *Sys_DefaultHomePath( void )
 		return NULL;
 	}
 
-
 	return path;
 #else
     return NULL;

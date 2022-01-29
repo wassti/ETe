@@ -755,7 +755,7 @@ void SVC_RateDropAddress( const netadr_t *from, int burst, int period ) {
 qboolean SV_VerifyInfoChallenge( const char *challenge ) {
 	int i, j;
 
-	if ( !challenge ) {
+	if ( !challenge || !*challenge ) {
 		return qfalse;
 	}
 
@@ -777,6 +777,7 @@ qboolean SV_VerifyInfoChallenge( const char *challenge ) {
 	}
 	return qtrue;
 }
+
 
 /*
 ================
@@ -1003,7 +1004,7 @@ static void SVC_Info( const netadr_t *from ) {
 	// echo back the parameter to status. so servers can use it as a challenge
 	// to prevent timed spoofed reply packets that add ghost servers
 	Info_SetValueForKey( infostring, "challenge", Cmd_Argv(1) );
-
+	Info_SetValueForKey( infostring, "version", va( "%s %s %s", Q3_VERSION, PLATFORM_STRING, __DATE__ ) );
 	Info_SetValueForKey( infostring, "protocol", com_protocol->string );
 	Info_SetValueForKey( infostring, "hostname", sv_hostname->string );
 	Info_SetValueForKey( infostring, "serverload", va( "%i", svs.serverLoad ) );

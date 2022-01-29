@@ -245,7 +245,7 @@ script_t *LoadScriptMemory( const char *ptr, int length, const char *name );
 //free a script
 void FreeScript( script_t *script );
 //set the base folder to load files from
-void PS_SetBaseFolder( const char *path );
+//void PS_SetBaseFolder( const char *path );
 //print a script error with filename and line number
 void FORMAT_PRINTF(2, 3) QDECL ScriptError( script_t *script, const char *fmt, ... );
 //print a script warning with filename and line number

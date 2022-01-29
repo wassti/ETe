@@ -6324,7 +6324,7 @@ typedef struct gameStrMap_s
 } gameStrMap_t;
 
 static const gameStrMap_t knownGames[] = {
-	{BASEGAME, GAMEMOD_ETMAIN},
+	{BASEGAME, GAMEMOD_BASEGAME},
 	{"etf", GAMEMOD_ETF},
 	{"etpro", GAMEMOD_ETPRO},
 	{"legacy", GAMEMOD_LEGACY},
@@ -6357,7 +6357,7 @@ gameMod_t FS_GetGameMod(void)
 		}
 		return GAMEMOD_UNKNOWN;
 	}
-	return GAMEMOD_ETMAIN;
+	return GAMEMOD_BASEGAME;
 }
 
 

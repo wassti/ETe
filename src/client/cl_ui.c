@@ -789,7 +789,7 @@ static void *VM_ArgPtr( intptr_t intValue ) {
 }
 
 
-static qboolean UI_GetValue( char* value, int valueSize, const char* key ) {
+static qboolean CL_UI_GetValue( char* value, int valueSize, const char* key ) {
 
 	if ( !Q_stricmp( key, "trap_R_AddRefEntityToScene2" ) ) {
 		Com_sprintf( value, valueSize, "%i", UI_R_ADDREFENTITYTOSCENE2 );
@@ -1275,7 +1275,7 @@ static intptr_t CL_UISystemCalls( intptr_t *args ) {
 		return 0;
 
 	case UI_TRAP_GETVALUE:
-		return UI_GetValue( VMA(1), args[2], VMA(3) );
+		return CL_UI_GetValue( VMA(1), args[2], VMA(3) );
 
 	default:
 		Com_Error( ERR_DROP, "Bad UI system trap: %ld", (long int) args[0] );

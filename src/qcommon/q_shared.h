@@ -961,7 +961,7 @@ void Parse1DMatrix( const char **buf_p, int x, float *m);
 void Parse2DMatrix( const char **buf_p, int y, int x, float *m);
 void Parse3DMatrix( const char **buf_p, int z, int y, int x, float *m);
 
-int  QDECL Com_sprintf( char *dest, int size, const char *fmt, ... ) __attribute__ ( ( format( printf,3,4 ) ) );
+int  QDECL Com_sprintf( char *dest, int size, const char *fmt, ... ) FORMAT_PRINTF( 3, 4 );
 
 char *Com_SkipTokens( char *s, int numTokens, char *sep );
 char *Com_SkipCharset( char *s, char *sep );
@@ -1948,7 +1948,7 @@ void *Q_LinearSearch( const void *key, const void *ptr, size_t count,
 
 typedef enum gameMod_e {
 	GAMEMOD_UNKNOWN = 0,
-	GAMEMOD_ETMAIN,
+	GAMEMOD_BASEGAME, // etmain
 	GAMEMOD_ETF,
 	GAMEMOD_ETPRO,
 	GAMEMOD_LEGACY,

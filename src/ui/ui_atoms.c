@@ -53,7 +53,7 @@ void QDECL Com_DPrintf( const char *fmt, ... ) {
 }
 // jpw
 
-void NORETURN QDECL Com_Error( errorParm_t code, const char *error, ... ) {
+void NORETURN FORMAT_PRINTF(2, 3) QDECL Com_Error( errorParm_t code, const char *error, ... ) {
 	va_list argptr;
 	char text[UI_MAXPRINTMSG];
 
@@ -64,7 +64,7 @@ void NORETURN QDECL Com_Error( errorParm_t code, const char *error, ... ) {
 	trap_Error( text );
 }
 
-void QDECL Com_Printf( const char *msg, ... ) {
+void FORMAT_PRINTF(1, 2) QDECL Com_Printf( const char *msg, ... ) {
 	va_list argptr;
 	char text[UI_MAXPRINTMSG];
 

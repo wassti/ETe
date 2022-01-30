@@ -521,9 +521,7 @@ void FORMAT_PRINTF(1,2) QDECL G_Printf( const char *fmt, ... ) {
 	Q_vsnprintf( text, sizeof( text ), fmt, argptr );
 	va_end( argptr );
 
-	text[4095] = '\0'; // truncate to 1.32b/c max print buffer size
-
-	trap_Printf( text );
+	trap_Print( text );
 }
 
 void FORMAT_PRINTF(1,2) QDECL G_DPrintf( const char *fmt, ... ) {
@@ -538,9 +536,7 @@ void FORMAT_PRINTF(1,2) QDECL G_DPrintf( const char *fmt, ... ) {
 	Q_vsnprintf( text, sizeof( text ), fmt, argptr );
 	va_end( argptr );
 
-	text[4095] = '\0'; // truncate to 1.32b/c max print buffer size
-
-	trap_Printf( text );
+	trap_Print( text );
 }
 
 void NORETURN FORMAT_PRINTF(1,2) QDECL G_Error( const char *fmt, ... ) {
@@ -550,8 +546,6 @@ void NORETURN FORMAT_PRINTF(1,2) QDECL G_Error( const char *fmt, ... ) {
 	va_start( argptr, fmt );
 	Q_vsnprintf( text, sizeof( text ), fmt, argptr );
 	va_end( argptr );
-
-	text[4095] = '\0'; // truncate to 1.32b/c max print buffer size
 
 	trap_Error( text );
 }
@@ -1282,7 +1276,6 @@ void G_RegisterCvars( void ) {
 	} else if ( pmove_msec.integer > 33 ) {
 		trap_Cvar_Set( "pmove_msec", "33" );
 	}
-
 }
 
 /*
@@ -1942,31 +1935,27 @@ void G_ShutdownGame( int restart ) {
 
 //===================================================================
 
-#ifndef GAME_HARD_LINKED
-// this is only here so the functions in q_shared.c and bg_*.c can link
-
-void NORETURN QDECL Com_Error( errorParm_t code, const char *error, ... ) {
+void NORETURN FORMAT_PRINTF(2, 3) QDECL Com_Error( errorParm_t code, const char *error, ... ) {
 	va_list argptr;
-	char text[1024];
+	char text[BIG_INFO_STRING];
 
 	va_start( argptr, error );
 	Q_vsnprintf( text, sizeof( text ), error, argptr );
 	va_end( argptr );
 
-	G_Error( "%s", text );
+	trap_Error( text );
 }
 
-void QDECL Com_Printf( const char *msg, ... ) {
+void FORMAT_PRINTF(1, 2) QDECL Com_Printf( const char *msg, ... ) {
 	va_list argptr;
-	char text[1024];
+	char text[BIG_INFO_STRING];
 
 	va_start( argptr, msg );
 	Q_vsnprintf( text, sizeof( text ), msg, argptr );
 	va_end( argptr );
 
-	G_Printf( "%s", text );
+	trap_Print( text );
 }
-#endif
 
 /*
 ========================================================================

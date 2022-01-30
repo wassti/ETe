@@ -609,6 +609,6 @@ void FORMAT_PRINTF(2,3) G_refPrintf( gentity_t* ent, const char *fmt, ... ) {
 	va_end( argptr );
 
 	if ( ent == NULL ) {
-		trap_Printf( text );
+		trap_Print( text );
 	} else { CP( va( "cpm \"%s\n\"", text ) );}
 }

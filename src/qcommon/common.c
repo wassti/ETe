@@ -445,7 +445,6 @@ void NORETURN FORMAT_PRINTF(2, 3) QDECL Com_Error( errorParm_t code, const char 
 	calledSysError = qtrue;
 	Sys_Error( "%s", com_errorMessage );
 }
-void NORETURN QDECL Com_Error( errorParm_t code, const char *fmt, ... ) __attribute__ ( ( format( printf,2,3 ) ) );
 
 
 /*
@@ -2981,7 +2980,7 @@ Just throw a fatal error to
 test error shutdown procedures
 =============
 */
-static void __attribute__((__noreturn__)) Com_Error_f (void) {
+static void NORETURN Com_Error_f (void) {
 	if ( Cmd_Argc() > 1 ) {
 		Com_Error( ERR_DROP, "Testing drop error" );
 	} else {

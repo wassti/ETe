@@ -638,7 +638,7 @@ int PS_ReadNumber( script_t *script, token_t *token ) {
 				dot = qtrue;
 			} else if ( c == '8' || c == '9' ) {
 				octal = qfalse;
-			} else if ( c < '0' || c > '9' )                                              {
+			} else if ( c < '0' || c > '9' ) {
 				break;
 			}
 			token->string[len++] = *script->script_p++;

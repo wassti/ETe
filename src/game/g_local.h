@@ -1657,7 +1657,7 @@ extern vmCvar_t g_nextcampaign;
 
 extern vmCvar_t g_disableComplaints;
 
-void    trap_Printf( const char *fmt );
+void    trap_Print( const char *fmt );
 void    NORETURN trap_Error( const char *fmt );
 int     trap_Milliseconds( void );
 int     trap_Argc( void );

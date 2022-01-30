@@ -711,21 +711,32 @@ void NORETURN QDECL CG_Error( const char *msg, ... ) {
 	trap_Error( text );
 }
 
-#ifndef CGAME_HARD_LINKED
-// this is only here so the functions in q_shared.c and bg_*.c can link (FIXME)
-
-void NORETURN QDECL Com_Error( errorParm_t code, const char *error, ... ) {
+void NORETURN FORMAT_PRINTF(2, 3) QDECL Com_Error( errorParm_t code, const char *error, ... ) {
 	va_list argptr;
 	char text[1024];
 
 	va_start( argptr, error );
 	Q_vsnprintf( text, sizeof( text ), error, argptr );
 	va_end( argptr );
+	if ( !Q_strncmp( text, "[cgnotify]", 10 ) ) {
+		char buf[1024];
 
-	CG_Error( "%s", text );
+		if ( !cg_drawNotifyText.integer ) {
+			Q_strncpyz( buf, &text[10], 1013 );
+			trap_Print( buf );
+			return;
+		}
+
+		CG_AddToNotify( &text[10] );
+		Q_strncpyz( buf, &text[10], 1013 );
+		Q_strncpyz( text, "[skipnotify]", 13 );
+		Q_strcat( text, 1011, buf );
+	}
+
+	trap_Error( text );
 }
 
-void QDECL Com_Printf( const char *msg, ... ) {
+void FORMAT_PRINTF(1, 2) QDECL Com_Printf( const char *msg, ... ) {
 	va_list argptr;
 	char text[1024];
 
@@ -733,10 +744,8 @@ void QDECL Com_Printf( const char *msg, ... ) {
 	Q_vsnprintf( text, sizeof( text ), msg, argptr );
 	va_end( argptr );
 
-	CG_Printf( "%s", text );
+	trap_Print( text );
 }
-
-#endif
 
 /*
 ================

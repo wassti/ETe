@@ -3167,6 +3167,9 @@ void Com_GameRestart( int checksumFeed, qboolean clientRestart )
 		Com_ExecuteCfg(Com_SafeMode());
 
 		currentGameMod = FS_GetGameMod();
+		if ( currentGameMod == GAMEMOD_UNKNOWN ) {
+			Com_Printf( "Detected unknown mod: \"%s\", please report to ETe developers\n", FS_GetCurrentGameDir() );
+		}
 
 		if ( clientRestart && !com_dedicated->integer ) {
 #ifndef DEDICATED
@@ -3802,6 +3805,9 @@ void Com_Init( char *commandLine ) {
 	Com_ExecuteCfg(safeMode);
 
 	currentGameMod = FS_GetGameMod();
+	if ( currentGameMod == GAMEMOD_UNKNOWN ) {
+		Com_Printf( "Detected unknown mod: \"%s\", please report to ETe developers\n", FS_GetCurrentGameDir() );
+	}
 
 	// override anything from the config files with command line args
 	Com_StartupVariable( NULL );

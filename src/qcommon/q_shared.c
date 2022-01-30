@@ -1941,7 +1941,7 @@ Ridah, modified this into a circular list, to further prevent stepping on
 previous strings
 ============
 */
-const char *QDECL va( const char *format, ... ) 
+const char * FORMAT_PRINTF(1, 2) QDECL va( const char *format, ... ) 
 {
 	char	*buf;
 	va_list		argptr;

@@ -1501,6 +1501,15 @@ static void Cvar_Func_f( void ) {
 	} else if ( cvar->flags & ( CVAR_INIT | CVAR_ROM | CVAR_PROTECTED ) ) {
 		Com_Printf( "Cvar '%s' is write-protected.\n", cvar_name );
 		return;
+	} else if ( ( cvar->flags & CVAR_DEVELOPER ) && !cvar_developer->integer ) {
+		Com_Printf( "Cvar '%s' can be set only in developer mode.\n", cvar_name );
+		return;
+	} else if ( ( cvar->flags & CVAR_CHEAT ) && !cvar_cheats->integer ) {
+		Com_Printf( "Cvar '%s' is cheat protected.\n", cvar_name );
+		return;
+	} else if ( ( cvar->flags & CVAR_UNSAFE ) && com_crashed != NULL && com_crashed->integer ) {
+		Com_Printf( "Cvar '%s' is unsafe. Check com_crashed.\n", cvar_name );
+		return;
 	}
 	
 	if ( cvar ) {

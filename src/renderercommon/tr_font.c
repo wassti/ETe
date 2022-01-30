@@ -95,7 +95,7 @@ If you have questions concerning this license or the applicable additional terms
 FT_Library ftLibrary = NULL;  
 #endif
 
-#define MAX_FONTS 10
+#define MAX_FONTS 16
 static int registeredFontCount = 0;
 static fontInfo_t registeredFont[MAX_FONTS];
 

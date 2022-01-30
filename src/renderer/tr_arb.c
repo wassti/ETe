@@ -2086,6 +2086,10 @@ void QGL_SetRenderScale( qboolean verbose )
 		{
 			ri.Printf( PRINT_ALL, "...ignoring \r_renderScale due to disabled FBO\n" );
 		}
+		if ( verbose && r_ext_supersample->integer )
+		{
+			ri.Printf( PRINT_ALL, "...ignoring \r_ext_supersample due to disabled FBO\n" );
+		}
 		return;
 	}
 

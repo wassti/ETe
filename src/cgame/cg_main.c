@@ -718,6 +718,18 @@ void NORETURN FORMAT_PRINTF(2, 3) QDECL Com_Error( errorParm_t code, const char 
 	va_start( argptr, error );
 	Q_vsnprintf( text, sizeof( text ), error, argptr );
 	va_end( argptr );
+
+	trap_Error( text );
+}
+
+void FORMAT_PRINTF(1, 2) QDECL Com_Printf( const char *msg, ... ) {
+	va_list argptr;
+	char text[1024];
+
+	va_start( argptr, msg );
+	Q_vsnprintf( text, sizeof( text ), msg, argptr );
+	va_end( argptr );
+
 	if ( !Q_strncmp( text, "[cgnotify]", 10 ) ) {
 		char buf[1024];
 
@@ -732,17 +744,6 @@ void NORETURN FORMAT_PRINTF(2, 3) QDECL Com_Error( errorParm_t code, const char 
 		Q_strncpyz( text, "[skipnotify]", 13 );
 		Q_strcat( text, 1011, buf );
 	}
-
-	trap_Error( text );
-}
-
-void FORMAT_PRINTF(1, 2) QDECL Com_Printf( const char *msg, ... ) {
-	va_list argptr;
-	char text[1024];
-
-	va_start( argptr, msg );
-	Q_vsnprintf( text, sizeof( text ), msg, argptr );
-	va_end( argptr );
 
 	trap_Print( text );
 }

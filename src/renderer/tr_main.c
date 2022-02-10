@@ -1634,7 +1634,7 @@ DRAWSURF SORTING
 R_Radix
 ===============
 */
-static void R_Radix( int byte, int size, const drawSurf_t *source, drawSurf_t *dest )
+static void R_Radix( int _byte, int size, const drawSurf_t *source, drawSurf_t *dest )
 {
   int           count[ 256 ] = { 0 };
   int           index[ 256 ];
@@ -1642,7 +1642,7 @@ static void R_Radix( int byte, int size, const drawSurf_t *source, drawSurf_t *d
   unsigned char *sortKey;
   unsigned char *end;
 
-  sortKey = ( (unsigned char *)&source[ 0 ].sort ) + byte;
+  sortKey = ( (unsigned char *)&source[ 0 ].sort ) + _byte;
   end = sortKey + ( size * sizeof( drawSurf_t ) );
   for( ; sortKey < end; sortKey += sizeof( drawSurf_t ) )
     ++count[ *sortKey ];
@@ -1652,7 +1652,7 @@ static void R_Radix( int byte, int size, const drawSurf_t *source, drawSurf_t *d
   for( i = 1; i < 256; ++i )
     index[ i ] = index[ i - 1 ] + count[ i - 1 ];
 
-  sortKey = ( (unsigned char *)&source[ 0 ].sort ) + byte;
+  sortKey = ( (unsigned char *)&source[ 0 ].sort ) + _byte;
   for( i = 0; i < size; ++i, sortKey += sizeof( drawSurf_t ) )
     dest[ index[ *sortKey ]++ ] = source[ i ];
 }

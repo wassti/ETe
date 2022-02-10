@@ -419,31 +419,31 @@ static int GLW_SetMode( int mode, const char *modeFS, qboolean fullscreen, qbool
 
 		if ( fullscreen )
 		{
-			SDL_DisplayMode mode;
+			SDL_DisplayMode dm;
 
 			switch ( testColorBits )
 			{
-				case 16: mode.format = SDL_PIXELFORMAT_RGB565; break;
-				case 24: mode.format = SDL_PIXELFORMAT_RGB24;  break;
+				case 16: dm.format = SDL_PIXELFORMAT_RGB565; break;
+				case 24: dm.format = SDL_PIXELFORMAT_RGB24;  break;
 				default: Com_DPrintf( "testColorBits is %d, can't fullscreen\n", testColorBits ); continue;
 			}
 
-			mode.w = config->vidWidth;
-			mode.h = config->vidHeight;
-			mode.refresh_rate = /* config->displayFrequency = */ Cvar_VariableIntegerValue( "r_displayRefresh" );
-			mode.driverdata = NULL;
+			dm.w = config->vidWidth;
+			dm.h = config->vidHeight;
+			dm.refresh_rate = /* config->displayFrequency = */ Cvar_VariableIntegerValue( "r_displayRefresh" );
+			dm.driverdata = NULL;
 
-			if ( SDL_SetWindowDisplayMode( SDL_window, &mode ) < 0 )
+			if ( SDL_SetWindowDisplayMode( SDL_window, &dm ) < 0 )
 			{
 				Com_DPrintf( "SDL_SetWindowDisplayMode failed: %s\n", SDL_GetError( ) );
 				continue;
 			}
 
-			if ( SDL_GetWindowDisplayMode( SDL_window, &mode ) >= 0 )
+			if ( SDL_GetWindowDisplayMode( SDL_window, &dm ) >= 0 )
 			{
-				config->displayFrequency = mode.refresh_rate;
-				config->vidWidth = mode.w;
-				config->vidHeight = mode.h;
+				config->displayFrequency = dm.refresh_rate;
+				config->vidWidth = dm.w;
+				config->vidHeight = dm.h;
 			}
 		}
 

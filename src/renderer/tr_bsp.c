@@ -102,7 +102,7 @@ static void HSVtoRGB( float h, float s, float v, float rgb[3] )
 R_ColorShiftLightingBytes
 ===============
 */
-static void R_ColorShiftLightingBytes( const byte in[4], byte out[4] ) {
+static void R_ColorShiftLightingBytes( const byte in[4], byte out[4], qboolean hasAlpha ) {
 	int		shift, r, g, b;
 
 	// shift the color data based on overbright range
@@ -143,7 +143,9 @@ static void R_ColorShiftLightingBytes( const byte in[4], byte out[4] ) {
 		out[1] = g;
 		out[2] = b;
 	}
-	out[3] = in[3];
+	if ( hasAlpha ) {
+		out[3] = in[3];
+	}
 }
 
 
@@ -198,8 +200,9 @@ float R_ProcessLightmap( byte **pic, int in_padding, int width, int height, byte
 		}
 	} else {
 		for ( j = 0 ; j < width * height; j++ ) {
-			R_ColorShiftLightingBytes( &( *pic )[j * in_padding], &( *pic_out )[j * 4] );
-			( *pic_out )[j * 4 + 3] = 255;
+			byte *dst = &( *pic_out )[j * 4];
+			R_ColorShiftLightingBytes( &( *pic )[j * in_padding], dst, qfalse );
+			dst[3] = 255;
 		}
 	}
 
@@ -616,7 +619,7 @@ static void ParseMesh( const dsurface_t *ds, const drawVert_t *verts, msurface_t
 			points[i].st[j] = LittleFloat( verts[i].st[j] );
 			points[i].lightmap[j] = LittleFloat( verts[i].lightmap[j] );
 		}
-		R_ColorShiftLightingBytes( verts[i].color, points[i].color );
+		R_ColorShiftLightingBytes( verts[i].color, points[i].color, qtrue );
 	}
 
 	// pre-tesseleate
@@ -703,7 +706,7 @@ static void ParseTriSurf( const dsurface_t *ds, const drawVert_t *verts, msurfac
 			tri->verts[i].lightmap[j] = LittleFloat( verts[i].lightmap[j] );
 		}
 
-		R_ColorShiftLightingBytes( verts[i].color, tri->verts[i].color );
+		R_ColorShiftLightingBytes( verts[i].color, tri->verts[i].color, qtrue );
 		/*if ( lightmapNum >= 0 && r_mergeLightmaps->integer ) {
 			// adjust lightmap coords
 			tri->verts[i].lightmap[0] = tri->verts[i].lightmap[0] * tr.lightmapScale[0] + lightmapX;
@@ -842,7 +845,7 @@ static void ParseFoliage( const dsurface_t *ds, const drawVert_t *verts, msurfac
 		AddPointToBounds( boundsTranslated[ 1 ], foliage->bounds[ 0 ], foliage->bounds[ 1 ] );
 
 		// copy color
-		R_ColorShiftLightingBytes( verts[ i ].color, foliage->instances[ i ].color );
+		R_ColorShiftLightingBytes( verts[ i ].color, foliage->instances[ i ].color, qtrue );
 	}
 
 	// finish surface
@@ -2146,8 +2149,8 @@ static void R_LoadLightGrid( const lump_t *l ) {
 
 	// deal with overbright bits
 	for ( i = 0 ; i < numGridPoints ; i++ ) {
-		R_ColorShiftLightingBytes( &w->lightGridData[i * 8], &w->lightGridData[i * 8] );
-		R_ColorShiftLightingBytes( &w->lightGridData[i * 8 + 3], &w->lightGridData[i * 8 + 3] );
+		R_ColorShiftLightingBytes( &w->lightGridData[i*8], &w->lightGridData[i*8], qfalse );
+		R_ColorShiftLightingBytes( &w->lightGridData[i*8+3], &w->lightGridData[i*8+3], qfalse );
 	}
 }
 

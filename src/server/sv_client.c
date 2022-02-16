@@ -147,11 +147,17 @@ void SV_GetChallenge( const netadr_t *from ) {
 		// legacy client query, don't send unneeded information
 		NET_OutOfBandPrint( NS_SERVER, from, "challengeResponse %i %i", challenge, sv_onlyVisibleClients->integer );
 	} else {
+		int sv_proto = com_protocol->integer;
+		if ( sv_proto == DEFAULT_PROTOCOL_VERSION ) {
+			// we support new protocol features by default
+			sv_proto = NEW_PROTOCOL_VERSION;
+		}
+
 		// Grab the client's challenge to echo back (if given)
 		clientChallenge = atoi( Cmd_Argv( 1 ) );
 
 		NET_OutOfBandPrint( NS_SERVER, from, "challengeResponse %i %i %i %i",
-			challenge, sv_onlyVisibleClients->integer, clientChallenge, NEW_PROTOCOL_VERSION );
+			challenge, sv_onlyVisibleClients->integer, clientChallenge, sv_proto );
 	}
 }
 
@@ -436,15 +442,15 @@ void SV_DirectConnect( const netadr_t *from ) {
 	client_t	*cl, *newcl;
 	//sharedEntity_t *ent;
 	int			clientNum;
-	int			version;
 	int			qport;
 	int			challenge;
 	char		*password;
 	int			startIndex;
 	intptr_t	denied;
 	int			count;
+	int			cl_proto, sv_proto;
 	const char	*ip, *info, *v;
-	qboolean	compat = qfalse;
+	qboolean	compat;
 	qboolean	longstr;
 
 	Com_DPrintf( "SVC_DirectConnect()\n" );
@@ -529,24 +535,32 @@ void SV_DirectConnect( const netadr_t *from ) {
 		}
 		return;
 	}
-	version = atoi( v );
+	cl_proto = atoi( v );
 
-	if ( version == PROTOCOL_VERSION )
+	sv_proto = com_protocol->integer;
+	if ( sv_proto == DEFAULT_PROTOCOL_VERSION )
+	{
+		// we support new protocol features by default
+		sv_proto = NEW_PROTOCOL_VERSION;
+	}
+
+	if ( cl_proto <= OLD_PROTOCOL_VERSION )
 		compat = qtrue;
 	else
 	{
-		if ( version != NEW_PROTOCOL_VERSION )
+		if ( cl_proto != sv_proto )
 		{
 			// avoid excessive outgoing traffic
 			if ( !SVC_RateLimit( &bucket, 10, 200 ) )
 			{
-				NET_OutOfBandPrint( NS_SERVER, from, "print\n[err_prot]" PROTOCOL_MISMATCH_ERROR );
+				NET_OutOfBandPrint( NS_SERVER, from, "print\n[err_prot]" PROTOCOL_MISMATCH_ERROR);
 				//NET_OutOfBandPrint( NS_SERVER, from, "print\nServer uses protocol version %i "
-				//		   "(yours is %i).\n", NEW_PROTOCOL_VERSION, version );
+				//		   "(yours is %i).\n", sv_proto, cl_proto );
 			}
-			Com_DPrintf( "    rejected connect from version %i\n", version );
+			Com_DPrintf( "    rejected connect from version %i\n", cl_proto );
 			return;
 		}
+		compat = qfalse;
 	}
 
 	v = Info_ValueForKey( userinfo, "qport" );
@@ -561,11 +575,16 @@ void SV_DirectConnect( const netadr_t *from ) {
 	qport = atoi( Info_ValueForKey( userinfo, "qport" ) );
 
 	// if "client" is present in userinfo and it is a modern client
-	// then assume it can properly decode long strings
-	if ( !compat && *Info_ValueForKey( userinfo, "client" ) != '\0' )
+	// then assume it can properly decode long strings and protocol extensions
+	if ( !compat && *Info_ValueForKey( userinfo, "client" ) != '\0' ) {
 		longstr = qtrue;
-	else
+	} else {
 		longstr = qfalse;
+		if ( com_protocolCompat ) {
+			// enforce dm68-compatible stream for other clients
+			compat = qtrue;
+		}
+	}
 
 	// we don't need these keys after connection, release some space in userinfo
 	Info_RemoveKey( userinfo, "challenge" );
@@ -760,7 +779,11 @@ gotnewcl:
 	}
 
 	// send the connect packet to the client
-	NET_OutOfBandPrint( NS_SERVER, from, "connectResponse %d", challenge );
+	if ( longstr /*&& !compat*/ ) {
+		NET_OutOfBandPrint( NS_SERVER, from, "connectResponse %d %d", challenge, sv_proto );
+	} else {
+		NET_OutOfBandPrint( NS_SERVER, from, "connectResponse %d", challenge );
+	}
 
 	Com_DPrintf( "Going from CS_FREE to CS_CONNECTED for %s\n", newcl->name );
 
@@ -2485,7 +2508,7 @@ void SV_ExecuteClientMessage( client_t *cl, msg_t *msg ) {
 
 	// this client has acknowledged the new gamestate so it's
 	// safe to start sending it the real time again
-	if( cl->oldServerTime && serverId == sv.serverId ){
+	if( cl->oldServerTime && serverId == sv.serverId ) {
 		Com_DPrintf( "%s acknowledged gamestate\n", cl->name );
 		cl->oldServerTime = 0;
 	}

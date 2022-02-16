@@ -656,14 +656,14 @@ void GLimp_Init( glconfig_t *config )
 	config->driverType = GLDRV_ICD;
 	config->hardwareType = GLHW_GENERIC;
 
-	Key_ClearStates();
-
-	HandleEvents();
-
 	Cvar_Set("r_currentResolution", va("%dx%d", config->vidWidth, config->vidHeight));
 
 	// This depends on SDL_INIT_VIDEO, hence having it here
 	IN_Init();
+
+	HandleEvents();
+
+	Key_ClearStates();
 }
 
 
@@ -759,14 +759,14 @@ void VKimp_Init( glconfig_t *config )
 	config->driverType = GLDRV_ICD;
 	config->hardwareType = GLHW_GENERIC;
 
-	Key_ClearStates();
-
-	HandleEvents();
-
 	Cvar_Set("r_currentResolution", va("%dx%d", config->vidWidth, config->vidHeight));
 
 	// This depends on SDL_INIT_VIDEO, hence having it here
 	IN_Init();
+
+	HandleEvents();
+
+	Key_ClearStates();
 }
 
 

@@ -1668,6 +1668,7 @@ static void R_Register( void )
 	ri.Cvar_SetDescription( r_nomip, "Apply picmip only on worldspawn textures" );
 
 	r_neatsky = ri.Cvar_Get( "r_neatsky", "0", CVAR_ARCHIVE | CVAR_LATCH );
+	ri.Cvar_SetDescription( r_neatsky, "Always use highest quality textures for skyboxes regardless of picmip and mipmap state" );
 	r_roundImagesDown = ri.Cvar_Get( "r_roundImagesDown", "1", CVAR_ARCHIVE_ND | CVAR_LATCH );
 	r_allowNonPo2 = ri.Cvar_Get( "r_allowNonPo2", "0", CVAR_ARCHIVE_ND | CVAR_DEVELOPER | CVAR_LATCH );
 	ri.Cvar_SetDescription( r_allowNonPo2, "Toggle to allow non power of two textures. Default is off like etmain" );
@@ -1918,7 +1919,7 @@ static void R_Register( void )
 }
 
 qboolean modIsETF = qfalse;
-#define FUNCTABLE_EPSILON 1e-6
+#define FUNCTABLE_EPSILON 1e-6f
 
 /*
 ===============

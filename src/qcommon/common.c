@@ -40,7 +40,7 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "../client/keys.h"
 
-const int demo_protocols[] = { PROTOCOL_VERSION, NEW_PROTOCOL_VERSION, 0 };
+const int demo_protocols[] = { OLD_PROTOCOL_VERSION, NEW_PROTOCOL_VERSION, 0 };
 
 #define USE_MULTI_SEGMENT // allocate additional zone segments on demand
 
@@ -80,6 +80,7 @@ cvar_t	*com_timescale;
 static cvar_t *com_fixedtime;
 cvar_t	*com_journal;
 cvar_t	*com_protocol;
+qboolean com_protocolCompat;
 cvar_t	*com_legacyVersion;
 #ifndef DEDICATED
 cvar_t	*com_maxfps;
@@ -3770,7 +3771,16 @@ void Com_Init( char *commandLine ) {
 	Cvar_Get( "sv_master1", MASTER_SERVER_NAME, CVAR_INIT );
 	Cvar_Get( "sv_master2", "master.etlegacy.com", CVAR_INIT );
 
-	com_protocol = Cvar_Get( "protocol", XSTRING( PROTOCOL_VERSION ), 0 );
+	com_protocol = Cvar_Get( "protocol", XSTRING( DEFAULT_PROTOCOL_VERSION ), 0 );
+	if ( Q_stristr( com_protocol->string, "-compat" ) > com_protocol->string ) {
+		// strip -compat suffix
+		Cvar_Set2( "protocol", va( "%i", com_protocol->integer ), qtrue );
+		// enforce legacy stream encoding but with new challenge format
+		com_protocolCompat = qtrue;
+	} else {
+		com_protocolCompat = qfalse;
+	}
+
 	Cvar_CheckRange( com_protocol, "0", NULL, CV_INTEGER );
 	com_protocol->flags &= ~CVAR_USER_CREATED;
 	com_protocol->flags |= CVAR_SERVERINFO | CVAR_ROM;

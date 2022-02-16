@@ -2423,7 +2423,7 @@ qboolean FS_FileIsInPAK( const char *filename, int *pChecksum, char *pakName ) {
 	}
 
 	if ( !filename ) {
-		Com_Error( ERR_FATAL, "FS_FOpenFileRead: NULL 'filename' parameter passed" );
+		Com_Error( ERR_FATAL, "FS_FileIsInPAK: NULL 'filename' parameter passed" );
 	}
 
 	// qpaths are not supposed to have a leading slashes

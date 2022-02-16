@@ -313,10 +313,12 @@ You or the server may be running older versions of the game. Press the auto-upda
 // 2.4 - protocol 80
 // 1.33 - protocol 59
 // 1.4 - protocol 60
-#define PROTOCOL_VERSION    84
+#define	OLD_PROTOCOL_VERSION	84
 
 // new protocol with UDP spoofing protection:
 #define	NEW_PROTOCOL_VERSION	85
+
+#define DEFAULT_PROTOCOL_VERSION	OLD_PROTOCOL_VERSION
 
 
 // maintain a list of compatible protocols for demo playing
@@ -1152,6 +1154,7 @@ extern	cvar_t	*com_buildScript;		// for building release pak files
 extern	cvar_t	*com_journal;
 extern	cvar_t	*com_cameraMode;
 extern	cvar_t	*com_protocol;
+extern	qboolean com_protocolCompat;
 extern	cvar_t	*com_legacyVersion;
 
 // watchdog

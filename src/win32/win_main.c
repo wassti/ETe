@@ -987,6 +987,7 @@ static LONG WINAPI ExceptionFilter( struct _EXCEPTION_POINTERS *ExceptionInfo )
 
 // Gets whether the current process has UAC virtualization enabled.
 // Returns TRUE on success and FALSE on failure.
+#if 0
 static qboolean WIN_IsVirtualizationEnabled(qboolean *status) {
 	HANDLE token;
 	DWORD temp;
@@ -1011,6 +1012,7 @@ err:
 
 	return ret;
 }
+#endif
 
 
 /*
@@ -1026,7 +1028,7 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 	qboolean useXYpos;
 	HANDLE hProcess;
 	DWORD dwPriority;
-	qboolean virtStatus = qfalse;
+	//qboolean virtStatus = qfalse;
 
 	// should never get a previous instance in Win32
 	if ( hPrevInstance ) {
@@ -1063,10 +1065,12 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 
 	Com_Printf( "Working directory: %s\n", Sys_Pwd() );
 
+#if 0
 	if ( WIN_IsVirtualizationEnabled(&virtStatus) ) {
 		if ( virtStatus )
 			Com_Printf( S_COLOR_YELLOW "WARNING: UAC Virtualization detected. Suggest installing outside of Program Files\n" );
 	}
+#endif
 
 	// hide the early console since we've reached the point where we
 	// have a working graphics subsystems

@@ -335,10 +335,15 @@ void CL_StopRecord_f( void ) {
 		clc.recordfile = FS_INVALID_HANDLE;
 
 		// select proper extension
-		if ( clc.dm84compat || clc.demoplaying )
-			protocol = PROTOCOL_VERSION;
-		else
+		if ( clc.dm84compat || clc.demoplaying ) {
+			protocol = OLD_PROTOCOL_VERSION;
+		} else {
 			protocol = NEW_PROTOCOL_VERSION;
+		}
+
+		if ( com_protocol->integer != DEFAULT_PROTOCOL_VERSION ) {
+			protocol = com_protocol->integer;
+		}
 
 		Com_sprintf( tempName, sizeof( tempName ), "%s.tmp", clc.recordName );
 
@@ -662,7 +667,7 @@ static void CL_Record_f( void ) {
 		ext = COM_GetExtension( demoName );
 		if ( *ext ) {
 			// strip demo extension
-			sprintf( demoExt, "%s%d", DEMOEXT, PROTOCOL_VERSION );
+			sprintf( demoExt, "%s%d", DEMOEXT, OLD_PROTOCOL_VERSION );
 			if ( Q_stricmp( ext, demoExt ) == 0 ) {
 				*(strrchr( demoName, '.' )) = '\0';
 			} else {
@@ -729,11 +734,11 @@ CL_CompleteRecordName
 */
 static void CL_CompleteRecordName( char *args, int argNum )
 {
-	if( argNum == 2 )
+	if ( argNum == 2 )
 	{
 		char demoExt[ 16 ];
 
-		Com_sprintf( demoExt, sizeof( demoExt ), ".dm_%d", PROTOCOL_VERSION );
+		Com_sprintf( demoExt, sizeof( demoExt ), ".%s%d", DEMOEXT, com_protocol->integer );
 		Field_CompleteFilename( "demos", demoExt, qtrue, FS_MATCH_EXTERN | FS_MATCH_STICK );
 	}
 }
@@ -846,7 +851,7 @@ void CL_ReadDemoMessage( void ) {
 CL_WalkDemoExt
 ====================
 */
-static int CL_WalkDemoExt( const char *arg, char *name, fileHandle_t *handle )
+static int CL_WalkDemoExt( const char *arg, char *name, int name_len, fileHandle_t *handle )
 {
 	int i;
 
@@ -855,7 +860,7 @@ static int CL_WalkDemoExt( const char *arg, char *name, fileHandle_t *handle )
 
 	while ( demo_protocols[ i ] )
 	{
-		Com_sprintf( name, MAX_OSPATH, "demos/%s.dm_%d", arg, demo_protocols[ i ] );
+		Com_sprintf( name, name_len, "demos/%s.%s%d", arg, DEMOEXT, demo_protocols[ i ] );
 		FS_BypassPure();
 		FS_FOpenFileRead( name, handle, qtrue );
 		FS_RestorePure();
@@ -879,12 +884,17 @@ CL_DemoExtCallback
 */
 static qboolean CL_DemoNameCallback_f( const char *filename, int length )
 {
+	const int ext_len = strlen( "." DEMOEXT );
+	const int num_len = 2;
 	int version;
 
-	if ( length < 7 || Q_stricmpn( filename + length - 6, ".dm_", 4 ) )
+	if ( length <= ext_len + num_len || Q_stricmpn( filename + length - (ext_len + num_len), "." DEMOEXT, ext_len ) != 0 )
 		return qfalse;
 
-	version = atoi( filename + length - 2 );
+	version = atoi( filename + length - num_len );
+	if ( version == com_protocol->integer )
+		return qtrue;
+
 	if ( version < 84 || version > NEW_PROTOCOL_VERSION )
 		return qfalse;
 
@@ -899,10 +909,10 @@ CL_CompleteDemoName
 */
 static void CL_CompleteDemoName( char *args, int argNum )
 {
-	if( argNum == 2 )
+	if ( argNum == 2 )
 	{
 		FS_SetFilenameCallback( CL_DemoNameCallback_f );
-		Field_CompleteFilename( "demos", ".dm_??", qfalse, FS_MATCH_ANY | FS_MATCH_STICK );
+		Field_CompleteFilename( "demos", "." DEMOEXT "??", qfalse, FS_MATCH_ANY | FS_MATCH_STICK );
 		FS_SetFilenameCallback( NULL );
 	}
 }
@@ -958,16 +968,17 @@ static void CL_PlayDemo_f( void ) {
 			Com_Printf("Protocol %d not supported for demos\n", protocol );
 			len = ext_test - arg;
 
-			if(len >= ARRAY_LEN(retry))
-				len = ARRAY_LEN(retry) - 1;
+			if ( len > ARRAY_LEN( retry ) - 1 ) {
+				len = ARRAY_LEN( retry ) - 1;
+			}
 
 			Q_strncpyz( retry, arg, len + 1);
 			retry[len] = '\0';
-			protocol = CL_WalkDemoExt( retry, name, &hFile );
+			protocol = CL_WalkDemoExt( retry, name, sizeof( name ), &hFile );
 		}
 	}
 	else
-		protocol = CL_WalkDemoExt( arg, name, &hFile );
+		protocol = CL_WalkDemoExt( arg, name, sizeof( name ), &hFile );
 
 	if ( hFile == FS_INVALID_HANDLE ) {
 		Com_Printf( S_COLOR_YELLOW "couldn't open %s\n", name );
@@ -1004,7 +1015,7 @@ static void CL_PlayDemo_f( void ) {
 	clc.demoplaying = qtrue;
 	Q_strncpyz( cls.servername, shortname, sizeof( cls.servername ) );
 
-	if ( protocol < NEW_PROTOCOL_VERSION )
+	if ( protocol <= OLD_PROTOCOL_VERSION )
 		clc.compat = qtrue;
 	else
 		clc.compat = qfalse;
@@ -2164,7 +2175,7 @@ static void CL_DownloadsComplete( void ) {
 	}
 
 	// TTimo: I wonder if that happens - it should not but I suspect it could happen if a download fails in the middle or is aborted
-	assert( !cls.bWWWDlDisconnected );
+	//assert( !cls.bWWWDlDisconnected );
 
 	// let the client game init and load data
 	cls.state = CA_LOADING;
@@ -2469,12 +2480,12 @@ static void CL_CheckForResend( void ) {
 			notOverflowed = qtrue;
 		}
 
-		if ( com_protocol->integer != PROTOCOL_VERSION ) {
+		if ( com_protocol->integer != DEFAULT_PROTOCOL_VERSION ) {
 			notOverflowed &= Info_SetValueForKey_s( info, MAX_USERINFO_LENGTH, "protocol",
 				com_protocol->string );
 		} else {
 			notOverflowed &= Info_SetValueForKey_s( info, MAX_USERINFO_LENGTH, "protocol",
-				clc.compat ? XSTRING( PROTOCOL_VERSION ) : XSTRING( NEW_PROTOCOL_VERSION ) );
+				clc.compat ? XSTRING( OLD_PROTOCOL_VERSION ) : XSTRING( NEW_PROTOCOL_VERSION ) );
 		}
 
 		notOverflowed &= Info_SetValueForKey_s( info, MAX_USERINFO_LENGTH, "qport",
@@ -2887,44 +2898,45 @@ static qboolean CL_ConnectionlessPacket( const netadr_t *from, msg_t *msg ) {
 	}
 
 	// challenge from the server we are connecting to
-	if (!Q_stricmp(c, "challengeResponse"))
-	{
-		char *strver;
-		int ver;
+	if ( !Q_stricmp(c, "challengeResponse" ) ) {
 
-		if ( cls.state != CA_CONNECTING )
-		{
+		if ( cls.state != CA_CONNECTING ) {
 			Com_DPrintf( "Unwanted challenge response received. Ignored.\n" );
 			return qfalse;
 		}
 
 		c = Cmd_Argv( 3 );
-		if ( *c )
+		if ( *c != '\0' )
 			challenge = atoi( c );
 
- 		clc.compat = qtrue;
-		strver = Cmd_Argv( 4 ); // analyze server protocol version
-		if ( *strver ) {
-			ver = atoi( strver );
-			if ( ver != PROTOCOL_VERSION ) {
-				if ( ver == NEW_PROTOCOL_VERSION ) {
+		clc.compat = qtrue;
+		s = Cmd_Argv( 4 ); // analyze server protocol version
+		if ( *s != '\0' ) {
+			int sv_proto = atoi( s );
+			if ( sv_proto > OLD_PROTOCOL_VERSION ) {
+				if ( sv_proto == NEW_PROTOCOL_VERSION || sv_proto == com_protocol->integer ) {
 					clc.compat = qfalse;
 				} else {
+					int cl_proto = com_protocol->integer;
+					if ( cl_proto == DEFAULT_PROTOCOL_VERSION ) {
+						// we support new protocol features by default
+						cl_proto = NEW_PROTOCOL_VERSION;
+					}
 					Com_Printf( S_COLOR_YELLOW "Warning: Server reports protocol version %d, "
-						   "we have %d. Trying legacy protocol %d.\n",
-						   ver, NEW_PROTOCOL_VERSION, PROTOCOL_VERSION );
+						"we have %d. Trying legacy protocol %d.\n",
+						sv_proto, cl_proto, OLD_PROTOCOL_VERSION );
 				}
 			}
 		}
 
 		if ( clc.compat )
 		{
-			if( !NET_CompareAdr( from, &clc.serverAddress ) )
+			if ( !NET_CompareAdr( from, &clc.serverAddress ) )
 			{
 				// This challenge response is not coming from the expected address.
 				// Check whether we have a matching client challenge to prevent
 				// connection hi-jacking.
-				if( !*c || challenge != clc.challenge )
+				if ( *c == '\0' || challenge != clc.challenge )
 				{
 					Com_DPrintf( "Challenge response received from unexpected source. Ignored.\n" );
 					return qfalse;
@@ -2933,7 +2945,7 @@ static qboolean CL_ConnectionlessPacket( const netadr_t *from, msg_t *msg ) {
 		}
 		else
 		{
-			if( !*c || challenge != clc.challenge )
+			if ( *c == '\0' || challenge != clc.challenge )
 			{
 				Com_Printf( "Bad challenge for challengeResponse. Ignored.\n" );
 				return qfalse;
@@ -2974,27 +2986,41 @@ static qboolean CL_ConnectionlessPacket( const netadr_t *from, msg_t *msg ) {
 			return qfalse;
 		}
 
-		if ( !clc.compat )
-		{
-			c = Cmd_Argv(1);
-
-			if(*c)
-				challenge = atoi(c);
-			else
-			{
-				Com_Printf("Bad connectResponse received. Ignored.\n");
+		if ( !clc.compat ) {
+			// first argument: challenge response
+			c = Cmd_Argv( 1 );
+			if ( *c != '\0' ) {
+				challenge = atoi( c );
+			} else {
+				Com_Printf( "Bad connectResponse received. Ignored.\n" );
 				return qfalse;
 			}
 
-			if(challenge != clc.challenge)
-			{
-				Com_Printf("ConnectResponse with bad challenge received. Ignored.\n");
+			if ( challenge != clc.challenge ) {
+				Com_Printf( "ConnectResponse with bad challenge received. Ignored.\n" );
 				return qfalse;
+			}
+
+			if ( com_protocolCompat ) {
+				// enforce dm68-compatible stream for legacy/unknown servers
+				clc.compat = qtrue;
+			}
+
+			// second (optional) argument: actual protocol version used on server-side
+			c = Cmd_Argv( 2 );
+			if ( *c != '\0' ) {
+				int protocol = atoi( c );
+				if ( protocol > 0 ) {
+					if ( protocol <= OLD_PROTOCOL_VERSION ) {
+						clc.compat = qtrue;
+					} else {
+						clc.compat = qfalse;
+					}
+				}
 			}
 		}
 
-		Netchan_Setup( NS_CLIENT, &clc.netchan, from, Cvar_VariableIntegerValue("net_qport"),
-			clc.challenge, clc.compat );
+		Netchan_Setup( NS_CLIENT, &clc.netchan, from, Cvar_VariableIntegerValue( "net_qport" ), clc.challenge, clc.compat );
 
 		cls.state = CA_CONNECTED;
 		clc.lastPacketSentTime = -9999;		// send first packet immediately
@@ -4357,6 +4383,7 @@ CL_Init
 */
 void CL_Init( void ) {
 	const char *s;
+	cvar_t *cv;
 
 	Com_Printf( "----- Client Initialization -----\n" );
 
@@ -4395,14 +4422,16 @@ void CL_Init( void ) {
 	cl_showTimeDelta = Cvar_Get( "cl_showTimeDelta", "0", CVAR_TEMP );
 	rcon_client_password = Cvar_Get( "rconPassword", "", CVAR_TEMP );
 	Cvar_SetDescription( rcon_client_password, "Password for remote console access" );
-	cl_activeAction = Cvar_Get( "activeAction", "", CVAR_TEMP );
+	cl_activeAction = Cvar_Get( "activeAction", "", CVAR_TEMP | CVAR_PROTECTED );
 
 	cl_autoRecordDemo = Cvar_Get ("cl_autoRecordDemo", "0", CVAR_ARCHIVE);
 
 	cl_aviFrameRate = Cvar_Get ("cl_aviFrameRate", "25", CVAR_ARCHIVE);
 	Cvar_CheckRange( cl_aviFrameRate, "1", "1000", CV_INTEGER );
 	cl_aviMotionJpeg = Cvar_Get ("cl_aviMotionJpeg", "1", CVAR_ARCHIVE);
+	Cvar_CheckRange( cl_aviMotionJpeg, "0", "1", CV_INTEGER );
 	cl_forceavidemo = Cvar_Get ("cl_forceavidemo", "0", 0);
+	Cvar_CheckRange( cl_forceavidemo, "0", "1", CV_INTEGER );
 
 	cl_aviPipeFormat = Cvar_Get( "cl_aviPipeFormat",
 		"-preset medium -crf 23 -vcodec libx264 -flags +cgop -pix_fmt yuv420p "
@@ -4457,7 +4486,8 @@ void CL_Init( void ) {
 	cl_wavefilename = Cvar_Get( "cl_wavefilename", "", CVAR_ROM );
 	cl_waveoffset = Cvar_Get( "cl_waveoffset", "0", CVAR_ROM );
 
-	Cvar_Get( "cl_maxPing", "800", CVAR_ARCHIVE_ND );
+	cv = Cvar_Get( "cl_maxPing", "800", CVAR_ARCHIVE_ND );
+	Cvar_CheckRange( cv, "100", "999", CV_INTEGER );
 
 	cl_lanForcePackets = Cvar_Get( "cl_lanForcePackets", "1", CVAR_ARCHIVE_ND );
 
@@ -4811,7 +4841,7 @@ static void CL_ServerInfoPacket( const netadr_t *from, msg_t *msg ) {
 
 	// if this isn't the correct protocol version, ignore it
 	prot = atoi( Info_ValueForKey( infoString, "protocol" ) );
-	if ( prot != PROTOCOL_VERSION && prot != NEW_PROTOCOL_VERSION ) {
+	if ( prot != OLD_PROTOCOL_VERSION && prot != NEW_PROTOCOL_VERSION && prot != com_protocol->integer ) {
 		Com_DPrintf( "Different protocol info packet: %s\n", infoString );
 		return;
 	}
@@ -5273,15 +5303,12 @@ void CL_GetPing( int n, char *buf, int buflen, int *pingtime )
 	Q_strncpyz( buf, str, buflen );
 
 	time = cl_pinglist[n].time;
-	if (!time)
+	if ( time == 0 )
 	{
 		// check for timeout
 		time = Sys_Milliseconds() - cl_pinglist[n].start;
 		maxPing = Cvar_VariableIntegerValue( "cl_maxPing" );
-		if( maxPing < 100 ) {
-			maxPing = 100;
-		}
-		if (time < maxPing)
+		if ( time < maxPing )
 		{
 			// not timed out yet
 			time = 0;

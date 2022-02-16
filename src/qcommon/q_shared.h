@@ -264,7 +264,7 @@ typedef int		clipHandle_t;
 #if defined(__GNUC__) || defined(__clang__)
 #define QALIGN(x) __attribute__((aligned(x)))
 #elif defined(_MSC_VER)
-#define QALIGN(x) __declspec(align(x))
+#define QALIGN(x) /* __declspec(align(x)) */
 #else
 #define QALIGN(x)
 #endif
@@ -1981,7 +1981,7 @@ typedef enum ossInfoFlag_e {
 	OSS_ANDROID = BIT(9), // multiple android arches?
 	OSS_RASBERRYPI = BIT(10),
 	OSS_WINARM64 = BIT(11),
-	OSS_MAX = BIT(32)
+	//OSS_MAX = BIT(32)
 } ossInfoFlag_t;
 
 #endif  // __Q_SHARED_H__

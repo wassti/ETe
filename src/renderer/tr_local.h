@@ -1588,6 +1588,7 @@ extern cvar_t  *r_lightmap;                     // render lightmaps only
 
 extern cvar_t  *r_logFile;                      // number of frames to emit GL logs
 extern cvar_t  *r_showtris;                     // enables wireframe rendering of the world
+extern cvar_t  *r_trisMode;
 extern cvar_t  *r_trisColor;                    // enables modifying of the wireframe colour (in 0xRRGGBB[AA] format, alpha defaults to FF)
 extern cvar_t  *r_showsky;                      // forces sky in front of all surfaces
 extern cvar_t  *r_shownormals;                  // draws wireframe normals

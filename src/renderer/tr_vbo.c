@@ -1513,18 +1513,30 @@ static void RB_IterateStagesVBO( const shaderCommands_t *input )
 		GL_SelectTexture( 0 );
 		qglDisable( GL_TEXTURE_2D );
 
-		GL_State( GLS_POLYMODE_LINE | GLS_DEPTHMASK_TRUE );
-		qglDepthRange( 0, 0 );
+		if ( r_trisMode->integer ) {
+			GL_State( GLS_POLYMODE_LINE | GLS_DEPTHMASK_TRUE );
+			qglDepthRange( 0, 0 );
+		}
+		else {
+			GL_State( GLS_POLYMODE_LINE );
+			qglEnable( GL_POLYGON_OFFSET_LINE );
+			qglPolygonOffset( r_offsetFactor->value, r_offsetUnits->value );
+		}
 
 		// green for IBO items
 		qglColor4f( 0.25f, 1.0f, 0.25f, 1.0f );
 		VBO_RenderIBOItems();
-		
+
 		// cyan for soft-index items
 		qglColor4f( 0.25f, 1.0f, 0.55f, 1.0f );
 		VBO_RenderSoftItems();
 
-		qglDepthRange( 0, 1 );
+		if ( r_trisMode->integer ) {
+			qglDepthRange( 0, 1 );
+		}
+		else {
+			qglDisable( GL_POLYGON_OFFSET_LINE );
+		}
 
 		qglEnable( GL_TEXTURE_2D );
 	}

@@ -147,6 +147,7 @@ cvar_t	*r_colorMipLevels;
 cvar_t	*r_picmip;
 cvar_t	*r_nomip;
 cvar_t	*r_showtris;
+cvar_t	*r_trisMode;
 cvar_t	*r_trisColor;
 cvar_t	*r_showsky;
 cvar_t	*r_shownormals;
@@ -1826,6 +1827,11 @@ static void R_Register( void )
 	r_nobind = ri.Cvar_Get( "r_nobind", "0", CVAR_CHEAT );
 	r_showtris = ri.Cvar_Get( "r_showtris", "0", CVAR_CHEAT );
 	ri.Cvar_CheckRange( r_showtris, "0", "3", CV_INTEGER );
+	r_trisMode = ri.Cvar_Get( "r_trisMode", "1", CVAR_ARCHIVE_ND );
+	ri.Cvar_SetDescription( r_trisMode, "Rendering mode for \\r_showtris:\n"
+		" 0 - Classic ET \\r_showtris 1\n"
+		" 1 - Q3A / ET \\r_showtris 2 style (default)\n" );
+	ri.Cvar_CheckRange( r_trisMode, "0", "1", CV_INTEGER );
 	r_trisColor = ri.Cvar_Get( "r_trisColor", "1.0 1.0 1.0 1.0", CVAR_ARCHIVE_ND );
 	r_showsky = ri.Cvar_Get( "r_showsky", "0", 0 );
 	r_shownormals = ri.Cvar_Get( "r_shownormals", "0", CVAR_CHEAT );

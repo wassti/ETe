@@ -173,11 +173,20 @@ static void DrawTris( shaderCommands_t *input ) {
 	else
 #endif
 	qglColor4f( trisColor[0], trisColor[1], trisColor[2], trisColor[3] );
-	
-	stateBits |= ( GLS_POLYMODE_LINE | GLS_DEPTHMASK_TRUE );
-	GL_State( stateBits );
-	qglDepthRange( 0, 0 );
-	didDepth = GL_TRUE;
+
+	if ( r_trisMode->integer ) {
+		stateBits |= ( GLS_POLYMODE_LINE | GLS_DEPTHMASK_TRUE );
+		GL_State( stateBits );
+		qglDepthRange( 0, 0 );
+		didDepth = GL_TRUE;
+	}
+	else {
+		stateBits |= ( GLS_POLYMODE_LINE );
+		GL_State( stateBits );
+		qglEnable( GL_POLYGON_OFFSET_LINE );
+		polygonState = GL_TRUE;
+		qglPolygonOffset( r_offsetFactor->value, r_offsetUnits->value );
+	}
 
 	// ydnar r_showtris 2
 	/*if ( r_showtris->integer == 2 ) {

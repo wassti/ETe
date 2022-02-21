@@ -309,7 +309,7 @@ void QDECL Com_Printf( const char *fmt, ... )
 /*
 ** R_HaveExtension
 */
-qboolean R_HaveExtension( const char *ext )
+static qboolean R_HaveExtension( const char *ext )
 {
 	const char *ptr = Q_stristr( gl_extensions, ext );
 	if (ptr == NULL)
@@ -1502,8 +1502,8 @@ static void GfxInfo( void )
 	ri.Printf( PRINT_ALL, "GL_RENDERER: %s\n", glConfig.renderer_string );
 	ri.Printf( PRINT_ALL, "GL_VERSION: %s\n", glConfig.version_string );
 	ri.Printf( PRINT_DEVELOPER, "GL_EXTENSIONS: " );
-	R_PrintLongString( PRINT_ALL, gl_extensions );
-	ri.Printf( PRINT_ALL, "\n" );
+	R_PrintLongString( PRINT_DEVELOPER, gl_extensions );
+	ri.Printf( PRINT_DEVELOPER, "\n" );
 	ri.Printf( PRINT_ALL, "GL_MAX_TEXTURE_SIZE: %d\n", glConfig.maxTextureSize );
 	ri.Printf( PRINT_ALL, "GL_MAX_TEXTURE_UNITS_ARB: %d\n", glConfig.numTextureUnits );
 	ri.Printf( PRINT_ALL, "\nPIXELFORMAT: color(%d-bits) Z(%d-bit) stencil(%d-bits)\n", glConfig.colorBits, glConfig.depthBits, glConfig.stencilBits );

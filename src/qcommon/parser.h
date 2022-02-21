@@ -134,11 +134,6 @@ source_t *LoadSourceFile( const char *filename );
 //load a source from memory
 //source_t *LoadSourceMemory( char *ptr, int length, char *name );
 //free the given source
-void FreeSource( source_t *source );
-//print a source error
-void FORMAT_PRINTF(2, 3) QDECL SourceError( source_t *source, const char *fmt, ... );
-//print a source warning
-void FORMAT_PRINTF(2, 3) QDECL SourceWarning( source_t *source, const char *fmt, ... );
 
 //
 int PC_LoadSourceHandle( const char *filename );

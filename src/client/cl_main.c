@@ -164,7 +164,7 @@ refexport_t	re;
 static void	*rendererLib;
 #endif
 
-ping_t	cl_pinglist[MAX_PINGREQUESTS];
+static ping_t cl_pinglist[MAX_PINGREQUESTS];
 
 typedef struct serverStatus_s
 {
@@ -176,7 +176,7 @@ typedef struct serverStatus_s
 	qboolean retrieved;
 } serverStatus_t;
 
-serverStatus_t cl_serverStatusList[MAX_SERVERSTATUSREQUESTS];
+static serverStatus_t cl_serverStatusList[MAX_SERVERSTATUSREQUESTS];
 
 static void CL_CheckForResend( void );
 static void CL_ShowIP_f( void );
@@ -194,9 +194,6 @@ static void CL_ShutdownRef( refShutdownCode_t code );
 static void CL_InitGLimp_Cvars( void );
 
 static void CL_NextDemo( void );
-
-void CL_SaveTranslations_f( void );
-void CL_LoadTranslations_f( void );
 
 // fretn
 void CL_WriteWaveClose( void );
@@ -1961,7 +1958,7 @@ CL_UI_Restart_f
 Restart the ui subsystem
 =================
 */
-void CL_UI_Restart_f( void ) {          // NERVE - SMF
+static void CL_UI_Restart_f( void ) {          // NERVE - SMF
 	// shutdown the UI
 	CL_ShutdownUI();
 
@@ -1976,7 +1973,7 @@ CL_Snd_Reload_f
 Reloads sounddata from disk, retains soundhandles.
 =================
 */
-void CL_Snd_Reload_f( void ) {
+static void CL_Snd_Reload_f( void ) {
 	S_Reload();
 }
 
@@ -2004,7 +2001,7 @@ static void CL_Snd_Restart_f( void )
 CL_PK3List_f
 ==================
 */
-void CL_OpenedPK3List_f( void ) {
+static void CL_OpenedPK3List_f( void ) {
 	qboolean dummy = qfalse;
 	Com_Printf("Opened PK3 Names: %s\n", FS_LoadedPakNames(qfalse, &dummy));
 }
@@ -2677,11 +2674,11 @@ typedef struct hash_chain_s {
 	struct hash_chain_s *next;
 } hash_chain_t;
 
-hash_chain_t *hash_table[1024];
-hash_chain_t hash_list[MAX_GLOBAL_SERVERS];
-unsigned int hash_count = 0;
+static hash_chain_t *hash_table[1024];
+static hash_chain_t hash_list[MAX_GLOBAL_SERVERS];
+static unsigned int hash_count = 0;
 
-unsigned int hash_func( const netadr_t *addr ) {
+static unsigned int hash_func( const netadr_t *addr ) {
 
 	const byte		*ip = NULL;
 	unsigned int	size;
@@ -3539,7 +3536,7 @@ typedef struct {
 	int lastSetIndex;
 } cacheItem_t;
 typedef enum {
-	CACHE_SOUNDS,
+	CACHE_SOUNDS = 0,
 	CACHE_MODELS,
 	CACHE_IMAGES,
 
@@ -3664,10 +3661,9 @@ static void CL_Cache_EndGather_f( void ) {
 CL_SetRecommended_f
 ================
 */
-void CL_SetRecommended_f( void ) {
+static void CL_SetRecommended_f( void ) {
 	Com_SetRecommended();
 }
-
 
 
 /*
@@ -4031,11 +4027,11 @@ static void CL_InitRef( void ) {
 }
 
 #if !defined(__APPLE__) && !defined(__APPLE_CC__)
-void CL_SaveTranslations_f( void ) {
+static void CL_SaveTranslations_f( void ) {
 	CL_SaveTransTable( "scripts/translation.cfg", qfalse );
 }
 
-void CL_SaveNewTranslations_f( void ) {
+static void CL_SaveNewTranslations_f( void ) {
 	char fileName[MAX_QPATH];
 
 	if ( Cmd_Argc() != 2 ) {
@@ -4048,7 +4044,7 @@ void CL_SaveNewTranslations_f( void ) {
 	CL_SaveTransTable( fileName, qtrue );
 }
 
-void CL_LoadTranslations_f( void ) {
+static void CL_LoadTranslations_f( void ) {
 	CL_ReloadTranslation();
 }
 // -NERVE - SMF
@@ -4065,7 +4061,7 @@ video
 video [filename]
 ===============
 */
-void CL_Video_f( void )
+static void CL_Video_f( void )
 {
 	char filename[ MAX_OSPATH ];
 	const char *ext;
@@ -4151,7 +4147,7 @@ CL_CompleteRecordName
 */
 static void CL_CompleteVideoName( char *args, int argNum )
 {
-	if( argNum == 2 )
+	if ( argNum == 2 )
 	{
 		Field_CompleteFilename( "videos", ".avi", qtrue, FS_MATCH_EXTERN | FS_MATCH_STICK );
 	}

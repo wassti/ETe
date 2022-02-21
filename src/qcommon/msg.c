@@ -552,7 +552,7 @@ static const int kbitmask[32] = {
 };
 
 
-void MSG_WriteDeltaKey( msg_t *msg, int key, int oldV, int newV, int bits ) {
+static void MSG_WriteDeltaKey( msg_t *msg, int key, int oldV, int newV, int bits ) {
 	if ( oldV == newV ) {
 		MSG_WriteBits( msg, 0, 1 );
 		return;
@@ -562,7 +562,7 @@ void MSG_WriteDeltaKey( msg_t *msg, int key, int oldV, int newV, int bits ) {
 }
 
 
-int	MSG_ReadDeltaKey( msg_t *msg, int key, int oldV, int bits ) {
+static int MSG_ReadDeltaKey( msg_t *msg, int key, int oldV, int bits ) {
 	if ( MSG_ReadBits( msg, 1 ) ) {
 		return MSG_ReadBits( msg, bits ) ^ (key & kbitmask[ bits - 1 ]);
 	}
@@ -696,17 +696,15 @@ void MSG_ReportChangeVectors_f( void ) {
 
 typedef struct {
 	const char    *name;
-	size_t offset;
-	int bits;           // 0 = float
-#ifdef MSG_FIELDINFO_SORT_DEBUG
-	int used;
-#endif
+	const size_t	offset;
+	const int	bits;	// 0 = float
 } netField_t;
 
 // using the stringizing operator to save typing...
 #define	NETF(x) #x,offsetof(entityState_t, x)
 
-const netField_t entityStateFields[] = {
+static const netField_t entityStateFields[] =
+{
 	{ NETF( eType ), 8 },
 	{ NETF( eFlags ), 24 },
 	{ NETF( pos.trType ), 8 },
@@ -780,42 +778,6 @@ const netField_t entityStateFields[] = {
 	{ NETF( aiState ), 2},
 };
 
-#ifdef MSG_FIELDINFO_SORT_DEBUG
-static int QDECL qsort_entitystatefields( const void *a, const void *b ) {
-	int aa, bb;
-
-	aa = *( (int*)a );
-	bb = *( (int*)b );
-
-	if ( entityStateFields[aa].used > entityStateFields[bb].used ) {
-		return -1;
-	}
-	if ( entityStateFields[bb].used > entityStateFields[aa].used ) {
-		return 1;
-	}
-	return 0;
-}
-
-void MSG_PrioritiseEntitystateFields( void ) {
-	int fieldorders[ sizeof( entityStateFields ) / sizeof( entityStateFields[0] ) ];
-	int numfields = sizeof( entityStateFields ) / sizeof( entityStateFields[0] );
-	int i;
-
-	for ( i = 0; i < numfields; i++ ) {
-		fieldorders[ i ] = i;
-	}
-
-	qsort( fieldorders, numfields, sizeof( int ), qsort_entitystatefields );
-
-	Com_Printf( "Entitystate fields in order of priority\n" );
-	Com_Printf( "netField_t entityStateFields[] = {\n" );
-	for ( i = 0; i < numfields; i++ ) {
-		Com_Printf( "{ NETF (%s), %i },\n", entityStateFields[ fieldorders[ i ] ].name, entityStateFields[ fieldorders[ i ] ].bits );
-	}
-	Com_Printf( "};\n" );
-}
-#endif
-
 // if (int)f == f and (int)f + ( 1<<(FLOAT_INT_BITS-1) ) < ( 1 << FLOAT_INT_BITS )
 // the float will be sent with FLOAT_INT_BITS, otherwise all 32 bits will be sent
 #define FLOAT_INT_BITS  13
@@ -835,11 +797,7 @@ identical, under the assumption that the in-order delta code will catch it.
 void MSG_WriteDeltaEntity( msg_t *msg, const entityState_t *from, const entityState_t *to, qboolean force ) {
 	int			i, lc;
 	int			numFields;
-#ifdef MSG_FIELDINFO_SORT_DEBUG
-	netField_t	*field;
-#else
 	const netField_t *field;
-#endif
 	int			trunc;
 	float		fullFloat;
 	const int	*fromF, *toF;
@@ -878,9 +836,6 @@ void MSG_WriteDeltaEntity( msg_t *msg, const entityState_t *from, const entitySt
 		toF = (int *)( (byte *)to + field->offset );
 		if ( *fromF != *toF ) {
 			lc = i + 1;
-#ifdef MSG_FIELDINFO_SORT_DEBUG
-			field->used++;
-#endif			
 		}
 	}
 
@@ -1122,7 +1077,8 @@ player_state_t communication
 // using the stringizing operator to save typing...
 #define	PSF(x) #x,offsetof(playerState_t, x)
 
-/*const */netField_t playerStateFields[] = {
+static const netField_t playerStateFields[] =
+{
 	{ PSF( commandTime ), 32 },
 	{ PSF( pm_type ), 8 },
 	{ PSF( bobCycle ), 8 },
@@ -1203,43 +1159,6 @@ player_state_t communication
 	{ PSF( aiState ), 2},
 };
 
-#ifdef MSG_FIELDINFO_SORT_DEBUG
-static int QDECL qsort_playerstatefields( const void *a, const void *b ) {
-	int aa, bb;
-
-	aa = *( (int*)a );
-	bb = *( (int*)b );
-
-	if ( playerStateFields[aa].used > playerStateFields[bb].used ) {
-		return -1;
-	}
-	if ( playerStateFields[bb].used > playerStateFields[aa].used ) {
-		return 1;
-	}
-	return 0;
-}
-
-void MSG_PrioritisePlayerStateFields( void ) {
-	int fieldorders[ ARRAY_LEN(playerStateFields) ];
-	const size_t numfields = ARRAY_LEN( playerStateFields );
-	int i;
-
-	for ( i = 0; i < numfields; i++ ) {
-		fieldorders[ i ] = i;
-	}
-
-	qsort( fieldorders, numfields, sizeof( int ), qsort_playerstatefields );
-
-	Com_Printf( "Playerstate fields in order of priority\n" );
-	Com_Printf( "netField_t playerStateFields[] = {\n" );
-	for ( i = 0; i < numfields; i++ ) {
-		Com_Printf( "{ PSF(%s), %i },\n", playerStateFields[ fieldorders[ i ] ].name, playerStateFields[ fieldorders[ i ] ].bits );
-	}
-	Com_Printf( "};\n" );
-}
-#endif
-
-
 /*
 =============
 MSG_WriteDeltaPlayerstate
@@ -1258,7 +1177,7 @@ void MSG_WriteDeltaPlayerstate( msg_t *msg, const playerState_t *from, const pla
 	int				numFields;
 //bani - appears to have been debugging left in
 //	int				c;
-	netField_t      *field;
+	const netField_t *field;
 	const int		*fromF, *toF;
 	float			fullFloat;
 	int				trunc, lc;
@@ -1299,9 +1218,6 @@ void MSG_WriteDeltaPlayerstate( msg_t *msg, const playerState_t *from, const pla
 		toF = ( int * )( (byte *)to + field->offset );
 		if ( *fromF != *toF ) {
 			lc = i + 1;
-#ifdef MSG_FIELDINFO_SORT_DEBUG
-			field->used++;
-#endif
 		}
 	}
 
@@ -1597,7 +1513,7 @@ MSG_ReadDeltaPlayerstate
 void MSG_ReadDeltaPlayerstate( msg_t *msg, const playerState_t *from, playerState_t *to ) {
 	int			i, j, lc;
 	int			bits;
-	netField_t	*field;
+	const netField_t *field;
 	int			numFields;
 	int			startBit, endBit;
 	int			print;

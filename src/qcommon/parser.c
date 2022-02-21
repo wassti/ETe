@@ -58,14 +58,7 @@ typedef struct directive_s
 
 #define DEFINEHASHSIZE      1024
 
-#define TOKEN_HEAP_SIZE     4096
-
 int numtokens;
-/*
-int tokenheapinitialized;				//true when the token heap is initialized
-token_t token_heap[TOKEN_HEAP_SIZE];	//heap with tokens
-token_t *freetokens;					//free tokens from the heap
-*/
 
 //list with global defines added to every source loaded
 define_t *globaldefines;
@@ -76,7 +69,7 @@ define_t *globaldefines;
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-void FORMAT_PRINTF(2, 3) QDECL SourceError(source_t *source, const char *fmt, ...)
+static void FORMAT_PRINTF(2, 3) QDECL SourceError(source_t *source, const char *fmt, ...)
 {
 	char text[1024];
 	va_list ap;
@@ -92,7 +85,7 @@ void FORMAT_PRINTF(2, 3) QDECL SourceError(source_t *source, const char *fmt, ..
 // Returns:					-
 // Changes Globals:		-
 //===========================================================================
-void FORMAT_PRINTF(2, 3) QDECL SourceWarning(source_t *source, const char *fmt, ...)
+static void FORMAT_PRINTF(2, 3) QDECL SourceWarning(source_t *source, const char *fmt, ...)
 {
 	char text[1024];
 	va_list ap;
@@ -108,7 +101,7 @@ void FORMAT_PRINTF(2, 3) QDECL SourceWarning(source_t *source, const char *fmt, 
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-void PC_PushIndent( source_t *source, int type, int skip ) {
+static void PC_PushIndent( source_t *source, int type, int skip ) {
 	indent_t *indent;
 
 	indent = (indent_t *) Z_TagMalloc( sizeof( indent_t ), TAG_BOTLIB );
@@ -125,7 +118,7 @@ void PC_PushIndent( source_t *source, int type, int skip ) {
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-void PC_PopIndent( source_t *source, int *type, int *skip ) {
+static void PC_PopIndent( source_t *source, int *type, int *skip ) {
 	indent_t *indent;
 
 	*type = 0;
@@ -153,7 +146,7 @@ void PC_PopIndent( source_t *source, int *type, int *skip ) {
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-void PC_PushScript( source_t *source, script_t *script ) {
+static void PC_PushScript( source_t *source, script_t *script ) {
 	script_t *s;
 
 	for ( s = source->scriptstack; s; s = s->next )
@@ -173,27 +166,7 @@ void PC_PushScript( source_t *source, script_t *script ) {
 // Returns:				-
 // Changes Globals:		-
 //============================================================================
-void PC_InitTokenHeap( void ) {
-	/*
-	int i;
-
-	if (tokenheapinitialized) return;
-	freetokens = NULL;
-	for (i = 0; i < TOKEN_HEAP_SIZE; i++)
-	{
-		token_heap[i].next = freetokens;
-		freetokens = &token_heap[i];
-	} //end for
-	tokenheapinitialized = qtrue;
-	*/
-} //end of the function PC_InitTokenHeap
-//============================================================================
-//
-// Parameter:			-
-// Returns:				-
-// Changes Globals:		-
-//============================================================================
-token_t *PC_CopyToken( token_t *token ) {
+static token_t *PC_CopyToken( token_t *token ) {
 	token_t *t;
 
 	t = (token_t *) Z_TagMalloc( sizeof( token_t ), TAG_BOTLIB );
@@ -201,7 +174,6 @@ token_t *PC_CopyToken( token_t *token ) {
 		Com_Error(ERR_FATAL, "out of token space");
 		return NULL;
 	} //end if
-//	freetokens = freetokens->next;
 	Com_Memcpy(t, token, sizeof(token_t));
 	t->next = NULL;
 	numtokens++;
@@ -213,7 +185,7 @@ token_t *PC_CopyToken( token_t *token ) {
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-void PC_FreeToken( token_t *token ) {
+static void PC_FreeToken( token_t *token ) {
 	Z_Free( token );
 	numtokens--;
 } //end of the function PC_FreeToken
@@ -223,7 +195,7 @@ void PC_FreeToken( token_t *token ) {
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-int PC_ReadSourceToken( source_t *source, token_t *token ) {
+static int PC_ReadSourceToken( source_t *source, token_t *token ) {
 	token_t *t;
 	script_t *script;
 	int type, skip;
@@ -268,7 +240,7 @@ int PC_ReadSourceToken( source_t *source, token_t *token ) {
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-int PC_UnreadSourceToken( source_t *source, token_t *token ) {
+static int PC_UnreadSourceToken( source_t *source, token_t *token ) {
 	token_t *t;
 
 	t = PC_CopyToken( token );
@@ -282,9 +254,9 @@ int PC_UnreadSourceToken( source_t *source, token_t *token ) {
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-define_t *PC_FindHashedDefine( define_t **definehash, char *name );
+define_t *PC_FindHashedDefine( define_t **definehash, const char *name );
 int PC_ExpandDefineIntoSource( source_t *source, token_t *deftoken, define_t *define );
-int PC_ReadDefineParms( source_t *source, define_t *define, token_t **parms, int maxparms ) {
+static int PC_ReadDefineParms( source_t *source, define_t *define, token_t **parms, int maxparms ) {
 	token_t token, *t, *last;
 	int i, done, lastcomma, numparms, indent;
 	define_t *newdefine;
@@ -381,7 +353,7 @@ int PC_ReadDefineParms( source_t *source, define_t *define, token_t **parms, int
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-int PC_StringizeTokens( const token_t *tokens, token_t *token ) {
+static int PC_StringizeTokens( const token_t *tokens, token_t *token ) {
 	const token_t *t;
 	int len, total;
 
@@ -408,7 +380,7 @@ int PC_StringizeTokens( const token_t *tokens, token_t *token ) {
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-int PC_MergeTokens( token_t *t1, token_t *t2 ) {
+static int PC_MergeTokens( token_t *t1, const token_t *t2 ) {
 	//merging of a name with a name or number
 	if ( t1->type == TT_NAME && ( t2->type == TT_NAME || t2->type == TT_NUMBER ) ) {
 		if ( strlen( t1->string ) + strlen( t2->string ) >= sizeof( t1->string ) )
@@ -477,7 +449,7 @@ void PC_PrintDefine(define_t *define)
 //============================================================================
 //char primes[16] = {1, 3, 5, 7, 11, 13, 17, 19, 23, 27, 29, 31, 37, 41, 43, 47};
 
-int PC_NameHash( char *name ) {
+int PC_NameHash( const char *name ) {
 	int hash, i;
 
 	hash = 0;
@@ -509,7 +481,7 @@ void PC_AddDefineToHash( define_t *define, define_t **definehash ) {
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-define_t *PC_FindHashedDefine( define_t **definehash, char *name ) {
+define_t *PC_FindHashedDefine( define_t **definehash, const char *name ) {
 	define_t *d;
 	int hash;
 
@@ -529,7 +501,7 @@ define_t *PC_FindHashedDefine( define_t **definehash, char *name ) {
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-define_t *PC_FindDefine( define_t *defines, char *name ) {
+define_t *PC_FindDefine( define_t *defines, const char *name ) {
 	define_t *d;
 
 	for ( d = defines; d; d = d->next )
@@ -547,7 +519,7 @@ define_t *PC_FindDefine( define_t *defines, char *name ) {
 //								if no parm found with the given name -1 is returned
 // Changes Globals:		-
 //============================================================================
-int PC_FindDefineParm( define_t *define, char *name ) {
+int PC_FindDefineParm( define_t *define, const char *name ) {
 	token_t *p;
 	int i;
 
@@ -1217,8 +1189,6 @@ define_t *PC_DefineFromString(const char *string)
 	int res, i;
 	define_t *def;
 
-	PC_InitTokenHeap();
-
 	script = LoadScriptMemory( string, (int)strlen( string ), "*extern" );
 	//create a new source
 	Com_Memset(&src, 0, sizeof(source_t));
@@ -1346,11 +1316,9 @@ void PC_RemoveAllGlobalDefines( void ) {
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-define_t *PC_CopyDefine( source_t *source, define_t *define ) {
+define_t *PC_CopyDefine( define_t *define ) {
 	define_t *newdefine;
 	token_t *token, *newtoken, *lasttoken;
-
-	(void)source;
 
 	newdefine = (define_t *) Z_TagMalloc( sizeof( define_t ), TAG_BOTLIB );
 	//copy the define name
@@ -1397,7 +1365,7 @@ void PC_AddGlobalDefinesToSource( source_t *source ) {
 
 	for ( define = globaldefines; define; define = define->next )
 	{
-		newdefine = PC_CopyDefine( source, define );
+		newdefine = PC_CopyDefine( define );
 #if DEFINEHASHING
 		PC_AddDefineToHash( newdefine, source->definehash );
 #else //DEFINEHASHING
@@ -2860,8 +2828,6 @@ source_t *LoadSourceFile( const char *filename ) {
 	source_t *source;
 	script_t *script;
 
-	PC_InitTokenHeap();
-
 	script = LoadScriptFile( filename );
 	if ( !script ) {
 		return NULL;
@@ -2895,8 +2861,6 @@ source_t *LoadSourceFile( const char *filename ) {
 /*source_t *LoadSourceMemory( char *ptr, int length, char *name ) {
 	source_t *source;
 	script_t *script;
-
-	PC_InitTokenHeap();
 
 	script = LoadScriptMemory( ptr, length, name );
 	if ( !script ) {

@@ -1077,7 +1077,7 @@ static void CM_AddFacetBevels( facet_t *facet ) {
 }
 
 typedef enum {
-	EN_TOP,
+	EN_TOP = 0,
 	EN_RIGHT,
 	EN_BOTTOM,
 	EN_LEFT

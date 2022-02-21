@@ -596,7 +596,7 @@ qboolean CL_GetModeInfo( int *width, int *height, float *windowAspect, int mode,
 //
 
 typedef enum {
-	KB_LEFT,
+	KB_LEFT = 0,
 	KB_RIGHT,
 	KB_FORWARD,
 	KB_BACK,
@@ -714,7 +714,6 @@ void Con_CheckResize( void );
 void Con_Init( void );
 void Con_Shutdown( void );
 void Con_ToggleConsole_f( void );
-void Con_DrawNotify( void );
 void Con_ClearNotify( void );
 void Con_RunConsole( void );
 void Con_DrawConsole( void );
@@ -783,15 +782,13 @@ void CL_InitUI( void );
 void CL_ShutdownUI( void );
 int Key_GetCatcher( void );
 void Key_SetCatcher( int catcher );
-void LAN_LoadCachedServers( void );
-void LAN_SaveServersToCache( void );
 int LAN_AddFavAddr( const char *address );
 
 
 //
 // cl_net_chan.c
 //
-void CL_Netchan_Transmit( netchan_t *chan, msg_t* msg);	//int length, const byte *data );
+void CL_Netchan_Transmit( netchan_t *chan, msg_t *msg );
 qboolean CL_Netchan_Process( netchan_t *chan, msg_t *msg );
 
 //

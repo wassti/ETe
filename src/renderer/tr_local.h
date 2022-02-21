@@ -2451,8 +2451,6 @@ void R_FreeImageBuffer( void );
 
 qboolean R_inPVS( const vec3_t p1, const vec3_t p2 );
 
-qboolean R_HaveExtension( const char *ext );
-
 #define GLE( ret, name, ... ) extern ret ( APIENTRY * q##name )( __VA_ARGS__ );
 	QGL_Core_PROCS;
 	QGL_Ext_PROCS;

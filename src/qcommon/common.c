@@ -94,11 +94,9 @@ cvar_t	*com_affinityMask;
 static cvar_t *com_logfile;		// 1 = buffer log, 2 = flush after each print
 static cvar_t *com_showtrace;
 cvar_t	*com_version;
-//cvar_t	*com_blood;
-cvar_t	*com_buildScript;	// for automated data building scripts
+static cvar_t *com_buildScript;	// for automated data building scripts
 
 #ifndef DEDICATED
-cvar_t	*con_drawnotify;
 cvar_t	*com_introPlayed;
 cvar_t	*com_skipIdLogo;
 
@@ -3896,8 +3894,6 @@ void Com_Init( char *commandLine ) {
 	Cvar_Get( "com_errorMessage", "", CVAR_ROM | CVAR_NORESTART );
 
 #ifndef DEDICATED
-	con_drawnotify = Cvar_Get( "con_drawnotify", "0", CVAR_CHEAT );
-
 	com_introPlayed = Cvar_Get( "com_introplayed", "0", CVAR_ARCHIVE );
 	com_skipIdLogo  = Cvar_Get( "com_skipIdLogo", "0", CVAR_ARCHIVE );
 	Cvar_SetDescription( com_skipIdLogo, "Allows intro movies to be skipped" );

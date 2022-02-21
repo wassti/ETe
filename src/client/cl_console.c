@@ -47,6 +47,7 @@ cvar_t      *con_conspeed;
 cvar_t      *con_notifytime;
 cvar_t		*con_scale;
 cvar_t      *con_autoclear;
+cvar_t		*con_drawnotify;
 
 // DHM - Nerve :: Must hold CTRL + SHIFT + ~ to get console
 cvar_t      *con_restricted;
@@ -56,8 +57,6 @@ int			g_console_field_width;
 
 vec4_t console_color = {1.0, 1.0, 1.0, 1.0};
 vec4_t console_highlightcolor = {0.5, 0.5, 0.2, 0.45};
-
-void		Con_Fixup( void );
 
 /*
 ================
@@ -375,8 +374,8 @@ void Con_CheckResize( void )
 Cmd_CompleteTxtName
 ==================
 */
-void Cmd_CompleteTxtName( char *args, int argNum ) {
-	if( argNum == 2 ) {
+static void Cmd_CompleteTxtName( char *args, int argNum ) {
+	if ( argNum == 2 ) {
 		Field_CompleteFilename( "", "txt", qfalse, FS_MATCH_EXTERN | FS_MATCH_STICK );
 	}
 }
@@ -399,6 +398,8 @@ void Con_Init( void )
 
 	con_scale = Cvar_Get( "con_scale", "1", CVAR_ARCHIVE_ND );
 	Cvar_CheckRange( con_scale, "0.5", "8", CV_FLOAT );
+
+	con_drawnotify = Cvar_Get( "con_drawnotify", "0", CVAR_CHEAT );
 
 	Field_Clear( &g_consoleField );
 	g_consoleField.widthInChars = g_console_field_width;
@@ -437,7 +438,7 @@ void Con_Shutdown( void )
 Con_Fixup
 ===============
 */
-void Con_Fixup( void ) 
+static void Con_Fixup( void ) 
 {
 	int filled;
 
@@ -464,7 +465,7 @@ Con_Linefeed
 Move to newline only when we _really_ need this
 ===============
 */
-void Con_NewLine( void ) 
+static void Con_NewLine( void )
 {
 	short *s;
 	int i;
@@ -487,7 +488,7 @@ void Con_NewLine( void )
 Con_Linefeed
 ===============
 */
-void Con_Linefeed( qboolean skipnotify )
+static void Con_Linefeed( qboolean skipnotify )
 {
 	// mark time for transparent overlay
 	if ( con.current >= 0 )	{
@@ -635,7 +636,7 @@ Con_DrawInput
 Draw the editline after a ] prompt
 ================
 */
-void Con_DrawInput( void ) {
+static void Con_DrawInput( void ) {
 	int		y;
 
 	if ( cls.state != CA_DISCONNECTED && !(Key_GetCatcher( ) & KEYCATCH_CONSOLE ) ) {
@@ -675,7 +676,7 @@ Con_DrawNotify
 Draws the last few lines of output transparently over the game top
 ================
 */
-void Con_DrawNotify( void )
+static void Con_DrawNotify( void )
 {
 	int		x, v;
 	short	*text;
@@ -764,7 +765,7 @@ Con_DrawSolidConsole
 Draws the console with the solid background
 ================
 */
-void Con_DrawSolidConsole( float frac ) {
+static void Con_DrawSolidConsole( float frac ) {
 
 	static float conColorValue[4] = { 0.0, 0.0, 0.0, 0.0 };
 	// for cvar value change tracking
@@ -935,8 +936,6 @@ void Con_DrawSolidConsole( float frac ) {
 
 	re.SetColor( NULL );
 }
-
-extern cvar_t   *con_drawnotify;
 
 /*
 ==================

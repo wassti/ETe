@@ -338,7 +338,7 @@ static fileHandleData_t	fsh[MAX_FILE_HANDLES];
 // wether we did a reorder on the current search path when joining the server
 qboolean fs_reordered;
 
-#define MAX_REF_PAKS	MAX_STRING_TOKENS
+#define MAX_REF_PAKS	1024 /* note q3e:MAX_STRING_TOKENS=1024, et=256 enforcing to 1024 to match Q3e behavior*/
 
 // never load anything from pk3 files that are not present at the server when pure
 static int		fs_numServerPaks = 0;

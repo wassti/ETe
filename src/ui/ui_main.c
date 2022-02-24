@@ -2945,11 +2945,15 @@ static void UI_LoadDemos() {
 	char    *demoname;
 	int i, len;
 
-	Com_sprintf( demoExt, sizeof( demoExt ), "dm_%d", (int)trap_Cvar_VariableValue( "protocol" ) );
+	uiInfo.demoCount = trap_FS_GetFileList( "demos", ". " DEMOEXT "??", demolist, sizeof( demolist ) );
 
-	uiInfo.demoCount = trap_FS_GetFileList( "demos", demoExt, demolist, sizeof( demolist ) );
-
-	Com_sprintf( demoExt, sizeof( demoExt ), ".dm_%d", (int)trap_Cvar_VariableValue( "protocol" ) );
+	if ( !uiInfo.demoCount ) {
+		Com_sprintf( demoExt, sizeof( demoExt ), "." DEMOEXT "%d", (int)trap_Cvar_VariableValue( "protocol" ) );
+		uiInfo.demoCount = trap_FS_GetFileList( "demos", demoExt, demolist, sizeof( demolist ) );
+	}
+	else {
+		Com_sprintf( demoExt, sizeof( demoExt ), "." DEMOEXT "%d", (int)trap_Cvar_VariableValue( "protocol" ) );
+	}
 
 	if ( uiInfo.demoCount ) {
 		if ( uiInfo.demoCount > MAX_DEMOS ) {
@@ -2958,7 +2962,7 @@ static void UI_LoadDemos() {
 		demoname = demolist;
 		for ( i = 0; i < uiInfo.demoCount; i++ ) {
 			len = strlen( demoname );
-			if ( !Q_stricmp( demoname +  len - strlen( demoExt ), demoExt ) ) {
+			if ( !Q_stricmp( demoname + len - strlen( demoExt ), demoExt ) ) {
 				demoname[len - strlen( demoExt )] = '\0';
 			}
 //			Q_strupr(demoname);
@@ -3337,7 +3341,7 @@ void UI_RunMenuScript( const char **args ) {
 			}
 		} else if ( Q_stricmp( name, "deleteDemo" ) == 0 ) {
 			if ( uiInfo.demoIndex >= 0 && uiInfo.demoIndex < uiInfo.demoCount ) {
-				trap_FS_Delete( va( "demos/%s.dm_%d", uiInfo.demoList[uiInfo.demoIndex], (int)trap_Cvar_VariableValue( "protocol" ) ) );
+				trap_FS_Delete( va( "demos/%s." DEMOEXT "%d", uiInfo.demoList[uiInfo.demoIndex], (int)trap_Cvar_VariableValue( "protocol" ) ) );
 			}
 		} else if ( Q_stricmp( name, "closeJoin" ) == 0 ) {
 			if ( uiInfo.serverStatus.refreshActive ) {

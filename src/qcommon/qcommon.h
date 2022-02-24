@@ -316,7 +316,7 @@ You or the server may be running older versions of the game. Press the auto-upda
 #define	OLD_PROTOCOL_VERSION	84
 
 // new protocol with UDP spoofing protection:
-#define	NEW_PROTOCOL_VERSION	85
+#define	NEW_PROTOCOL_VERSION	88
 
 #define DEFAULT_PROTOCOL_VERSION	OLD_PROTOCOL_VERSION
 

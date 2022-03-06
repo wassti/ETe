@@ -90,9 +90,17 @@ itemDef_t *Menu_SetNextCursorItem( menuDef_t *menu );
 static qboolean Menu_OverActiveItem( menuDef_t *menu, float x, float y );
 
 #ifdef CGAMEDLL
-#define MEM_POOL_SIZE  128 * 1024
+#if (idx64 || arm64)
+#define MEM_POOL_SIZE 256 * 1024
 #else
-#define MEM_POOL_SIZE  1536 * 1024  // Arnout: was 1024
+#define MEM_POOL_SIZE 128 * 1024
+#endif
+#else
+#if (idx64 || arm64)
+#else
+#define MEM_POOL_SIZE 4096 * 1024
+#endif
+#define MEM_POOL_SIZE 2048 * 1024 // Arnout: was 1024
 #endif
 
 static char memoryPool[MEM_POOL_SIZE];

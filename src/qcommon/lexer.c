@@ -187,7 +187,7 @@ char *PunctuationFromNum( script_t *script, int num ) {
 //===========================================================================
 void FORMAT_PRINTF(2, 3) QDECL ScriptError(script_t *script, const char *fmt, ...)
 {
-	char text[1024];
+	char text[MAXPRINTMSG];
 	va_list ap;
 
 	if ( script->flags & SCFL_NOERRORS ) {
@@ -207,7 +207,7 @@ void FORMAT_PRINTF(2, 3) QDECL ScriptError(script_t *script, const char *fmt, ..
 //===========================================================================
 void FORMAT_PRINTF(2, 3) QDECL ScriptWarning(script_t *script, const char *fmt, ...)
 {
-	char text[1024];
+	char text[MAXPRINTMSG];
 	va_list ap;
 
 	if ( script->flags & SCFL_NOWARNINGS ) {

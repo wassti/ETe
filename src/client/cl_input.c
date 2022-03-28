@@ -310,19 +310,6 @@ void IN_CenterView (void) {
 	cl.viewangles[PITCH] = -SHORT2ANGLE(cl.snap.ps.delta_angles[PITCH]);
 }
 */
-/*
-static void IN_Notebook( void ) {
-	if ( cls.state == CA_ACTIVE && !clc.demoplaying ) {
-		VM_Call( uivm, 1, UI_SET_ACTIVE_MENU, UIMENU_NOTEBOOK);	// startup notebook
-	}
-}
-*/
-
-static void IN_Help( void ) {
-	if ( uivm && cls.state == CA_ACTIVE && !clc.demoplaying ) {
-		VM_Call( uivm, 1, UI_SET_ACTIVE_MENU, UIMENU_HELP );        // startup help system
-	}
-}
 
 //==========================================================================
 
@@ -1089,7 +1076,6 @@ void CL_InitInput( void ) {
 	Cmd_AddCommand( "+sprint", IN_SprintDown );
 	Cmd_AddCommand( "-sprint", IN_SprintUp );
 
-
 	// wolf buttons
 	Cmd_AddCommand( "+attack2",      IN_Wbutton0Down );   //----(SA) secondary firing
 	Cmd_AddCommand( "-attack2",      IN_Wbutton0Up );
@@ -1102,12 +1088,8 @@ void CL_InitInput( void ) {
 	Cmd_AddCommand( "+leanright",    IN_LeanRightDown );
 	Cmd_AddCommand( "-leanright",    IN_LeanRightUp );
 
-
 	Cmd_AddCommand( "+mlook", IN_MLookDown );
 	Cmd_AddCommand( "-mlook", IN_MLookUp );
-
-	//Cmd_AddCommand ("notebook",IN_Notebook);
-	Cmd_AddCommand( "help",IN_Help );
 
 	cl_nodelta = Cvar_Get( "cl_nodelta", "0", CVAR_DEVELOPER );
 	cl_debugMove = Cvar_Get( "cl_debugMove", "0", 0 );

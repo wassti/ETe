@@ -2294,10 +2294,12 @@ void CL_NextDownload( void )
 #ifdef USE_CURL
 		if(!(cl_allowDownload->integer & DLF_NO_REDIRECT)) {
 			if(clc.sv_allowDownload & DLF_NO_REDIRECT) {
-				Com_Printf("WARNING: server does not "
-					"allow download redirection "
-					"(sv_allowDownload is %d)\n",
-					clc.sv_allowDownload);
+				if ( !cl_wwwDownload->integer ) {
+					Com_Printf("WARNING: server does not "
+						"allow download redirection "
+						"(sv_allowDownload is %d)\n",
+						clc.sv_allowDownload);
+				}
 			}
 			else if(!*clc.sv_dlURL && !*cl_dlURL->string && !cl_wwwDownload->integer) {
 				Com_Printf("WARNING: server allows "

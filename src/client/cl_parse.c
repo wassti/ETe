@@ -615,7 +615,6 @@ void CL_SystemInfoChanged( qboolean onlyGame ) {
 				}
 			}
 
-			Com_Printf( S_COLOR_CYAN "NOTICE: server cvar replication %s=%s\n", key, value );
 			Cvar_SetSafe( key, value );
 		}
 	}

@@ -1029,7 +1029,7 @@ IN_Minimize
 */
 void IN_Minimize( void )
 {
-	if ( !CL_VideoRecording() || ( re.CanMinimize && re.CanMinimize() ) )
+	if ( CL_VideoRecording() == AVIDEMO_NONE || ( re.CanMinimize && re.CanMinimize() ) )
 	{
 		XIconifyWindow( dpy, win, scrnum );
 		XFlush( dpy );

@@ -490,8 +490,10 @@ extern	cvar_t	*cl_showTimeDelta;
 extern cvar_t  *cl_bypassMouseInput;    // NERVE - SMF
 
 extern	cvar_t	*com_timedemo;
+extern	cvar_t	*cl_avidemo;
 extern	cvar_t	*cl_aviFrameRate;
 extern	cvar_t	*cl_aviMotionJpeg;
+extern	cvar_t	*cl_forceavidemo;
 extern	cvar_t	*cl_aviPipeFormat;
 
 extern	cvar_t	*cl_activeAction;
@@ -794,12 +796,20 @@ qboolean CL_Netchan_Process( netchan_t *chan, msg_t *msg );
 //
 // cl_avi.c
 //
+
+typedef enum aviRecordingState_e {
+	AVIDEMO_NONE = 0,
+	AVIDEMO_VIDEO,
+	AVIDEMO_CVAR,
+	AVIDEMO_MAX
+} aviRecordingState_t;
+
 qboolean CL_OpenAVIForWriting( const char *filename, qboolean pipe );
 void CL_TakeVideoFrame( void );
 void CL_WriteAVIVideoFrame( const byte *imageBuffer, int size );
 void CL_WriteAVIAudioFrame( const byte *pcmBuffer, int size );
 qboolean CL_CloseAVI( void );
-qboolean CL_VideoRecording( void );
+aviRecordingState_t CL_VideoRecording( void );
 
 //
 // cl_jpeg.c

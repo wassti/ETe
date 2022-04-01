@@ -393,7 +393,7 @@ static void S_TransferPaintBuffer( int endtime, byte *buffer )
 		}
 	}
 
-	if ( CL_VideoRecording() ) {
+	if ( CL_VideoRecording() == AVIDEMO_VIDEO ) {
 		//count = (endtime - s_paintedtime) * dma.channels;
 		count = (clc.aviFrameEndTime - s_paintedtime) * dma.channels;
 		out_idx = ( s_paintedtime * dma.channels ) % dma.samples;

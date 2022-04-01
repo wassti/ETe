@@ -155,7 +155,7 @@ static int GetTimerMsec( void )
 		if ( Cvar_VariableIntegerValue( "com_maxfpsUnfocused" ) ) {
 			msec = 1000 / Cvar_VariableIntegerValue( "com_maxfpsUnfocused" );
 		}
-		if ( gw_minimized || CL_VideoRecording() ) {
+		if ( gw_minimized || CL_VideoRecording() != AVIDEMO_NONE ) {
 			return 0;
 		}
 	}

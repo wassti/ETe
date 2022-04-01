@@ -596,25 +596,24 @@ CL_WriteAVIAudioFrame
 */
 void CL_WriteAVIAudioFrame( const byte *pcmBuffer, int size )
 {
-	if( !afd.audio )
+	if ( !afd.audio )
 		return;
 
-	if( !afd.fileOpen )
+	if ( !afd.fileOpen )
 		return;
 
 	// Chunk header + contents + padding
-	if( CL_CheckFileSize( 8 + bytesInBuffer + size + 2 ) )
+	if ( CL_CheckFileSize( 8 + bytesInBuffer + size + 2 ) )
 		return;
 
-	if( bytesInBuffer + size > PCM_BUFFER_SIZE )
+	if ( bytesInBuffer + size > PCM_BUFFER_SIZE )
 	{
 		Com_Printf( S_COLOR_YELLOW "WARNING: Audio capture buffer overflow -- truncating\n" );
 		size = PCM_BUFFER_SIZE - bytesInBuffer;
 	}
 
 	// Only write if we have a frame's worth of audio
-	//if( bytesInBuffer >= afd.audioFrameSize )
-	if( bytesInBuffer + size > afd.audioFrameSize )
+	if ( bytesInBuffer >= afd.audioFrameSize )
 	{
 		CL_FlushCaptureBuffer();
 	}
@@ -745,7 +744,14 @@ qboolean CL_CloseAVI( void )
 CL_VideoRecording
 ===============
 */
-qboolean CL_VideoRecording( void )
+aviRecordingState_t CL_VideoRecording( void )
 {
-  return afd.fileOpen;
+  if ( afd.fileOpen == qtrue ) {
+    return AVIDEMO_VIDEO;
+  }
+  else if ( cl_avidemo && cl_avidemo->integer ) {
+    if ( cls.state == CA_ACTIVE || (cl_forceavidemo && cl_forceavidemo->integer) )
+      return AVIDEMO_CVAR;
+  }
+  return AVIDEMO_NONE;
 }

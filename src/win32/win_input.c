@@ -1111,7 +1111,7 @@ IN_Minimize
 */
 static void IN_Minimize( void )
 {
-	if ( !CL_VideoRecording() || ( re.CanMinimize && re.CanMinimize() ) )
+	if ( CL_VideoRecording() == AVIDEMO_NONE || ( re.CanMinimize && re.CanMinimize() ) )
 		WIN_Minimize();
 }
 

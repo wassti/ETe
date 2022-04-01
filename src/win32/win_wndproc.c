@@ -553,7 +553,7 @@ BOOL Win_CheckHotkeyMod( void ) {
 static int GetTimerMsec( void ) {
 	int msec;
 	
-	if ( gw_minimized || CL_VideoRecording() )
+	if ( gw_minimized || CL_VideoRecording() != AVIDEMO_NONE )
 		return 0;
 
 	if ( com_maxfps->integer > 0 ) {
@@ -827,7 +827,7 @@ LRESULT WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM  wParam, LPARAM lParam 
 					GLW_RestoreGamma();
 				// minimize if there is only one monitor
 				if ( glw_state.monitorCount <= 1 ) {
-					if ( !CL_VideoRecording() || ( re.CanMinimize && re.CanMinimize() ) ) {
+					if ( CL_VideoRecording() == AVIDEMO_NONE || ( re.CanMinimize && re.CanMinimize() ) ) {
 						if ( !gw_minimized ) {
 							WIN_Minimize();
 						}
@@ -894,7 +894,7 @@ LRESULT WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM  wParam, LPARAM lParam 
 		break;
 
 	case WM_TIMER:
-		//if ( wParam == TIMER_ID && uTimerID != 0 && !CL_VideoRecording() ) {
+		//if ( wParam == TIMER_ID && uTimerID != 0 && CL_VideoRecording() == AVIDEMO_NONE ) {
 		//	Com_Frame( CL_NoDelay() );
 		//	return 0;
 		//}
@@ -991,7 +991,7 @@ LRESULT WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM  wParam, LPARAM lParam 
 		if ( wParam == SC_SCREENSAVE || wParam == SC_MONITORPOWER )
 			return 0;
 
-		if ( wParam == SC_MINIMIZE && CL_VideoRecording() && !( re.CanMinimize && re.CanMinimize() ) )
+		if ( wParam == SC_MINIMIZE && CL_VideoRecording() != AVIDEMO_NONE && !( re.CanMinimize && re.CanMinimize() ) )
 			return 0;
 
 		// simulate drag move to avoid ~500ms delay between DefWindowProc() and further WM_ENTERSIZEMOVE
@@ -1012,7 +1012,7 @@ LRESULT WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM  wParam, LPARAM lParam 
 		{
 			if ( gw_active )
 			{
-				if ( !CL_VideoRecording() || ( re.CanMinimize && re.CanMinimize() ) )
+				if ( CL_VideoRecording() == AVIDEMO_NONE || ( re.CanMinimize && re.CanMinimize() ) )
 					WIN_Minimize();
 			}
 			else

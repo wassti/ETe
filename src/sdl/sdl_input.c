@@ -1282,7 +1282,7 @@ Minimize the game so that user is back at the desktop
 */
 static void IN_Minimize( void )
 {
-	if ( !CL_VideoRecording() || ( re.CanMinimize && re.CanMinimize() ) )
+	if ( CL_VideoRecording() == AVIDEMO_NONE || ( re.CanMinimize && re.CanMinimize() ) )
 	{
 		SDL_MinimizeWindow( SDL_window );
 	}

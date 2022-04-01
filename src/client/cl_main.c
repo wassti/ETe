@@ -56,9 +56,10 @@ cvar_t  *cl_visibleClients;     // DHM - Nerve
 cvar_t  *cl_showServerCommands; // NERVE - SMF
 cvar_t	*cl_autoRecordDemo;
 
+cvar_t	*cl_avidemo = NULL; // for etmain demo ui compatibility
 cvar_t	*cl_aviFrameRate;
 cvar_t	*cl_aviMotionJpeg;
-cvar_t	*cl_forceavidemo;
+cvar_t	*cl_forceavidemo = NULL;
 cvar_t	*cl_aviPipeFormat;
 
 cvar_t	*cl_activeAction;
@@ -1076,10 +1077,12 @@ CL_ShutdownAll
 =====================
 */
 void CL_ShutdownAll( void ) {
-
+	aviRecordingState_t cl_recordState = CL_VideoRecording();
 	// stop recording video on map change
-	if ( CL_VideoRecording() )
+	if ( cl_recordState == AVIDEMO_VIDEO )
 		CL_CloseAVI();
+	else //if ( cl_recordState == AVIDEMO_CVAR )
+		Cvar_ForceReset( "cl_avidemo" );
 
 	// stop recording demo on map change
 	if ( clc.demorecording )
@@ -1371,6 +1374,7 @@ This is also called on Com_Error and Com_Quit, so it shouldn't cause any errors
 qboolean CL_Disconnect( qboolean showMainMenu ) {
 	static qboolean cl_disconnecting = qfalse;
 	qboolean cl_restarted = qfalse;
+	aviRecordingState_t cl_recordState = AVIDEMO_NONE;
 
 	if ( !com_cl_running || !com_cl_running->integer ) {
 		return cl_restarted;
@@ -1403,13 +1407,19 @@ qboolean CL_Disconnect( qboolean showMainMenu ) {
 		Cvar_Set( "cl_downloadName", "" );
 	}
 
+	cl_recordState = CL_VideoRecording();
 	// Stop recording any video
-	if ( CL_VideoRecording() ) {
+	if ( cl_recordState != AVIDEMO_NONE ) {
 		// Finish rendering current frame
 		cls.framecount++;
 		SCR_UpdateScreen();
-		CL_CloseAVI();
+		if ( cl_recordState == AVIDEMO_VIDEO )
+			CL_CloseAVI();
+		else if ( cl_recordState == AVIDEMO_CVAR )
+			Cvar_ForceReset( "cl_avidemo" );
 	}
+	else
+		Cvar_ForceReset( "cl_avidemo" );
 
 	if ( cgvm ) {
 		// do that right after we rendered last video frame
@@ -1878,13 +1888,15 @@ doesn't know what graphics to reload
 =================
 */
 static void CL_Vid_Restart( qboolean keepWindow ) {
-
+	aviRecordingState_t cl_recordState = CL_VideoRecording();
 	// RF, don't show percent bar, since the memory usage will just sit at the same level anyway
 	com_expectedhunkusage = -1;
 
 	// Settings may have changed so stop recording now
-	if ( CL_VideoRecording() )
+	if ( cl_recordState == AVIDEMO_VIDEO )
 		CL_CloseAVI();
+	else //if ( cl_recordState == AVIDEMO_CVAR )
+		Cvar_ForceReset( "cl_avidemo" );
 
 	if ( clc.demorecording )
 		CL_StopRecord_f();
@@ -3213,7 +3225,7 @@ CL_NoDelay
 */
 qboolean CL_NoDelay( void )
 {
-	if ( CL_VideoRecording() || ( com_timedemo->integer && clc.demofile != FS_INVALID_HANDLE ) )
+	if ( CL_VideoRecording() != AVIDEMO_NONE || ( com_timedemo->integer && clc.demofile != FS_INVALID_HANDLE ) )
 		return qtrue;
 
 	return qfalse;
@@ -3363,6 +3375,7 @@ CL_Frame
 void CL_Frame( int msec, int realMsec ) {
 	float fps;
 	float frameDuration;
+	aviRecordingState_t aviRecord = AVIDEMO_NONE;
 
 	CL_TrackCvarChanges( qfalse );
 
@@ -3408,22 +3421,28 @@ void CL_Frame( int msec, int realMsec ) {
 		VM_Call( uivm, 1, UI_SET_ACTIVE_MENU, UIMENU_MAIN );
 	}
 
+	aviRecord = CL_VideoRecording();
 	// if recording an avi, lock to a fixed fps
-	if ( CL_VideoRecording() && msec ) {
+	if ( aviRecord != AVIDEMO_NONE && msec ) {
 		// save the current screen
 		if ( cls.state == CA_ACTIVE || cl_forceavidemo->integer ) {
 
 			if ( com_timescale->value > 0.0001f )
-				fps = MIN( cl_aviFrameRate->value / com_timescale->value, 1000.0f );
+				fps = MIN( (aviRecord == AVIDEMO_CVAR ? cl_avidemo->value : cl_aviFrameRate->value) / com_timescale->value, 1000.0f );
 			else
 				fps = 1000.0f;
 
 			frameDuration = MAX( 1000.0f / fps, 1.0f ) + clc.aviVideoFrameRemainder;
 
-			CL_TakeVideoFrame();
+			if ( aviRecord == AVIDEMO_CVAR )
+				Cbuf_ExecuteText( EXEC_NOW, "screenshot silent\n" );
+			else
+				CL_TakeVideoFrame();
 
 			msec = (int)frameDuration;
 			clc.aviVideoFrameRemainder = frameDuration - msec;
+
+			realMsec = msec; // sync sound duration
 		}
 	}
 
@@ -4076,6 +4095,11 @@ static void CL_Video_f( void )
 		return;
 	}
 
+	if ( cl_avidemo->string[0] != '\0' ) {
+		Com_Printf( "The %s command cannot be used when cl_avidemo is non-zero\n", Cmd_Argv( 0 ) );
+		return;
+	}
+
 	pipe = ( Q_stricmp( Cmd_Argv( 0 ), "video-pipe" ) == 0 );
 
 	if ( pipe )
@@ -4423,6 +4447,9 @@ void CL_Init( void ) {
 	cl_activeAction = Cvar_Get( "activeAction", "", CVAR_TEMP | CVAR_PROTECTED );
 
 	cl_autoRecordDemo = Cvar_Get ("cl_autoRecordDemo", "0", CVAR_ARCHIVE);
+	cl_avidemo = Cvar_Get( "cl_avidemo", "0", CVAR_ROM ); // 0
+	Cvar_CheckRange( cl_avidemo, "0", "0", CV_INTEGER );
+	//Cvar_CheckRange( cl_avidemo, "0", "1000", CV_INTEGER );
 
 	cl_aviFrameRate = Cvar_Get ("cl_aviFrameRate", "25", CVAR_ARCHIVE);
 	Cvar_CheckRange( cl_aviFrameRate, "1", "1000", CV_INTEGER );

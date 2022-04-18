@@ -1280,6 +1280,7 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 	if ( depthMaskExplicit && shader.sort == SS_BAD ) {
 		if ( blendSrcBits == GLS_SRCBLEND_SRC_ALPHA && blendDstBits == GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA && stage->rgbGen == CGEN_LIGHTING_DIFFUSE && stage->alphaGen == AGEN_NORMALZFADE ) {
 			//shader.sort = 16.0f;
+		} else if ( blendSrcBits == GLS_SRCBLEND_SRC_ALPHA && blendDstBits == GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA && stage->bundle[0].image[0] != tr.whiteImage && stage->rgbGen == CGEN_IDENTITY && stage->alphaGen == AGEN_VERTEX && shader.noPicMip && shader.noMipMaps ) {
 		// fix decals on q3wcp18 and other maps
 		} else if ( blendSrcBits == GLS_SRCBLEND_SRC_ALPHA && blendDstBits == GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA && stage->bundle[0].image[0] != tr.whiteImage /*&& stage->rgbGen == CGEN_VERTEX*/ ) {
 			depthMaskBits &= ~GLS_DEPTHMASK_TRUE;

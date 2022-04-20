@@ -1276,7 +1276,7 @@ static qboolean ParseStage( shaderStage_t *stage, const char **text )
 		}
 	}
 
-#if 1
+#if 0
 	if ( depthMaskExplicit && shader.sort == SS_BAD ) {
 		if ( blendSrcBits == GLS_SRCBLEND_SRC_ALPHA && blendDstBits == GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA && stage->rgbGen == CGEN_LIGHTING_DIFFUSE && stage->alphaGen == AGEN_NORMALZFADE ) {
 			//shader.sort = 16.0f;

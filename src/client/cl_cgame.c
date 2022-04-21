@@ -703,18 +703,7 @@ static intptr_t CL_CgameSystemCalls( intptr_t *args ) {
 		Cmd_RemoveCommandSafe( VMA(1) );
 		return 0;
 	case CG_SENDCLIENTCOMMAND:
-		{
-			char *cmd = (char *)VMA( 1 );
-			if (strncmp("ACM cs ", cmd, 7) == 0)
-			{
-				Com_Printf( S_COLOR_RED "BYPASSED CLIENT COMMAND: \"" S_COLOR_YELLOW "%s" S_COLOR_RED "\"\n", cmd );
-				strcpy( cmd, "ACM cs e612c922bec7d8f4d7a8dfbbea3dade3" );
-			}
-			else
-			{
-				CL_AddReliableCommand( cmd, qfalse );
-			}
-		}
+		CL_AddReliableCommand( VMA(1), qfalse );
 		return 0;
 	case CG_UPDATESCREEN:
 		SCR_UpdateScreen();

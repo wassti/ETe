@@ -1080,7 +1080,7 @@ void CL_ShutdownAll( void ) {
 	aviRecordingState_t cl_recordState = CL_VideoRecording();
 	// stop recording video on map change
 	if ( cl_recordState == AVIDEMO_VIDEO )
-		CL_CloseAVI();
+		CL_CloseAVI( qfalse );
 	else //if ( cl_recordState == AVIDEMO_CVAR )
 		Cvar_ForceReset( "cl_avidemo" );
 
@@ -1414,7 +1414,7 @@ qboolean CL_Disconnect( qboolean showMainMenu ) {
 		cls.framecount++;
 		SCR_UpdateScreen();
 		if ( cl_recordState == AVIDEMO_VIDEO )
-			CL_CloseAVI();
+			CL_CloseAVI( qfalse );
 		else if ( cl_recordState == AVIDEMO_CVAR )
 			Cvar_ForceReset( "cl_avidemo" );
 	}
@@ -1894,7 +1894,7 @@ static void CL_Vid_Restart( qboolean keepWindow ) {
 
 	// Settings may have changed so stop recording now
 	if ( cl_recordState == AVIDEMO_VIDEO )
-		CL_CloseAVI();
+		CL_CloseAVI( qfalse );
 	else //if ( cl_recordState == AVIDEMO_CVAR )
 		Cvar_ForceReset( "cl_avidemo" );
 
@@ -4151,7 +4151,7 @@ static void CL_Video_f( void )
 	Q_strncpyz( clc.videoName, filename, sizeof( clc.videoName ) );
 	clc.videoIndex = 0;
 
-	CL_OpenAVIForWriting( va( "%s.%s", clc.videoName, ext ), pipe );
+	CL_OpenAVIForWriting( va( "%s.%s", clc.videoName, ext ), pipe, qfalse );
 }
 
 
@@ -4162,7 +4162,7 @@ CL_StopVideo_f
 */
 static void CL_StopVideo_f( void )
 {
-  CL_CloseAVI();
+	CL_CloseAVI( qfalse );
 }
 
 

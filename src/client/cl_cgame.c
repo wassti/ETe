@@ -92,11 +92,11 @@ static qboolean CL_GetUserCmd( int cmdNumber, usercmd_t *ucmd ) {
 
 	// the usercmd has been overwritten in the wrapping
 	// buffer because it is too far out of date
-	if ( cl.cmdNumber - cmdNumber >= (currentGameMod == GAMEMOD_LEGACY && com_legacyVersion->integer > 280000000 ? CMD_BACKUP_ETLEGACY : CMD_BACKUP ) ) {
+	if ( cl.cmdNumber - cmdNumber >= CMD_BACKUP ) {
 		return qfalse;
 	}
 
-	*ucmd = cl.cmds[ cmdNumber & (currentGameMod == GAMEMOD_LEGACY && com_legacyVersion->integer > 280000000 ? CMD_MASK_ETLEGACY : CMD_MASK ) ];
+	*ucmd = cl.cmds[ cmdNumber & CMD_MASK ];
 
 	return qtrue;
 }

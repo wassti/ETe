@@ -58,6 +58,8 @@ const int demo_protocols[] = { OLD_PROTOCOL_VERSION, NEW_PROTOCOL_VERSION, 0 };
 #define DEF_COMZONEMEGS		25
 #endif
 
+#define ETLEGACY_VERSION	280010001
+
 static jmp_buf abortframe;	// an ERR_DROP occurred, exit the entire frame
 
 int		CPU_Flags = 0;
@@ -3786,7 +3788,7 @@ void Com_Init( char *commandLine ) {
 	Cvar_SetDescription( com_protocol, "Network protocol version" );
 
 	Com_StartupVariable( "com_legacyVersion" );
-	com_legacyVersion = Cvar_Get( "com_legacyVersion", "280000016", CVAR_INIT | CVAR_NOTABCOMPLETE | CVAR_PRIVATE | CVAR_PROTECTED | CVAR_NORESTART );
+	com_legacyVersion = Cvar_Get( "com_legacyVersion", XSTRING(ETLEGACY_VERSION), CVAR_INIT | CVAR_NOTABCOMPLETE | CVAR_PRIVATE | CVAR_PROTECTED | CVAR_NORESTART );
 
 	Cvar_SetDescription( com_legacyVersion, "Version which mimics running the ET:Legacy engine" );
 

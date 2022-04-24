@@ -122,9 +122,6 @@ typedef struct {
 #define	MAX_PARSE_ENTITIES	( PACKET_BACKUP * MAX_SNAPSHOT_ENTITIES )
 // ENSI FIXME this was #define MAX_PARSE_ENTITIES  2048 in ET
 
-#define CMD_BACKUP_ETLEGACY 128
-#define CMD_MASK_ETLEGACY ( CMD_BACKUP_ETLEGACY - 1 )
-
 extern int g_console_field_width;
 
 typedef struct {
@@ -160,7 +157,7 @@ typedef struct {
 
 	// cmds[cmdNumber] is the predicted command, [cmdNumber-1] is the last
 	// properly generated command
-	usercmd_t cmds[CMD_BACKUP*2];     // each mesage will send several old cmds
+	usercmd_t cmds[CMD_BACKUP];     // each mesage will send several old cmds
 	int cmdNumber;                  // incremented each frame, because multiple
 									// frames may need to be packed into a single packet
 

@@ -788,7 +788,7 @@ static void CL_CreateNewCommands( void ) {
 
 	// generate a command for this frame
 	cl.cmdNumber++;
-	cmdNum = cl.cmdNumber & (currentGameMod == GAMEMOD_LEGACY && com_legacyVersion->integer > 280000000 ? CMD_MASK_ETLEGACY : CMD_MASK );
+	cmdNum = cl.cmdNumber & CMD_MASK;
 	cl.cmds[cmdNum] = CL_CreateCmd();
 }
 
@@ -948,7 +948,7 @@ void CL_WritePacket( void ) {
 
 		// write all the commands, including the predicted command
 		for ( i = 0 ; i < count ; i++ ) {
-			j = (cl.cmdNumber - count + i + 1) & (currentGameMod == GAMEMOD_LEGACY && com_legacyVersion->integer > 280000000 ? CMD_MASK_ETLEGACY : CMD_MASK);
+			j = (cl.cmdNumber - count + i + 1) & CMD_MASK;
 			cmd = &cl.cmds[j];
 			MSG_WriteDeltaUsercmdKey (&buf, key, oldcmd, cmd);
 			oldcmd = cmd;

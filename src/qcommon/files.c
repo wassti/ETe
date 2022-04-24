@@ -2707,7 +2707,7 @@ FS_BannedPakFile
 Check if file should NOT be added to hash search table
 ============
 */
-static qboolean FS_BannedPakFile( const char *filename )
+static qboolean FS_BannedPakFile( const char *pakbasename, const char *filename )
 {
 	if ( !strcmp( filename, "autoexec.cfg" ) || strstr( filename, Q3CONFIG_CFG ) )
 		return qtrue;
@@ -3200,7 +3200,7 @@ static qboolean FS_LoadPakFromFile( FILE *f )
 
 		filename_inzip = namePtr + it.name;
 		FS_ConvertFilename( filename_inzip );
-		if ( !FS_BannedPakFile( filename_inzip ) ) {
+		if ( !FS_BannedPakFile( pack->pakBasename, filename_inzip ) ) {
 			// store the file position in the zip
 			curFile->name = filename_inzip;
 			curFile->size = it.size;
@@ -3513,7 +3513,7 @@ static pack_t *FS_LoadZipFile( const char *zipfile )
 		}
 
 		FS_ConvertFilename( filename_inzip );
-		if ( !FS_BannedPakFile( filename_inzip ) ) {
+		if ( !FS_BannedPakFile( pack->pakBasename, filename_inzip ) ) {
 			// store the file position in the zip
 			unzGetCurrentFileInfoPosition( uf, &curFile->pos );
 			curFile->size = file_info.uncompressed_size;

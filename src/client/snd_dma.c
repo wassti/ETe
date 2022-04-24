@@ -759,6 +759,20 @@ static void S_Base_MainStartSoundEx( vec3_t origin, int entityNum, int entchanne
 	ch   = s_channels;
 	//inplay = 0;
 
+	if ( entityNum >= 0 ) {
+		for ( i = 1; i < MAX_STREAMING_SOUNDS; i++ ) {    // track 0 is music/cinematics
+			if ( !streamingSounds[i].stream ) {
+				continue;
+			}
+			// check to see if this character currently has another sound streaming on the same channel
+			if ( ( entchannel != CHAN_AUTO ) && ( streamingSounds[i].entnum >= 0 ) && ( streamingSounds[i].channel == entchannel ) && ( streamingSounds[i].entnum == entityNum ) ) {
+				// found a match, override this channel
+				S_StopStreamingSound(i);
+				break;
+			}
+		}
+	}
+
 	// shut off other sounds on this channel if necessary
 	for (i = 0; i < MAX_CHANNELS ; i++, ch++)
 	{
@@ -805,7 +819,21 @@ static void S_Base_MainStartSoundEx( vec3_t origin, int entityNum, int entchanne
 
 	sfx->lastTimeUsed = time;
 
-	ch = S_ChannelMalloc( time );
+	ch = NULL;
+
+	// re-use channel if applicable
+	for ( i = 0 ; i < MAX_CHANNELS ; i++ ) {
+		if ( s_channels[i].entnum == entityNum && s_channels[i].entchannel == entchannel && entchannel != CHAN_AUTO ) {
+			if ( !( s_channels[i].flags & SND_NOCUT ) && s_channels[i].thesfx == sfx ) {
+				ch = &s_channels[i];
+				break;
+			}
+		}
+	}
+
+	if ( !ch )
+		ch = S_ChannelMalloc( time );
+
 	if (!ch)
 	{
 		int oldest = sfx->lastTimeUsed;

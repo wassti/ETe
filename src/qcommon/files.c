@@ -5267,12 +5267,22 @@ static void FS_Startup( void ) {
 #ifndef DEDICATED
 		const char *temp = va( "%s%c%s", fs_basegame->string, PATH_SEP, SYS_DLLNAME_UI );
 		if ( !FS_SV_FileExists( temp ) && !FS_FileIsInPAK( SYS_DLLNAME_UI, NULL, NULL ) ) {
-			Com_Error( ERR_FATAL, "Missing etmain UI module for your platform, consider loading a mod directly with shortcut or download etmain files for your platform (%s - %s)", OS_STRING, ARCH_STRING );
+			Com_Error( ERR_FATAL, "Missing etmain UI module for your platform, consider loading a mod directly with shortcut or download etmain files for your platform (%s - %s)\n"
+								  "Download basic etmain package for all supported platforms located at: https://github.com/etfdevs/ETe/releases/download/latest/ete-etmain-mod-replacement-allplatform.zip"
+#if defined(_WIN32) && idx64
+								  "\nAlternative: try ete-windows-msvc-x86 package instead of x64"
+#endif
+								  , OS_STRING, ARCH_STRING );
 		}
 #else
 		const char *temp = va( "%s%c%s", fs_basegame->string, PATH_SEP, SYS_DLLNAME_QAGAME );
 		if ( !FS_SV_FileExists( temp ) && !FS_FileIsInPAK( SYS_DLLNAME_QAGAME, NULL, NULL ) ) {
-			Com_Error( ERR_FATAL, "Missing etmain server qagame module for your platform, consider loading a mod directly with shortcut or download etmain files for your platform (%s - %s)", OS_STRING, ARCH_STRING );
+			Com_Error( ERR_FATAL, "Missing etmain server qagame module for your platform, consider loading a mod directly with shortcut or download etmain files for your platform (%s - %s)\n"
+								  "Download basic etmain package for all supported platforms located at: https://github.com/etfdevs/ETe/releases/download/latest/ete-etmain-mod-replacement-allplatform.zip"
+#if defined(_WIN32) && idx64
+								  "\nAlternative: try ete-windows-msvc-x86 package instead of x64"
+#endif
+								  , OS_STRING, ARCH_STRING );
 		}
 #endif
 	}

@@ -1575,7 +1575,7 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
 	char cs[MAX_INFO_STRING];
 
 	G_Printf( "------- Game Initialization -------\n" );
-	G_Printf( "gamename: %s\n", GAMEVERSION );
+	G_Printf( "gamename: %s (ETe)\n", GAMEVERSION );
 	G_Printf( "gamedate: %s\n", __DATE__ );
 
 		// extension interface

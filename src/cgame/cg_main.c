@@ -2634,6 +2634,10 @@ void CG_Init( int serverMessageNum, int serverCommandSequence, int clientNum, qb
 
 //	int startat = trap_Milliseconds();
 
+	CG_Printf( S_COLOR_CYAN "------- CGame Initialization -------\n" );
+	CG_Printf( S_COLOR_CYAN "gamename: etmain (ETe)\n" );
+	CG_Printf( S_COLOR_CYAN "gamedate: %s\n", __DATE__ );
+
 	// clear everything
 	memset( &cgs, 0, sizeof( cgs ) );
 	memset( &cg, 0, sizeof( cg ) );

@@ -5862,7 +5862,9 @@ void UI_Init( qboolean inGameLoad ) {
 
 	//uiInfo.inGameLoad = inGameLoad;
 
-	Com_Printf( S_COLOR_CYAN "Loading ETe (etmain) UI\n" );
+	Com_Printf( S_COLOR_CYAN "------- UI Initialization -------\n" );
+	Com_Printf( S_COLOR_CYAN "gamename: etmain (ETe)\n" );
+	Com_Printf( S_COLOR_CYAN "gamedate: %s\n", __DATE__ );
 
 	trap_Cvar_VariableStringBuffer( "//trap_GetValue", value, sizeof( value ) );
 	if ( value[0] ) {

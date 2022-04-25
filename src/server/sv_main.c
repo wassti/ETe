@@ -798,6 +798,7 @@ static void SVC_Status( const netadr_t *from ) {
 	int		statusLength;
 	int		playerLength;
 	char	infostring[MAX_INFO_STRING+160]; // add some space for challenge string
+	int		ping;
 
 	// ignore if we are in single player
 	if ( SV_GameIsSinglePlayer() ) {
@@ -842,10 +843,15 @@ static void SVC_Status( const netadr_t *from ) {
 	for ( i = 0 ; i < sv_maxclients->integer ; i++ ) {
 		cl = &svs.clients[i];
 		if ( cl->state >= CS_CONNECTED ) {
-
 			ps = SV_GameClientNum( i );
+			// report bots as always 0
+			// report players with always at least 1 ping
+			if ( cl->netchan.remoteAddress.type == NA_BOT )
+				ping = 0;
+			else
+				ping = MIN( 1, cl->ping );
 			playerLength = Com_sprintf( player, sizeof( player ), "%i %i \"%s\"\n", 
-				ps->persistant[ PERS_SCORE ], cl->ping, cl->name );
+				ps->persistant[ PERS_SCORE ], ping, cl->name );
 			
 			if ( statusLength + playerLength >= MAX_PACKETLEN-4 )
 				break; // can't hold any more
@@ -877,6 +883,7 @@ void SVC_GameCompleteStatus( const netadr_t *from ) {
 	int		statusLength;
 	int		playerLength;
 	char	infostring[MAX_INFO_STRING+160]; // add some space for challenge string
+	int		ping;
 
 	// ignore if we are in single player
 	if ( SV_GameIsSinglePlayer() ) {
@@ -922,8 +929,14 @@ void SVC_GameCompleteStatus( const netadr_t *from ) {
 		cl = &svs.clients[i];
 		if ( cl->state >= CS_CONNECTED ) {
 			ps = SV_GameClientNum( i );
+			// report bots as always 0
+			// report players with always at least 1 ping
+			if ( cl->netchan.remoteAddress.type == NA_BOT )
+				ping = 0;
+			else
+				ping = MIN( 1, cl->ping );
 			playerLength = Com_sprintf( player, sizeof( player ), "%i %i \"%s\"\n",
-				ps->persistant[PERS_SCORE], cl->ping, cl->name );
+				ps->persistant[PERS_SCORE], ping, cl->name );
 
 			if ( statusLength + playerLength >= MAX_PACKETLEN-4 )
 				break; // can't hold any more

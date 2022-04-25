@@ -36,19 +36,20 @@ extern cvar_t *s_khz;
 extern cvar_t *s_device;
 extern cvar_t *s_bits;
 extern cvar_t *s_numchannels;
-cvar_t *s_sdlDevSamps;
-cvar_t *s_sdlMixSamps;
+static cvar_t *s_sdlDevSamps;
+static cvar_t *s_sdlMixSamps;
+static cvar_t *s_sdlLevelSamps;
 
 /* The audio callback. All the magic happens here. */
 static int dmapos = 0;
 static int dmasize = 0;
 
-static SDL_AudioDeviceID sdlPlaybackDevice;
+static SDL_AudioDeviceID sdlPlaybackDevice = 0;
 
 #if defined USE_VOIP && SDL_VERSION_ATLEAST( 2, 0, 5 )
 #define USE_SDL_AUDIO_CAPTURE
 
-static SDL_AudioDeviceID sdlCaptureDevice;
+static SDL_AudioDeviceID sdlCaptureDevice = 0;
 static cvar_t *s_sdlCapture;
 static float sdlMasterGain = 1.0f;
 #endif
@@ -145,7 +146,7 @@ static const struct
 	{ AUDIO_F32MSB, "AUDIO_F32MSB" }
 };
 
-static int formatToStringTableSize = ARRAY_LEN( formatToStringTable );
+static const int formatToStringTableSize = (int)ARRAY_LEN( formatToStringTable );
 
 /*
 ===============
@@ -195,12 +196,38 @@ static int SNDDMA_KHzToHz( int khz )
 {
 	switch ( khz )
 	{
-		default:
 		case 48: return 48000;
 		case 44: return 44100;
+		default:
 		case 22: return 22050;
 		case 11: return 11025;
 	}
+}
+
+
+static int SND_SamplesForFreq( int freq, int level )
+{
+	int samples;
+
+	switch ( freq )
+	{
+		case 11025: samples = 256; break;
+		case 22050: samples = 512; break;
+		case 44100: samples = 1024; break;
+		default:
+		case 48000: samples = 2048; break;
+	}
+
+	if ( level == 1 )
+	{
+		samples /= 2;
+	}
+	else if ( level == 2 )
+	{
+		samples /= 4;
+	}
+
+	return samples;
 }
 
 
@@ -221,6 +248,8 @@ qboolean SNDDMA_Init( void )
 
 	s_sdlDevSamps = Cvar_Get( "s_sdlDevSamps", "0", CVAR_ARCHIVE_ND | CVAR_LATCH );
 	s_sdlMixSamps = Cvar_Get( "s_sdlMixSamps", "0", CVAR_ARCHIVE_ND | CVAR_LATCH );
+	s_sdlLevelSamps = Cvar_Get( "s_sdlLevelSamps", "0", CVAR_ARCHIVE_ND | CVAR_LATCH );
+	Cvar_CheckRange( s_sdlLevelSamps, "0", "2", CV_INTEGER );
 
 	Com_Printf( "SDL_Init( SDL_INIT_AUDIO )... " );
 
@@ -251,19 +280,11 @@ qboolean SNDDMA_Init( void )
 
 	// I dunno if this is the best idea, but I'll give it a try...
 	//  should probably check a cvar for this...
-	if ( s_sdlDevSamps->integer )
+	if ( s_sdlDevSamps->integer > 0 )
 		desired.samples = s_sdlDevSamps->value;
 	else
 	{
-		// just pick a sane default.
-		if (desired.freq <= 11025)
-			desired.samples = 256;
-		else if (desired.freq <= 22050)
-			desired.samples = 512;
-		else if (desired.freq <= 44100)
-			desired.samples = 1024;
-		else
-			desired.samples = 2048;  // (*shrug*)
+		desired.samples = SND_SamplesForFreq(desired.freq, s_sdlLevelSamps->integer);
 	}
 
 	desired.channels = s_numchannels->integer;

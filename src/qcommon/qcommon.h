@@ -1465,6 +1465,7 @@ qboolean Sys_ResetReadOnlyAttribute( const char *ospath );
 const char *Sys_Pwd( void );
 const char *Sys_DefaultBasePath( void );
 const char *Sys_DefaultHomePath( void );
+const char *Sys_SteamPath( void );
 
 char **Sys_ListFiles( const char *directory, const char *extension, const char *filter, int *numfiles, qboolean wantsubs );
 void Sys_FreeFileList( char **list );

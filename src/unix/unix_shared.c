@@ -454,6 +454,31 @@ const char *Sys_DefaultHomePath( void )
 
 
 /*
+================
+Sys_SteamPath
+================
+*/
+const char *Sys_SteamPath( void )
+{
+	static char steamPath[ MAX_OSPATH ];
+
+	char *p;
+
+	if( ( p = getenv( "HOME" ) ) != NULL )
+	{
+		// Assumes steam root path as follows, and steam native not steam inside of wine
+#ifdef __APPLE__
+		char *steamPathEnd = "/Library/Application Support/Steam/SteamApps/common/" STEAMPATH_NAME;
+#else
+		char *steamPathEnd = "/.steam/steam/steamapps/common/" STEAMPATH_NAME;
+#endif
+		Com_sprintf(steamPath, sizeof(steamPath), "%s%s", p, steamPathEnd);
+	}
+	return steamPath;
+}
+
+
+/*
 =================
 Sys_ShowConsole
 =================

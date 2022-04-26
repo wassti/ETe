@@ -46,6 +46,9 @@ If you have questions concerning this license or the applicable additional terms
 #endif
 #define CONSOLE_WINDOW_TITLE  "ET Console"
 
+#define STEAMPATH_NAME			"Wolfenstein Enemy Territory"
+#define STEAMPATH_APPID			"1873030"
+
 // 2.60d: Mac OSX universal binaries
 // 2.60c: Mac OSX universal binaries
 // 2.60b: CVE-2006-2082 fix

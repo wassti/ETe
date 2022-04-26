@@ -3800,12 +3800,17 @@ void Com_Init( char *commandLine ) {
 
 #ifndef DEDICATED
 	Com_StartupVariable( "cl_profile" );
+	Com_StartupVariable( "com_steamIntegration" );
 #endif
 
 	// done early so bind command exists
 	Com_InitKeyCommands();
 
 	FS_InitFilesystem();
+
+#ifndef DEDICATED
+	Sys_SteamInit();
+#endif
 
 	Com_InitJournaling();
 
@@ -3816,7 +3821,7 @@ void Com_Init( char *commandLine ) {
 
 	currentGameMod = FS_GetGameMod();
 	if ( currentGameMod == GAMEMOD_UNKNOWN ) {
-		Com_Printf( "Detected unknown mod: \"%s\", please report to ETe developers\n", FS_GetCurrentGameDir() );
+		Com_Printf( S_COLOR_YELLOW "Detected unknown mod: \"%s\", please report to ETe developers\n", FS_GetCurrentGameDir() );
 	}
 
 	// override anything from the config files with command line args
@@ -4474,6 +4479,10 @@ static void Com_Shutdown( qboolean badProfile ) {
 		FS_FCloseFile( com_journalDataFile );
 		com_journalDataFile = FS_INVALID_HANDLE;
 	}
+
+#ifndef DEDICATED
+	Sys_SteamShutdown();
+#endif
 
 	VM_Shutdown();
 }

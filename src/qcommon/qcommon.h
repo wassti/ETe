@@ -1491,6 +1491,11 @@ void	Sys_OmnibotLoad();
 void	Sys_OmnibotUnLoad();
 const void * Sys_OmnibotRender( const void *data );
 
+#ifndef DEDICATED
+void Sys_SteamInit();
+void Sys_SteamShutdown();
+#endif
+
 // NOTE TTimo - on win32 the cwd is prepended .. non portable behaviour
 void Sys_StartProcess( const char *exeName, qboolean doexit );            // NERVE - SMF
 void Sys_OpenURL( const char *url, qboolean doexit );                       // NERVE - SMF

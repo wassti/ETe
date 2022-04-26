@@ -1138,6 +1138,7 @@ void	Sys_OmnibotLoad()
 	}
 }
 
+
 void	Sys_OmnibotUnLoad()
 {
 	Sys_UnloadLibrary( omnibotHandle );
@@ -1153,3 +1154,103 @@ const void * Sys_OmnibotRender( const void * data )
 	}
 	return (const void *)( cmd + 1 );
 }
+
+
+/*
+================
+Sys_SteamInit
+Steam initialization is done here.
+In order for Steam to work, two things are needed:
+- steam_api.dll (not included with retail Wolfenstein Enemy Territory)
+- steam_appid.txt (likewise)
+steam_appid.txt is a text file containing "1873030".
+Steamworks SDK is required to use the playtime tracking and overlay features
+without launching the app manually through Steam.
+Unfortunately, the SDK does not play nice with copyleft licenses.
+Fortunately! we can invoke the library directly and avoid this entirely,
+provided the end-user has the goods.
+Unfortunately! this is platform specific and so we have to do it here.
+================
+*/
+
+#ifndef DEDICATED
+
+#if (idx64 || id386)
+
+typedef bool(__stdcall* SteamAPIInit_Type)();
+typedef void(__stdcall* SteamAPIShutdown_Type)();
+static SteamAPIInit_Type SteamAPI_Init;
+static SteamAPIShutdown_Type SteamAPI_Shutdown;
+static void* gp_steamLibrary = NULL;
+
+#endif
+
+void Sys_SteamInit()
+{
+#if (idx64 || id386)
+	if (!Cvar_VariableIntegerValue("com_steamIntegration"))
+	{
+		// Don't do anything if com_steamIntegration is disabled
+		return;
+	}
+
+	// Load the library
+#if id386
+	gp_steamLibrary = Sys_LoadLibrary(va("%s/steam_api" DLL_EXT, Sys_Pwd()));
+#else
+	gp_steamLibrary = Sys_LoadLibrary(va("%s/steam_api64" DLL_EXT, Sys_Pwd()));
+#endif
+	if (!gp_steamLibrary)
+	{
+#if id386
+		Com_Printf(S_COLOR_RED "Steam integration failed: Couldn't find steam_api" DLL_EXT "\n");
+#else
+		Com_Printf(S_COLOR_RED "Steam integration failed: Couldn't find steam_api64" DLL_EXT "\n");
+#endif
+		return;
+	}
+
+	// Load the functions
+	SteamAPI_Init = (SteamAPIInit_Type)Sys_LoadFunction(gp_steamLibrary, "SteamAPI_Init");
+	SteamAPI_Shutdown = (SteamAPIShutdown_Type)Sys_LoadFunction(gp_steamLibrary, "SteamAPI_Shutdown");
+
+	if (!SteamAPI_Shutdown || !SteamAPI_Init)
+	{
+		Com_Printf(S_COLOR_RED "Steam integration failed: Library invalid\n");
+		Sys_UnloadLibrary(gp_steamLibrary);
+		gp_steamLibrary = NULL;
+		return;
+	}
+
+	// Finally, call the init function in Steam, which should pop up the overlay if everything went correctly
+	if (!SteamAPI_Init())
+	{
+		Com_Printf(S_COLOR_RED "Steam integration failed: Steam init failed. Ensure steam_appid.txt exists and is valid.\n");
+		Sys_UnloadLibrary(gp_steamLibrary);
+		gp_steamLibrary = NULL;
+		return;
+	}
+#endif
+}
+
+
+/*
+================
+Sys_SteamShutdown
+================
+*/
+void Sys_SteamShutdown()
+{
+#if (idx64 || id386)
+	if (!gp_steamLibrary)
+	{
+		Com_Printf("Skipping Steam integration shutdown...\n");
+		return;
+	}
+
+	SteamAPI_Shutdown();
+	Sys_UnloadLibrary(gp_steamLibrary);
+	gp_steamLibrary = NULL;
+#endif
+}
+#endif

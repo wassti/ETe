@@ -1177,7 +1177,7 @@ Unfortunately! this is platform specific and so we have to do it here.
 
 #if (idx64 || id386)
 
-typedef bool(__stdcall* SteamAPIInit_Type)();
+typedef int(__stdcall* SteamAPIInit_Type)();
 typedef void(__stdcall* SteamAPIShutdown_Type)();
 static SteamAPIInit_Type SteamAPI_Init;
 static SteamAPIShutdown_Type SteamAPI_Shutdown;

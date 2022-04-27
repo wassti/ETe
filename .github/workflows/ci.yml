@@ -208,7 +208,7 @@ jobs:
 
     - name: Configure CMake (Engine)
       working-directory: ${{github.workspace}}/src/bin
-      run: cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=${{ matrix.config }} -DUSE_SDL2=TRUE -DBUILD_ETMAIN_MOD=OFF
+      run: cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=${{ matrix.config }} -DUSE_SDL2=TRUE -DBUILD_ETMAIN_MOD=OFF -DUSE_SYSTEM_JPEG=OFF
 
     - name: Build (Engine)
       working-directory: ${{github.workspace}}/src/bin

@@ -478,7 +478,8 @@ static void R_InitExtensions( void )
 
 	ri.Printf( PRINT_ALL, "Initializing OpenGL extensions\n" );
 
-	if ( R_HaveExtension( "GL_EXT_texture_edge_clamp" ) ) {
+	if ( R_HaveExtension( "GL_EXT_texture_edge_clamp" ) ||
+		 R_HaveExtension( "GL_SGIS_texture_edge_clamp" ) ) {
 		if ( r_clampToEdge->integer ) {
 			gl_clamp_mode = GL_CLAMP_TO_EDGE;
 			ri.Printf( PRINT_ALL, "...using GL_EXT_texture_edge_clamp\n" );

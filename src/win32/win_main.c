@@ -1230,6 +1230,8 @@ void Sys_SteamInit()
 		gp_steamLibrary = NULL;
 		return;
 	}
+
+	Com_Printf(S_COLOR_CYAN "Steam integration success!\n" );
 #endif
 }
 

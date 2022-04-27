@@ -1423,7 +1423,7 @@ Unfortunately! this is platform specific and so we have to do it here.
 
 #ifndef DEDICATED
 
-#if defined(__linux__) && (idx64 || id386)
+#if (defined(__linux__) && (idx64 || id386)) || (defined(__APPLE__) && idx64)
 typedef int(*SteamAPIInit_Type)();
 typedef void(*SteamAPIShutdown_Type)();
 static SteamAPIInit_Type SteamAPI_Init;
@@ -1433,7 +1433,7 @@ static void* gp_steamLibrary = NULL;
 
 void Sys_SteamInit()
 {
-#if defined(__linux__) && (idx64 || id386)
+#if (defined(__linux__) && (idx64 || id386)) || (defined(__APPLE__) && idx64)
 	if (!Cvar_VariableIntegerValue("com_steamIntegration"))
 	{
 		// Don't do anything if com_steamIntegration is disabled
@@ -1441,14 +1441,14 @@ void Sys_SteamInit()
 	}
 
 	// Load the library
-#if id386
+#if id386 || (idx64 && defined(__APPLE__))
 	gp_steamLibrary = Sys_LoadLibrary(va("%s/libsteam_api" DLL_EXT, Sys_Pwd()));
 #else
 	gp_steamLibrary = Sys_LoadLibrary(va("%s/libsteam_api." ARCH_STRING DLL_EXT, Sys_Pwd()));
 #endif
 	if (!gp_steamLibrary)
 	{
-#if id386
+#if id386 || (idx64 && defined(__APPLE__))
 		Com_Printf(S_COLOR_RED "Steam integration failed: Couldn't find libsteam_api" DLL_EXT "\n");
 #else
 		Com_Printf(S_COLOR_RED "Steam integration failed: Couldn't find libsteam_api." ARCH_STRING DLL_EXT "\n");
@@ -1476,6 +1476,8 @@ void Sys_SteamInit()
 		gp_steamLibrary = NULL;
 		return;
 	}
+
+	Com_Printf(S_COLOR_CYAN "Steam integration success!\n" );
 #endif
 }
 
@@ -1487,7 +1489,7 @@ Sys_SteamShutdown
 */
 void Sys_SteamShutdown()
 {
-#if defined(__linux__) && (idx64 || id386)
+#if (defined(__linux__) && (idx64 || id386)) || (defined(__APPLE__) && idx64)
 	if (!gp_steamLibrary)
 	{
 		Com_Printf("Skipping Steam integration shutdown...\n");

@@ -797,7 +797,7 @@ void SV_InitGameProgs( void ) {
 	// load the dll
 	gvm = VM_Create( VM_GAME, SV_GameSystemCalls, SV_DllSyscall, VMI_NATIVE );
 	if ( !gvm ) {
-		Com_Error( ERR_DROP, "VM_Create on game failed" );
+		Com_Error( ERR_DROP, "VM_Create on game failed\n\nMake sure " S_COLOR_GREEN "%s" S_COLOR_NULL " exists in the mod's folder (%s)\nIf it does not, the mod may be incompatible with your system or a file extraction error has occured!", SYS_DLLNAME_QAGAME, FS_GetCurrentGameDir() );
 	}
 
 	SV_InitGameVM( qfalse );

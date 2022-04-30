@@ -1289,7 +1289,7 @@ void CL_InitCGame( void ) {
 	// load the dll
 	cgvm = VM_Create( VM_CGAME, CL_CgameSystemCalls, CL_DllSyscall, VMI_NATIVE );
 	if ( !cgvm ) {
-		Com_Error( ERR_DROP, "VM_Create on cgame failed" );
+		Com_Error( ERR_DROP, "VM_Create on cgame failed\n\nMake sure " S_COLOR_GREEN "%s" S_COLOR_NULL " exists in the mod folder (%s)\nIf it does not, the mod may be incompatible with your system or a file extraction error has occured!", SYS_DLLNAME_CGAME, FS_GetCurrentGameDir() );
 	}
 	cls.state = CA_LOADING;
 

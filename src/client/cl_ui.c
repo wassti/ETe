@@ -1349,10 +1349,10 @@ void CL_InitUI( void ) {
 			//FS_PureServerSetLoadedPaks( "", "" );
 			uivm = VM_Create( VM_UI, CL_UISystemCalls, UI_DllSyscall, VMI_NATIVE );
 			if ( !uivm ) {
-				Com_Error( ERR_DROP, "VM_Create on UI failed" );
+				Com_Error( ERR_DROP, "VM_Create on UI failed\n\nMake sure " S_COLOR_GREEN "%s" S_COLOR_NULL " exists in the mod folder (%s)\nIf it does not, the mod may be incompatible with your system or a file extraction error has occured!", SYS_DLLNAME_UI, FS_GetCurrentGameDir() );
 			}
 		} else {
-			Com_Error( ERR_DROP, "VM_Create on UI failed" );
+			Com_Error( ERR_DROP, "VM_Create on UI failed\n\nMake sure " S_COLOR_GREEN "%s" S_COLOR_NULL " exists in the mod folder (%s)\nIf it does not, the mod may be incompatible with your system or a file extraction error has occured!", SYS_DLLNAME_UI, FS_GetCurrentGameDir() );
 		}
 	}
 

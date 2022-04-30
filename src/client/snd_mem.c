@@ -46,7 +46,8 @@ static	sndBuffer	*buffer = NULL;
 static	sndBuffer	*freelist = NULL;
 static	int inUse = 0;
 static	int totalInUse = 0;
-static	int totalSizeBuffer = 0;
+static	int totalAllocated = 0;
+static	int bufferSize = 0;
 
 short *sfxScratchBuffer = NULL;
 sfx_t *sfxScratchPointer = NULL;
@@ -70,6 +71,7 @@ sndBuffer *SND_malloc( void ) {
 
 	inUse -= sizeof(sndBuffer);
 	totalInUse += sizeof(sndBuffer);
+	totalAllocated += sizeof(sndBuffer);
 
 	v = freelist;
 	freelist = *(sndBuffer **)freelist;
@@ -87,6 +89,7 @@ void SND_setup( void )
 
 	cv = Cvar_Get( "com_soundMegs", DEF_COMSOUNDMEGS, CVAR_LATCH | CVAR_ARCHIVE );
 	Cvar_CheckRange( cv, "1", "512", CV_INTEGER );
+	Cvar_SetDescription( cv, "The size of the sound memory segment" );
 
 	scs = ( cv->integer * 512 ); // reduce memory waste by reverting to ET value here, below is about 3x as much memory
 	//scs = ( cv->integer * /*1536*/ 12 * dma.speed ) / 22050;
@@ -109,12 +112,12 @@ void SND_setup( void )
 
 	// -EC-
 	if ( buffer == NULL ) {
-		Com_Error( ERR_FATAL, "Error allocating %i bytes for sound buffer", sz );
+		Com_Error( ERR_FATAL, "Error allocating %i bytes for sound buffer\nSuggest lowering com_soundMegs and checking other memory related variables", sz );
 	} else {
 		Com_Memset( buffer, 0, sz );
 	}
 
-	totalSizeBuffer = sz;
+	bufferSize = sz;
 
 	sz = SND_CHUNK_SIZE * sizeof(short) * 4;
 
@@ -135,6 +138,7 @@ void SND_setup( void )
 
 	inUse = scs * sizeof( sndBuffer );
 	totalInUse = 0; // -EC-
+	totalAllocated = 0;
 
 	p = buffer;
 	q = p + scs;
@@ -336,10 +340,12 @@ qboolean S_LoadSound( sfx_t *sfx )
 }
 
 void S_DisplayFreeMemory(void) {
-	cvar_t *cv = Cvar_Get( "com_soundMegs", DEF_COMSOUNDMEGS, CVAR_LATCH | CVAR_ARCHIVE );
-	Com_Printf( "%6.2f MB requested sound buffer size\n", cv->value );
-	Com_Printf( "%9i bytes (%6.2f MB) total sound buffer\n", totalSizeBuffer, totalSizeBuffer / Square( 1024.f ) );
-	Com_Printf( "%9i bytes (%6.2f MB) in sound buffer\n", totalInUse, totalInUse / Square( 1024.f ) );
-	Com_Printf( "%9i bytes (%6.2f MB) unused sound buffer\n", inUse, inUse / Square( 1024.f ) );
+	Com_Printf( "%9i bytes (%6.2fMB) free sound buffer memory, %9i bytes (%6.2fMB) total used\n%9i bytes (%6.2fMB) sound buffer memory have been allocated since the last SND_setup\n", inUse, inUse / Square( 1024.f ), totalInUse, totalInUse / Square( 1024.f ), totalAllocated, totalAllocated / Square( 1024.f ) );
+	//cvar_t *cv = Cvar_Get( "com_soundMegs", DEF_COMSOUNDMEGS, CVAR_LATCH | CVAR_ARCHIVE );
+	//Com_Printf( "%6.2f MB requested sound buffer size\n", cv->value );
+	//Com_Printf( "%9i bytes (%6.2f MB) total sound buffer\n", totalSizeBuffer, totalSizeBuffer / Square( 1024.f ) );
+	//Com_Printf( "%9i bytes (%6.2f MB) in sound buffer\n", totalInUse, totalInUse / Square( 1024.f ) );
+	//Com_Printf( "%9i bytes (%6.2f MB) unused sound buffer\n", inUse, inUse / Square( 1024.f ) );
+
 	//Com_Printf("%d bytes free sound buffer memory, %d total used\n", inUse, totalInUse);
 }

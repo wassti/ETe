@@ -1210,7 +1210,7 @@ static void Svcmd_KickNum_f( void ) {
 	char    *ip;
 	char userinfo[MAX_INFO_STRING];
 	char sTimeout[MAX_TOKEN_CHARS];
-	char name[MAX_TOKEN_CHARS];
+	char name[MAX_TOKEN_CHARS], cmd[sizeof("clientkick")+1];
 	int clientNum;
 
 	// make sure server is running
@@ -1219,8 +1219,10 @@ static void Svcmd_KickNum_f( void ) {
 		return;
 	}
 
+	trap_Argv( 0, cmd, sizeof( cmd ) );
+
 	if ( trap_Argc() < 2 || trap_Argc() > 3 ) {
-		G_Printf( "Usage: kick <client number> [timeout]\n" );
+		G_Printf( "Usage: %s <client number> [timeout]\n", cmd );
 		return;
 	}
 
@@ -1280,6 +1282,7 @@ static serverCommand_t svcommands[] =
 	{ "forceteam", Svcmd_ForceTeam_f },
 	{ "game_memory", Svcmd_GameMem_f },
 	{ "kick", Svcmd_Kick_f },
+	{ "kicknum", Svcmd_KickNum_f },
 	{ "listcampaigns", Svcmd_ListCampaigns_f },
 	{ "listip", Svcmd_ListIP_f },
 	{ "listmaxlivesip", PrintMaxLivesGUID },
@@ -1326,8 +1329,10 @@ qboolean    ConsoleCommand( void ) {
 		}
 
 		// OSP - console also gets ref commands
-		if ( !level.fLocalHost && Q_stricmp( cmd, "ref" ) == 0 ) {
-			if ( !G_refCommandCheck( NULL, cmd ) ) {
+		if ( !level.fLocalHost && !Q_stricmp( cmd, "ref" ) ) {
+			char arg[MAX_TOKEN_CHARS];
+			trap_Argv( 1, arg, sizeof( arg ) );
+			if ( !G_refCommandCheck( NULL, arg ) ) {
 				G_refHelp_cmd( NULL );
 			}
 			return( qtrue );

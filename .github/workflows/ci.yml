@@ -73,6 +73,7 @@ jobs:
         msbuild win32\msvc2017\wolfded.vcxproj -m -p:PlatformToolset=v141_xp,TargetName=ETe.ded,Configuration=${{ matrix.config }},Platform=${{ matrix.platform }}
         msbuild win32\msvc2017\renderer.vcxproj -m -p:PlatformToolset=v141_xp,Configuration=${{ matrix.config }},Platform=${{ matrix.platform }}
         msbuild win32\msvc2017\wolf.vcxproj -m -p:PlatformToolset=v141_xp,TargetName=ETe,Configuration=${{ matrix.config }},Platform=${{ matrix.platform }},UseWasapi=USE_WASAPI=0
+        msbuild win32\msvc2017\steam.vcxproj -m -p:PlatformToolset=v141_xp,Configuration=${{ matrix.config }},Platform=${{ matrix.platform }}
 
     - name: Build etmain
       working-directory: ${{github.workspace}}/src
@@ -90,6 +91,7 @@ jobs:
       run: |
           copy win32\msvc2017\output\${{ matrix.config }}\ETe.ded.exe ${{github.workspace}}\bin\ETe.ded${{ matrix.suffix }}.exe
           copy win32\msvc2017\output\${{ matrix.config }}\ETe.exe ${{github.workspace}}\bin\ETe${{ matrix.suffix }}.exe
+          copy win32\msvc2017\output\${{ matrix.config }}\ete-steamlaunch.exe ${{github.workspace}}\bin\ete-steamlaunch${{ matrix.suffix }}.exe
 
           copy win32\msvc2017\output\${{ matrix.config }}\qagame_mp_${{ matrix.pkg_suffix }}.dll ${{github.workspace}}\bin\
           copy win32\msvc2017\output\${{ matrix.config }}\ui_mp_${{ matrix.pkg_suffix }}.dll ${{github.workspace}}\bin\

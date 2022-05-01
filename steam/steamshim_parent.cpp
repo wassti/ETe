@@ -299,7 +299,9 @@ static void *loadSteamFunction(void *handle, const char *name)
 
 int main(int argc, char **argv)
 {
+#ifndef _WIN32
     signal(SIGPIPE, SIG_IGN);
+#endif
     GArgc = argc;
     GArgv = argv;
     return mainline();

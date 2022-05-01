@@ -152,7 +152,7 @@ static bool setEnvVar(const char *key, const char *val)
     return (SetEnvironmentVariableA(key, val) != 0);
 } // setEnvVar
 
-static bool launchChild(ProcessType *pid);
+static bool launchChild(ProcessType *pid)
 {
     return (CreateProcessW(TEXT(".\\") TEXT(GAME_LAUNCH_NAME) TEXT(GAME_LAUNCH_SUFFIX) TEXT(".exe"),
                            GetCommandLineW(), NULL, NULL, TRUE, 0, NULL,
@@ -172,10 +172,10 @@ static void *loadSteamModule(void)
     return (void *)LoadLibrary( "./.steam/" STEAMAPI_DLLNAME );
 }
 
-static void unloadSteamModule( void *handle )
+static void unloadSteamModule(void *handle)
 {
     if (handle != NULL)
-        FreeLibrary(handle);
+        FreeLibrary((HMODULE)handle);
 }
 
 static void *loadSteamFunction(void *handle, const char *name)
@@ -183,7 +183,7 @@ static void *loadSteamFunction(void *handle, const char *name)
 	if (handle == NULL || name == NULL || *name == '\0') 
 		return NULL;
 
-    return GetProcAddress( handle, name );
+    return (void *)GetProcAddress( handle, name );
 }
 
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
@@ -284,7 +284,7 @@ static void *loadSteamModule(void)
     return dlopen( "./.steam/" STEAMAPI_DLLNAME, RTLD_NOW );
 }
 
-static void unloadSteamModule( void *handle )
+static void unloadSteamModule(void *handle)
 {
     if (handle != NULL)
         dlclose(handle);

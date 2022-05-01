@@ -27,6 +27,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 // win_main.c
 
+#include "../client/client.h"
 #include "../qcommon/qcommon.h"
 #include "win_local.h"
 #include "glw_win.h"
@@ -37,7 +38,6 @@ If you have questions concerning this license or the applicable additional terms
 #include <io.h>
 
 #ifndef DEDICATED
-#include "../client/client.h"
 #include "../../steam/steamshim_child.h"
 #endif
 

@@ -97,7 +97,6 @@
     <EmbedManifest>false</EmbedManifest>
     <TargetName>ete-steamlaunch.x64</TargetName>
   </PropertyGroup>
-  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>

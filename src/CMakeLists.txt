@@ -145,6 +145,7 @@ set(client_files
     "client/snd_mem.c"
     "client/snd_mix.c"
     "client/snd_wavelet.c"
+    "${SRCDIR}/../steam/steamshim_child.c"
 )
 
 set(server_files
@@ -538,6 +539,23 @@ if(BUILD_CLIENT)
         endif()
     endif(USE_SDL2)
 
+    add_executable(ete-steamlaunch "${SRCDIR}/../steam/steamshim_parent.cpp")
+    target_compile_options(ete-steamlaunch
+        PRIVATE $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:DEBUG>>:${compiler_flags_debug} ${sanitizer_flags}>
+                $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:RELEASE>>:${compiler_flags_release}>
+                $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:RELWITHDEBINFO>>:${compiler_flags_relwithdebinfo}>
+                $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:DEBUG>>:${compiler_flags_debug} ${sanitizer_flags}>
+                $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:RELEASE>>:${compiler_flags_release}>
+                $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:RELWITHDEBINFO>>:${compiler_flags_relwithdebinfo}>
+    )
+    if(X86)
+        set_target_properties(ete-steamlaunch PROPERTIES SUFFIX ".x86")
+    else()
+        set_target_properties(ete-steamlaunch PROPERTIES SUFFIX ".${Architecture}") #NOTE changeme when multi-platform and multi-arch support is added
+    endif(X86)
+
+    target_link_libraries(ete-steamlaunch PRIVATE ${CMAKE_DL_LIBS} m)
+
     add_executable(ete "${core_client_files}")
     target_compile_options(ete
         PRIVATE $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:DEBUG>>:${compiler_flags_debug}>
@@ -675,7 +693,7 @@ if(BUILD_DEDSERVER)
 endif(BUILD_DEDSERVER)
 
 if(BUILD_CLIENT)
-    install(TARGETS ete
+    install(TARGETS ete ete-steamlaunch
             RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}
 )
 endif(BUILD_CLIENT)

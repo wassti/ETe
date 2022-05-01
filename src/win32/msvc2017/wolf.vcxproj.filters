@@ -29,6 +29,9 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\steam\steamshim_child.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\client\cl_cgame.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -238,6 +241,9 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\steam\steamshim_child.h">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClInclude Include="..\..\game\bg_public.h">
       <Filter>Header Files</Filter>
     </ClInclude>

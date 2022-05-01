@@ -32,6 +32,11 @@
     #error Platform is not supported
 #endif
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
+
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN 1
 #include <windows.h>
@@ -49,12 +54,8 @@ static SteamAPIShutdown_Type SteamAPI_Shutdown;
 static void* gp_steamLibrary = NULL;
 
 #else
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <stdint.h>
 #include <unistd.h>
-#include <errno.h>
 #include <sys/wait.h>
 #include <signal.h>
 #include <dlfcn.h>

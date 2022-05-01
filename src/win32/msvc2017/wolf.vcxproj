@@ -346,7 +346,7 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\steam\steamshim_child.h" />
+    <ClInclude Include="..\..\..\steam\steamshim_child.h" />
     <ClInclude Include="..\..\cgame\cg_public.h" />
     <ClInclude Include="..\..\client\client.h" />
     <ClInclude Include="..\..\client\cl_curl.h" />

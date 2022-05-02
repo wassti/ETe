@@ -1171,11 +1171,11 @@ Sys_SteamInit
 void Sys_SteamInit()
 {
 #if (idx64 || id386)
-	if (!Cvar_VariableIntegerValue("com_steamIntegration"))
+	/*if (!Cvar_VariableIntegerValue("com_steamIntegration"))
 	{
 		// Don't do anything if com_steamIntegration is disabled
 		return;
-	}
+	}*/
 
 	if (!STEAMSHIM_init())
 	{

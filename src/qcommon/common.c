@@ -3800,7 +3800,7 @@ void Com_Init( char *commandLine ) {
 
 #ifndef DEDICATED
 	Com_StartupVariable( "cl_profile" );
-	Com_StartupVariable( "com_steamIntegration" );
+	//Com_StartupVariable( "com_steamIntegration" );
 #endif
 
 	// done early so bind command exists

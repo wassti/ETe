@@ -1418,11 +1418,11 @@ Sys_SteamInit
 void Sys_SteamInit()
 {
 #if (defined(__linux__) && (idx64 || id386)) || (defined(__APPLE__) && idx64)
-	if (!Cvar_VariableIntegerValue("com_steamIntegration"))
+	/*if (!Cvar_VariableIntegerValue("com_steamIntegration"))
 	{
 		// Don't do anything if com_steamIntegration is disabled
 		return;
-	}
+	}*/
 
 	if (!STEAMSHIM_init())
 	{

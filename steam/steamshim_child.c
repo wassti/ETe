@@ -96,7 +96,9 @@ typedef enum ShimCmd
 
 static int write1ByteCmd(const uint8 b1)
 {
-    const uint8 buf[] = { 1, b1 };
+    uint8 buf[2];
+    buf[0] = 1;
+    buf[1] = b1;
     return writePipe(GPipeWrite, buf, sizeof (buf));
 } /* write1ByteCmd */
 

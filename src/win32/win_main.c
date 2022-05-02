@@ -1163,17 +1163,6 @@ const void * Sys_OmnibotRender( const void * data )
 /*
 ================
 Sys_SteamInit
-Steam initialization is done here.
-In order for Steam to work, two things are needed:
-- steam_api.dll (not included with retail Wolfenstein Enemy Territory)
-- steam_appid.txt (likewise)
-steam_appid.txt is a text file containing "1873030".
-Steamworks SDK is required to use the playtime tracking and overlay features
-without launching the app manually through Steam.
-Unfortunately, the SDK does not play nice with copyleft licenses.
-Fortunately! we can invoke the library directly and avoid this entirely,
-provided the end-user has the goods.
-Unfortunately! this is platform specific and so we have to do it here.
 ================
 */
 

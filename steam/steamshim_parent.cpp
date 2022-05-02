@@ -186,12 +186,9 @@ static void *loadSteamFunction(void *handle, const char *name)
     return (void *)GetProcAddress((HMODULE)handle, name);
 }
 
-int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
-                     LPSTR lpCmdLine, int nCmdShow)
+int CALLBACK WinMain(HINSTANCE, HINSTANCE,LPSTR, int)
 {
-    mainline();
-    ExitProcess(0);
-    return 0;  // just in case.
+    return mainline();
 } // WinMain
 
 
@@ -300,9 +297,7 @@ static void *loadSteamFunction(void *handle, const char *name)
 
 int main(int argc, char **argv)
 {
-#ifndef _WIN32
     signal(SIGPIPE, SIG_IGN);
-#endif
     GArgc = argc;
     GArgv = argv;
     return mainline();
@@ -414,7 +409,7 @@ static bool setEnvironmentVars(PipeType pipeChildRead, PipeType pipeChildWrite)
     return true;
 } // setEnvironmentVars
 
-static bool initSteamworks(PipeType fd)
+static bool initSteamworks(void)
 {
     gp_steamLibrary = loadSteamModule();
 
@@ -463,7 +458,7 @@ static int mainline(void)
 
     if (!createPipes(&pipeParentRead, &pipeParentWrite, &pipeChildRead, &pipeChildWrite))
         fail("Failed to create application pipes");
-    else if (!initSteamworks(pipeParentWrite))
+    else if (!initSteamworks())
         fail("Failed to initialize Steamworks");
     else if (!setEnvironmentVars(pipeChildRead, pipeChildWrite))
         fail("Failed to set environment variables");

@@ -169,7 +169,7 @@ static int closeProcess(ProcessType *pid)
 static void *loadSteamModule(void)
 {
     // TODO handle x86 and x86_64 as needed
-    return (void *)LoadLibrary( "./.steam/" STEAMAPI_DLLNAME );
+    return (void *)LoadLibrary(TEXT("./.steam/" STEAMAPI_DLLNAME));
 }
 
 static void unloadSteamModule(void *handle)
@@ -183,7 +183,7 @@ static void *loadSteamFunction(void *handle, const char *name)
 	if (handle == NULL || name == NULL || *name == '\0') 
 		return NULL;
 
-    return (void *)GetProcAddress( handle, name );
+    return (void *)GetProcAddress((HMODULE)handle, name);
 }
 
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,

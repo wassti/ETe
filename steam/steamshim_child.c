@@ -1,3 +1,4 @@
+#ifdef USE_STEAMAPI
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -177,4 +178,5 @@ int STEAMSHIM_alive(void)
     return isAlive();
 } /* STEAMSHIM_alive */
 
+#endif
 /* end of steamshim_child.c ... */

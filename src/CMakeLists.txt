@@ -94,6 +94,7 @@ option(USE_SYSTEM_JPEG "Look for and use system jpeg library instead of locally 
 option(DYNAMIC_RENDERER "Whether to use modular rendering features (builds as shared object instead of library" OFF)
 #option(USE_DISCORD "Use discord rich presence API" OFF)
 option(BUILD_ETMAIN_MOD "Build cgame/qagame/ui modules for etmain" OFF)
+option(USE_STEAMAPI "Build steamshim process to communicate to steamapi for basic support" OFF)
 option(ENABLE_SPLINES "Splines code" ON)
 
 set(USE_DISCORD OFF)
@@ -122,6 +123,9 @@ endif()
 
 set(SRCDIR "${CMAKE_SOURCE_DIR}")
 
+if(USE_STEAMAPI)
+set(STEAMDIR "${SRCDIR}/../steam")
+endif()
 set(client_files
     "client/cl_avi.c"
     "client/cl_cgame.c"
@@ -145,8 +149,14 @@ set(client_files
     "client/snd_mem.c"
     "client/snd_mix.c"
     "client/snd_wavelet.c"
-    "${SRCDIR}/../steam/steamshim_child.c"
 )
+
+if(USE_STEAMAPI)
+    set(client_files
+        ${client_files}
+        "${STEAMDIR}/steamshim_child.c"
+    )
+endif()
 
 set(server_files
     "server/sv_bot.c"
@@ -539,22 +549,24 @@ if(BUILD_CLIENT)
         endif()
     endif(USE_SDL2)
 
-    add_executable(ete-steamlaunch "${SRCDIR}/../steam/steamshim_parent.cpp")
-    target_compile_options(ete-steamlaunch
-        PRIVATE $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:DEBUG>>:${compiler_flags_debug} ${sanitizer_flags}>
-                $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:RELEASE>>:${compiler_flags_release}>
-                $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:RELWITHDEBINFO>>:${compiler_flags_relwithdebinfo}>
-                $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:DEBUG>>:${compiler_flags_debug} ${sanitizer_flags}>
-                $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:RELEASE>>:${compiler_flags_release}>
-                $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:RELWITHDEBINFO>>:${compiler_flags_relwithdebinfo}>
-    )
-    if(X86)
-        set_target_properties(ete-steamlaunch PROPERTIES SUFFIX ".x86")
-    else()
-        set_target_properties(ete-steamlaunch PROPERTIES SUFFIX ".${Architecture}") #NOTE changeme when multi-platform and multi-arch support is added
-    endif(X86)
+    if(USE_STEAMAPI)
+        add_executable(ete-steamlaunch "${SRCDIR}/../steam/steamshim_parent.cpp")
+        target_compile_options(ete-steamlaunch
+            PRIVATE $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:DEBUG>>:${compiler_flags_debug} ${sanitizer_flags}>
+                    $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:RELEASE>>:${compiler_flags_release}>
+                    $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:RELWITHDEBINFO>>:${compiler_flags_relwithdebinfo}>
+                    $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:DEBUG>>:${compiler_flags_debug} ${sanitizer_flags}>
+                    $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:RELEASE>>:${compiler_flags_release}>
+                    $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:RELWITHDEBINFO>>:${compiler_flags_relwithdebinfo}>
+        )
+        if(X86)
+            set_target_properties(ete-steamlaunch PROPERTIES SUFFIX ".x86")
+        else()
+            set_target_properties(ete-steamlaunch PROPERTIES SUFFIX ".${Architecture}") #NOTE changeme when multi-platform and multi-arch support is added
+        endif(X86)
 
-    target_link_libraries(ete-steamlaunch PRIVATE ${CMAKE_DL_LIBS} m)
+        target_link_libraries(ete-steamlaunch PRIVATE ${CMAKE_DL_LIBS} m)
+    endif()
 
     add_executable(ete "${core_client_files}")
     target_compile_options(ete
@@ -573,6 +585,9 @@ if(BUILD_CLIENT)
     target_include_directories(ete PUBLIC "${SRCDIR}/server ${SRCDIR}/client ${SRCDIR}/qcommon")
     target_compile_definitions(ete PUBLIC "USE_CURL" "USE_CURL_DLOPEN")
     target_include_directories(ete PRIVATE ${CURL_INCLUDE_DIRS})
+    if(USE_STEAMAPI)
+        target_compile_definitions(ete PUBLIC "USE_STEAMAPI")
+    endif()
     if(APPLE)
     target_link_libraries(ete PRIVATE ${CMAKE_DL_LIBS} m pthread ${CURL_LIBRARIES})
     else()
@@ -693,9 +708,14 @@ if(BUILD_DEDSERVER)
 endif(BUILD_DEDSERVER)
 
 if(BUILD_CLIENT)
-    install(TARGETS ete ete-steamlaunch
+    install(TARGETS ete
             RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}
-)
+    )
+    if(USE_STEAMAPI)
+    install(TARGETS ete-steamlaunch
+            RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}
+    )
+    endif()
 endif(BUILD_CLIENT)
 
 if(DYNAMIC_RENDERER)

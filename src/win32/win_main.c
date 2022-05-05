@@ -37,7 +37,7 @@ If you have questions concerning this license or the applicable additional terms
 #include <direct.h>
 #include <io.h>
 
-#ifndef DEDICATED
+#if !defined(DEDICATED) && defined(USE_STEAMAPI)
 #include "../../steam/steamshim_child.h"
 #endif
 
@@ -1170,6 +1170,7 @@ Sys_SteamInit
 
 void Sys_SteamInit()
 {
+#if defined(USE_STEAMAPI)
 #if (idx64 || id386)
 	/*if (!Cvar_VariableIntegerValue("com_steamIntegration"))
 	{
@@ -1184,6 +1185,7 @@ void Sys_SteamInit()
 	}
 	Com_Printf(S_COLOR_CYAN "Steam integration success!\n" );
 #endif
+#endif
 }
 
 
@@ -1194,6 +1196,7 @@ Sys_SteamShutdown
 */
 void Sys_SteamShutdown()
 {
+#if defined(USE_STEAMAPI)
 #if (idx64 || id386)
 	if(!STEAMSHIM_alive())
 	{
@@ -1201,6 +1204,7 @@ void Sys_SteamShutdown()
 		return;
 	}
 	STEAMSHIM_deinit();
+#endif
 #endif
 }
 #endif

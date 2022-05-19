@@ -97,10 +97,10 @@ static qboolean Menu_OverActiveItem( menuDef_t *menu, float x, float y );
 #endif
 #else
 #if (idx64 || arm64)
-#else
 #define MEM_POOL_SIZE 4096 * 1024
-#endif
+#else
 #define MEM_POOL_SIZE 2048 * 1024 // Arnout: was 1024
+#endif
 #endif
 
 static char memoryPool[MEM_POOL_SIZE];

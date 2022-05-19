@@ -4187,6 +4187,11 @@ static void CL_AddFavorite_f( void ) {
 		return;
 	}
 
+	if ( argc != 2 && com_sv_running->integer ) {
+		Com_Printf( "error adding favorite server: cannot add localhost to favorites\n" );
+		return;
+	}
+
 	{
 		const char *server = ( argc == 2 ) ? Cmd_Argv( 1 ) : NET_AdrToString( &clc.serverAddress );
 		const int status = LAN_AddFavAddr( server );
@@ -4209,6 +4214,12 @@ static void CL_AddFavorite_f( void ) {
 
 static void CL_ListFavorites_f( void ) {
 	int i;
+
+	if ( !cls.numfavoriteservers ) {
+		Com_Printf( "No favorite servers in the currently loaded mod.\n" );
+		return;
+	}
+
 	for ( i = 0; i < cls.numfavoriteservers; i++ ) {
 		if ( cls.favoriteServers[i].adr.type == NA_IP || cls.favoriteServers[i].adr.type == NA_IP6 ) {
 			Com_Printf( "Fav Server: %s \"%s\"\n", NET_AdrToStringwPort( &cls.favoriteServers[i].adr ), cls.favoriteServers[i].hostName );

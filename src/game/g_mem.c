@@ -68,5 +68,5 @@ void G_InitMemory( void ) {
 }
 
 void Svcmd_GameMem_f( void ) {
-	G_Printf( "Game memory status: %i out of %i bytes allocated\n", allocPoint, POOLSIZE );
+	G_Printf( "Game memory status: %i (%6.2f MB) out of %i (%6.2f MB) bytes allocated\n", allocPoint, allocPoint / Square( 1024.f ), POOLSIZE, POOLSIZE / Square( 1024.f ) );
 }

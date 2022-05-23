@@ -237,14 +237,14 @@ static void S_Base_SoundList( void )
 	const char *type[4] = { "16bit", "adpcm", "daub4", "mulaw" };
 	const char *mem[2] = { "paged out", "resident" };
 
-	for (sfx=s_knownSfx, i=0 ; i<s_numSfx ; i++, sfx++) {
+	for (sfx=&s_knownSfx[1], i=1 ; i<s_numSfx ; i++, sfx++) {
 		int size = sfx->soundLength;
 		total += size;
 		Com_Printf("%6i[%s] : %s[%s]\n", size,
 				type[sfx->soundCompressionMethod],
 				sfx->soundName, mem[sfx->inMemory] );
 	}
-	Com_Printf("Total number of sounds: %i\n", s_numSfx);
+	Com_Printf("Total number of sounds: %i\n", s_numSfx-1);
 	Com_Printf ("Total resident: %i\n", total);
 	S_DisplayFreeMemory();
 }
@@ -394,35 +394,6 @@ static sfx_t *S_FindName( const char *name )
 	return sfx;
 }
 
-/*
- * @brief S_DefaultSound
- * @param[out] sfx
- *
- * @note Unused
-static void S_DefaultSound( sfx_t *sfx )
-{
-	int i;
-
-	if ( s_defaultsound->integer ) {
-	sfx->soundLength = 512;
-	} else {
-		sfx->soundLength = 8;
-	}
-
-	sfx->soundData = SND_malloc();
-	sfx->soundData->next = NULL;
-
-	if ( s_defaultsound->integer ) {
-	for ( i = 0 ; i < sfx->soundLength ; i++ ) {
-		sfx->soundData->sndChunk[i] = i;
-		}
-	} else {
-		for ( i = 0 ; i < sfx->soundLength ; i++ ) {
-			sfx->soundData->sndChunk[i] = 0;
-		}
-	}
-}
-*/
 
 /**
  * @brief S_Base_Reload
@@ -521,11 +492,10 @@ static void S_Base_BeginRegistration( void ) {
 	if (s_numSfx == 0) {
 		SND_setup();
 
-		s_numSfx = 0;
 		Com_Memset( s_knownSfx, 0, sizeof( s_knownSfx ) );
 		Com_Memset( sfxHash, 0, sizeof( sfxHash ) );
 
-		S_Base_RegisterSound("sound/player/default/blank.wav", qfalse);               // changed to a sound in etmain
+		s_numSfx = 1; // No need to waste an actual sound file or bytes in memory
 	}
 }
 
@@ -2327,7 +2297,7 @@ static int S_Base_GetVoiceAmplitude( int entityNum ) {
 S_FreeOldestSound
 ======================
 */
-void S_FreeOldestSound( void ) {
+qboolean S_FreeOldestSound( void ) {
 	int	i, oldest, used;
 	sfx_t	*sfx;
 	sndBuffer	*buffer, *nbuffer;
@@ -2346,6 +2316,9 @@ void S_FreeOldestSound( void ) {
 		}
 	}
 
+	if ( used == 0 )
+		return qfalse;
+
 	sfx = &s_knownSfx[used];
 
 	Com_DPrintf("S_FreeOldestSound: freeing sound %s\n", sfx->soundName);
@@ -2358,6 +2331,8 @@ void S_FreeOldestSound( void ) {
 	}
 	sfx->inMemory = qfalse;
 	sfx->soundData = NULL;
+
+	return qtrue;
 }
 
 // START	xkan, 9/23/2002
@@ -2366,6 +2341,10 @@ static int S_Base_GetSoundLength( sfxHandle_t sfxHandle ) {
 	if ( sfxHandle < 0 || sfxHandle >= s_numSfx ) {
 		Com_DPrintf( S_COLOR_YELLOW "S_GetSoundLength: handle %i out of range\n", sfxHandle );
 		return -1;
+	}
+	// Just in case default sound gets called somehow
+	if ( sfxHandle == 0 ) {
+		return 0;
 	}
 	return (int)( (float)s_knownSfx[ sfxHandle ].soundLength / dma.speed * 1000.0 );
 }

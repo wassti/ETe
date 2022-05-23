@@ -66,8 +66,11 @@ void SND_free( sndBuffer *v )
 sndBuffer *SND_malloc( void ) {
 	sndBuffer *v;
 
-	while ( freelist == NULL )
-		S_FreeOldestSound();
+	while ( freelist == NULL ) {
+		if ( !S_FreeOldestSound() ) {
+			Com_Error( ERR_FATAL, "Not enough memory for audio.\nPlease increase com_soundMegs accordingly." );
+		}
+	}
 
 	inUse -= sizeof(sndBuffer);
 	totalInUse += sizeof(sndBuffer);

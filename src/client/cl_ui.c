@@ -806,6 +806,17 @@ static qboolean CL_UI_GetValue( char* value, int valueSize, const char* key ) {
 		return qtrue;
 	}
 
+	// UTF-8 not yet supported
+	if ( !Q_stricmp( key, "cap_UTF8" ) ) {
+		Com_sprintf( value, valueSize, "%i", 0 );
+		return qtrue;
+	}
+
+	if ( !Q_stricmp( key, "cap_TTF_RegisterFont" ) ) {
+		Com_sprintf( value, valueSize, "%i", 0 );
+		return qtrue;
+	}
+
 	return qfalse;
 }
 

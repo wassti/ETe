@@ -403,6 +403,12 @@ void *GVM_ArgPtr( intptr_t intValue )
 
 static qboolean SV_G_GetValue( char* value, int valueSize, const char* key )
 {
+	// UTF-8 not yet supported
+	if ( !Q_stricmp( key, "cap_UTF8" ) ) {
+		Com_sprintf( value, valueSize, "%i", 0 );
+		return qtrue;
+	}
+
 	return qfalse;
 }
 

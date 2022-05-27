@@ -665,7 +665,7 @@ static void S_Base_MainStartSoundEx( vec3_t origin, int entityNum, int entchanne
 	//int		inplay, allowed;
 	qboolean	fullVolume;
 
-	if ( !s_soundStarted || s_soundMuted ) {
+	if ( !s_soundStarted || s_soundMuted || !sfxHandle ) {
 		return;
 	}
 
@@ -905,7 +905,7 @@ S_StartLocalSound
 ==================
 */
 void S_Base_StartLocalSound( sfxHandle_t sfxHandle, int channelNum, int volume ) {
-	if ( !s_soundStarted || s_soundMuted ) {
+	if ( !s_soundStarted || s_soundMuted || !sfxHandle ) {
 		return;
 	}
 
@@ -1062,7 +1062,7 @@ Include velocity in case I get around to doing doppler...
 void S_Base_AddLoopingSound( const vec3_t origin, const vec3_t velocity, const int range, sfxHandle_t sfxHandle, int volume, int soundTime ) {
 	sfx_t *sfx;
 
-	if ( !s_soundStarted || s_soundMuted || cls.state != CA_ACTIVE ) {
+	if ( !s_soundStarted || s_soundMuted || !sfxHandle || cls.state != CA_ACTIVE ) {
 		return;
 	}
 
@@ -1086,7 +1086,7 @@ void S_Base_AddLoopingSound( const vec3_t origin, const vec3_t velocity, const i
 	}
 
 	if ( !sfx->soundLength ) {
-		Com_Error( ERR_DROP, "%s has length 0", sfx->soundName );
+		Com_Error( ERR_DROP, "S_AddLoopingSound: %s has length 0", sfx->soundName );
 	}
 
 	// ydnar: allow looped sounds to start when initially triggered, rather than in the middle of the sample
@@ -1178,7 +1178,7 @@ Include velocity in case I get around to doing doppler...
 void S_Base_AddRealLoopingSound( const vec3_t origin, const vec3_t velocity, const int range, sfxHandle_t sfxHandle, int volume ) {
 	sfx_t *sfx;
 
-	if ( !s_soundStarted || s_soundMuted || !volume ) {
+	if ( !s_soundStarted || s_soundMuted || !sfxHandle || !volume ) {
 		return;
 	}
 
@@ -1198,7 +1198,7 @@ void S_Base_AddRealLoopingSound( const vec3_t origin, const vec3_t velocity, con
 	}
 
 	if ( !sfx->soundLength ) {
-		Com_Error( ERR_DROP, "%s has length 0", sfx->soundName );
+		Com_Error( ERR_DROP, "S_AddRealLoopingSound: %s has length 0", sfx->soundName );
 	}
 	VectorCopy( origin, loopSounds[numLoopSounds].origin );
 	VectorCopy( velocity, loopSounds[numLoopSounds].velocity );
@@ -2338,13 +2338,13 @@ qboolean S_FreeOldestSound( void ) {
 // START	xkan, 9/23/2002
 // returns how long the sound lasts in milliseconds
 static int S_Base_GetSoundLength( sfxHandle_t sfxHandle ) {
+	if ( !s_soundStarted || !sfxHandle ) {
+		return 0;
+	}
+
 	if ( sfxHandle < 0 || sfxHandle >= s_numSfx ) {
 		Com_DPrintf( S_COLOR_YELLOW "S_GetSoundLength: handle %i out of range\n", sfxHandle );
 		return -1;
-	}
-	// Just in case default sound gets called somehow
-	if ( sfxHandle == 0 ) {
-		return 0;
 	}
 	return (int)( (float)s_knownSfx[ sfxHandle ].soundLength / dma.speed * 1000.0 );
 }
@@ -2352,6 +2352,10 @@ static int S_Base_GetSoundLength( sfxHandle_t sfxHandle ) {
 
 // ydnar: for looped sound synchronization
 static int S_Base_GetCurrentSoundTime( void ) {
+	if ( !s_soundStarted ) {
+		return 0;
+	}
+
 	return s_soundtime + dma.speed;
 //	 return s_paintedtime;
 }

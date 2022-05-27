@@ -778,10 +778,24 @@ static void InitOpenGL( void )
 	if ( !qglViewport ) // might happen after REF_KEEP_WINDOW
 	{
 		const char *err = R_ResolveSymbols( core_procs, ARRAY_LEN( core_procs ) );
+		GLint max_shader_units = -1;
+		GLint max_bind_units = -1;
+
 		if ( err )
 			ri.Error( ERR_FATAL, "Error resolving core OpenGL function '%s'", err );
 
 		R_InitExtensions();
+
+		qglGetIntegerv( GL_MAX_TEXTURE_IMAGE_UNITS, &max_shader_units );
+		qglGetIntegerv( GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &max_bind_units );
+
+		if ( max_bind_units > max_shader_units )
+			max_bind_units = max_shader_units;
+		if ( max_bind_units > MAX_TEXTURE_UNITS )
+			max_bind_units = MAX_TEXTURE_UNITS;
+
+		if ( glConfig.numTextureUnits && max_bind_units > 0 )
+			glConfig.numTextureUnits = max_bind_units;
 
 		QGL_InitARB();
 

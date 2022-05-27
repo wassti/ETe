@@ -503,7 +503,6 @@ static void S_memoryLoad( sfx_t *sfx ) {
 
 	// load the sound file
 	if ( !S_LoadSound ( sfx ) ) {
-//		Com_Printf( S_COLOR_YELLOW "WARNING: couldn't load sound: %s\n", sfx->soundName );
 		sfx->defaultSound = qtrue;
 	}
 
@@ -2377,7 +2376,7 @@ static void S_Base_Shutdown( void ) {
 	if ( com_dedicated->integer )
 		SND_shutdown();
 
-	s_soundStarted = qfalse;
+	s_soundStarted = 0;
 
 	s_numSfx = 0; // clean up sound cache -EC-
 

@@ -2390,7 +2390,7 @@ void R_LoadCacheShaders( void );
 // Ridah, mesh compression
 #define NUMMDCVERTEXNORMALS  256
 
-extern float r_anormals[NUMMDCVERTEXNORMALS][3];
+extern const float r_anormals[NUMMDCVERTEXNORMALS][3];
 
 // NOTE: MDC_MAX_ERROR is effectively the compression level. the lower this value, the higher
 // the accuracy, but with lower compression ratios.

@@ -351,6 +351,9 @@ static const char *TruncateGLExtensionsString( const char *extensionsString, int
 */
 static void R_InitExtensions( void )
 {
+	GLint max_texture_size = 0;
+	GLint max_shader_units = -1;
+	GLint max_bind_units = -1;
 	float version;
 	size_t len;
 	const char *err;
@@ -394,12 +397,33 @@ static void R_InitExtensions( void )
 	qglLockArraysEXT = NULL;
 	qglUnlockArraysEXT = NULL;
 
-	glConfig.numTextureUnits = 1; // ENSI note Q3e just changed the default here to 1 from 0
+	glConfig.numTextureUnits = 1;
 	qglMultiTexCoord2fARB = NULL;
 	qglActiveTextureARB = NULL;
 	qglClientActiveTextureARB = NULL;
 
 	gl_clamp_mode = GL_CLAMP; // by default
+
+	// OpenGL driver constants
+	qglGetIntegerv( GL_MAX_TEXTURE_SIZE, &max_texture_size );
+	glConfig.maxTextureSize = max_texture_size;
+
+	// stubbed or broken drivers may have reported 0...
+	if ( glConfig.maxTextureSize <= 0 )
+		glConfig.maxTextureSize = 0;
+	else if ( glConfig.maxTextureSize > 2048 )
+		glConfig.maxTextureSize = 2048; // ResampleTexture() relies on that maximum
+
+	qglGetIntegerv( GL_MAX_TEXTURE_IMAGE_UNITS, &max_shader_units );
+	qglGetIntegerv( GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &max_bind_units );
+
+	if ( max_bind_units > max_shader_units )
+		max_bind_units = max_shader_units;
+	if ( max_bind_units > MAX_TEXTURE_UNITS )
+		max_bind_units = MAX_TEXTURE_UNITS;
+
+	if ( glConfig.numTextureUnits && max_bind_units > 0 )
+		glConfig.numTextureUnits = max_bind_units;
 
 	//
 	// chipset specific configuration
@@ -660,6 +684,9 @@ static void R_InitExtensions( void )
 			R_ResolveSymbols( fbo_opt_procs, ARRAY_LEN( fbo_opt_procs ) );
 		}
 	}
+
+	//ri.Cvar_Set( "r_highQualityVideo", "1" );
+	ri.Cvar_Set( "r_lastValidRenderer", glConfig.renderer_string );
 }
 
 
@@ -687,9 +714,6 @@ static void InitOpenGL( void )
 	if ( glConfig.vidWidth == 0 )
 	{
 		const char *err;
-		GLint max_texture_size = 0;
-		GLint max_shader_units = -1;
-		GLint max_bind_units = -1;
 
 		ri.GLimp_Init( &glConfig );
 
@@ -700,30 +724,6 @@ static void InitOpenGL( void )
 			ri.Error( ERR_FATAL, "Error resolving core OpenGL function '%s'", err );
 
 		R_InitExtensions();
-
-		// OpenGL driver constants
-		qglGetIntegerv( GL_MAX_TEXTURE_SIZE, &max_texture_size );
-		glConfig.maxTextureSize = max_texture_size;
-
-		// stubbed or broken drivers may have reported 0...
-		if ( glConfig.maxTextureSize <= 0 )
-			glConfig.maxTextureSize = 0;
-		else if ( glConfig.maxTextureSize > MAX_TEXTURE_SIZE )
-			glConfig.maxTextureSize = MAX_TEXTURE_SIZE; // ResampleTexture() relies on that maximum
-
-		//ri.Cvar_Set( "r_highQualityVideo", "1" );
-		ri.Cvar_Set( "r_lastValidRenderer", glConfig.renderer_string );
-
-		qglGetIntegerv( GL_MAX_TEXTURE_IMAGE_UNITS, &max_shader_units );
-		qglGetIntegerv( GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &max_bind_units );
-
-		if ( max_bind_units > max_shader_units )
-			max_bind_units = max_shader_units;
-		if ( max_bind_units > MAX_TEXTURE_UNITS )
-			max_bind_units = MAX_TEXTURE_UNITS;
-
-		if ( glConfig.numTextureUnits && max_bind_units > 0 )
-			glConfig.numTextureUnits = max_bind_units;
 
 		gls.windowWidth = glConfig.vidWidth;
 		gls.windowHeight = glConfig.vidHeight;
@@ -778,24 +778,10 @@ static void InitOpenGL( void )
 	if ( !qglViewport ) // might happen after REF_KEEP_WINDOW
 	{
 		const char *err = R_ResolveSymbols( core_procs, ARRAY_LEN( core_procs ) );
-		GLint max_shader_units = -1;
-		GLint max_bind_units = -1;
-
 		if ( err )
 			ri.Error( ERR_FATAL, "Error resolving core OpenGL function '%s'", err );
 
 		R_InitExtensions();
-
-		qglGetIntegerv( GL_MAX_TEXTURE_IMAGE_UNITS, &max_shader_units );
-		qglGetIntegerv( GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &max_bind_units );
-
-		if ( max_bind_units > max_shader_units )
-			max_bind_units = max_shader_units;
-		if ( max_bind_units > MAX_TEXTURE_UNITS )
-			max_bind_units = MAX_TEXTURE_UNITS;
-
-		if ( glConfig.numTextureUnits && max_bind_units > 0 )
-			glConfig.numTextureUnits = max_bind_units;
 
 		QGL_InitARB();
 

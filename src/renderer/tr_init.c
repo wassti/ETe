@@ -352,8 +352,6 @@ static const char *TruncateGLExtensionsString( const char *extensionsString, int
 static void R_InitExtensions( void )
 {
 	GLint max_texture_size = 0;
-	GLint max_shader_units = -1;
-	GLint max_bind_units = -1;
 	float version;
 	size_t len;
 	const char *err;
@@ -414,16 +412,6 @@ static void R_InitExtensions( void )
 	else if ( glConfig.maxTextureSize > 2048 )
 		glConfig.maxTextureSize = 2048; // ResampleTexture() relies on that maximum
 
-	qglGetIntegerv( GL_MAX_TEXTURE_IMAGE_UNITS, &max_shader_units );
-	qglGetIntegerv( GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &max_bind_units );
-
-	if ( max_bind_units > max_shader_units )
-		max_bind_units = max_shader_units;
-	if ( max_bind_units > MAX_TEXTURE_UNITS )
-		max_bind_units = MAX_TEXTURE_UNITS;
-
-	if ( glConfig.numTextureUnits && max_bind_units > 0 )
-		glConfig.numTextureUnits = max_bind_units;
 
 	//
 	// chipset specific configuration
@@ -569,10 +557,24 @@ static void R_InitExtensions( void )
 
 			if ( qglActiveTextureARB && qglClientActiveTextureARB )
 			{
-				qglGetIntegerv( GL_MAX_ACTIVE_TEXTURES_ARB, &glConfig.numTextureUnits );
+				GLint textureUnits = 0;
 
-				if ( glConfig.numTextureUnits > 1 )
+				qglGetIntegerv( GL_MAX_ACTIVE_TEXTURES_ARB, &textureUnits );
+
+				if ( textureUnits > 1 )
 				{
+					GLint max_shader_units = 0;
+					GLint max_bind_units = 0;
+
+					qglGetIntegerv( GL_MAX_TEXTURE_IMAGE_UNITS, &max_shader_units );
+					qglGetIntegerv( GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &max_bind_units );
+
+					if ( max_bind_units > max_shader_units )
+						max_bind_units = max_shader_units;
+					if ( max_bind_units > MAX_TEXTURE_UNITS )
+						max_bind_units = MAX_TEXTURE_UNITS;
+
+					glConfig.numTextureUnits = MAX( textureUnits, max_bind_units );
 					ri.Printf( PRINT_ALL, "...using GL_ARB_multitexture\n" );
 				}
 				else

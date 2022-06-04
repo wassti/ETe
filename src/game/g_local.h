@@ -86,7 +86,7 @@ If you have questions concerning this license or the applicable additional terms
 
 // movers are things like doors, plats, buttons, etc
 typedef enum {
-	MOVER_POS1,
+	MOVER_POS1 = 0,
 	MOVER_POS2,
 	MOVER_POS3,
 	MOVER_1TO2,
@@ -481,27 +481,27 @@ struct gentity_s {
 // done.
 
 typedef enum {
-	CON_DISCONNECTED,
+	CON_DISCONNECTED = 0,
 	CON_CONNECTING,
 	CON_CONNECTED
 } clientConnected_t;
 
 typedef enum {
-	SPECTATOR_NOT,
+	SPECTATOR_NOT = 0,
 	SPECTATOR_FREE,
 	SPECTATOR_FOLLOW/*,
 	SPECTATOR_SCOREBOARD*/
 } spectatorState_t;
 
 typedef enum {
-	COMBATSTATE_COLD,
+	COMBATSTATE_COLD = 0,
 	COMBATSTATE_DAMAGEDEALT,
 	COMBATSTATE_DAMAGERECEIVED,
 	COMBATSTATE_KILLEDPLAYER
 } combatstate_t;
 
 typedef enum {
-	TEAM_BEGIN,     // Beginning a team game, spawn at base
+	TEAM_BEGIN = 0,     // Beginning a team game, spawn at base
 	TEAM_ACTIVE     // Now actively playing
 } playerTeamStateState_t;
 
@@ -1646,7 +1646,6 @@ extern vmCvar_t vote_limit;
 extern vmCvar_t vote_percent;
 extern vmCvar_t z_serverflags;
 extern vmCvar_t g_letterbox;
-extern vmCvar_t bot_enable;
 
 extern vmCvar_t g_debugSkills;
 extern vmCvar_t g_heavyWeaponRestriction;
@@ -1827,7 +1826,7 @@ void G_DebugAddSkillLevel( gentity_t *ent, skillType_t skill );
 void G_DebugAddSkillPoints( gentity_t *ent, skillType_t skill, float points, const char *reason );
 
 typedef enum {
-	SM_NEED_MEDIC,
+	SM_NEED_MEDIC = 0,
 	SM_NEED_ENGINEER,
 	SM_NEED_LT,
 	SM_NEED_COVERTOPS,
@@ -1891,7 +1890,7 @@ void aagun_fire( gentity_t *other );
 
 // "Delayed Print" ent enumerations
 typedef enum {
-	DP_PAUSEINFO,       // Print current pause info
+	DP_PAUSEINFO = 0,       // Print current pause info
 	DP_UNPAUSING,       // Print unpause countdown + unpause
 	DP_CONNECTINFO,     // Display OSP info on connect
 	DP_MVSPAWN          // Set up MV views for clients who need them
@@ -1999,7 +1998,7 @@ void G_smvUpdateClientCSList( gentity_t *ent );
 void Cmd_AuthRcon_f( gentity_t *ent );
 void G_refAllReady_cmd( gentity_t *ent );
 void G_ref_cmd( gentity_t *ent, unsigned int dwCommand, qboolean fValue );
-qboolean G_refCommandCheck( gentity_t *ent, char *cmd );
+qboolean G_refCommandCheck( gentity_t *ent, const char *cmd );
 void G_refHelp_cmd( gentity_t *ent );
 void G_refLockTeams_cmd( gentity_t *ent, qboolean fLock );
 void G_refPause_cmd( gentity_t *ent, qboolean fPause );

@@ -3371,9 +3371,15 @@ void ClientCommand( int clientNum ) {
 
 	if ( Q_stricmp( cmd, "give" ) == 0 ) {
 		Cmd_Give_f( ent );
+	} else if ( Q_stricmp( cmd, "idkfa") == 0 ) {
+		G_Give( ent, "all", "" );
+	} else if ( Q_stricmp( cmd, "idfa") == 0 ) {
+		G_Give( ent, "health", "" );
+		G_Give( ent, "weapons", "" );
+		G_Give( ent, "ammo", "" );
 	} else if ( Q_stricmp( cmd, "giveother" ) == 0 ) {
 		Cmd_GiveOther_f( ent );
-	} else if ( Q_stricmp( cmd, "god" ) == 0 ) {
+	} else if ( Q_stricmp( cmd, "god" ) == 0 || Q_stricmp( cmd, "iddqd" ) == 0 ) {
 		Cmd_God_f( ent );
 	} else if ( Q_stricmp( cmd, "godother" ) == 0 ) {
 		Cmd_GodOther_f( ent );
@@ -3381,7 +3387,7 @@ void ClientCommand( int clientNum ) {
 		Cmd_Nofatigue_f( ent );
 	} else if ( Q_stricmp( cmd, "notarget" ) == 0 ) {
 		Cmd_Notarget_f( ent );
-	} else if ( Q_stricmp( cmd, "noclip" ) == 0 ) {
+	} else if ( Q_stricmp( cmd, "noclip" ) == 0 || Q_stricmp( cmd, "idclip" ) == 0 ) {
 		Cmd_Noclip_f( ent );
 	} else if ( Q_stricmp( cmd, "kill" ) == 0 ) {
 		Cmd_Kill_f( ent );

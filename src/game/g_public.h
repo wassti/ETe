@@ -122,7 +122,7 @@ typedef struct {
 typedef enum {
 	//============== general Quake services ==================
 
-	G_PRINT,        // ( const char *string );
+	G_PRINT = 0,        // ( const char *string );
 	// print message on the local console
 
 	G_ERROR,        // ( const char *string );
@@ -468,7 +468,7 @@ typedef enum {
 // functions exported by the game subsystem
 //
 typedef enum {
-	GAME_INIT,  // ( int levelTime, int randomSeed, int restart );
+	GAME_INIT = 0,  // ( int levelTime, int randomSeed, int restart );
 	// init and shutdown will be called every single level
 	// The game should call G_GET_ENTITY_TOKEN to parse through all the
 	// entity configuration text and spawn gentities.

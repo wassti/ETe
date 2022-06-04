@@ -97,7 +97,7 @@ qboolean    G_SpawnVector2DExt( const char *key, const char *defaultString, floa
 // fields are needed for spawning from the entity string
 //
 typedef enum {
-	F_INT,
+	F_INT = 0,
 	F_FLOAT,
 	F_STRING,          // string on disk, pointer in memory, TAG_LEVEL
 	F_VECTOR,
@@ -113,7 +113,7 @@ typedef struct
 	int flags;
 } field_t;
 
-field_t fields[] = {
+static const field_t fields[] = {
 	{"classname",    FOFS( classname ),    F_STRING},
 	{"origin",       FOFS( s.origin ),     F_VECTOR},
 	{"model",        FOFS( model ),        F_STRING},
@@ -772,8 +772,6 @@ char *G_NewString( const char *string ) {
 }
 
 
-
-
 /*
 ===============
 G_ParseField
@@ -783,7 +781,7 @@ in a gentity
 ===============
 */
 void G_ParseField( const char *key, const char *value, gentity_t *ent ) {
-	field_t *f;
+	const field_t *f;
 	byte    *b;
 	float v;
 	vec3_t vec;
@@ -823,8 +821,6 @@ void G_ParseField( const char *key, const char *value, gentity_t *ent ) {
 		}
 	}
 }
-
-
 
 
 /*

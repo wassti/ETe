@@ -42,7 +42,7 @@ If you have questions concerning this license or the applicable additional terms
 // Parses for a referee command.
 //	--> ref arg allows for the server console to utilize all referee commands (ent == NULL)
 //
-qboolean G_refCommandCheck( gentity_t *ent, char *cmd ) {
+qboolean G_refCommandCheck( gentity_t *ent, const char *cmd ) {
 	if ( !Q_stricmp( cmd, "allready" ) ) {
 		G_refAllReady_cmd( ent );
 	} else if ( !Q_stricmp( cmd, "lock" ) )    {

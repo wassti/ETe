@@ -45,7 +45,7 @@ static qboolean R_LoadMDX( model_t *mod, void *buffer, int fileSize, const char 
 R_RegisterMD3
 ====================
 */
-qhandle_t R_RegisterMD3(const char *name, model_t *mod)
+static qhandle_t R_RegisterMD3(const char *name, model_t *mod)
 {
 	union {
 		uint32_t *u;
@@ -137,7 +137,7 @@ qhandle_t R_RegisterMD3(const char *name, model_t *mod)
 R_RegisterMDC
 ====================
 */
-qhandle_t R_RegisterMDC(const char *name, model_t *mod)
+static qhandle_t R_RegisterMDC(const char *name, model_t *mod)
 {
 	union {
 		uint32_t *u;
@@ -231,7 +231,7 @@ qhandle_t R_RegisterMDC(const char *name, model_t *mod)
 R_RegisterMDS
 ====================
 */
-qhandle_t R_RegisterMDS(const char *name, model_t *mod)
+static qhandle_t R_RegisterMDS(const char *name, model_t *mod)
 {
 	union {
 		uint32_t *u;
@@ -278,7 +278,7 @@ qhandle_t R_RegisterMDS(const char *name, model_t *mod)
 R_RegisterMDM
 ====================
 */
-qhandle_t R_RegisterMDM(const char *name, model_t *mod)
+static qhandle_t R_RegisterMDM(const char *name, model_t *mod)
 {
 	union {
 		uint32_t *u;
@@ -325,7 +325,7 @@ qhandle_t R_RegisterMDM(const char *name, model_t *mod)
 R_RegisterMDX
 ====================
 */
-qhandle_t R_RegisterMDX(const char *name, model_t *mod)
+static qhandle_t R_RegisterMDX(const char *name, model_t *mod)
 {
 	union {
 		uint32_t *u;

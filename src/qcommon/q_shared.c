@@ -1053,7 +1053,7 @@ __reswitch:
 COM_MatchToken
 ==================
 */
-void COM_MatchToken( const char **buf_p, const char *match ) {
+static void COM_MatchToken( const char **buf_p, const char *match ) {
 	const char *token;
 
 	token = COM_Parse( buf_p );
@@ -1865,7 +1865,7 @@ char *Q_CleanStr( char *string ) {
 
 // strips whitespaces and bad characters
 qboolean Q_isBadDirChar( char c ) {
-	char badchars[] = { ';', '&', '(', ')', '|', '<', '>', '*', '?', '[', ']', '~', '+', '@', '!', '\\', '/', ' ', '\'', '\"', '\0' };
+	const char badchars[] = { ';', '&', '(', ')', '|', '<', '>', '*', '?', '[', ']', '~', '+', '@', '!', '\\', '/', ' ', '\'', '\"', '\0' };
 	int i;
 
 	for ( i = 0; badchars[i] != '\0'; i++ ) {

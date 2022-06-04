@@ -1150,14 +1150,9 @@ extern	cvar_t	*com_timescale;
 extern	cvar_t	*com_viewlog;			// 0 = hidden, 1 = visible, 2 = minimized
 extern	cvar_t	*com_version;
 extern	cvar_t	*com_journal;
-extern	cvar_t	*com_cameraMode;
 extern	cvar_t	*com_protocol;
 extern	qboolean com_protocolCompat;
 extern	cvar_t	*com_legacyVersion;
-
-// watchdog
-extern cvar_t  *com_watchdog;
-extern cvar_t  *com_watchdog_cmd;
 
 // both client and server must agree to pause
 extern	cvar_t	*sv_paused;

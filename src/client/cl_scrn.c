@@ -29,13 +29,13 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "client.h"
 
-qboolean	scr_initialized;		// ready to draw
+static qboolean	scr_initialized;		// ready to draw
 
-cvar_t		*cl_timegraph;
-cvar_t		*cl_debuggraph;
-cvar_t		*cl_graphheight;
-cvar_t		*cl_graphscale;
-cvar_t		*cl_graphshift;
+cvar_t			*cl_timegraph;
+static cvar_t	*cl_debuggraph;
+static cvar_t	*cl_graphheight;
+static cvar_t	*cl_graphscale;
+static cvar_t	*cl_graphshift;
 
 /*
 ================
@@ -639,10 +639,10 @@ void SCR_UpdateScreen( void ) {
 	}*/
 
 	if ( ++recursive > 2 ) {
-		recursive = 0;
+//		recursive = 0;
 		// Gordon: i'm breaking this again, because we've removed most of our cases but still have one which will not fix easily
-		return;
-//		Com_Error( ERR_FATAL, "SCR_UpdateScreen: recursively called" );
+//		return;
+		Com_Error( ERR_FATAL, "SCR_UpdateScreen: recursively called" );
 	}
 	recursive = 1;
 

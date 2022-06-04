@@ -355,7 +355,7 @@ static char		*fs_serverReferencedPakNames[MAX_REF_PAKS];	// pk3 names
 int	fs_lastPakIndex;
 
 #ifdef FS_MISSING
-FILE*		missingFiles = NULL;
+static FILE*		missingFiles = NULL;
 #endif
 
 static int FS_GetModList( char *listbuf, int bufsize );

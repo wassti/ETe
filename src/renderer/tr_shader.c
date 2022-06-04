@@ -1533,7 +1533,7 @@ static void ParseSkyParms( const char **text ) {
 ParseSort
 =================
 */
-void ParseSort( const char **text ) {
+static void ParseSort( const char **text ) {
 	const char	*token;
 
 	token = COM_ParseExt( text, qfalse );
@@ -2383,7 +2383,7 @@ typedef struct {
 	GLbitfield multitextureBlend;
 } collapse_t;
 
-static collapse_t collapse[] = {
+static const collapse_t collapse[] = {
 	{ 0, GLS_DSTBLEND_SRC_COLOR | GLS_SRCBLEND_ZERO,
 	  GL_MODULATE, 0 },
 

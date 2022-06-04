@@ -865,9 +865,6 @@ void SV_SendClientIdle( client_t *client ) {
 	// and the playerState_t
 //	SV_WriteSnapshotToClient( client, &msg );
 
-	// Add any download data if the client is downloading
-//	SV_WriteDownloadToClient( client, &msg );
-
 	// check for overflow
 	if ( msg.overflowed ) {
 		Com_Printf( "WARNING: msg overflowed for %s\n", client->name );

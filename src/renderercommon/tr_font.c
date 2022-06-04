@@ -100,7 +100,7 @@ static int registeredFontCount = 0;
 static fontInfo_t registeredFont[MAX_FONTS];
 
 #ifdef BUILD_FREETYPE
-void R_GetGlyphInfo(FT_GlyphSlot glyph, int *left, int *right, int *width, int *top, int *bottom, int *height, int *pitch) {
+static void R_GetGlyphInfo(FT_GlyphSlot glyph, int *left, int *right, int *width, int *top, int *bottom, int *height, int *pitch) {
 	*left  = _FLOOR( glyph->metrics.horiBearingX );
 	*right = _CEIL( glyph->metrics.horiBearingX + glyph->metrics.width );
 	*width = _TRUNC(*right - *left);
@@ -112,7 +112,7 @@ void R_GetGlyphInfo(FT_GlyphSlot glyph, int *left, int *right, int *width, int *
 }
 
 
-FT_Bitmap *R_RenderGlyph(FT_GlyphSlot glyph, glyphInfo_t* glyphOut) {
+static FT_Bitmap *R_RenderGlyph(FT_GlyphSlot glyph, glyphInfo_t* glyphOut) {
 	FT_Bitmap  *bit2;
 	int left, right, width, top, bottom, height, pitch, size;
 
@@ -149,7 +149,7 @@ FT_Bitmap *R_RenderGlyph(FT_GlyphSlot glyph, glyphInfo_t* glyphOut) {
 	return NULL;
 }
 
-void WriteTGA( char *filename, byte *data, int width, int height ) {
+static void WriteTGA( char *filename, byte *data, int width, int height ) {
 	byte    *buffer;
 	int i, c;
 
@@ -301,7 +301,7 @@ static glyphInfo_t *RE_ConstructGlyphInfo(unsigned char *imageOut, int *xOut, in
 static int fdOffset;
 static byte	*fdFile;
 
-int readInt( void ) {
+static int readInt( void ) {
 	int i = ((unsigned int)fdFile[fdOffset] | ((unsigned int)fdFile[fdOffset+1]<<8) | ((unsigned int)fdFile[fdOffset+2]<<16) | ((unsigned int)fdFile[fdOffset+3]<<24));
 	fdOffset += 4;
 	return i;
@@ -312,7 +312,7 @@ typedef union {
 	float	ffred;
 } poor;
 
-float readFloat( void ) {
+static float readFloat( void ) {
 	poor	me;
 #if defined Q3_BIG_ENDIAN
 	me.fred[0] = fdFile[fdOffset+3];

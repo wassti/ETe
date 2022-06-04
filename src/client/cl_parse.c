@@ -44,7 +44,7 @@ static const char *svc_strings[256] = {
 	"svc_voipOpus",  // ioq3 extension
 };
 
-void SHOWNET( msg_t *msg, const char *s ) {
+static void SHOWNET( msg_t *msg, const char *s ) {
 	if ( cl_shownet->integer >= 2) {
 		Com_Printf ("%3i:%s\n", msg->readcount-1, s);
 	}
@@ -1145,7 +1145,7 @@ static void CL_ParseCommandString( msg_t *msg ) {
 CL_ParseBinaryMessage
 =====================
 */
-void CL_ParseBinaryMessage( msg_t *msg ) {
+static void CL_ParseBinaryMessage( msg_t *msg ) {
 	int size;
 
 	MSG_BeginReadingUncompressed( msg );

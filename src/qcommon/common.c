@@ -58,7 +58,7 @@ const int demo_protocols[] = { OLD_PROTOCOL_VERSION, NEW_PROTOCOL_VERSION, 0 };
 #define DEF_COMZONEMEGS		25
 #endif
 
-#define ETLEGACY_VERSION	280020032
+#define ETLEGACY_VERSION	280020033
 
 static jmp_buf abortframe;	// an ERR_DROP occurred, exit the entire frame
 
@@ -99,8 +99,8 @@ cvar_t	*com_version;
 static cvar_t *com_buildScript;	// for automated data building scripts
 
 #ifndef DEDICATED
-cvar_t	*com_introPlayed;
-cvar_t	*com_skipIdLogo;
+static cvar_t	*com_introPlayed;
+static cvar_t	*com_skipIdLogo;
 
 cvar_t	*cl_paused;
 cvar_t	*cl_packetdelay;
@@ -113,14 +113,16 @@ cvar_t  *sv_packetdelay;
 cvar_t	*sv_packetloss;
 cvar_t	*com_sv_running;
 
-cvar_t	*com_cameraMode;
+static cvar_t	*com_cameraMode;
 #if defined(_WIN32) && defined(_DEBUG)
-cvar_t	*com_noErrorInterrupt;
+static cvar_t	*com_noErrorInterrupt;
 #endif
-cvar_t	*com_recommendedSet;
+#ifndef DEDICATED
+static cvar_t	*com_recommendedSet;
+#endif
 
-cvar_t	*com_watchdog;
-cvar_t	*com_watchdog_cmd;
+static cvar_t	*com_watchdog;
+static cvar_t	*com_watchdog_cmd;
 
 cvar_t	*com_hunkused;      // Ridah
 

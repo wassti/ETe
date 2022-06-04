@@ -410,7 +410,7 @@ int R_CullDlight( const dlight_t* dl )
 R_LocalNormalToWorld
 =================
 */
-void R_LocalNormalToWorld( const vec3_t local, vec3_t world ) {
+static void R_LocalNormalToWorld( const vec3_t local, vec3_t world ) {
 	world[0] = local[0] * tr.orientation.axis[0][0] + local[1] * tr.orientation.axis[1][0] + local[2] * tr.orientation.axis[2][0];
 	world[1] = local[0] * tr.orientation.axis[0][1] + local[1] * tr.orientation.axis[1][1] + local[2] * tr.orientation.axis[2][1];
 	world[2] = local[0] * tr.orientation.axis[0][2] + local[1] * tr.orientation.axis[1][2] + local[2] * tr.orientation.axis[2][2];
@@ -510,7 +510,7 @@ void R_TransformClipToWindow( const vec4_t clip, const viewParms_t *view, vec4_t
 myGlMultMatrix
 ==========================
 */
-void myGlMultMatrix( const float *a, const float *b, float *out ) {
+static void myGlMultMatrix( const float *a, const float *b, float *out ) {
 	int		i, j;
 
 	for ( i = 0 ; i < 4 ; i++ ) {
@@ -1945,7 +1945,7 @@ static void R_SortDrawSurfs( drawSurf_t *drawSurfs, int numDrawSurfs ) {
 R_AddEntitySurfaces
 =============
 */
-void R_AddEntitySurfaces( void ) {
+static void R_AddEntitySurfaces( void ) {
 	trRefEntity_t	*ent;
 	shader_t		*shader;
 
@@ -2048,7 +2048,7 @@ void R_AddEntitySurfaces( void ) {
 R_GenerateDrawSurfs
 ====================
 */
-void R_GenerateDrawSurfs( void ) {
+static void R_GenerateDrawSurfs( void ) {
 	// set the projection matrix (and view frustum) here
 	// first with max or fog distance so we can have proper
 	// arbitrary frustum farplane culling optimization

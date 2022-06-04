@@ -28,8 +28,8 @@ If you have questions concerning this license or the applicable additional terms
 #include "q_shared.h"
 #include "qcommon.h"
 
-int pcount[256];
-int wastedbits = 0;
+static int pcount[256];
+static int wastedbits = 0;
 
 /*
 ==============================================================================

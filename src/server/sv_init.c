@@ -1066,7 +1066,7 @@ void SV_Init( void )
 
 /*
 ==================
-SV_FinalMessage
+SV_FinalCommand
 
 Used by SV_Shutdown to send a final message to all
 connected clients before the server goes down.  The messages are sent immediately,

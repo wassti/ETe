@@ -63,7 +63,7 @@ typedef struct {
 static kbutton_t kb[NUM_BUTTONS];
 
 // Arnout: doubleTap button mapping
-static kbuttons_t dtmapping[] = {
+static const kbuttons_t dtmapping[] = {
 	-1,                 // DT_NONE
 	KB_MOVELEFT,        // DT_MOVELEFT
 	KB_MOVERIGHT,       // DT_MOVERIGHT

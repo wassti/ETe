@@ -1447,6 +1447,9 @@ qboolean CL_Disconnect( qboolean showMainMenu ) {
 		return qfalse;
 	}
 
+	// ETJump
+	Cvar_ForceReset( "shared" );
+
 	// send a disconnect message to the server
 	// send it a few times in case one is dropped
 	if ( cls.state >= CA_CONNECTED && cls.state != CA_CINEMATIC && !clc.demoplaying ) {

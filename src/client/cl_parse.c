@@ -513,7 +513,7 @@ void CL_SystemInfoChanged( qboolean onlyGame ) {
 	cl_connectedToPureServer = atoi( s );
 
 	s = Info_ValueForKey( systemInfo, "cm_optimizePatchPlanes" );
-	if ( *s == '\0')
+	if ( *s == '\0' )
 		cl_optimizedPatchServer = qtrue;
 	else
 		cl_optimizedPatchServer = atoi( s );

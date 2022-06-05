@@ -4599,6 +4599,9 @@ void CL_Init( void ) {
 	Cvar_SetDescription( cl_discordRichPresence, "Allow/disallow sharing current game information on Discord profile status" );
 #endif
 
+	// ETJump
+	Cvar_Get( "shared", "0", CVAR_SYSTEMINFO | CVAR_ROM );
+
 	//
 	// register client commands
 	//

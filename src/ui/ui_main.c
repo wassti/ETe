@@ -6492,14 +6492,14 @@ vmCvar_t ui_autoredirect;
 
 cvarTable_t cvarTable[] = {
 
-	{ &ui_glCustom, "ui_glCustom", "4", CVAR_ARCHIVE }, // JPW NERVE missing from q3ta
+	{ &ui_glCustom, "ui_glCustom", "4", CVAR_ARCHIVE | CVAR_NOTABCOMPLETE }, // JPW NERVE missing from q3ta
 
 	// NERVE - SMF
 	{ NULL, "g_friendlyFire", "1", CVAR_ARCHIVE },
 
-	{ &ui_userTimeLimit, "ui_userTimeLimit", "0", 0 },
-	{ &ui_userAlliedRespawnTime, "ui_userAlliedRespawnTime", "0", 0 },
-	{ &ui_userAxisRespawnTime, "ui_userAxisRespawnTime", "0", 0 },
+	{ &ui_userTimeLimit, "ui_userTimeLimit", "0", CVAR_NOTABCOMPLETE },
+	{ &ui_userAlliedRespawnTime, "ui_userAlliedRespawnTime", "0", CVAR_NOTABCOMPLETE },
+	{ &ui_userAxisRespawnTime, "ui_userAxisRespawnTime", "0", CVAR_NOTABCOMPLETE },
 	// -NERVE - SMF
 
 // JPW NERVE
@@ -6606,8 +6606,6 @@ cvarTable_t cvarTable[] = {
 	{ &ui_cg_crosshairColorAlt, "cg_crosshairColorAlt", "White", CVAR_ARCHIVE },
 	{ &ui_cg_crosshairSize, "cg_crosshairSize", "48", CVAR_ARCHIVE },
 	// game mappings (for create server option)
-	{ NULL, "bot_enable", "1", CVAR_ARCHIVE },
-	{ NULL, "bot_minplayers", "0", CVAR_ARCHIVE },
 	{ NULL, "g_altStopwatchMode", "0", CVAR_ARCHIVE },
 	{ NULL, "g_ipcomplaintlimit", "3", CVAR_ARCHIVE },
 	{ NULL, "g_complaintlimit", "6", CVAR_ARCHIVE },
@@ -6656,12 +6654,12 @@ cvarTable_t cvarTable[] = {
 	// OSP
 
 	//{ NULL, "ui_creatingprofile", "", CVAR_ARCHIVE },
-	{ NULL, "ui_r_mode", "", CVAR_ARCHIVE },
-	{ NULL, "ui_r_gamma", "", CVAR_ARCHIVE },
-	{ NULL, "ui_rate", "", CVAR_ARCHIVE },
+	{ NULL, "ui_r_mode", "", CVAR_ARCHIVE | CVAR_NOTABCOMPLETE },
+	{ NULL, "ui_r_gamma", "", CVAR_ARCHIVE | CVAR_NOTABCOMPLETE },
+	{ NULL, "ui_rate", "", CVAR_ARCHIVE | CVAR_NOTABCOMPLETE },
 	{ NULL, "ui_handedness", "", CVAR_ARCHIVE },
-	{ NULL, "ui_sensitivity", "", CVAR_ARCHIVE },
-	{ NULL, "ui_profile_mousePitch", "", CVAR_ARCHIVE },
+	{ NULL, "ui_sensitivity", "", CVAR_ARCHIVE | CVAR_NOTABCOMPLETE },
+	{ NULL, "ui_profile_mousePitch", "", CVAR_ARCHIVE | CVAR_NOTABCOMPLETE },
 
 	{ &ui_cl_bypassMouseInput, "cl_bypassMouseInput", "0", CVAR_TEMP },
 

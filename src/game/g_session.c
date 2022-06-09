@@ -119,7 +119,8 @@ void G_WriteClientSessionData( gclient_t *client, qboolean restart ) {
 
 	// OSP -- save weapon stats too
 	if ( !level.fResetStats ) {
-		trap_Cvar_Set( va( "wstats%i", (int)(client - level.clients) ), G_createStats( &g_entities[client - level.clients] ) );
+		s = va( "%s", G_createStats( &g_entities[client - level.clients] ) );
+		trap_Cvar_Set( va( "wstats%i", (int)(client - level.clients) ), s );
 	}
 	// OSP
 }

@@ -1193,6 +1193,19 @@ typedef struct {
 	char		string[MAX_CVAR_VALUE_STRING];
 } vmCvar_t;
 
+typedef void (*updateFunc_t) (vmCvar_t *cv);
+typedef struct vmCvarTableItem_s {
+	vmCvar_t		*cvar;
+	const char		*name;
+	const char		*defaultValue;
+	int				flags;
+#ifdef GAMEDLL
+	qboolean		trackChange;           // track this variable, and announce if changed
+	qboolean		fConfigReset;          // OSP: set this var to the default on a config reset
+#endif
+	updateFunc_t	update;
+} vmCvarTableItem_t;
+
 /*
 ==============================================================
 

@@ -30,17 +30,6 @@ If you have questions concerning this license or the applicable additional terms
 
 level_locals_t level;
 
-typedef struct {
-	vmCvar_t    *vmCvar;
-	char        *cvarName;
-	char        *defaultString;
-	int cvarFlags;
-	int modificationCount;          // for tracking changes
-	qboolean trackChange;           // track this variable, and announce if changed
-	qboolean fConfigReset;          // OSP: set this var to the default on a config reset
-	qboolean teamShader;            // track and if changed, update shader state
-} cvarTable_t;
-
 gentity_t g_entities[MAX_GENTITIES];
 gclient_t g_clients[MAX_CLIENTS];
 
@@ -223,193 +212,280 @@ vmCvar_t g_nextcampaign;
 
 vmCvar_t g_disableComplaints;
 
+static void G_SetFilterCams( vmCvar_t *cv ) {
+	(void)cv;
+	trap_SetConfigstring( CS_FILTERCAMS, va( "%i", g_filtercams.integer ) );
+}
 
-cvarTable_t gameCvarTable[] = {
+static void G_CheckRangeCvar( vmCvar_t *cv ) {
+	if ( cv == &match_readypercent ) {
+		if ( match_readypercent.integer < 1 ) {
+			trap_Cvar_Set( "match_readypercent", "1" );
+			trap_Cvar_Update( &match_readypercent );
+		}
+		else if ( match_readypercent.integer > 100 ) {
+			trap_Cvar_Set( "match_readypercent", "100" );
+			trap_Cvar_Update( &match_readypercent );
+		}
+		return;
+	}
+
+	if ( cv == &pmove_msec ) {
+		if ( pmove_msec.integer < 8 ) {
+			trap_Cvar_Set( "pmove_msec", "8" );
+			trap_Cvar_Update( &pmove_msec );
+		} else if ( pmove_msec.integer > 33 ) {
+			trap_Cvar_Set( "pmove_msec", "33" );
+			trap_Cvar_Update( &pmove_msec );
+		}
+	}
+}
+
+static void G_CheckWarmup( vmCvar_t *cv ) {
+	(void)cv;
+	if ( g_gamestate.integer != GS_PLAYING && !G_IsSinglePlayerGame() ) {
+		level.warmupTime = level.time + ( ( ( g_warmup.integer < 10 ) ? 11 : g_warmup.integer + 1 ) * 1000 );
+		trap_SetConfigstring( CS_WARMUP, va( "%i", level.warmupTime ) );
+	}
+}
+
+static void G_CheckPassword( vmCvar_t *cv ) {
+	if ( cv->string[0] != '\0' && Q_stricmp( cv->string, "none" ) != 0 ) {
+		trap_Cvar_Set( "g_needpass", "1" );
+	}
+	else {
+		trap_Cvar_Set( "g_needpass", "0" );
+	}
+	//trap_Cvar_Update( &g_needpass ); // Don't call this because it won't activate the trackChange notice otherwise
+}
+
+static void G_CheckBalanceTeams( vmCvar_t *cv ) {
+	if ( g_gametype.integer == GT_WOLF_LMS && cv == &g_lms_teamForceBalance ) {
+		if ( g_lms_teamForceBalance.integer ) {
+			trap_Cvar_Set( "g_balancedteams", "1" );
+		} else {
+			trap_Cvar_Set( "g_balancedteams", "0" );
+		}
+		//trap_Cvar_Update( &g_balancedteams );  // Don't call this because it won't activate the trackChange notice otherwise
+	}
+	else if ( cv == &g_teamForceBalance ) {
+		if ( g_teamForceBalance.integer ) {
+			trap_Cvar_Set( "g_balancedteams", "1" );
+		} else {
+			trap_Cvar_Set( "g_balancedteams", "0" );
+		}
+		//trap_Cvar_Update( &g_balancedteams ); // Don't call this because it won't activate the trackChange notice otherwise
+	}
+}
+
+static void G_CheckGameType( vmCvar_t *cv ) {
+	int worldspawnflags = g_entities[ENTITYNUM_WORLD].spawnflags;
+	int gt, gametype;
+	char buffer[32];
+	(void)cv;
+	// check some things
+	// DHM - Gametype is currently restricted to supported types only
+	if ( ( g_gametype.integer < GT_WOLF || g_gametype.integer >= GT_MAX_GAME_TYPE ) ) {
+		G_Printf( "g_gametype %i is out of range, defaulting to GT_WOLF(%i)\n", g_gametype.integer, GT_WOLF );
+		trap_Cvar_Set( "g_gametype", va( "%i",GT_WOLF ) );
+		trap_Cvar_Update( &g_gametype );
+	}
+
+	trap_Cvar_LatchedVariableStringBuffer( "g_gametype", buffer, sizeof( buffer ) );
+	gametype = atoi( buffer );
+
+	if ( gametype == GT_WOLF_CAMPAIGN && gametype != g_gametype.integer ) {
+		if ( !G_MapIsValidCampaignStartMap() ) {
+			gt = g_gametype.integer;
+			if ( gt != GT_WOLF_LMS ) {
+				if ( !( worldspawnflags & NO_GT_WOLF ) ) {
+					gt = GT_WOLF;   // Default wolf
+				} else {
+					gt = GT_WOLF_LMS;   // Last man standing
+				}
+			}
+
+			G_Printf( "Map '%s' isn't a valid campaign start map, resetting game type to '%i'\n", level.rawmapname, gt );
+			trap_Cvar_Set( "g_gametype", va( "%i", gt ) );
+			trap_Cvar_Update( &g_gametype );
+		}
+		return;
+	}
+
+	if ( !level.latchGametype && g_gamestate.integer == GS_PLAYING &&
+			( ( ( g_gametype.integer == GT_WOLF || g_gametype.integer == GT_WOLF_CAMPAIGN ) && ( worldspawnflags & NO_GT_WOLF ) ) ||
+			( g_gametype.integer == GT_WOLF_STOPWATCH && ( worldspawnflags & NO_STOPWATCH ) ) ||
+			( g_gametype.integer == GT_WOLF_LMS && ( worldspawnflags & NO_LMS ) ) )
+			)
+	{
+		if ( !( worldspawnflags & NO_GT_WOLF ) ) {
+			gt = GT_WOLF;   // Default wolf
+		} else {
+			gt = GT_WOLF_LMS;   // Last man standing
+		}
+
+		level.latchGametype = qtrue;
+		AP( "print \"Invalid gametype was specified, Restarting\n\"" );
+		trap_SendConsoleCommand( EXEC_APPEND, va( "wait 2 ; g_gametype %i ; map_restart 10 0\n", gt ) );
+	}
+}
+
+static const vmCvarTableItem_t game_cvars[] = {
 	// don't override the cheat state set by the system
 	{ &g_cheats, "sv_cheats", "", 0, qfalse },
 
 	// noset vars
-	{ NULL, "gamename", GAMEVERSION, CVAR_SERVERINFO | CVAR_ROM, 0, qfalse  },
-	{ NULL, "gamedate", __DATE__, CVAR_ROM, 0, qfalse  },
-	{ &g_restarted, "g_restarted", "0", CVAR_ROM, 0, qfalse  },
-	{ &g_mapname, "mapname", "", CVAR_SERVERINFO | CVAR_ROM, 0, qfalse  },
+	{ NULL, "gamename", GAMEVERSION, CVAR_SERVERINFO | CVAR_ROM, qfalse },
+	{ NULL, "gamedate", __DATE__, CVAR_ROM, qfalse  },
+	{ &g_restarted, "g_restarted", "0", CVAR_ROM, qfalse },
+	{ &g_mapname, "mapname", "", CVAR_SERVERINFO | CVAR_ROM, qfalse },
 
 	// latched vars
-	{ &g_gametype, "g_gametype", "4", CVAR_SERVERINFO | CVAR_LATCH, 0, qfalse  },     // Arnout: default to GT_WOLF_CAMPAIGN
+	{ &g_gametype, "g_gametype", "4", CVAR_SERVERINFO | CVAR_LATCH, qfalse, qfalse, G_CheckGameType },     // Arnout: default to GT_WOLF_CAMPAIGN
 
 // JPW NERVE multiplayer stuffs
-	{ &g_redlimbotime, "g_redlimbotime", "30000", CVAR_SERVERINFO | CVAR_LATCH, 0, qfalse },
-	{ &g_bluelimbotime, "g_bluelimbotime", "30000", CVAR_SERVERINFO | CVAR_LATCH, 0, qfalse },
-	{ &g_medicChargeTime, "g_medicChargeTime", "45000", CVAR_SERVERINFO | CVAR_LATCH, 0, qfalse, qtrue },
-	{ &g_engineerChargeTime, "g_engineerChargeTime", "30000", CVAR_SERVERINFO | CVAR_LATCH, 0, qfalse, qtrue },
-	{ &g_LTChargeTime, "g_LTChargeTime", "40000", CVAR_SERVERINFO | CVAR_LATCH, 0, qfalse, qtrue },
-	{ &g_soldierChargeTime, "g_soldierChargeTime", "20000", CVAR_SERVERINFO | CVAR_LATCH, 0, qfalse, qtrue },
-// jpw
+	{ &g_redlimbotime, "g_redlimbotime", "30000", CVAR_SERVERINFO | CVAR_LATCH, qfalse },
+	{ &g_bluelimbotime, "g_bluelimbotime", "30000", CVAR_SERVERINFO | CVAR_LATCH, qfalse },
 
-	{ &g_covertopsChargeTime, "g_covertopsChargeTime", "30000", CVAR_SERVERINFO | CVAR_LATCH, 0, qfalse, qtrue },
-	{ &g_landminetimeout, "g_landminetimeout", "1", CVAR_ARCHIVE, 0, qfalse, qtrue },
+	{ &g_landminetimeout, "g_landminetimeout", "1", CVAR_ARCHIVE, qfalse, qtrue },
 
-	{ &g_maxclients, "sv_maxclients", "20", CVAR_SERVERINFO | CVAR_LATCH | CVAR_ARCHIVE, 0, qfalse  },            // NERVE - SMF - made 20 from 8
-	{ &g_maxGameClients, "g_maxGameClients", "0", CVAR_SERVERINFO | CVAR_LATCH | CVAR_ARCHIVE, 0, qfalse  },
-	{ &g_minGameClients, "g_minGameClients", "8", CVAR_SERVERINFO, 0, qfalse  },                              // NERVE - SMF
+	{ &g_maxclients, "sv_maxclients", "20", CVAR_SERVERINFO | CVAR_LATCH | CVAR_ARCHIVE, qfalse  },            // NERVE - SMF - made 20 from 8
+	{ &g_maxGameClients, "g_maxGameClients", "0", CVAR_SERVERINFO | CVAR_LATCH | CVAR_ARCHIVE, qfalse  },
+	{ &g_minGameClients, "g_minGameClients", "8", CVAR_SERVERINFO, qfalse  },                              // NERVE - SMF
 
 	// change anytime vars
-	{ &g_fraglimit, "fraglimit", "0", /*CVAR_SERVERINFO |*/ CVAR_ARCHIVE | CVAR_NORESTART, 0, qtrue },
-	{ &g_timelimit, "timelimit", "0", CVAR_SERVERINFO | CVAR_ARCHIVE | CVAR_NORESTART, 0, qtrue },
+	{ &g_fraglimit, "fraglimit", "0", /*CVAR_SERVERINFO |*/ CVAR_ARCHIVE | CVAR_NORESTART, qtrue },
+	{ &g_timelimit, "timelimit", "0", CVAR_SERVERINFO | CVAR_ARCHIVE | CVAR_NORESTART, qtrue },
 
 #ifdef ALLOW_GSYNC
-	{ &g_synchronousClients, "g_synchronousClients", "0", CVAR_SYSTEMINFO | CVAR_CHEAT, 0, qfalse  },
+	{ &g_synchronousClients, "g_synchronousClients", "0", CVAR_SYSTEMINFO | CVAR_CHEAT, qfalse  },
 #endif // ALLOW_GSYNC
 
-	{ &g_friendlyFire, "g_friendlyFire", "1", CVAR_SERVERINFO | CVAR_ARCHIVE, 0, qtrue, qtrue },
+	{ &g_teamForceBalance, "g_teamForceBalance", "0", CVAR_ARCHIVE, qfalse, qfalse, G_CheckBalanceTeams },                            // NERVE - SMF - merge from team arena
 
-	{ &g_teamForceBalance, "g_teamForceBalance", "0", CVAR_ARCHIVE  },                            // NERVE - SMF - merge from team arena
-
-	{ &g_warmup, "g_warmup", "60", CVAR_ARCHIVE, 0, qtrue  },
-	{ &g_doWarmup, "g_doWarmup", "0", CVAR_ARCHIVE, 0, qtrue  },
+	{ &g_warmup, "g_warmup", "60", CVAR_ARCHIVE, qtrue, qfalse, G_CheckWarmup },
+	{ &g_doWarmup, "g_doWarmup", "0", CVAR_ARCHIVE, qtrue },
 
 	// NERVE - SMF
-	{ &g_warmupLatch, "g_warmupLatch", "1", 0, 0, qfalse },
+	{ &g_warmupLatch, "g_warmupLatch", "1", 0, qfalse },
 
-	{ &g_nextTimeLimit, "g_nextTimeLimit", "0", CVAR_WOLFINFO, 0, qfalse  },
-	{ &g_currentRound, "g_currentRound", "0", CVAR_WOLFINFO, 0, qfalse, qtrue },
-	{ &g_altStopwatchMode, "g_altStopwatchMode", "0", CVAR_ARCHIVE, 0, qtrue, qtrue },
-	{ &g_gamestate, "gamestate", "-1", CVAR_WOLFINFO | CVAR_ROM, 0, qfalse  },
+	{ &g_nextTimeLimit, "g_nextTimeLimit", "0", CVAR_WOLFINFO, qfalse  },
+	{ &g_currentRound, "g_currentRound", "0", CVAR_WOLFINFO, qfalse, qtrue },
+	{ &g_altStopwatchMode, "g_altStopwatchMode", "0", CVAR_ARCHIVE, qtrue, qtrue },
+	{ &g_gamestate, "gamestate", "-1", CVAR_WOLFINFO | CVAR_ROM, qfalse },
 
-	{ &g_noTeamSwitching, "g_noTeamSwitching", "0", CVAR_ARCHIVE, 0, qtrue  },
+	{ &g_noTeamSwitching, "g_noTeamSwitching", "0", CVAR_ARCHIVE, qtrue },
 
-	{ &g_showHeadshotRatio, "g_showHeadshotRatio", "0", 0, 0, qfalse  },
+	{ &g_showHeadshotRatio, "g_showHeadshotRatio", "0", 0, qfalse },
 
-	{ &g_userTimeLimit, "g_userTimeLimit", "0", 0, 0, qfalse, qtrue },
-	{ &g_userAlliedRespawnTime, "g_userAlliedRespawnTime", "0", 0, 0, qfalse, qtrue },
-	{ &g_userAxisRespawnTime, "g_userAxisRespawnTime", "0", 0, 0, qfalse, qtrue },
+	{ &g_userTimeLimit, "g_userTimeLimit", "0", 0, qfalse, qtrue },
+	{ &g_userAlliedRespawnTime, "g_userAlliedRespawnTime", "0", 0, qfalse, qtrue },
+	{ &g_userAxisRespawnTime, "g_userAxisRespawnTime", "0", 0, qfalse, qtrue },
 
-	{ &g_swapteams, "g_swapteams", "0", CVAR_ROM, 0, qfalse, qtrue },
+	{ &g_swapteams, "g_swapteams", "0", CVAR_ROM, qfalse, qtrue },
 	// -NERVE - SMF
 
-	{ &g_logFile, "g_log", "", CVAR_ARCHIVE, 0, qfalse },
-	{ &g_logSync, "g_logSync", "0", CVAR_ARCHIVE, 0, qfalse },
+	{ &g_logFile, "g_log", "", CVAR_ARCHIVE, qfalse },
+	{ &g_logSync, "g_logSync", "0", CVAR_ARCHIVE, qfalse },
 
-	{ &g_password, "g_password", "none", CVAR_TEMP, 0, qfalse },
-	{ &g_privatepassword, "sv_privatepassword", "", CVAR_TEMP, 0, qfalse },
-	{ &g_banIPs, "g_banIPs", "", CVAR_ARCHIVE, 0, qfalse },
+	{ &g_password, "g_password", "none", CVAR_TEMP, qfalse, qfalse, G_CheckPassword },
+	{ &g_privatepassword, "sv_privatepassword", "", CVAR_TEMP, qfalse },
+	{ &g_banIPs, "g_banIPs", "", CVAR_ARCHIVE, qfalse },
 	// show_bug.cgi?id=500
-	{ &g_filterBan, "g_filterBan", "1", CVAR_ARCHIVE, 0, qfalse },
+	{ &g_filterBan, "g_filterBan", "1", CVAR_ARCHIVE, qfalse },
 
-	{ &g_dedicated, "dedicated", "0", 0, 0, qfalse },
+	{ &g_dedicated, "dedicated", "0", 0, qfalse },
 
-	{ &g_speed, "g_speed", "320", 0, 0, qtrue, qtrue },
-	{ &g_gravity, "g_gravity", "800", 0, 0, qtrue, qtrue },
-	{ &g_knockback, "g_knockback", "1000", 0, 0, qtrue, qtrue },
+	{ &g_speed, "g_speed", "320", 0, qtrue, qtrue },
+	{ &g_gravity, "g_gravity", "800", 0, qtrue, qtrue },
+	{ &g_knockback, "g_knockback", "1000", 0, qtrue, qtrue },
 
-	{ &g_needpass, "g_needpass", "0", CVAR_SERVERINFO | CVAR_ROM, 0, qtrue },
-	{ &g_balancedteams, "g_balancedteams", "0", CVAR_SERVERINFO | CVAR_ROM, 0, qtrue },
-	{ &g_forcerespawn, "g_forcerespawn", "0", 0, 0, qtrue },
-	{ &g_inactivity, "g_inactivity", "0", 0, 0, qtrue },
-	{ &g_debugMove, "g_debugMove", "0", 0, 0, qfalse },
-	{ &g_debugDamage, "g_debugDamage", "0", CVAR_CHEAT, 0, qfalse },
-	{ &g_debugAlloc, "g_debugAlloc", "0", 0, 0, qfalse },
-	{ &g_debugBullets, "g_debugBullets", "0", CVAR_CHEAT, 0, qfalse}, //----(SA)	added
-	{ &g_motd, "g_motd", "", CVAR_ARCHIVE, 0, qfalse },
+	{ &g_needpass, "g_needpass", "0", CVAR_SERVERINFO | CVAR_ROM, qtrue },
+	{ &g_forcerespawn, "g_forcerespawn", "0", 0, qtrue },
+	{ &g_inactivity, "g_inactivity", "0", 0, qtrue },
+	{ &g_debugMove, "g_debugMove", "0", 0, qfalse },
+	{ &g_debugDamage, "g_debugDamage", "0", CVAR_CHEAT, qfalse },
+	{ &g_debugAlloc, "g_debugAlloc", "0", 0, qfalse },
+	{ &g_debugBullets, "g_debugBullets", "0", CVAR_CHEAT, qfalse}, //----(SA)	added
+	{ &g_motd, "g_motd", "", CVAR_ARCHIVE, qfalse },
 
-	{ &voteFlags, "voteFlags", "0", CVAR_TEMP | CVAR_ROM | CVAR_SERVERINFO, 0, qfalse },
+	{ &voteFlags, "voteFlags", "0", CVAR_TEMP | CVAR_ROM | CVAR_SERVERINFO, qfalse },
 
-	{ &g_complaintlimit, "g_complaintlimit", "6", CVAR_ARCHIVE, 0, qtrue },                       // DHM - Nerve
-	{ &g_ipcomplaintlimit, "g_ipcomplaintlimit", "3", CVAR_ARCHIVE, 0, qtrue },
-	{ &g_filtercams, "g_filtercams", "0", CVAR_ARCHIVE, 0, qfalse },
-	{ &g_maxlives, "g_maxlives", "0", CVAR_ARCHIVE | CVAR_LATCH | CVAR_SERVERINFO, 0, qtrue },        // DHM - Nerve
-	{ &g_maxlivesRespawnPenalty, "g_maxlivesRespawnPenalty", "0", CVAR_ARCHIVE | CVAR_LATCH | CVAR_SERVERINFO, 0, qtrue },
-	{ &g_voiceChatsAllowed, "g_voiceChatsAllowed", "4", CVAR_ARCHIVE, 0, qfalse },                // DHM - Nerve
+	{ &g_complaintlimit, "g_complaintlimit", "6", CVAR_ARCHIVE, qtrue },                       // DHM - Nerve
+	{ &g_ipcomplaintlimit, "g_ipcomplaintlimit", "3", CVAR_ARCHIVE, qtrue },
+	{ &g_filtercams, "g_filtercams", "0", CVAR_ARCHIVE, qfalse, qfalse, G_SetFilterCams },
+	{ &g_maxlives, "g_maxlives", "0", CVAR_ARCHIVE | CVAR_LATCH | CVAR_SERVERINFO, qtrue },        // DHM - Nerve
+	{ &g_maxlivesRespawnPenalty, "g_maxlivesRespawnPenalty", "0", CVAR_ARCHIVE | CVAR_LATCH | CVAR_SERVERINFO, qtrue },
+	{ &g_voiceChatsAllowed, "g_voiceChatsAllowed", "4", CVAR_ARCHIVE, qfalse },                // DHM - Nerve
 
-	{ &g_alliedmaxlives, "g_alliedmaxlives", "0", CVAR_LATCH | CVAR_SERVERINFO, 0, qtrue },     // Xian
-	{ &g_axismaxlives, "g_axismaxlives", "0", CVAR_LATCH | CVAR_SERVERINFO, 0, qtrue },         // Xian
-	{ &g_fastres, "g_fastres", "0", CVAR_ARCHIVE, 0, qtrue, qtrue },                          // Xian - Fast Medic Resing
-	{ &g_knifeonly, "g_knifeonly", "0", 0, 0, qtrue },                                            // Xian - Fast Medic Resing
-	{ &g_enforcemaxlives, "g_enforcemaxlives", "1", CVAR_ARCHIVE, 0, qtrue },                 // Xian - Gestapo enforce maxlives stuff by temp banning
+	{ &g_alliedmaxlives, "g_alliedmaxlives", "0", CVAR_LATCH | CVAR_SERVERINFO, qtrue },     // Xian
+	{ &g_axismaxlives, "g_axismaxlives", "0", CVAR_LATCH | CVAR_SERVERINFO, qtrue },         // Xian
+	{ &g_fastres, "g_fastres", "0", CVAR_ARCHIVE, qtrue, qtrue },                          // Xian - Fast Medic Resing
+	{ &g_knifeonly, "g_knifeonly", "0", 0, qtrue },                                            // Xian - Fast Medic Resing
+	{ &g_enforcemaxlives, "g_enforcemaxlives", "1", CVAR_ARCHIVE, qtrue },                 // Xian - Gestapo enforce maxlives stuff by temp banning
 
-	{ &g_developer, "developer", "0", CVAR_TEMP, 0, qfalse },
-	{ &g_rankings, "g_rankings", "0", 0, 0, qfalse },
-	{ &g_userAim, "g_userAim", "1", CVAR_CHEAT, 0, qfalse },
+	{ &g_developer, "developer", "0", CVAR_TEMP, qfalse },
+	{ &g_rankings, "g_rankings", "0", 0, qfalse },
+	{ &g_userAim, "g_userAim", "1", CVAR_CHEAT, qfalse },
 
-	{ &g_smoothClients, "g_smoothClients", "1", 0, 0, qfalse },
-	{ &pmove_fixed, "pmove_fixed", "0", CVAR_SYSTEMINFO, 0, qfalse },
-	{ &pmove_msec, "pmove_msec", "8", CVAR_SYSTEMINFO, 0, qfalse },
+	{ &g_smoothClients, "g_smoothClients", "1", 0, qfalse },
+	{ &pmove_fixed, "pmove_fixed", "0", CVAR_SYSTEMINFO, qfalse },
+	{ &pmove_msec, "pmove_msec", "8", CVAR_SYSTEMINFO, qfalse, qfalse, G_CheckRangeCvar },
 
-	{ &g_scriptName, "g_scriptName", "", CVAR_CHEAT, 0, qfalse },
-
-	{ &g_antilag, "g_antilag", "1", CVAR_SERVERINFO | CVAR_ARCHIVE, 0, qfalse },
+	{ &g_scriptName, "g_scriptName", "", CVAR_CHEAT, qfalse },
 
 	//bani - #184
-	{ NULL, "P", "", CVAR_SERVERINFO_NOUPDATE, 0, qfalse, qfalse },
+	{ NULL, "P", "", CVAR_SERVERINFO_NOUPDATE, qfalse, qfalse },
 
-	{ &refereePassword, "refereePassword", "none", 0, 0, qfalse},
-	{ &g_spectatorInactivity, "g_spectatorInactivity", "0", 0, 0, qfalse, qfalse },
-	{ &match_latejoin,      "match_latejoin", "1", 0, 0, qfalse, qfalse },
-	{ &match_minplayers,    "match_minplayers", MATCH_MINPLAYERS, 0, 0, qfalse, qfalse },
-	{ &match_mutespecs,     "match_mutespecs", "0", 0, 0, qfalse, qtrue },
-	{ &match_readypercent,  "match_readypercent", "100", 0, 0, qfalse, qtrue },
-	{ &match_timeoutcount,  "match_timeoutcount", "3", 0, 0, qfalse, qtrue },
-	{ &match_timeoutlength, "match_timeoutlength", "180", 0, 0, qfalse, qtrue },
-	{ &match_warmupDamage,  "match_warmupDamage", "1", 0, 0, qfalse },
-	{ &server_autoconfig, "server_autoconfig", "0", 0, 0, qfalse, qfalse },
-	{ &server_motd0,    "server_motd0", " ^NEnemy Territory ^7MOTD ", 0, 0, qfalse, qfalse },
-	{ &server_motd1,    "server_motd1", "", 0, 0, qfalse, qfalse },
-	{ &server_motd2,    "server_motd2", "", 0, 0, qfalse, qfalse },
-	{ &server_motd3,    "server_motd3", "", 0, 0, qfalse, qfalse },
-	{ &server_motd4,    "server_motd4", "", 0, 0, qfalse, qfalse },
-	{ &server_motd5,    "server_motd5", "", 0, 0, qfalse, qfalse },
-	{ &team_maxPanzers, "team_maxPanzers", "-1", 0, 0, qfalse, qfalse },
-	{ &team_maxplayers, "team_maxplayers", "0", 0, 0, qfalse, qfalse },
-	{ &team_nocontrols, "team_nocontrols", "1", 0, 0, qfalse, qfalse },
-	{ &vote_allow_comp,         "vote_allow_comp", "1", 0, 0, qfalse, qfalse },
-	{ &vote_allow_gametype,     "vote_allow_gametype", "1", 0, 0, qfalse, qfalse },
-	{ &vote_allow_kick,         "vote_allow_kick", "1", 0, 0, qfalse, qfalse },
-	{ &vote_allow_map,          "vote_allow_map", "1", 0, 0, qfalse, qfalse },
-	{ &vote_allow_matchreset,   "vote_allow_matchreset", "1", 0, 0, qfalse, qfalse },
-	{ &vote_allow_mutespecs,    "vote_allow_mutespecs", "1", 0, 0, qfalse, qfalse },
-	{ &vote_allow_nextmap,      "vote_allow_nextmap", "1", 0, 0, qfalse, qfalse },
-	{ &vote_allow_pub,          "vote_allow_pub", "1", 0, 0, qfalse, qfalse },
-	{ &vote_allow_referee,      "vote_allow_referee", "0", 0, 0, qfalse, qfalse },
-	{ &vote_allow_shuffleteamsxp,   "vote_allow_shuffleteamsxp", "1", 0, 0, qfalse, qfalse },
-	{ &vote_allow_swapteams,    "vote_allow_swapteams", "1", 0, 0, qfalse, qfalse },
-	{ &vote_allow_friendlyfire, "vote_allow_friendlyfire", "1", 0, 0, qfalse, qfalse },
-	{ &vote_allow_timelimit,    "vote_allow_timelimit", "0", 0, 0, qfalse, qfalse },
-	{ &vote_allow_warmupdamage, "vote_allow_warmupdamage", "1", 0, 0, qfalse, qfalse },
-	{ &vote_allow_antilag,      "vote_allow_antilag", "1", 0, 0, qfalse, qfalse },
-	{ &vote_allow_balancedteams,"vote_allow_balancedteams", "1", 0, 0, qfalse, qfalse },
-	{ &vote_allow_muting,       "vote_allow_muting", "1", 0, 0, qfalse, qfalse },
-	{ &vote_limit,      "vote_limit", "5", 0, 0, qfalse, qfalse },
-	{ &vote_percent,    "vote_percent", "50", 0, 0, qfalse, qfalse },
+	{ &refereePassword, "refereePassword", "none", 0, qfalse },
+	{ &g_spectatorInactivity, "g_spectatorInactivity", "0", 0, qfalse, qfalse },
+	{ &match_latejoin,      "match_latejoin", "1", 0, qfalse, qfalse },
+	{ &match_minplayers,    "match_minplayers", MATCH_MINPLAYERS, 0, qfalse, qfalse },
+	{ &match_readypercent,  "match_readypercent", "100", 0, qfalse, qtrue, G_CheckRangeCvar },
+	{ &match_timeoutcount,  "match_timeoutcount", "3", 0, qfalse, qtrue },
+	{ &match_timeoutlength, "match_timeoutlength", "180", 0, qfalse, qtrue },
+	{ &server_autoconfig, "server_autoconfig", "0", 0, qfalse, qfalse },
+	{ &server_motd0,    "server_motd0", " ^NEnemy Territory ^7MOTD ", 0, qfalse, qfalse },
+	{ &server_motd1,    "server_motd1", "", 0, qfalse, qfalse },
+	{ &server_motd2,    "server_motd2", "", 0, qfalse, qfalse },
+	{ &server_motd3,    "server_motd3", "", 0, qfalse, qfalse },
+	{ &server_motd4,    "server_motd4", "", 0, qfalse, qfalse },
+	{ &server_motd5,    "server_motd5", "", 0, qfalse, qfalse },
+	{ &team_maxPanzers, "team_maxPanzers", "-1", 0, qfalse, qfalse },
+	{ &team_maxplayers, "team_maxplayers", "0", 0, qfalse, qfalse },
+	{ &team_nocontrols, "team_nocontrols", "1", 0, qfalse, qfalse },
+	{ &vote_limit,      "vote_limit", "5", 0, qfalse, qfalse },
+	{ &vote_percent,    "vote_percent", "50", 0, qfalse, qfalse },
 
 	// state vars
-	{ &z_serverflags, "z_serverflags", "0", 0, 0, qfalse, qfalse },
+	{ &z_serverflags, "z_serverflags", "0", 0, qfalse, qfalse },
 
-	{ &g_debugConstruct, "g_debugConstruct", "0", CVAR_CHEAT, 0, qfalse },
+	{ &g_debugConstruct, "g_debugConstruct", "0", CVAR_CHEAT, qfalse },
 
-	{ &g_scriptDebug, "g_scriptDebug", "0", CVAR_CHEAT, 0, qfalse },
+	{ &g_scriptDebug, "g_scriptDebug", "0", CVAR_CHEAT, qfalse },
 
 	// What level of detail do we want script printing to go to.
-	{ &g_scriptDebugLevel, "g_scriptDebugLevel", "0", CVAR_CHEAT, 0, qfalse },
+	{ &g_scriptDebugLevel, "g_scriptDebugLevel", "0", CVAR_CHEAT, qfalse },
 
 	// How fast do we want Allied single player movement?
-//	{ &g_movespeed, "g_movespeed", "127", CVAR_CHEAT, 0, qfalse },
-	{ &g_movespeed, "g_movespeed", "76", CVAR_CHEAT, 0, qfalse },
+//	{ &g_movespeed, "g_movespeed", "127", CVAR_CHEAT, qfalse },
+	{ &g_movespeed, "g_movespeed", "76", CVAR_CHEAT, qfalse },
 
 	// Arnout: LMS
-	{ &g_lms_teamForceBalance,  "g_lms_teamForceBalance",    "1", CVAR_ARCHIVE },
+	{ &g_lms_teamForceBalance,  "g_lms_teamForceBalance",    "1", CVAR_ARCHIVE, qfalse, qfalse, G_CheckBalanceTeams },
 	{ &g_lms_roundlimit,        "g_lms_roundlimit",          "3", CVAR_ARCHIVE },
 	{ &g_lms_matchlimit,        "g_lms_matchlimit",          "2", CVAR_ARCHIVE },
-	{ &g_lms_currentMatch,      "g_lms_currentMatch",        "0", CVAR_ROM, 0, qfalse, qtrue },
+	{ &g_lms_currentMatch,      "g_lms_currentMatch",        "0", CVAR_ROM, qfalse, qtrue },
 	{ &g_lms_lockTeams,         "g_lms_lockTeams",           "0", CVAR_ARCHIVE },
 	{ &g_lms_followTeamOnly,    "g_lms_followTeamOnly",      "1", CVAR_ARCHIVE },
-	{ &g_axiswins,              "g_axiswins",                "0", CVAR_ROM, 0, qfalse, qtrue },
-	{ &g_alliedwins,            "g_alliedwins",              "0", CVAR_ROM, 0, qfalse, qtrue },
-	{ &g_axismapxp,             "g_axismapxp",               "0", CVAR_ROM, 0, qfalse, qtrue },
-	{ &g_alliedmapxp,           "g_alliedmapxp",         "0", CVAR_ROM, 0, qfalse, qtrue },
+	{ &g_axiswins,              "g_axiswins",                "0", CVAR_ROM, qfalse, qtrue },
+	{ &g_alliedwins,            "g_alliedwins",              "0", CVAR_ROM, qfalse, qtrue },
+	{ &g_axismapxp,             "g_axismapxp",               "0", CVAR_ROM, qfalse, qtrue },
+	{ &g_alliedmapxp,           "g_alliedmapxp",         "0", CVAR_ROM, qfalse, qtrue },
 
-	{ &g_oldCampaign,           "g_oldCampaign",         "",      CVAR_ROM, 0, },
-	{ &g_currentCampaign,       "g_currentCampaign",     "",      CVAR_WOLFINFO | CVAR_ROM, 0, },
-	{ &g_currentCampaignMap,    "g_currentCampaignMap",      "0", CVAR_WOLFINFO | CVAR_ROM, 0, },
+	{ &g_oldCampaign,           "g_oldCampaign",         "",      CVAR_ROM },
+	{ &g_currentCampaign,       "g_currentCampaign",     "",      CVAR_WOLFINFO | CVAR_ROM },
+	{ &g_currentCampaignMap,    "g_currentCampaignMap",      "0", CVAR_WOLFINFO | CVAR_ROM },
 
 
 #ifdef SAVEGAME_SUPPORT
@@ -417,9 +493,9 @@ cvarTable_t gameCvarTable[] = {
 #endif // SAVEGAME_SUPPORT
 
 	// points to the URL for mod information, should not be modified by server admin
-	{ &mod_url, "mod_url", "", CVAR_SERVERINFO | CVAR_ROM, 0, qfalse },
+	{ &mod_url, "mod_url", "", CVAR_SERVERINFO | CVAR_ROM, qfalse },
 	// configured by the server admin, points to the web pages for the server
-	{ &url, "URL", "", CVAR_SERVERINFO | CVAR_ARCHIVE, 0, qfalse },
+	{ &url, "URL", "", CVAR_SERVERINFO | CVAR_ARCHIVE, qfalse },
 
 	{ &g_letterbox, "cg_letterbox", "0", CVAR_TEMP    },
 
@@ -428,14 +504,123 @@ cvarTable_t gameCvarTable[] = {
 	{ &g_heavyWeaponRestriction, "g_heavyWeaponRestriction", "100", CVAR_ARCHIVE | CVAR_SERVERINFO },
 	{ &g_autoFireteams, "g_autoFireteams", "1", CVAR_ARCHIVE },
 
-	{ &g_nextmap, "nextmap", "", CVAR_TEMP },
-	{ &g_nextcampaign, "nextcampaign", "", CVAR_TEMP },
-
 	{ &g_disableComplaints, "g_disableComplaints", "0", CVAR_ARCHIVE },
 };
 
-// bk001129 - made static to avoid aliasing
-static const int gameCvarTableSize = (int)ARRAY_LEN( gameCvarTable );
+static void G_SetChargeTimes( vmCvar_t *cv ) {
+	if ( cv == &g_soldierChargeTime ) {
+		level.soldierChargeTime[0] = g_soldierChargeTime.integer * level.soldierChargeTimeModifier[0];
+		level.soldierChargeTime[1] = g_soldierChargeTime.integer * level.soldierChargeTimeModifier[1];
+	}
+	else if ( cv == &g_medicChargeTime ) {
+		level.medicChargeTime[0] = g_medicChargeTime.integer * level.medicChargeTimeModifier[0];
+		level.medicChargeTime[1] = g_medicChargeTime.integer * level.medicChargeTimeModifier[1];
+	}
+	else if ( cv == &g_engineerChargeTime ) {
+		level.engineerChargeTime[0] = g_engineerChargeTime.integer * level.engineerChargeTimeModifier[0];
+		level.engineerChargeTime[1] = g_engineerChargeTime.integer * level.engineerChargeTimeModifier[1];
+	}
+	else if ( cv == &g_LTChargeTime ) {
+		level.lieutenantChargeTime[0] = g_LTChargeTime.integer * level.lieutenantChargeTimeModifier[0];
+		level.lieutenantChargeTime[1] = g_LTChargeTime.integer * level.lieutenantChargeTimeModifier[1];
+	}
+	else if ( cv == &g_covertopsChargeTime ) {
+		level.covertopsChargeTime[0] = g_covertopsChargeTime.integer * level.covertopsChargeTimeModifier[0];
+		level.covertopsChargeTime[1] = g_covertopsChargeTime.integer * level.covertopsChargeTimeModifier[1];
+	}
+}
+
+#include "../../etmain/ui/menudef.h"
+static void G_UpdateServerToggles( vmCvar_t *cv ) {
+	int nFlag;
+
+	if ( G_IsSinglePlayerGame() ) {
+		return;
+	}
+
+	if ( cv == &match_mutespecs ) {
+		nFlag = CV_SVS_MUTESPECS;
+	} else if ( cv == &g_friendlyFire ) {
+		nFlag = CV_SVS_FRIENDLYFIRE;
+	} else if ( cv == &g_antilag ) {
+		nFlag = CV_SVS_ANTILAG;
+	} else if ( cv == &g_balancedteams ) {
+		nFlag = CV_SVS_BALANCEDTEAMS;
+	}
+	// special case for 2 bits
+	else if ( cv == &match_warmupDamage ) {
+		if ( cv->integer > 0 ) {
+			level.server_settings &= ~CV_SVS_WARMUPDMG;
+			nFlag = ( cv->integer > 2 ) ? 2 : cv->integer;
+			nFlag = nFlag << 2;
+		} else {
+			nFlag = CV_SVS_WARMUPDMG;
+		}
+	}
+	else if ( cv == &g_nextmap && g_gametype.integer != GT_WOLF_CAMPAIGN ) {
+		if ( *cv->string ) {
+			level.server_settings |= CV_SVS_NEXTMAP;
+		} else {
+			level.server_settings &= ~CV_SVS_NEXTMAP;
+		}
+		return;
+	}
+	else if ( cv == &g_nextcampaign && g_gametype.integer == GT_WOLF_CAMPAIGN ) {
+		if ( *cv->string ) {
+			level.server_settings |= CV_SVS_NEXTMAP;
+		} else {
+			level.server_settings &= ~CV_SVS_NEXTMAP;
+		}
+		return;
+	}
+	else {
+		return;
+	}
+
+	if ( cv->integer > 0 ) {
+		level.server_settings |= nFlag;
+	} else {
+		level.server_settings &= ~nFlag;
+	}
+}
+
+static const vmCvarTableItem_t chargetime_cvars[] = {
+	{ &g_medicChargeTime, "g_medicChargeTime", "45000", CVAR_SERVERINFO | CVAR_LATCH, qfalse, qtrue, G_SetChargeTimes },
+	{ &g_engineerChargeTime, "g_engineerChargeTime", "30000", CVAR_SERVERINFO | CVAR_LATCH, qfalse, qtrue, G_SetChargeTimes },
+	{ &g_LTChargeTime, "g_LTChargeTime", "40000", CVAR_SERVERINFO | CVAR_LATCH, qfalse, qtrue, G_SetChargeTimes },
+	{ &g_soldierChargeTime, "g_soldierChargeTime", "20000", CVAR_SERVERINFO | CVAR_LATCH, qfalse, qtrue, G_SetChargeTimes },
+	{ &g_covertopsChargeTime, "g_covertopsChargeTime", "30000", CVAR_SERVERINFO | CVAR_LATCH, qfalse, qtrue, G_SetChargeTimes },
+};
+
+static const vmCvarTableItem_t vote_allow_cvars[] = {
+	{ &vote_allow_comp,         "vote_allow_comp", "1", 0, qfalse, qfalse },
+	{ &vote_allow_gametype,     "vote_allow_gametype", "1", 0, qfalse, qfalse },
+	{ &vote_allow_kick,         "vote_allow_kick", "1", 0, qfalse, qfalse },
+	{ &vote_allow_map,          "vote_allow_map", "1", 0, qfalse, qfalse },
+	{ &vote_allow_matchreset,   "vote_allow_matchreset", "1", 0, qfalse, qfalse },
+	{ &vote_allow_mutespecs,    "vote_allow_mutespecs", "1", 0, qfalse, qfalse },
+	{ &vote_allow_nextmap,      "vote_allow_nextmap", "1", 0, qfalse, qfalse },
+	{ &vote_allow_pub,          "vote_allow_pub", "1", 0, qfalse, qfalse },
+	{ &vote_allow_referee,      "vote_allow_referee", "0", 0, qfalse, qfalse },
+	{ &vote_allow_shuffleteamsxp,   "vote_allow_shuffleteamsxp", "1", 0, qfalse, qfalse },
+	{ &vote_allow_swapteams,    "vote_allow_swapteams", "1", 0, qfalse, qfalse },
+	{ &vote_allow_friendlyfire, "vote_allow_friendlyfire", "1", 0, qfalse, qfalse },
+	{ &vote_allow_timelimit,    "vote_allow_timelimit", "0", 0, qfalse, qfalse },
+	{ &vote_allow_warmupdamage, "vote_allow_warmupdamage", "1", 0, qfalse, qfalse },
+	{ &vote_allow_antilag,      "vote_allow_antilag", "1", 0, qfalse, qfalse },
+	{ &vote_allow_balancedteams,"vote_allow_balancedteams", "1", 0, qfalse, qfalse },
+	{ &vote_allow_muting,       "vote_allow_muting", "1", 0, qfalse, qfalse },
+};
+
+static const vmCvarTableItem_t server_toggle_cvars[] = {
+	{ &match_mutespecs, "match_mutespecs", "0", CVAR_TEMP, qfalse, qtrue, G_UpdateServerToggles },
+	{ &g_friendlyFire, "g_friendlyFire", "1", CVAR_SERVERINFO | CVAR_ARCHIVE, qtrue, qtrue, G_UpdateServerToggles },
+	{ &g_antilag, "g_antilag", "1", CVAR_SERVERINFO | CVAR_ARCHIVE, qfalse, qfalse, G_UpdateServerToggles },
+	{ &g_balancedteams, "g_balancedteams", "0", CVAR_SERVERINFO | CVAR_ROM, qtrue, qfalse, G_UpdateServerToggles },
+	{ &match_warmupDamage,  "match_warmupDamage", "1", CVAR_TEMP, qfalse, qfalse, G_UpdateServerToggles },
+	{ &g_nextmap, "nextmap", "", CVAR_TEMP, qfalse, qfalse, G_UpdateServerToggles },
+	{ &g_nextcampaign, "nextcampaign", "", CVAR_TEMP, qfalse, qfalse, G_UpdateServerToggles },
+};
 
 
 void G_InitGame( int levelTime, int randomSeed, int restart );
@@ -1216,63 +1401,22 @@ void G_FindTeams( void ) {
 
 
 /*
-==============
-G_RemapTeamShaders
-==============
-*/
-void G_RemapTeamShaders() {
-}
-
-
-/*
 =================
 G_RegisterCvars
 =================
 */
 void G_RegisterCvars( void ) {
-	int i;
-	cvarTable_t *cv;
-	qboolean remapped = qfalse;
-
 	level.server_settings = 0;
 
-	for ( i = 0, cv = gameCvarTable; i < gameCvarTableSize; i++, cv++ ) {
-		trap_Cvar_Register( cv->vmCvar, cv->cvarName, cv->defaultString, cv->cvarFlags );
-		if ( cv->vmCvar ) {
-			cv->modificationCount = cv->vmCvar->modificationCount;
-			// OSP - Update vote info for clients, if necessary
-			if ( !G_IsSinglePlayerGame() ) {
-				G_checkServerToggle( cv->vmCvar );
-			}
-		}
+	BG_CvarRegisterArray( game_cvars );
+	BG_CvarRegisterArray( chargetime_cvars );
+	BG_CvarRegisterArray( vote_allow_cvars );
+	BG_CvarRegisterArray( server_toggle_cvars );
 
-		remapped = ( remapped || cv->teamShader );
-	}
+	G_voteFlags();
 
-	if ( remapped ) {
-		G_RemapTeamShaders();
-	}
-
-	// check some things
-	// DHM - Gametype is currently restricted to supported types only
-	if ( ( g_gametype.integer < GT_WOLF || g_gametype.integer >= GT_MAX_GAME_TYPE ) ) {
-		G_Printf( "g_gametype %i is out of range, defaulting to GT_WOLF(%i)\n", g_gametype.integer, GT_WOLF );
-		trap_Cvar_Set( "g_gametype", va( "%i",GT_WOLF ) );
-		trap_Cvar_Update( &g_gametype );
-	}
-
-	// OSP
 	if ( !G_IsSinglePlayerGame() ) {
 		trap_SetConfigstring( CS_SERVERTOGGLES, va( "%d", level.server_settings ) );
-		if ( match_readypercent.integer < 1 ) {
-			trap_Cvar_Set( "match_readypercent", "1" );
-		}
-	}
-
-	if ( pmove_msec.integer < 8 ) {
-		trap_Cvar_Set( "pmove_msec", "8" );
-	} else if ( pmove_msec.integer > 33 ) {
-		trap_Cvar_Set( "pmove_msec", "33" );
 	}
 }
 
@@ -1282,135 +1426,14 @@ G_UpdateCvars
 =================
 */
 void G_UpdateCvars( void ) {
-	int i;
-	cvarTable_t *cv;
 	qboolean fToggles = qfalse;
 	qboolean fVoteFlags = qfalse;
-	qboolean remapped = qfalse;
 	qboolean chargetimechanged = qfalse;
 
-	for ( i = 0, cv = gameCvarTable ; i < gameCvarTableSize ; i++, cv++ ) {
-		if ( cv->vmCvar ) {
-			trap_Cvar_Update( cv->vmCvar );
-
-			if ( cv->modificationCount != cv->vmCvar->modificationCount ) {
-				cv->modificationCount = cv->vmCvar->modificationCount;
-
-				if ( cv->trackChange && !( cv->cvarFlags & CVAR_LATCH ) ) {
-					G_BroadcastServerCommand( -1, va( "print \"Server:[lof] %s [lon]changed to[lof] %s\n\"", cv->cvarName, cv->vmCvar->string ) );
-				}
-
-				if ( cv->teamShader ) {
-					remapped = qtrue;
-				}
-
-				if ( cv->vmCvar == &g_filtercams ) {
-					trap_SetConfigstring( CS_FILTERCAMS, va( "%i", g_filtercams.integer ) );
-				}
-
-				if ( cv->vmCvar == &g_soldierChargeTime ) {
-					level.soldierChargeTime[0] = g_soldierChargeTime.integer * level.soldierChargeTimeModifier[0];
-					level.soldierChargeTime[1] = g_soldierChargeTime.integer * level.soldierChargeTimeModifier[1];
-					chargetimechanged = qtrue;
-				} else if ( cv->vmCvar == &g_medicChargeTime ) {
-					level.medicChargeTime[0] = g_medicChargeTime.integer * level.medicChargeTimeModifier[0];
-					level.medicChargeTime[1] = g_medicChargeTime.integer * level.medicChargeTimeModifier[1];
-					chargetimechanged = qtrue;
-				} else if ( cv->vmCvar == &g_engineerChargeTime ) {
-					level.engineerChargeTime[0] = g_engineerChargeTime.integer * level.engineerChargeTimeModifier[0];
-					level.engineerChargeTime[1] = g_engineerChargeTime.integer * level.engineerChargeTimeModifier[1];
-					chargetimechanged = qtrue;
-				} else if ( cv->vmCvar == &g_LTChargeTime ) {
-					level.lieutenantChargeTime[0] = g_LTChargeTime.integer * level.lieutenantChargeTimeModifier[0];
-					level.lieutenantChargeTime[1] = g_LTChargeTime.integer * level.lieutenantChargeTimeModifier[1];
-					chargetimechanged = qtrue;
-				} else if ( cv->vmCvar == &g_covertopsChargeTime )    {
-					level.covertopsChargeTime[0] = g_covertopsChargeTime.integer * level.covertopsChargeTimeModifier[0];
-					level.covertopsChargeTime[1] = g_covertopsChargeTime.integer * level.covertopsChargeTimeModifier[1];
-					chargetimechanged = qtrue;
-				} else if ( cv->vmCvar == &match_readypercent )      {
-					if ( match_readypercent.integer < 1 ) {
-						trap_Cvar_Set( cv->cvarName, "1" );
-					} else if ( match_readypercent.integer > 100 ) {
-						trap_Cvar_Set( cv->cvarName, "100" );
-					}
-				} else if ( cv->vmCvar == &g_warmup )      {
-					if ( g_gamestate.integer != GS_PLAYING && !G_IsSinglePlayerGame() ) {
-						level.warmupTime = level.time + ( ( ( g_warmup.integer < 10 ) ? 11 : g_warmup.integer + 1 ) * 1000 );
-						trap_SetConfigstring( CS_WARMUP, va( "%i", level.warmupTime ) );
-					}
-				}
-				// Moved this check out of the main world think loop
-				else if ( cv->vmCvar == &g_gametype ) {
-					int worldspawnflags = g_entities[ENTITYNUM_WORLD].spawnflags;
-					int gt, gametype;
-					char buffer[32];
-
-					trap_Cvar_LatchedVariableStringBuffer( "g_gametype", buffer, sizeof( buffer ) );
-					gametype = atoi( buffer );
-
-
-					if ( gametype == GT_WOLF_CAMPAIGN && gametype != g_gametype.integer ) {
-						if ( !G_MapIsValidCampaignStartMap() ) {
-							gt = g_gametype.integer;
-							if ( gt != GT_WOLF_LMS ) {
-								if ( !( worldspawnflags & NO_GT_WOLF ) ) {
-									gt = GT_WOLF;   // Default wolf
-								} else {
-									gt = GT_WOLF_LMS;   // Last man standing
-								}
-							}
-
-							G_Printf( "Map '%s' isn't a valid campaign start map, resetting game type to '%i'\n", level.rawmapname, gt );
-							trap_Cvar_Set( "g_gametype", va( "%i", gt ) );
-						}
-						continue;
-					}
-
-					if ( !level.latchGametype && g_gamestate.integer == GS_PLAYING &&
-						 ( ( ( g_gametype.integer == GT_WOLF || g_gametype.integer == GT_WOLF_CAMPAIGN ) && ( worldspawnflags & NO_GT_WOLF ) ) ||
-						   ( g_gametype.integer == GT_WOLF_STOPWATCH && ( worldspawnflags & NO_STOPWATCH ) ) ||
-						   ( g_gametype.integer == GT_WOLF_LMS && ( worldspawnflags & NO_LMS ) ) )
-						 ) {
-
-						if ( !( worldspawnflags & NO_GT_WOLF ) ) {
-							gt = GT_WOLF;   // Default wolf
-						} else {
-							gt = GT_WOLF_LMS;   // Last man standing
-						}
-
-						level.latchGametype = qtrue;
-						AP( "print \"Invalid gametype was specified, Restarting\n\"" );
-						trap_SendConsoleCommand( EXEC_APPEND, va( "wait 2 ; g_gametype %i ; map_restart 10 0\n", gt ) );
-					}
-				} else if ( cv->vmCvar == &pmove_msec ) {
-					if ( pmove_msec.integer < 8 ) {
-						trap_Cvar_Set( cv->cvarName, "8" );
-					} else if ( pmove_msec.integer > 33 ) {
-						trap_Cvar_Set( cv->cvarName, "33" );
-					}
-				}
-				// OSP - Update vote info for clients, if necessary
-				else if ( !G_IsSinglePlayerGame() ) {
-					if ( cv->vmCvar == &vote_allow_comp           || cv->vmCvar == &vote_allow_gametype       ||
-						 cv->vmCvar == &vote_allow_kick          || cv->vmCvar == &vote_allow_map            ||
-						 cv->vmCvar == &vote_allow_matchreset    ||
-						 cv->vmCvar == &vote_allow_mutespecs     || cv->vmCvar == &vote_allow_nextmap        ||
-						 cv->vmCvar == &vote_allow_pub           || cv->vmCvar == &vote_allow_referee        ||
-						 cv->vmCvar == &vote_allow_shuffleteamsxp    || cv->vmCvar == &vote_allow_swapteams      ||
-						 cv->vmCvar == &vote_allow_friendlyfire  || cv->vmCvar == &vote_allow_timelimit      ||
-						 cv->vmCvar == &vote_allow_warmupdamage  || cv->vmCvar == &vote_allow_antilag        ||
-						 cv->vmCvar == &vote_allow_balancedteams || cv->vmCvar == &vote_allow_muting
-						 ) {
-						fVoteFlags = qtrue;
-					} else {
-						fToggles = ( G_checkServerToggle( cv->vmCvar ) || fToggles );
-					}
-				}
-
-			}
-		}
-	}
+	BG_CvarUpdateArray( game_cvars );
+	chargetimechanged = BG_CvarUpdateArray( chargetime_cvars ) > 0 ? qtrue : qfalse;
+	fVoteFlags = BG_CvarUpdateArray( vote_allow_cvars ) > 0 ? qtrue : qfalse;
+	fToggles = BG_CvarUpdateArray( server_toggle_cvars ) > 0 ? qtrue : qfalse;
 
 	if ( fVoteFlags ) {
 		G_voteFlags();
@@ -1418,10 +1441,6 @@ void G_UpdateCvars( void ) {
 
 	if ( fToggles ) {
 		trap_SetConfigstring( CS_SERVERTOGGLES, va( "%d", level.server_settings ) );
-	}
-
-	if ( remapped ) {
-		G_RemapTeamShaders();
 	}
 
 	if ( chargetimechanged ) {
@@ -1441,17 +1460,24 @@ void G_UpdateCvars( void ) {
 	}
 }
 
+static void G_CvarWipeTable( const vmCvarTableItem_t *cvars, int count ) {
+	int i;
+	for( i = 0; i < count; i++ ) {
+		const vmCvarTableItem_t *item = &cvars[i];
+		if ( !item->cvar || !item->fConfigReset )
+			continue;
+		G_Printf( "set %s %s\n", item->name, item->defaultValue );
+		trap_Cvar_Set( item->name, item->defaultValue );
+	}
+}
+#define G_CvarWipeArray( a ) G_CvarWipeTable( a, ARRAY_LEN(a) )
+
 // Reset particular server variables back to defaults if a config is voted in.
 void G_wipeCvars( void ) {
-	int i;
-	cvarTable_t *pCvars;
-
-	for ( i = 0, pCvars = gameCvarTable; i < gameCvarTableSize; i++, pCvars++ ) {
-		if ( pCvars->vmCvar && pCvars->fConfigReset ) {
-			G_Printf( "set %s %s\n", pCvars->cvarName, pCvars->defaultString );
-			trap_Cvar_Set( pCvars->cvarName, pCvars->defaultString );
-		}
-	}
+	G_CvarWipeArray( game_cvars );
+	G_CvarWipeArray( chargetime_cvars );
+	G_CvarWipeArray( vote_allow_cvars );
+	G_CvarWipeArray( server_toggle_cvars );
 
 	G_UpdateCvars();
 }
@@ -1867,8 +1893,6 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
 	G_Printf( "-----------------------------------\n" );
 
 	trap_PbStat( -1, "INIT", "GAME" ) ;
-
-	G_RemapTeamShaders();
 
 	// don't forget to reset times
 	trap_SetConfigstring( CS_INTERMISSION, "" );
@@ -3273,46 +3297,6 @@ static void G_CheckLoadGame( void ) {
 #endif // SAVEGAME_SUPPORT
 
 /*
-==================
-CheckCvars
-==================
-*/
-void CheckCvars( void ) {
-	static int g_password_lastMod = -1;
-	static int g_teamForceBalance_lastMod = -1;
-	static int g_lms_teamForceBalance_lastMod = -1;
-
-	if ( g_password.modificationCount != g_password_lastMod ) {
-		g_password_lastMod = g_password.modificationCount;
-		if ( *g_password.string && Q_stricmp( g_password.string, "none" ) ) {
-			trap_Cvar_Set( "g_needpass", "1" );
-		} else {
-			trap_Cvar_Set( "g_needpass", "0" );
-		}
-	}
-
-	if ( g_gametype.integer == GT_WOLF_LMS ) {
-		if ( g_lms_teamForceBalance.modificationCount != g_lms_teamForceBalance_lastMod ) {
-			g_lms_teamForceBalance_lastMod = g_lms_teamForceBalance.modificationCount;
-			if ( g_lms_teamForceBalance.integer ) {
-				trap_Cvar_Set( "g_balancedteams", "1" );
-			} else {
-				trap_Cvar_Set( "g_balancedteams", "0" );
-			}
-		}
-	} else {
-		if ( g_teamForceBalance.modificationCount != g_teamForceBalance_lastMod ) {
-			g_teamForceBalance_lastMod = g_teamForceBalance.modificationCount;
-			if ( g_teamForceBalance.integer ) {
-				trap_Cvar_Set( "g_balancedteams", "1" );
-			} else {
-				trap_Cvar_Set( "g_balancedteams", "0" );
-			}
-		}
-	}
-}
-
-/*
 =============
 G_RunThink
 
@@ -3761,9 +3745,6 @@ void G_RunFrame( int levelTime ) {
 
 	// cancel vote if timed out
 	CheckVote();
-
-	// for tracking changes
-	CheckCvars();
 
 	G_UpdateTeamMapData();
 

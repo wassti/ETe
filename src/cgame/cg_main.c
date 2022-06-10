@@ -316,15 +316,45 @@ vmCvar_t cg_recording_statusline;
 
 vmCvar_t cg_fovAdjust;
 
-typedef struct {
-	vmCvar_t    *vmCvar;
-	char        *cvarName;
-	char        *defaultString;
-	int cvarFlags;
-	int modificationCount;
-} cvarTable_t;
+static void CG_UpdateCrosshair( vmCvar_t *cv ) {
+	if ( cv == &cg_crosshairColor || cv == &cg_crosshairAlpha ) {
+		BG_setCrosshair( cg_crosshairColor.string, cg.xhairColor, cg_crosshairAlpha.value, "cg_crosshairColor" );
+	}
+	else if ( cv == &cg_crosshairColorAlt || cv == &cg_crosshairAlphaAlt ) {
+		BG_setCrosshair( cg_crosshairColorAlt.string, cg.xhairColorAlt, cg_crosshairAlphaAlt.value, "cg_crosshairColorAlt" );
+	}
+}
 
-static cvarTable_t cvarTable[] = {
+static void CG_AuthPasswords( vmCvar_t *cv ) {
+	if ( cv == &cg_rconPassword && cv->string[0] != '\0' ) {
+		trap_SendConsoleCommand( va( "rconAuth %s\n", cg_rconPassword.string ) );
+	}
+	else if ( cv == &cg_refereePassword && cv->string[0] != '\0' ) {
+		trap_SendConsoleCommand( va( "ref %s\n", cg_refereePassword.string ) );
+	}
+}
+
+static void CG_DemoHelp( vmCvar_t *cv ) {
+	if ( demo_infoWindow.integer == 0 && cg.demohelpWindow == SHOW_ON ) {
+		CG_ShowHelp_On( &cg.demohelpWindow );
+	}
+	else if ( demo_infoWindow.integer > 0 && cg.demohelpWindow != SHOW_ON ) {
+		CG_ShowHelp_On( &cg.demohelpWindow );
+	}
+}
+
+static void CG_ErrorDecayRange( vmCvar_t *cv ) {
+	if ( cg_errorDecay.value < 0.0 ) {
+		trap_Cvar_Set( "cg_errorDecay", "0" );
+		trap_Cvar_Update( &cg_errorDecay );
+	}
+	else if ( cg_errorDecay.value > 500.0 ) {
+		trap_Cvar_Set( "cg_errorDecay", "500" );
+		trap_Cvar_Update( &cg_errorDecay );
+	}
+}
+
+static const vmCvarTableItem_t cg_cvars[] = {
 	{ &cg_ignore, "cg_ignore", "0", 0 },  // used for debugging
 	{ &cg_autoswitch, "cg_autoswitch", "2", CVAR_ARCHIVE },
 	{ &cg_drawGun, "cg_drawGun", "1", CVAR_ARCHIVE },
@@ -376,10 +406,6 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_bobroll, "cg_bobroll", "0.002", CVAR_ARCHIVE },
 	{ &cg_bobyaw, "cg_bobyaw", "0.002", CVAR_ARCHIVE },
 
-	// JOSEPH 10-27-99
-	{ &cg_autoactivate, "cg_autoactivate", "1", CVAR_ARCHIVE },
-	// END JOSEPH
-
 	// Ridah, more fluid rotations
 	{ &cg_swingSpeed, "cg_swingSpeed", "0.1", CVAR_CHEAT },   // was 0.3 for Q3
 	{ &cg_bloodTime, "cg_bloodTime", "120", CVAR_ARCHIVE },
@@ -397,7 +423,7 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_debugAnim, "cg_debuganim", "0", CVAR_CHEAT },
 	{ &cg_debugPosition, "cg_debugposition", "0", CVAR_CHEAT },
 	{ &cg_debugEvents, "cg_debugevents", "0", CVAR_CHEAT },
-	{ &cg_errorDecay, "cg_errordecay", "100", 0 },
+	{ &cg_errorDecay, "cg_errordecay", "100", 0, CG_ErrorDecayRange },
 	{ &cg_nopredict, "cg_nopredict", "0", CVAR_CHEAT },
 	{ &cg_noPlayerAnims, "cg_noplayeranims", "0", CVAR_CHEAT },
 	{ &cg_showmiss, "cg_showmiss", "0", 0 },
@@ -413,7 +439,6 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_teamChatHeight, "cg_teamChatHeight", "8", CVAR_ARCHIVE  },
 	{ &cg_coronafardist, "cg_coronafardist", "1536", CVAR_ARCHIVE },
 	{ &cg_coronas, "cg_coronas", "1", CVAR_ARCHIVE },
-	{ &cg_predictItems, "cg_predictItems", "1", CVAR_ARCHIVE },
 	{ &cg_deferPlayers, "cg_deferPlayers", "1", CVAR_ARCHIVE },
 	{ &cg_drawTeamOverlay, "cg_drawTeamOverlay", "2", CVAR_ARCHIVE },
 	{ &cg_stats, "cg_stats", "0", 0 },
@@ -464,15 +489,13 @@ static cvarTable_t cvarTable[] = {
 	{ &cf_wstats, "cf_wstats", "1.2", CVAR_ARCHIVE },
 	{ &cf_wtopshots, "cf_wtopshots", "1.0", CVAR_ARCHIVE },
 	//{ &cg_announcer, "cg_announcer", "1", CVAR_ARCHIVE },
-	{ &cg_autoAction, "cg_autoAction", "0", CVAR_ARCHIVE },
-	{ &cg_autoReload, "cg_autoReload", "1", CVAR_ARCHIVE },
 	{ &cg_bloodDamageBlend, "cg_bloodDamageBlend", "1.0", CVAR_ARCHIVE },
 	{ &cg_bloodFlash, "cg_bloodFlash", "1.0", CVAR_ARCHIVE },
 	{ &cg_complaintPopUp, "cg_complaintPopUp", "1", CVAR_ARCHIVE },
-	{ &cg_crosshairAlpha, "cg_crosshairAlpha", "1.0", CVAR_ARCHIVE },
-	{ &cg_crosshairAlphaAlt, "cg_crosshairAlphaAlt", "1.0", CVAR_ARCHIVE },
-	{ &cg_crosshairColor, "cg_crosshairColor", "White", CVAR_ARCHIVE },
-	{ &cg_crosshairColorAlt, "cg_crosshairColorAlt", "White", CVAR_ARCHIVE },
+	{ &cg_crosshairAlpha, "cg_crosshairAlpha", "1.0", CVAR_ARCHIVE, CG_UpdateCrosshair },
+	{ &cg_crosshairAlphaAlt, "cg_crosshairAlphaAlt", "1.0", CVAR_ARCHIVE, CG_UpdateCrosshair },
+	{ &cg_crosshairColor, "cg_crosshairColor", "White", CVAR_ARCHIVE, CG_UpdateCrosshair },
+	{ &cg_crosshairColorAlt, "cg_crosshairColorAlt", "White", CVAR_ARCHIVE, CG_UpdateCrosshair },
 	{ &cg_crosshairPulse, "cg_crosshairPulse", "1", CVAR_ARCHIVE },
 	{ &cg_drawReinforcementTime, "cg_drawReinforcementTime", "1", CVAR_ARCHIVE },
 	{ &cg_drawWeaponIconFlash, "cg_drawWeaponIconFlash", "0", CVAR_ARCHIVE },
@@ -488,15 +511,13 @@ static cvarTable_t cvarTable[] = {
 	{ &demo_avifpsF4, "demo_avifpsF4", "20", CVAR_ARCHIVE },
 	{ &demo_avifpsF5, "demo_avifpsF5", "24", CVAR_ARCHIVE },
 	{ &demo_drawTimeScale, "demo_drawTimeScale", "1", CVAR_ARCHIVE },
-	{ &demo_infoWindow, "demo_infoWindow", "1", CVAR_ARCHIVE },
+	{ &demo_infoWindow, "demo_infoWindow", "1", CVAR_ARCHIVE, CG_DemoHelp },
 
 #ifdef MV_SUPPORT
 	{ &mv_sensitivity, "mv_sensitivity", "20", CVAR_ARCHIVE },
 #endif
 
 	// Engine mappings
-	{ &int_cl_maxpackets, "cl_maxpackets", "60", CVAR_ARCHIVE },
-	{ &int_cl_timenudge, "cl_timenudge", "0", CVAR_ARCHIVE },
 	{ &int_m_pitch, "m_pitch", "0.022", CVAR_ARCHIVE },
 	{ &int_sensitivity, "sensitivity", "5", CVAR_ARCHIVE },
 	{ &int_ui_blackout, "ui_blackout", "0", CVAR_ROM },
@@ -505,8 +526,8 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_atmosphericEffects, "cg_atmosphericEffects", "1", CVAR_ARCHIVE },
 	{ &authLevel, "authLevel", "0", CVAR_TEMP | CVAR_ROM},
 
-	{ &cg_rconPassword, "auth_rconPassword", "", CVAR_TEMP},
-	{ &cg_refereePassword, "auth_refereePassword", "", CVAR_TEMP},
+	{ &cg_rconPassword, "auth_rconPassword", "", CVAR_TEMP, CG_AuthPasswords },
+	{ &cg_refereePassword, "auth_refereePassword", "", CVAR_TEMP, CG_AuthPasswords },
 
 	{ &cg_drawRoundTimer, "cg_drawRoundTimer", "1", CVAR_ARCHIVE },
 
@@ -536,9 +557,17 @@ static cvarTable_t cvarTable[] = {
 	{ &cg_fovAdjust, "cg_fovAdjust", "0", CVAR_ARCHIVE },
 };
 
-static const int cvarTableSize = (int)ARRAY_LEN( cvarTable );
 qboolean cvarsLoaded = qfalse;
 void CG_setClientFlags( void );
+
+static const vmCvarTableItem_t cg_infoFlags[] = {
+	{ &cg_autoAction, "cg_autoAction", "0", CVAR_ARCHIVE },
+	{ &cg_autoReload, "cg_autoReload", "1", CVAR_ARCHIVE },
+	{ &int_cl_maxpackets, "cl_maxpackets", "60", CVAR_ARCHIVE },
+	{ &int_cl_timenudge, "cl_timenudge", "0", CVAR_ARCHIVE },
+	{ &cg_autoactivate, "cg_autoactivate", "1", CVAR_ARCHIVE },
+	{ &cg_predictItems, "cg_predictItems", "1", CVAR_ARCHIVE },
+};
 
 
 /*
@@ -547,23 +576,12 @@ CG_RegisterCvars
 =================
 */
 void CG_RegisterCvars( void ) {
-	int i;
-	cvarTable_t *cv;
 	char var[MAX_TOKEN_CHARS];
 
 	trap_Cvar_Set( "cg_letterbox", "0" ); // force this for people who might have it in their
 
-	for ( i = 0, cv = cvarTable ; i < cvarTableSize ; i++, cv++ ) {
-		trap_Cvar_Register( cv->vmCvar, cv->cvarName, cv->defaultString, cv->cvarFlags );
-		if ( cv->vmCvar != NULL ) {
-			// rain - force the update to range check this cvar on first run
-			if ( cv->vmCvar == &cg_errorDecay ) {
-				cv->modificationCount = !cv->vmCvar->modificationCount;
-			} else {
-				cv->modificationCount = cv->vmCvar->modificationCount;
-			}
-		}
-	}
+	BG_CvarRegisterArray( cg_cvars );
+	BG_CvarRegisterArray( cg_infoFlags );
 
 	// see if we are also running the server on this machine
 	trap_Cvar_VariableStringBuffer( "sv_running", var, sizeof( var ) );
@@ -571,8 +589,6 @@ void CG_RegisterCvars( void ) {
 
 	// Gordon: um, here, why?
 	CG_setClientFlags();
-	BG_setCrosshair( cg_crosshairColor.string, cg.xhairColor, cg_crosshairAlpha.value, "cg_crosshairColor" );
-	BG_setCrosshair( cg_crosshairColorAlt.string, cg.xhairColorAlt, cg_crosshairAlphaAlt.value, "cg_crosshairColorAlt" );
 
 	cvarsLoaded = qtrue;
 }
@@ -583,52 +599,14 @@ CG_UpdateCvars
 =================
 */
 void CG_UpdateCvars( void ) {
-	int i;
 	qboolean fSetFlags = qfalse;
-	cvarTable_t *cv;
 
 	if ( !cvarsLoaded ) {
 		return;
 	}
 
-	for ( i = 0, cv = cvarTable ; i < cvarTableSize ; i++, cv++ ) {
-		if ( cv->vmCvar ) {
-			trap_Cvar_Update( cv->vmCvar );
-			if ( cv->modificationCount != cv->vmCvar->modificationCount ) {
-				cv->modificationCount = cv->vmCvar->modificationCount;
-
-				// Check if we need to update any client flags to be sent to the server
-				if ( cv->vmCvar == &cg_autoAction || cv->vmCvar == &cg_autoReload ||
-					 cv->vmCvar == &int_cl_timenudge || cv->vmCvar == &int_cl_maxpackets ||
-					 cv->vmCvar == &cg_autoactivate || cv->vmCvar == &cg_predictItems ) {
-					fSetFlags = qtrue;
-				} else if ( cv->vmCvar == &cg_crosshairColor || cv->vmCvar == &cg_crosshairAlpha )      {
-					BG_setCrosshair( cg_crosshairColor.string, cg.xhairColor, cg_crosshairAlpha.value, "cg_crosshairColor" );
-				} else if ( cv->vmCvar == &cg_crosshairColorAlt || cv->vmCvar == &cg_crosshairAlphaAlt )      {
-					BG_setCrosshair( cg_crosshairColorAlt.string, cg.xhairColorAlt, cg_crosshairAlphaAlt.value, "cg_crosshairColorAlt" );
-				} else if ( cv->vmCvar == &cg_rconPassword && *cg_rconPassword.string )      {
-					trap_SendConsoleCommand( va( "rconAuth %s\n", cg_rconPassword.string ) );
-				} else if ( cv->vmCvar == &cg_refereePassword && *cg_refereePassword.string )      {
-					trap_SendConsoleCommand( va( "ref %s\n", cg_refereePassword.string ) );
-				} else if ( cv->vmCvar == &demo_infoWindow )      {
-					if ( demo_infoWindow.integer == 0 && cg.demohelpWindow == SHOW_ON ) {
-						CG_ShowHelp_On( &cg.demohelpWindow );
-					} else if ( demo_infoWindow.integer > 0 && cg.demohelpWindow != SHOW_ON ) {
-						CG_ShowHelp_On( &cg.demohelpWindow );
-					}
-				} else if ( cv->vmCvar == &cg_errorDecay ) {
-					// rain - cap errordecay because
-					// prediction is EXTREMELY broken
-					// right now.
-					if ( cg_errorDecay.value < 0.0 ) {
-						trap_Cvar_Set( "cg_errorDecay", "0" );
-					} else if ( cg_errorDecay.value > 500.0 ) {
-						trap_Cvar_Set( "cg_errorDecay", "500" );
-					}
-				}
-			}
-		}
-	}
+	fSetFlags = BG_CvarUpdateArray( cg_infoFlags ) > 0 ? qtrue : qfalse;
+	BG_CvarUpdateArray( cg_cvars );
 
 	// Send any relevent updates
 	if ( fSetFlags ) {

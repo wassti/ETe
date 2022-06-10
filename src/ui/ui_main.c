@@ -6394,14 +6394,6 @@ cvars
 ================
 */
 
-typedef struct {
-	vmCvar_t    *vmCvar;
-	char        *cvarName;
-	char        *defaultString;
-	int cvarFlags;
-	int modificationCount;          // for tracking changes
-} cvarTable_t;
-
 vmCvar_t ui_brassTime;
 vmCvar_t ui_drawCrosshair;
 vmCvar_t ui_drawCrosshairNames;
@@ -6490,7 +6482,16 @@ vmCvar_t ui_cl_bypassMouseInput;
 //bani
 vmCvar_t ui_autoredirect;
 
-cvarTable_t cvarTable[] = {
+static void UI_UpdateCrosshair( vmCvar_t *cv ) {
+	if ( cv == &ui_cg_crosshairColor || cv == &ui_cg_crosshairAlpha ) {
+		BG_setCrosshair( ui_cg_crosshairColor.string, uiInfo.xhairColor, ui_cg_crosshairAlpha.value, "cg_crosshairColor" );
+	}
+	else if ( cv == &ui_cg_crosshairColorAlt || cv == &ui_cg_crosshairAlphaAlt ) {
+		BG_setCrosshair( ui_cg_crosshairColorAlt.string, uiInfo.xhairColorAlt, ui_cg_crosshairAlphaAlt.value, "cg_crosshairColorAlt" );
+	}
+}
+
+static const vmCvarTableItem_t ui_cvars[] = {
 
 	{ &ui_glCustom, "ui_glCustom", "4", CVAR_ARCHIVE | CVAR_NOTABCOMPLETE }, // JPW NERVE missing from q3ta
 
@@ -6600,10 +6601,10 @@ cvarTable_t cvarTable[] = {
 	// OSP
 	// cgame mappings
 	{ &ui_blackout, "ui_blackout", "0", CVAR_ROM },
-	{ &ui_cg_crosshairAlpha, "cg_crosshairAlpha", "1.0", CVAR_ARCHIVE },
-	{ &ui_cg_crosshairAlphaAlt, "cg_crosshairAlphaAlt", "1.0", CVAR_ARCHIVE },
-	{ &ui_cg_crosshairColor, "cg_crosshairColor", "White", CVAR_ARCHIVE },
-	{ &ui_cg_crosshairColorAlt, "cg_crosshairColorAlt", "White", CVAR_ARCHIVE },
+	{ &ui_cg_crosshairAlpha, "cg_crosshairAlpha", "1.0", CVAR_ARCHIVE, UI_UpdateCrosshair },
+	{ &ui_cg_crosshairAlphaAlt, "cg_crosshairAlphaAlt", "1.0", CVAR_ARCHIVE, UI_UpdateCrosshair },
+	{ &ui_cg_crosshairColor, "cg_crosshairColor", "White", CVAR_ARCHIVE, UI_UpdateCrosshair },
+	{ &ui_cg_crosshairColorAlt, "cg_crosshairColorAlt", "White", CVAR_ARCHIVE, UI_UpdateCrosshair },
 	{ &ui_cg_crosshairSize, "cg_crosshairSize", "48", CVAR_ARCHIVE },
 	// game mappings (for create server option)
 	{ NULL, "g_altStopwatchMode", "0", CVAR_ARCHIVE },
@@ -6673,8 +6674,6 @@ cvarTable_t cvarTable[] = {
 	{ &ui_autoredirect, "ui_autoredirect", "0", CVAR_ARCHIVE },
 };
 
-static const int cvarTableSize = (int)ARRAY_LEN( cvarTable );
-
 
 /*
 =================
@@ -6682,21 +6681,12 @@ UI_RegisterCvars
 =================
 */
 void UI_RegisterCvars( void ) {
-	int i;
-	cvarTable_t *cv;
-
-	for ( i = 0, cv = cvarTable ; i < cvarTableSize ; i++, cv++ ) {
-		trap_Cvar_Register( cv->vmCvar, cv->cvarName, cv->defaultString, cv->cvarFlags );
-		if ( cv->vmCvar != NULL ) {
-			cv->modificationCount = cv->vmCvar->modificationCount;
-		}
-	}
+	BG_CvarRegisterArray( ui_cvars );
 
 	// OSP - Always force this to 0 on init
 	trap_Cvar_Set( "ui_blackout", "0" );
-	BG_setCrosshair( ui_cg_crosshairColor.string, uiInfo.xhairColor, ui_cg_crosshairAlpha.value, "cg_crosshairColor" );
-	BG_setCrosshair( ui_cg_crosshairColorAlt.string, uiInfo.xhairColorAlt, ui_cg_crosshairAlphaAlt.value, "cg_crosshairColorAlt" );
 }
+
 
 /*
 =================
@@ -6704,26 +6694,7 @@ UI_UpdateCvars
 =================
 */
 void UI_UpdateCvars( void ) {
-	int i;
-	cvarTable_t *cv;
-
-	for ( i = 0, cv = cvarTable ; i < cvarTableSize ; i++, cv++ ) {
-		if ( cv->vmCvar ) {
-			trap_Cvar_Update( cv->vmCvar );
-			if ( cv->modificationCount != cv->vmCvar->modificationCount ) {
-				cv->modificationCount = cv->vmCvar->modificationCount;
-
-				// OSP
-				if ( cv->vmCvar == &ui_cg_crosshairColor || cv->vmCvar == &ui_cg_crosshairAlpha ) {
-					BG_setCrosshair( ui_cg_crosshairColor.string, uiInfo.xhairColor, ui_cg_crosshairAlpha.value, "cg_crosshairColor" );
-				}
-
-				if ( cv->vmCvar == &ui_cg_crosshairColorAlt || cv->vmCvar == &ui_cg_crosshairAlphaAlt ) {
-					BG_setCrosshair( ui_cg_crosshairColorAlt.string, uiInfo.xhairColorAlt, ui_cg_crosshairAlphaAlt.value, "cg_crosshairColorAlt" );
-				}
-			}
-		}
-	}
+	BG_CvarUpdateArray( ui_cvars );
 }
 
 // NERVE - SMF

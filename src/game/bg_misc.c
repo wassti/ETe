@@ -5061,3 +5061,46 @@ void BG_CleanName( const char *in, char *out, int outSize, const char *blankStri
 		}
 	}
 }
+
+void trap_Cvar_Register( vmCvar_t *cvar, const char *var_name, const char *value, int flags );
+
+void BG_CvarRegisterTable( const vmCvarTableItem_t *cvars, int count ) {
+	int i;
+	for( i = 0; i < count; i++ ) {
+		const vmCvarTableItem_t *item = &cvars[i];
+		trap_Cvar_Register( item->cvar ? item->cvar : NULL, item->name, item->defaultValue, item->flags );
+
+		if ( item->update && item->cvar )
+			item->update( item->cvar );
+	}
+}
+
+#ifdef GAMEDLL
+void G_BroadcastServerCommand( int ignoreClient, const char *command );
+#endif
+void trap_Cvar_Update( vmCvar_t *cvar );
+
+int BG_CvarUpdateTable( const vmCvarTableItem_t *cvars, int count ) {
+	int i, updated = 0;
+	for( i = 0; i < count; i++ ) {
+		const vmCvarTableItem_t *item = &cvars[i];
+		int modCount;
+		if ( !item->cvar )
+			continue;
+		modCount = item->cvar->modificationCount;
+		trap_Cvar_Update( item->cvar );
+
+		if ( item->cvar->modificationCount != modCount ) {
+			updated++;
+			if( item->update )
+				item->update( item->cvar );
+
+#ifdef GAMEDLL
+			if ( item->trackChange && !( item->flags & CVAR_LATCH ) ) {
+				G_BroadcastServerCommand( -1, va( "print \"Server:[lof] %s [lon]changed to[lof] %s\n\"", item->name, item->cvar->string ) );
+			}
+#endif
+		}
+	}
+	return updated;
+}

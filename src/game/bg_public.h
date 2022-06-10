@@ -2329,4 +2329,10 @@ void PM_TraceAll( trace_t *trace, vec3_t start, vec3_t end );
 
 void BG_CleanName( const char *in, char *out, int outSize, const char *blankString );
 
+void BG_CvarRegisterTable( const vmCvarTableItem_t *cvars, int count );
+#define BG_CvarRegisterArray( a ) BG_CvarRegisterTable( a, ARRAY_LEN(a) )
+
+int BG_CvarUpdateTable( const vmCvarTableItem_t *cvars, int count );
+#define BG_CvarUpdateArray( a ) BG_CvarUpdateTable( a, ARRAY_LEN(a) )
+
 #endif

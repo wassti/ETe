@@ -414,43 +414,43 @@ unsigned int G_weapStatIndex_MOD( unsigned int iWeaponMOD ) {
 
 
 // Generates weapon stat info for given ent
-const char *G_createStats( gentity_t *refEnt ) {
+const char *G_createStats( gentity_t *ent ) {
 	unsigned int i, dwWeaponMask = 0, dwSkillPointMask = 0;
 	char strWeapInfo[MAX_STRING_CHARS] = {0};
 	char strSkillInfo[MAX_STRING_CHARS] = {0};
 
-	if ( !refEnt ) {
+	if ( !ent || !ent->client || ent->client->pers.connected != CON_CONNECTED ) {
 		return( NULL );
 	}
 
 	// Add weapon stats as necessary
 	for ( i = WS_KNIFE; i < WS_MAX; i++ ) {
-		if ( refEnt->client->sess.aWeaponStats[i].atts || refEnt->client->sess.aWeaponStats[i].hits ||
-			 refEnt->client->sess.aWeaponStats[i].deaths ) {
+		if ( ent->client->sess.aWeaponStats[i].atts || ent->client->sess.aWeaponStats[i].hits ||
+			 ent->client->sess.aWeaponStats[i].deaths ) {
 			dwWeaponMask |= ( 1 << i );
 			Q_strcat( strWeapInfo, sizeof( strWeapInfo ), va( " %d %d %d %d %d",
-															  refEnt->client->sess.aWeaponStats[i].hits, refEnt->client->sess.aWeaponStats[i].atts,
-															  refEnt->client->sess.aWeaponStats[i].kills, refEnt->client->sess.aWeaponStats[i].deaths,
-															  refEnt->client->sess.aWeaponStats[i].headshots ) );
+															  ent->client->sess.aWeaponStats[i].hits, ent->client->sess.aWeaponStats[i].atts,
+															  ent->client->sess.aWeaponStats[i].kills, ent->client->sess.aWeaponStats[i].deaths,
+															  ent->client->sess.aWeaponStats[i].headshots ) );
 		}
 	}
 
 	// Additional info
 	Q_strcat( strWeapInfo, sizeof( strWeapInfo ), va( " %d %d %d",
-													  refEnt->client->sess.damage_given,
-													  refEnt->client->sess.damage_received,
-													  refEnt->client->sess.team_damage ) );
+													  ent->client->sess.damage_given,
+													  ent->client->sess.damage_received,
+													  ent->client->sess.team_damage ) );
 
 	// Add skillpoints as necessary
 	for ( i = SK_BATTLE_SENSE; i < SK_NUM_SKILLS; i++ ) {
-		if ( refEnt->client->sess.skillpoints[i] > 0 ) {
+		if ( ent->client->sess.skillpoints[i] > 0 ) {
 			dwSkillPointMask |= ( 1 << i );
-			Q_strcat( strSkillInfo, sizeof( strSkillInfo ), va( " %d", (int)refEnt->client->sess.skillpoints[i] ) );
+			Q_strcat( strSkillInfo, sizeof( strSkillInfo ), va( " %d", (int)ent->client->sess.skillpoints[i] ) );
 		}
 	}
 
-	return( va( "%d %d %d%s %d%s", (int)(refEnt - g_entities),
-				refEnt->client->sess.rounds,
+	return( va( "%d %d %d%s %d%s", (int)(ent - g_entities),
+				ent->client->sess.rounds,
 				dwWeaponMask,
 				strWeapInfo,
 				dwSkillPointMask,

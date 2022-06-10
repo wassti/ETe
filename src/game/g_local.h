@@ -1956,7 +1956,7 @@ void G_addStats( gentity_t *targ, gentity_t *attacker, int dmg_ref, int mod );
 void G_addStatsHeadShot( gentity_t *attacker, int mod );
 qboolean G_allowPanzer( gentity_t *ent );
 int G_checkServerToggle( vmCvar_t *cv );
-const char *G_createStats( gentity_t *refEnt );
+const char *G_createStats( gentity_t *ent );
 void G_deleteStats( int nClient );
 qboolean G_desiredFollow( gentity_t *ent, int nTeam );
 void G_globalSound( char *sound );

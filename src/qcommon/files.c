@@ -290,6 +290,7 @@ typedef struct searchpath_s {
 static	cvar_t		*fs_debug;
 static	cvar_t		*fs_homepath;
 static	cvar_t		*fs_steampath;
+static	cvar_t		*fs_msstorepath;
 static	cvar_t		*fs_basepath;
 static	cvar_t		*fs_basegame;
 static	cvar_t		*fs_gamedirvar;
@@ -972,6 +973,20 @@ int FS_SV_FOpenFileRead( const char *filename, fileHandle_t *fp ) {
 
 			fd->handleFiles.file.o = Sys_FOpen( ospath, "rb" );
 		}
+
+		// Check fs_msstorepath too
+		if ( !fd->handleFiles.file.o && fs_msstorepath->string[0] )
+		{
+			// search steampath
+			ospath = FS_BuildOSPath( fs_msstorepath->string, filename, NULL );
+
+			if ( fs_debug->integer )
+			{
+				Com_Printf( "FS_SV_FOpenFileRead (fs_msstorepath): %s\n", ospath );
+			}
+
+			fd->handleFiles.file.o = Sys_FOpen( ospath, "rb" );
+		}
 	}
 
 	if( fd->handleFiles.file.o != NULL ) {
@@ -1633,7 +1648,7 @@ void FS_SetFilterFlag(int flag)
 }
 
 int FS_FOpenFileRead( const char *filename, fileHandle_t *file, qboolean uniqueFILE ) {
-	searchpath_t	*search;
+	const searchpath_t	*search;
 	char			*netpath;
 	pack_t			*pak;
 	fileInPack_t	*pakFile;
@@ -3273,7 +3288,7 @@ __error:
 ============
 FS_SaveCache
 
-Called at th end of FS_Startup() after releasing unused paks
+Called at the end of FS_Startup() after releasing unused paks
 ============
 */
 static qboolean FS_SaveCache( void )
@@ -3760,7 +3775,7 @@ void FS_SetFilenameCallback( fnamecallback_f func )
 ===============
 FS_ListFilteredFiles
 
-Returns a uniqued list of files that match the given criteria
+Returns a unique list of files that match the given criteria
 from all search paths
 ===============
 */
@@ -3768,7 +3783,7 @@ static char **FS_ListFilteredFiles( const char *path, const char *extension, con
 	int				nfiles;
 	char			**listCopy;
 	char			*list[MAX_FOUND_FILES];
-	searchpath_t	*search;
+	const searchpath_t	*search;
 	int				i;
 	int				pathLength;
 	int				extLen;
@@ -4170,7 +4185,7 @@ static int FS_GetModList( char *listbuf, int bufsize ) {
 	qboolean bDrop = qfalse;
 
 	// paths to search for mods
-	cvar_t *const *paths[] = { &fs_basepath, &fs_homepath, &fs_steampath };
+	cvar_t *const *paths[] = { &fs_basepath, &fs_homepath, &fs_steampath, &fs_msstorepath };
 
 	*listbuf = '\0';
 	nMods = nTotal = 0;
@@ -4319,7 +4334,7 @@ static void FS_ConvertPath( char *s ) {
 ===========
 FS_PathCmp
 
-Ignore case and seprator char distinctions
+Ignore case and separator char distinctions
 ===========
 */
 static int FS_PathCmp( const char *s1, const char *s2 ) {
@@ -4503,7 +4518,7 @@ static void FS_Which_f( void ) {
 	directory_t		*dir;
 	long			hash;
 	FILE			*temp;
-	char			*filename;
+	const char			*filename;
 	char			buf[ MAX_OSPATH*2 + 1 ];
 	int				numfound;
 
@@ -4816,7 +4831,7 @@ we are not interested in a download string format, we want something human-reada
 */
 qboolean CL_WWWBadChecksum(const char *pakname);
 qboolean FS_ComparePaks( char *neededpaks, int len, qboolean dlstring ) {
-	searchpath_t	*sp;
+	const searchpath_t	*sp;
 	qboolean havepak;
 	char *origpos = neededpaks;
 	int i;
@@ -5181,6 +5196,7 @@ static void FS_Startup( void ) {
 	Cvar_SetDescription(fs_basepath, "Directory to read game installation files from.");
 	fs_basegame = Cvar_Get( "fs_basegame", BASEGAME, CVAR_INIT | CVAR_PROTECTED );
 	fs_steampath = Cvar_Get( "fs_steampath", Sys_SteamPath(), CVAR_INIT | CVAR_PROTECTED | CVAR_PRIVATE );
+	fs_msstorepath = Cvar_Get( "fs_msstorepath", Sys_MicrosoftStorePath(), CVAR_INIT | CVAR_PROTECTED | CVAR_PRIVATE );
 
 #ifndef USE_HANDLE_CACHE
 	fs_locked = Cvar_Get( "fs_locked", "0", CVAR_INIT );
@@ -5223,6 +5239,10 @@ static void FS_Startup( void ) {
 #endif
 
 	// add search path elements in reverse priority order
+	if ( fs_msstorepath->string[0] ) {
+		FS_AddGameDirectory( fs_msstorepath->string, fs_basegame->string );
+	}
+
 	if ( fs_steampath->string[0] ) {
 		FS_AddGameDirectory( fs_steampath->string, fs_basegame->string );
 	}
@@ -5239,6 +5259,9 @@ static void FS_Startup( void ) {
 
 	// check for additional game folder for mods
 	if ( fs_gamedirvar->string[0] && Q_stricmp( fs_gamedirvar->string, fs_basegame->string ) ) {
+		if ( fs_msstorepath->string[0] ) {
+			FS_AddGameDirectory( fs_msstorepath->string, fs_gamedirvar->string );
+		}
 		if ( fs_steampath->string[0] ) {
 			FS_AddGameDirectory( fs_steampath->string, fs_gamedirvar->string );
 		}
@@ -5329,7 +5352,7 @@ static void FS_Startup( void ) {
 #if 0
 static void FS_PrintSearchPaths( void )
 {
-	searchpath_t *path = fs_searchpaths;
+	const searchpath_t *path = fs_searchpaths;
 
 	Com_Printf( "\nSearch paths:\n" );
 
@@ -5826,7 +5849,7 @@ FS_ClearPakReferences
 =====================
 */
 void FS_ClearPakReferences( int flags ) {
-	searchpath_t *search;
+	const searchpath_t *search;
 
 	if ( !flags ) {
 		flags = -1;

@@ -232,6 +232,18 @@ const char *Sys_SteamPath( void )
 }
 
 
+const char *Sys_MicrosoftStorePath( void )
+{
+	// TODO
+	// Most likely will be something like below:
+	// C:\Program Files\ModifiableWindowsApps\Wolfenstein Enemy Territory\EN
+	// Use SHGetFolderPathA with CSIDL_PROGRAMFILES to pull the program files directory
+	static TCHAR microsoftStorePath[ MAX_OSPATH ]; // will be converted from TCHAR to ANSI
+
+	return (const char*)microsoftStorePath;
+}
+
+
 /*
 ================
 Sys_SetAffinityMask

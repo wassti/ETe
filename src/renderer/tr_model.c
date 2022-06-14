@@ -2144,14 +2144,24 @@ R_Modellist_f
 */
 void R_Modellist_f( void ) {
 	int i, j;
-	model_t *mod;
-	int total;
-	int lods;
+	const model_t *mod;
+	int total = 0, models = 0;
+	const char *match;
+	if ( Cmd_Argc() > 1 ) {
+		match = Cmd_Argv( 1 );
+	} else {
+		match = NULL;
+	}
 
 	total = 0;
 	for ( i = 1 ; i < tr.numModels; i++ ) {
+		int lods = 1;
 		mod = tr.models[i];
-		lods = 1;
+
+		if ( match && !Com_Filter( match, mod->name ) ) {
+			continue;
+		}
+
 		for ( j = 1 ; j < MD3_MAX_LODS ; j++ ) {
 			if ( mod->model.md3[j] && mod->model.md3[j] != mod->model.md3[j - 1] ) {
 				lods++;
@@ -2159,8 +2169,9 @@ void R_Modellist_f( void ) {
 		}
 		ri.Printf( PRINT_ALL, "%8i : (%i) %s\n",mod->dataSize, lods, mod->name );
 		total += mod->dataSize;
+		models++;
 	}
-	ri.Printf( PRINT_ALL, "%8i : Total models\n", total );
+	ri.Printf( PRINT_ALL, "%8i : %i models found\n", total, models );
 
 #if 0       // not working right with new hunk
 	if ( tr.world ) {

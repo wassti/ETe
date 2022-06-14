@@ -1470,7 +1470,7 @@ skyParms <outerbox> <cloudheight> <innerbox>
 */
 static void ParseSkyParms( const char **text ) {
 	const char	*token;
-	static char	*suf[6] = {"rt", "bk", "lf", "ft", "up", "dn"};
+	static const char	*suf[6] = {"rt", "bk", "lf", "ft", "up", "dn"};
 	char		pathname[MAX_QPATH];
 	int			i;
 	imgFlags_t imgFlags = IMGFLAG_MIPMAP | IMGFLAG_PICMIP;
@@ -4001,15 +4001,22 @@ void	R_ShaderList_f (void) {
 	int			i;
 	int			count;
 	const shader_t *sh;
+	const char *match;
 
-	ri.Printf (PRINT_ALL, "-----------------------\n");
+	if ( Cmd_Argc() > 1 ) {
+		match = Cmd_Argv( 1 );
+	} else {
+		match = NULL;
+	}
+
+	ri.Printf (PRINT_ALL, "-----------------------------\n");
+	ri.Printf (PRINT_ALL, "P L MT    E func order   name \n");
 
 	count = 0;
 	for ( i = 0 ; i < tr.numShaders ; i++ ) {
-		if ( ri.Cmd_Argc() > 1 ) {
-			sh = tr.sortedShaders[i];
-		} else {
-			sh = tr.shaders[i];
+		sh = tr.sortedShaders[i];
+		if ( match && !Com_Filter( match, sh->name ) ) {
+			continue;
 		}
 
 		ri.Printf( PRINT_ALL, "%i ", sh->numUnfoggedPasses );
@@ -4038,6 +4045,8 @@ void	R_ShaderList_f (void) {
 			ri.Printf( PRINT_ALL, "    " );
 		}
 
+		ri.Printf( PRINT_ALL, "%5.2f ", sh->sort );
+
 		if ( sh->defaultShader ) {
 			ri.Printf( PRINT_ALL, ": %s (DEFAULTED)\n", sh->name );
 		} else {
@@ -4045,8 +4054,8 @@ void	R_ShaderList_f (void) {
 		}
 		count++;
 	}
-	ri.Printf (PRINT_ALL, "%i total shaders\n", count);
-	ri.Printf (PRINT_ALL, "------------------\n");
+	ri.Printf (PRINT_ALL, "%i shaders found\n", count);
+	ri.Printf (PRINT_ALL, "-----------------------------\n");
 }
 
 

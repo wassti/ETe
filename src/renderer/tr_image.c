@@ -203,6 +203,14 @@ void R_ImageList_f( void ) {
 	const image_t *image;
 	int i, estTotalSize = 0;
 	char *name, buf[MAX_QPATH*2 + 5];
+	const char *match;
+	int matchCount = 0;
+
+	if ( Cmd_Argc() > 1 ) {
+		match = Cmd_Argv( 1 );
+	} else {
+		match = NULL;
+	}
 
 	ri.Printf( PRINT_ALL, "\n -n- --w-- --h-- type  -size- --name-------\n" );
 
@@ -214,6 +222,12 @@ void R_ImageList_f( void ) {
 		int displaySize;
 
 		image = tr.images[ i ];
+
+		if ( match && !Com_Filter( match, image->imgName ) ) {
+			// Check imgName2 as well?
+			continue;
+		}
+
 		estSize = image->uploadHeight * image->uploadWidth;
 
 		switch ( image->internalFormat )
@@ -279,12 +293,15 @@ void R_ImageList_f( void ) {
 			name = buf;
 		}
 
+		matchCount++;
 		ri.Printf( PRINT_ALL, " %3i %5i %5i %s %4i%s %s\n", i, image->uploadWidth, image->uploadHeight, format, displaySize, sizeSuffix, name );
 		estTotalSize += estSize;
 	}
 
 	ri.Printf( PRINT_ALL, " -----------------------\n" );
 	ri.Printf( PRINT_ALL, " approx %i kbytes\n", (estTotalSize + 1023) / 1024 );
+	if ( match && matchCount > 0 && matchCount != tr.numImages )
+		ri.Printf( PRINT_ALL, " %i images found\n", matchCount );
 	ri.Printf( PRINT_ALL, " %i total images\n\n", tr.numImages );
 }
 
@@ -1956,18 +1973,32 @@ R_SkinList_f
 void	R_SkinList_f( void ) {
 	int				i, j;
 	const skin_t	*skin;
+	const char *match;
+	int matchCount = 0;
+
+	if ( Cmd_Argc() > 1 ) {
+		match = Cmd_Argv( 1 );
+	} else {
+		match = NULL;
+	}
 
 	ri.Printf (PRINT_ALL, "------------------\n");
 
 	for ( i = 0 ; i < tr.numSkins ; i++ ) {
 		skin = tr.skins[i];
 
+		if ( match && !Com_Filter( match, skin->name ) ) {
+			continue;
+		}
+
+		matchCount++;
 		ri.Printf( PRINT_ALL, "%3i:%s (%d surfaces)\n", i, skin->name, skin->numSurfaces );
 		for ( j = 0 ; j < skin->numSurfaces ; j++ ) {
 			ri.Printf( PRINT_ALL, "       %s = %s\n", 
 				skin->surfaces[j].name, skin->surfaces[j].shader->name );
 		}
 	}
+	ri.Printf (PRINT_ALL, "%i skins found\n", matchCount);
 	ri.Printf (PRINT_ALL, "------------------\n");
 }
 

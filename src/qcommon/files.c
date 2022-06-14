@@ -6388,6 +6388,12 @@ gameMod_t FS_GetGameMod(void)
 				return knownGames[i].gameEnum;
 			}
 		}
+		if (!Q_stricmpn(fs_gamedirvar->string, "duke", 4))
+		{
+			// Let's rock
+			return GAMEMOD_DUKE;
+		}
+
 		return GAMEMOD_UNKNOWN;
 	}
 	return GAMEMOD_BASEGAME;

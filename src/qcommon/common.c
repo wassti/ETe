@@ -58,7 +58,7 @@ const int demo_protocols[] = { OLD_PROTOCOL_VERSION, NEW_PROTOCOL_VERSION, 0 };
 #define DEF_COMZONEMEGS		25
 #endif
 
-#define ETLEGACY_VERSION	280020033
+#define ETLEGACY_VERSION	280020047
 
 static jmp_buf abortframe;	// an ERR_DROP occurred, exit the entire frame
 

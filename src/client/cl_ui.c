@@ -1379,7 +1379,7 @@ void CL_InitUI( void ) {
 	}
 
 	// init for this gamestate
-	if ( currentGameMod == GAMEMOD_LEGACY )
+	if ( currentGameMod == GAMEMOD_LEGACY || currentGameMod == GAMEMOD_ETJUMP )
 		VM_Call( uivm, 3, UI_INIT, ( cls.state >= CA_AUTHORIZING && cls.state < CA_ACTIVE ), qtrue, com_legacyVersion->integer );
 	else
 		VM_Call( uivm, 1, UI_INIT, ( cls.state >= CA_AUTHORIZING && cls.state < CA_ACTIVE ) );

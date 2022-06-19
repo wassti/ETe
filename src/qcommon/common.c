@@ -3103,6 +3103,9 @@ void Com_ExecuteCfg(qboolean safeMode)
 		Cbuf_ExecuteText(EXEC_NOW, "exec autoexec.cfg\n");
 		Cbuf_Execute();
 	}
+
+	// ydnar: reset crashed state
+	Cvar_Set( "com_crashed", "0" );
 }
 
 

@@ -1036,8 +1036,9 @@ extern	int	CPU_Flags;
 #define CPU_SSE42  0x40
 
 // ARM flags
-#define CPU_IDIV   0x01
-#define CPU_VFPv3  0x02
+#define CPU_ARMv7  0x01
+#define CPU_IDIVA  0x02
+#define CPU_VFPv3  0x04
 
 typedef struct gameInfo_s {
 	qboolean spEnabled;

@@ -755,8 +755,11 @@ void SVC_RateDropAddress( const netadr_t *from, int burst, int period ) {
 qboolean SV_VerifyInfoChallenge( const char *challenge ) {
 	int i, j;
 
-	if ( !challenge || !*challenge ) {
+	if ( !challenge ) {
 		return qfalse;
+	}
+	else if ( challenge[0] == '\0' ) {
+		return qtrue;
 	}
 
 	j = strlen( challenge );

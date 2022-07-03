@@ -1291,6 +1291,12 @@ static void SV_Status_f( void ) {
 	}
 
 	Com_Printf( "map: %s\n", sv_mapname->string );
+	if( currentGameMod == GAMEMOD_ETF ) {
+		Com_Printf( "gameindex: %i\n", Cvar_VariableIntegerValue( "g_gameindex") );
+	}
+	else {
+		Com_Printf( "gametype: %i\n", sv_cachedGametype );
+	}
 
 #if 0
 	Com_Printf ("cl score ping name            address                                 rate \n");

@@ -4500,10 +4500,10 @@ void CL_Init( void ) {
 	// init autoswitch so the ui will have it correctly even
 	// if the cgame hasn't been started
 	// -NERVE - SMF - disabled autoswitch by default
-	Cvar_Get( "cg_autoswitch", "0", CVAR_ARCHIVE );
+	Cvar_Get( "cg_autoswitch", "0", CVAR_ARCHIVE | CVAR_VM_CREATED );
 
 	// Rafael - particle switch
-	Cvar_Get( "cg_wolfparticles", "1", CVAR_ARCHIVE_ND );
+	Cvar_Get( "cg_wolfparticles", "1", CVAR_ARCHIVE_ND | CVAR_VM_CREATED );
 	// done
 
 	cl_conXOffset = Cvar_Get( "cl_conXOffset", "0", 0 );
@@ -4531,23 +4531,23 @@ void CL_Init( void ) {
 	cl_lanForcePackets = Cvar_Get( "cl_lanForcePackets", "1", CVAR_ARCHIVE_ND );
 
 	// NERVE - SMF
-	Cvar_Get( "cg_drawCompass", "1", CVAR_ARCHIVE );
-	Cvar_Get( "cg_drawNotifyText", "1", CVAR_ARCHIVE );
-	Cvar_Get( "cg_quickMessageAlt", "1", CVAR_ARCHIVE );
-	Cvar_Get( "cg_popupLimboMenu", "1", CVAR_ARCHIVE );
-	Cvar_Get( "cg_descriptiveText", "1", CVAR_ARCHIVE );
-	Cvar_Get( "cg_drawTeamOverlay", "2", CVAR_ARCHIVE );
+	Cvar_Get( "cg_drawCompass", "1", CVAR_ARCHIVE | CVAR_VM_CREATED );
+	Cvar_Get( "cg_drawNotifyText", "1", CVAR_ARCHIVE | CVAR_VM_CREATED );
+	Cvar_Get( "cg_quickMessageAlt", "1", CVAR_ARCHIVE | CVAR_VM_CREATED );
+	Cvar_Get( "cg_popupLimboMenu", "1", CVAR_ARCHIVE | CVAR_VM_CREATED );
+	Cvar_Get( "cg_descriptiveText", "1", CVAR_ARCHIVE | CVAR_VM_CREATED );
+	Cvar_Get( "cg_drawTeamOverlay", "2", CVAR_ARCHIVE | CVAR_VM_CREATED );
 //	Cvar_Get( "cg_uselessNostalgia", "0", CVAR_ARCHIVE ); // JPW NERVE
-	Cvar_Get( "cg_drawGun", "1", CVAR_ARCHIVE );
-	Cvar_Get( "cg_cursorHints", "1", CVAR_ARCHIVE );
-	Cvar_Get( "cg_voiceSpriteTime", "6000", CVAR_ARCHIVE );
+	Cvar_Get( "cg_drawGun", "1", CVAR_ARCHIVE | CVAR_VM_CREATED );
+	Cvar_Get( "cg_cursorHints", "1", CVAR_ARCHIVE | CVAR_VM_CREATED );
+	Cvar_Get( "cg_voiceSpriteTime", "6000", CVAR_ARCHIVE | CVAR_VM_CREATED );
 //	Cvar_Get( "cg_teamChatsOnly", "0", CVAR_ARCHIVE );
 //	Cvar_Get( "cg_noVoiceChats", "0", CVAR_ARCHIVE );
 //	Cvar_Get( "cg_noVoiceText", "0", CVAR_ARCHIVE );
-	Cvar_Get( "cg_crosshairSize", "48", CVAR_ARCHIVE );
-	Cvar_Get( "cg_drawCrosshair", "1", CVAR_ARCHIVE );
-	Cvar_Get( "cg_zoomDefaultSniper", "20", CVAR_ARCHIVE );
-	Cvar_Get( "cg_zoomstepsniper", "2", CVAR_ARCHIVE );
+	Cvar_Get( "cg_crosshairSize", "48", CVAR_ARCHIVE | CVAR_VM_CREATED );
+	Cvar_Get( "cg_drawCrosshair", "1", CVAR_ARCHIVE | CVAR_VM_CREATED );
+	Cvar_Get( "cg_zoomDefaultSniper", "20", CVAR_ARCHIVE | CVAR_VM_CREATED );
+	Cvar_Get( "cg_zoomstepsniper", "2", CVAR_ARCHIVE | CVAR_VM_CREATED );
 
 //	Cvar_Get( "mp_playerType", "0", 0 );
 //	Cvar_Get( "mp_currentPlayerType", "0", 0 );
@@ -4575,18 +4575,18 @@ void CL_Init( void ) {
 	Cvar_Get( "cl_anonymous", "0", CVAR_USERINFO | CVAR_ARCHIVE_ND );
 
 	Cvar_Get( "password", "", CVAR_USERINFO | CVAR_NORESTART );
-	Cvar_Get( "cg_predictItems", "1", CVAR_ARCHIVE );
+	Cvar_Get( "cg_predictItems", "1", CVAR_ARCHIVE | CVAR_VM_CREATED );
 
 //----(SA) added
-	Cvar_Get( "cg_autoactivate", "1", CVAR_ARCHIVE_ND );
+	Cvar_Get( "cg_autoactivate", "1", CVAR_ARCHIVE_ND | CVAR_VM_CREATED );
 //----(SA) end
 
 	// cgame might not be initialized before menu is used
-	Cvar_Get( "cg_viewsize", "100", CVAR_ARCHIVE_ND );
+	Cvar_Get( "cg_viewsize", "100", CVAR_ARCHIVE_ND | CVAR_VM_CREATED );
 	// Make sure cg_stereoSeparation is zero as that variable is deprecated and should not be used anymore.
 	Cvar_Get ("cg_stereoSeparation", "0", CVAR_ROM);
 
-	Cvar_Get( "cg_autoReload", "1", CVAR_ARCHIVE_ND );
+	Cvar_Get( "cg_autoReload", "1", CVAR_ARCHIVE_ND | CVAR_VM_CREATED );
 
 	// NERVE - SMF - localization
 	cl_language = Cvar_Get( "cl_language", "0", CVAR_ARCHIVE_ND );

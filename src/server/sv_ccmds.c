@@ -384,7 +384,7 @@ static void SV_MapRestart_f( void ) {
 	Cvar_Set( "sv_serverRestarting", "1" );
 
 	// make sure that level time is not zero
-	sv.time = sv.time ? sv.time : 8;
+	sv.time = sv.time ? sv.time : (sv_zeroStartTime->integer ? 0 : 8);
 
 	SV_RestartGameProgs();
 

@@ -91,6 +91,7 @@ cvar_t  *sv_cheats;
 cvar_t  *sv_fullmsg;
 
 cvar_t *sv_levelTimeReset;
+cvar_t *sv_zeroStartTime;
 cvar_t *sv_filter;
 
 cvar_t  *sv_filterCommands;

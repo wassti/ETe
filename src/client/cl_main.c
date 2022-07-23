@@ -4570,6 +4570,7 @@ void CL_Init( void ) {
 
 	// userinfo
 	Cvar_Get( "name", "ETPlayer", CVAR_USERINFO | CVAR_ARCHIVE_ND );
+	Cvar_Get( "clan", "", CVAR_USERINFO | CVAR_ARCHIVE_ND );
 	Cvar_Get( "rate", "25000", CVAR_USERINFO | CVAR_ARCHIVE );     // NERVE - SMF - changed from 3000
 	Cvar_Get( "snaps", "40", CVAR_USERINFO | CVAR_ARCHIVE );
 	Cvar_Get( "cl_anonymous", "0", CVAR_USERINFO | CVAR_ARCHIVE_ND );

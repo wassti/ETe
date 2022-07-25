@@ -386,7 +386,6 @@ extern cvar_t  *sv_reloading;
 
 
 extern	cvar_t *sv_levelTimeReset;
-extern	cvar_t *sv_zeroStartTime;
 extern	cvar_t *sv_filter;
 
 // TTimo - autodl

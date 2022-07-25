@@ -694,9 +694,6 @@ void SV_SpawnServer( const char *mapname ) {
 
 	Cvar_Set( "sv_serverRestarting", "1" );
 
-	// make sure that level time is not zero
-	sv.time = sv.time ? sv.time : (sv_zeroStartTime->integer ? 0 : 8);
-
 	// load and spawn all other entities
 	SV_InitGameProgs();
 
@@ -1029,11 +1026,6 @@ void SV_Init( void )
 	Cvar_SetDescription( sv_levelTimeReset, "Whether to reset leveltime after new map loads\n"
 		" Note: when enabled - fixes gfx for clients affected by \"frameloss\" bug,\n"
 		" however it may be necessary to disable in case of troubles with custom mods similar to ettv" );
-
-	sv_zeroStartTime = Cvar_Get( "sv_zeroStartTime", "1", CVAR_ARCHIVE_ND );
-
-	Cvar_SetDescription( sv_zeroStartTime, "Whether to set leveltime to 0 or 8 at map startup\n"
-		"Note: when disabled - will break most old code mods pause feature including etmain" );
 
 	sv_filter = Cvar_Get( "sv_filter", "filter.txt", CVAR_ARCHIVE );
 

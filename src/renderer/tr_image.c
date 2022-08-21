@@ -976,6 +976,7 @@ typedef struct
 // when there are multiple images of different formats available
 static const imageExtToLoaderMap_t imageLoaders[] =
 {
+	{ "svg",  R_LoadSVG },
 	{ "png",  R_LoadPNG },
 	{ "tga",  R_LoadTGA },
 	{ "jpg",  R_LoadJPG },
@@ -1005,6 +1006,22 @@ static const char *R_LoadImage( const char *name, byte **pic, int *width, int *h
 	*pic = NULL;
 	*width = 0;
 	*height = 0;
+
+	// Always try SVG first before specified
+	{
+		COM_StripExtension( name, localName, sizeof( localName ) );
+
+		altName = va( "%s.svg", localName );
+
+		// Load
+		R_LoadSVG( altName, pic, width, height );
+
+		if ( *pic )
+		{
+			Q_strncpyz( localName, altName, sizeof( localName ) );
+			return localName;
+		}
+	}
 
 	Q_strncpyz( localName, name, sizeof( localName ) );
 
@@ -1043,7 +1060,7 @@ static const char *R_LoadImage( const char *name, byte **pic, int *width, int *h
 
 	// Try and find a suitable match using all
 	// the image formats supported
-	for ( i = 0; i < numImageLoaders; i++ )
+	for ( i = 1; i < numImageLoaders; i++ )
 	{
 		if ( i == orgLoader )
 			continue;

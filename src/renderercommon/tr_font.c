@@ -149,7 +149,7 @@ static FT_Bitmap *R_RenderGlyph(FT_GlyphSlot glyph, glyphInfo_t* glyphOut) {
 	return NULL;
 }
 
-static void WriteTGA( char *filename, byte *data, int width, int height ) {
+static void WriteTGA( const char *filename, byte *data, int width, int height ) {
 	byte    *buffer;
 	int i, c;
 
@@ -548,3 +548,30 @@ void R_DoneFreeType(void) {
 	registeredFontCount = 0;
 }
 
+void R_FontList_f(void) {
+	const fontInfo_t *font;
+	int i, count = 0;
+	const char *match;
+
+	if ( Cmd_Argc() > 1 ) {
+		match = Cmd_Argv( 1 );
+	} else {
+		match = NULL;
+	}
+
+	ri.Printf (PRINT_ALL, S_COLOR_YELLOW "-----------------------------\n");
+
+	for( i = 0; i < registeredFontCount; i++ ) {
+		font = &registeredFont[i];
+
+		if ( match && !Com_Filter( match, font->name ) ) {
+			continue;
+		}
+		count++;
+		ri.Printf( PRINT_ALL, S_COLOR_YELLOW "> %s\n", font->name );
+	}
+	if ( match && count > 0 && count != registeredFontCount )
+		ri.Printf( PRINT_ALL, S_COLOR_YELLOW "%i fonts found\n", count );
+	ri.Printf( PRINT_ALL, S_COLOR_YELLOW "%i total registered fonts\n", registeredFontCount );
+	ri.Printf (PRINT_ALL, S_COLOR_YELLOW "-----------------------------\n");
+}

@@ -2348,6 +2348,7 @@ void R_BloomScreen( void );
 void R_InitFreeType();
 void R_DoneFreeType();
 void RE_RegisterFont( const char *fontName, int pointSize, fontInfo_t *font );
+void R_FontList_f(void);
 
 // Ridah, caching system
 // NOTE: to disable this for development, set "r_cache 0" in autoexec.cfg

@@ -1642,6 +1642,7 @@ static void R_Register( void )
 	ri.Cmd_AddCommand( "shaderlist", R_ShaderList_f );
 	ri.Cmd_AddCommand( "skinlist", R_SkinList_f );
 	ri.Cmd_AddCommand( "modellist", R_Modellist_f );
+	ri.Cmd_AddCommand( "fontlist", R_FontList_f );
 	ri.Cmd_AddCommand( "screenshot", R_ScreenShot_f );
 	ri.Cmd_AddCommand( "screenshotJPEG", R_ScreenShot_f );
 	ri.Cmd_AddCommand( "screenshotBMP", R_ScreenShot_f );
@@ -2046,6 +2047,7 @@ static void RE_Shutdown( refShutdownCode_t code ) {
 	ri.Cmd_RemoveCommand( "imagelist" );
 	ri.Cmd_RemoveCommand( "shaderlist" );
 	ri.Cmd_RemoveCommand( "skinlist" );
+	ri.Cmd_RemoveCommand( "fontlist" );
 	ri.Cmd_RemoveCommand( "gfxinfo" );
 	ri.Cmd_RemoveCommand( "shaderstate" );
 	ri.Cmd_RemoveCommand( "taginfo" );

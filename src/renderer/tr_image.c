@@ -224,8 +224,12 @@ void R_ImageList_f( void ) {
 		image = tr.images[ i ];
 
 		if ( match && !Com_Filter( match, image->imgName ) ) {
-			// Check imgName2 as well?
-			continue;
+			if ( Q_stricmp( image->imgName, image->imgName2 ) == 0 ) {
+				continue;
+			}
+			else if ( !Com_Filter( match, image->imgName2 ) ) {
+				continue;
+			}
 		}
 
 		estSize = image->uploadHeight * image->uploadWidth;
@@ -1027,7 +1031,7 @@ static const char *R_LoadImage( const char *name, byte **pic, int *width, int *h
 				// try again without the extension
 				//orgNameFailed = qtrue;
 				orgLoader = i;
-				COM_StripExtension( name, localName, MAX_QPATH );
+				COM_StripExtension( name, localName, sizeof( localName ) );
 			}
 			else
 			{

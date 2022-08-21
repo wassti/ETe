@@ -2167,7 +2167,7 @@ void R_Modellist_f( void ) {
 				lods++;
 			}
 		}
-		ri.Printf( PRINT_ALL, "%8i : (%i) %s\n",mod->dataSize, lods, mod->name );
+		ri.Printf( PRINT_ALL, "%8i : (%i) %s\n", mod->dataSize, lods, mod->name );
 		total += mod->dataSize;
 		models++;
 	}

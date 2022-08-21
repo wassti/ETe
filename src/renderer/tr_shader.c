@@ -4162,6 +4162,7 @@ static int loadShaderBuffers( char **shaderFiles, const int numShaderFiles, char
 					memmove( buffers[i], shaderStart, summand + 1 );
 				}
 			}
+			COM_FixPath( buffers[ i ] ); // ydnar: unixify all shaders (moved here)
 			//sum += summand;
 			sum += COM_Compress( buffers[ i ] );
 		}
@@ -4254,9 +4255,6 @@ static void ScanAndLoadShaderFiles( void )
 	if ( shaderFiles )
 		ri.FS_FreeFileList( shaderFiles );
 
-	//COM_Compress( s_shaderText );
-	// ydnar: unixify all shaders
-	COM_FixPath( s_shaderText );
 	Com_Memset( shaderTextHashTableSizes, 0, sizeof( shaderTextHashTableSizes ) );
 	size = 0;
 
@@ -4352,7 +4350,7 @@ static void CreateExternalShaders( void ) {
 	if(!tr.flareShader->defaultShader)
 	{
 		int index;
-		
+
 		for(index = 0; index < tr.flareShader->numUnfoggedPasses; index++)
 		{
 			tr.flareShader->stages[index]->adjustColorsForFog = ACFF_NONE;

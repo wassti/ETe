@@ -98,8 +98,9 @@ CMod_LoadShaders
 =================
 */
 static void CMod_LoadShaders( const lump_t *l ) {
-	dshader_t	*in, *out;
-	int			i, count;
+	const dshader_t	*in;
+	dshader_t		*out;
+	int				i, count;
 
 	in = (void *)(cmod_base + l->fileofs);
 	if (l->filelen % sizeof(*in)) {
@@ -131,7 +132,7 @@ CMod_LoadSubmodels
 =================
 */
 static void CMod_LoadSubmodels( const lump_t *l ) {
-	dmodel_t	*in;
+	const dmodel_t	*in;
 	cmodel_t	*out;
 	int			i, j, count;
 	int			*indexes;
@@ -189,7 +190,7 @@ CMod_LoadNodes
 =================
 */
 static void CMod_LoadNodes( const lump_t *l ) {
-	dnode_t	*in;
+	const dnode_t	*in;
 	int		child;
 	cNode_t	*out;
 	int		i, j, count;
@@ -244,7 +245,7 @@ CMod_LoadBrushes
 =================
 */
 static void CMod_LoadBrushes( const lump_t *l ) {
-	dbrush_t	*in;
+	const dbrush_t	*in;
 	cbrush_t	*out;
 	int			i, count;
 
@@ -284,7 +285,7 @@ static void CMod_LoadLeafs( const lump_t *l )
 {
 	int			i;
 	cLeaf_t		*out;
-	dleaf_t 	*in;
+	const dleaf_t 	*in;
 	int			count;
 
 	in = (void *)(cmod_base + l->fileofs);
@@ -328,7 +329,7 @@ static void CMod_LoadPlanes( const lump_t *l )
 {
 	int			i, j;
 	cplane_t	*out;
-	dplane_t 	*in;
+	const dplane_t 	*in;
 	int			count;
 	int			bits;
 
@@ -371,7 +372,7 @@ static void CMod_LoadLeafBrushes( const lump_t *l )
 {
 	int i;
 	int *out;
-	int *in;
+	const int *in;
 	int count;
 
 	in = (void *)(cmod_base + l->fileofs);
@@ -401,7 +402,7 @@ static void CMod_LoadLeafSurfaces( const lump_t *l )
 {
 	int i;
 	int *out;
-	int *in;
+	const int *in;
 	int count;
 
 	in = (void *)(cmod_base + l->fileofs);
@@ -448,7 +449,7 @@ static void CMod_LoadBrushSides( const lump_t *l )
 {
 	int				i;
 	cbrushside_t	*out;
-	dbrushside_t	*in;
+	const dbrushside_t	*in;
 	int				count;
 	int				num;
 
@@ -518,7 +519,7 @@ CMod_LoadVisibility
 #define	VIS_HEADER	8
 static void CMod_LoadVisibility( const lump_t *l ) {
 	int		len;
-	byte	*buf;
+	const byte	*buf;
 
 	len = l->filelen;
 	if ( !len ) {
@@ -547,7 +548,7 @@ CMod_LoadPatches
 #define	MAX_PATCH_VERTS		1024
 static void CMod_LoadPatches( const lump_t *surfs, const lump_t *verts ) {
 	drawVert_t	*dv, *dv_p;
-	dsurface_t	*in;
+	const dsurface_t	*in;
 	int			count;
 	int			i, j;
 	int			c;

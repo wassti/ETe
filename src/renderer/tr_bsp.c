@@ -1789,7 +1789,7 @@ R_LoadNodesAndLeafs
 */
 static void R_LoadNodesAndLeafs( const lump_t *nodeLump, const lump_t *leafLump ) {
 	int			i, j, p;
-	dnode_t		*in;
+	const dnode_t		*in;
 	dleaf_t		*inLeaf;
 	mnode_t 	*out;
 	int			numNodes, numLeafs;
@@ -1936,7 +1936,7 @@ R_LoadPlanes
 static void R_LoadPlanes( const lump_t *l ) {
 	int i, j;
 	cplane_t    *out;
-	dplane_t    *in;
+	const dplane_t 	*in;
 	int count;
 	int bits;
 
@@ -1973,9 +1973,9 @@ R_LoadFogs
 static void R_LoadFogs( const lump_t *l, const lump_t *brushesLump, const lump_t *sidesLump ) {
 	int i, j;
 	fog_t       *out;
-	dfog_t      *fogs;
-	dbrush_t    *brushes, *brush;
-	dbrushside_t    *sides;
+	const dfog_t		*fogs;
+	const dbrush_t 	*brushes, *brush;
+	const dbrushside_t	*sides;
 	int count, brushesCount, sidesCount;
 	int sideNum;
 	int planeNum;

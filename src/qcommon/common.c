@@ -58,7 +58,7 @@ const int demo_protocols[] = { OLD_PROTOCOL_VERSION, NEW_PROTOCOL_VERSION, 0 };
 #define DEF_COMZONEMEGS		25
 #endif
 
-#define ETLEGACY_VERSION	280020047
+#define ETLEGACY_VERSION	280020089
 
 static jmp_buf abortframe;	// an ERR_DROP occurred, exit the entire frame
 
@@ -3056,7 +3056,9 @@ void Com_ExecuteCfg(qboolean safeMode)
 			if ( !cl_profileStr[0] ) {
 				char *defaultProfile = NULL;
 
+				FS_BypassPure();
 				FS_ReadFile( "profiles/defaultprofile.dat", (void **)&defaultProfile );
+				FS_RestorePure();
 
 				if ( defaultProfile ) {
 					const char *text_p = defaultProfile;
@@ -3175,6 +3177,10 @@ void Com_GameRestart( int checksumFeed, qboolean clientRestart )
 		currentGameMod = FS_GetGameMod();
 		if ( currentGameMod == GAMEMOD_UNKNOWN ) {
 			Com_Printf( "Detected unknown mod: \"%s\", please report to ETe developers\n", FS_GetCurrentGameDir() );
+		}
+		else if ( currentGameMod == GAMEMOD_LEGACY ) {
+			Com_Printf( S_COLOR_YELLOW "The ET:Legacy mod is considered experimental with this engine\n"
+									"Not all ET:Legacy features may be functional\n" );
 		}
 
 		if ( clientRestart && !com_dedicated->integer ) {
@@ -3827,6 +3833,10 @@ void Com_Init( char *commandLine ) {
 	currentGameMod = FS_GetGameMod();
 	if ( currentGameMod == GAMEMOD_UNKNOWN ) {
 		Com_Printf( S_COLOR_YELLOW "Detected unknown mod: \"%s\", please report to ETe developers\n", FS_GetCurrentGameDir() );
+	}
+	else if ( currentGameMod == GAMEMOD_LEGACY ) {
+		Com_Printf( S_COLOR_YELLOW "The ET:Legacy mod is considered experimental with this engine\n"
+									"Not all ET:Legacy features may be functional\n" );
 	}
 
 	// override anything from the config files with command line args

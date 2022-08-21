@@ -875,7 +875,7 @@ void MSG_WriteDeltaEntity( msg_t *msg, const entityState_t *from, const entitySt
 
 		if ( field->bits == 0 ) {
 			// float
-			fullFloat = *(float *)toF;
+			fullFloat = *(const float *)toF;
 			trunc = (int)fullFloat;
 
 			if ( fullFloat == 0.0f ) {
@@ -1005,7 +1005,7 @@ void MSG_ReadDeltaEntity( msg_t *msg, const entityState_t *from, entityState_t *
 #endif
 
 	for ( i = 0, field = entityStateFields ; i < lc ; i++, field++ ) {
-		fromF = (int *)( (byte *)from + field->offset );
+		fromF = (const int *)( (const byte *)from + field->offset );
 		toF = (int *)( (byte *)to + field->offset );
 
 		if ( ! MSG_ReadBits( msg, 1 ) ) {
@@ -1214,8 +1214,8 @@ void MSG_WriteDeltaPlayerstate( msg_t *msg, const playerState_t *from, const pla
 
 	lc = 0;
 	for ( i = 0, field = playerStateFields ; i < numFields ; i++, field++ ) {
-		fromF = ( int * )( (byte *)from + field->offset );
-		toF = ( int * )( (byte *)to + field->offset );
+		fromF = (const int *)( (byte *)from + field->offset );
+		toF = (const int *)( (byte *)to + field->offset );
 		if ( *fromF != *toF ) {
 			lc = i + 1;
 		}
@@ -1224,8 +1224,8 @@ void MSG_WriteDeltaPlayerstate( msg_t *msg, const playerState_t *from, const pla
 	MSG_WriteByte( msg, lc );   // # of changes
 
 	for ( i = 0, field = playerStateFields ; i < lc ; i++, field++ ) {
-		fromF = ( int * )( (byte *)from + field->offset );
-		toF = ( int * )( (byte *)to + field->offset );
+		fromF = (const int *)( (byte *)from + field->offset );
+		toF = (const int *)( (byte *)to + field->offset );
 
 		if ( *fromF == *toF ) {
 			wastedbits++;
@@ -1239,7 +1239,7 @@ void MSG_WriteDeltaPlayerstate( msg_t *msg, const playerState_t *from, const pla
 
 		if ( field->bits == 0 ) {
 			// float
-			fullFloat = *(float *)toF;
+			fullFloat = *(const float *)toF;
 			trunc = (int)fullFloat;
 
 			if ( trunc == fullFloat && trunc + FLOAT_INT_BIAS >= 0 &&

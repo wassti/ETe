@@ -926,7 +926,8 @@ demo <demoname>
 */
 static void CL_PlayDemo_f( void ) {
 	char		name[MAX_OSPATH];
-	char		*arg, *ext_test;
+	const char		*arg;
+	char		*ext_test;
 	int			protocol, i;
 	char		retry[MAX_OSPATH];
 	const char	*shortname, *slash;
@@ -1639,7 +1640,7 @@ static void CL_Connect_f( void ) {
 	netadr_t	addr;
 	char	buffer[ sizeof( cls.servername ) ];  // same length as cls.servername
 	char	args[ sizeof( cls.servername ) + MAX_CVAR_VALUE_STRING ];
-	char	*server;
+	const char	*server;
 	const char	*serverString;
 	int		len;
 	int		argc;
@@ -1688,8 +1689,8 @@ static void CL_Connect_f( void ) {
 	}
 
 	// some programs may add ending slash
-	if ( server[len-1] == '/' ) {
-		server[len-1] = '\0';
+	if ( buffer[len-1] == '/' ) {
+		buffer[len-1] = '\0';
 	}
 
 	if ( !*server ) {
@@ -4171,7 +4172,7 @@ static void CL_StopVideo_f( void )
 
 /*
 ====================
-CL_CompleteRecordName
+CL_CompleteVideoName
 ====================
 */
 static void CL_CompleteVideoName( char *args, int argNum )
@@ -5488,7 +5489,7 @@ CL_Ping_f
 static void CL_Ping_f( void ) {
 	netadr_t	to;
 	ping_t*		pingptr;
-	char*		server;
+	const char*		server;
 	int			argc;
 	netadrtype_t	family = NA_UNSPEC;
 
@@ -5648,7 +5649,7 @@ CL_ServerStatus_f
 */
 static void CL_ServerStatus_f( void ) {
 	netadr_t	to, *toptr = NULL;
-	char		*server;
+	const char		*server;
 	serverStatus_t *serverStatus;
 	int			argc;
 	netadrtype_t	family = NA_UNSPEC;

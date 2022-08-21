@@ -1882,7 +1882,6 @@ typedef struct {
 // real time
 //=============================================
 
-
 typedef struct qtime_s {
 	int tm_sec;     /* seconds after the minute - [0,59] */
 	int tm_min;     /* minutes after the hour - [0,59] */
@@ -1911,16 +1910,6 @@ typedef enum {
 	FMV_LOOPED,
 	FMV_ID_WAIT
 } e_status;
-
-typedef enum _flag_status {
-	FLAG_ATBASE = 0,
-	FLAG_TAKEN,         // CTF
-	FLAG_TAKEN_RED,     // One Flag CTF
-	FLAG_TAKEN_BLUE,    // One Flag CTF
-	FLAG_DROPPED
-} flagStatus_t;
-
-
 
 #define MAX_GLOBAL_SERVERS          4096
 #define MAX_OTHER_SERVERS           128

@@ -1678,7 +1678,7 @@ CL_PlayCinematic_f
 ==============
 */
 void CL_PlayCinematic_f( void ) {
-	char    *arg, *s;
+	const char	*arg, *s;
 	int bits = CIN_system;
 
 	// Arnout: don't allow this while on server

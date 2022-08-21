@@ -1251,7 +1251,7 @@ void VKimp_Shutdown( qboolean unloadDLL )
 /*
 ** GLimp_LogComment
 */
-void GLimp_LogComment( char *comment )
+void GLimp_LogComment( const char *comment )
 {
 	if ( glw_state.log_fp )
 	{
@@ -1613,6 +1613,8 @@ int GLW_SetMode( int mode, const char *modeFS, qboolean fullscreen, qboolean vul
 	window_height = actualHeight;
 
 	glw_state.cdsFullscreen = fullscreen;
+
+	config->displayFrequency = actualRate;
 
 	/* window attributes */
 	memset( &attr, 0, sizeof( attr ) );

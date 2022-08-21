@@ -202,7 +202,7 @@ R_ImageList_f
 void R_ImageList_f( void ) {
 	const image_t *image;
 	int i, estTotalSize = 0;
-	char *name, buf[MAX_QPATH*2 + 5];
+	char *name, buf[MAX_QPATH*2 + 7];
 	const char *match;
 	int matchCount = 0;
 

@@ -308,6 +308,7 @@ set(renderer_files
     "renderercommon/tr_image_jpg.c"
     "renderercommon/tr_image_pcx.c"
     "renderercommon/tr_image_png.c"
+    "renderercommon/tr_image_svg.c"
     "renderercommon/tr_image_tga.c"
     "renderer/tr_init.c"
     "renderer/tr_light.c"

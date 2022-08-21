@@ -212,6 +212,7 @@
     <ClCompile Include="..\..\renderercommon\tr_image_jpg.c" />
     <ClCompile Include="..\..\renderercommon\tr_image_pcx.c" />
     <ClCompile Include="..\..\renderercommon\tr_image_png.c" />
+    <ClCompile Include="..\..\renderercommon\tr_image_svg.c" />
     <ClCompile Include="..\..\renderercommon\tr_image_tga.c" />
     <ClCompile Include="..\..\renderer\tr_init.c" />
     <ClCompile Include="..\..\renderer\tr_light.c" />
@@ -233,6 +234,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\renderercommon\tr_types.h" />
+    <ClInclude Include="..\..\renderercommon\nanosvg\nanosvg.h" />
+    <ClInclude Include="..\..\renderercommon\nanosvg\nanosvgrast.h" />
     <ClInclude Include="..\..\qcommon\puff.h" />
     <ClInclude Include="..\..\qcommon\q_shared.h" />
     <ClInclude Include="..\..\game\surfaceflags.h" />

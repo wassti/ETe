@@ -931,32 +931,29 @@ void R_ComputeColors( const shaderStage_t *pStage )
 		}
 		break;
 	case AGEN_PORTAL:
-	{
-		unsigned char alpha;
-
-		for ( i = 0; i < tess.numVertexes; i++ )
 		{
-			float len;
-			vec3_t v;
-
-			VectorSubtract( tess.xyz[i], backEnd.viewParms.orientation.origin, v );
-			len = VectorLength( v );
-
-			len /= tess.shader->portalRange;
-
-			if ( len < 0 ) {
-				alpha = 0;
-			} else if ( len > 1 )   {
-				alpha = 0xff;
-			} else
+			for ( i = 0; i < tess.numVertexes; i++ )
 			{
-				alpha = len * 0xff;
-			}
+				unsigned char alpha;
+				float len;
+				vec3_t v;
 
-			tess.svars.colors[i][3] = alpha;
+				VectorSubtract( tess.xyz[i], backEnd.viewParms.orientation.origin, v );
+				len = VectorLength( v ) * tess.shader->portalRangeR;
+
+				if ( len > 1 )
+				{
+					alpha = 0xff;
+				}
+				else
+				{
+					alpha = len * 0xff;
+				}
+
+				tess.svars.colors[i][3] = alpha;
+			}
 		}
-	}
-	break;
+		break;
 	}
 
 	//

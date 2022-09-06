@@ -390,7 +390,7 @@ typedef struct shader_s {
 	fogParms_t fogParms;
 
 	float portalRange;                  // distance to fog out at
-
+	float portalRangeR;
 	vec4_t distanceCull;                // ydnar: opaque alpha range for foliage (inner, outer, alpha threshold, 1/(outer-inner))
 
 	qboolean	multitextureEnv;		// if shader has multitexture stage(s)

@@ -74,6 +74,7 @@ VM_Init
 */
 void VM_Init( void ) {
 	Cmd_AddCommand( "vminfo", VM_VmInfo_f );
+	Cmd_SetModule( "vminfo", MODULE_COMMON );
 
 	Com_Memset( vmTable, 0, sizeof( vmTable ) );
 }

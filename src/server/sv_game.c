@@ -700,6 +700,13 @@ static intptr_t QDECL SV_DllSyscall( intptr_t arg, ... ) {
 }
 
 
+void SV_CompleteMapName( char *args, int argNum );
+static const cmdListItem_t etf_cmds[] = {
+	{ "etfdevmap", NULL, SV_CompleteMapName },
+	{ "etfmap", NULL, SV_CompleteMapName }
+};
+
+
 /*
 ===============
 SV_ShutdownGameProgs
@@ -708,6 +715,11 @@ Called every time a map changes
 ===============
 */
 void SV_ShutdownGameProgs( void ) {
+	// Even if you use game_restart on server, this will still be true.
+	// currentGameMod updates after shutdown
+	if ( currentGameMod == GAMEMOD_ETF ) {
+		Cmd_UnregisterArray( etf_cmds );
+	}
 	if ( !gvm ) {
 		return;
 	}
@@ -717,10 +729,10 @@ void SV_ShutdownGameProgs( void ) {
 	VM_Call( gvm, 1, GAME_SHUTDOWN, qfalse );
 	VM_Free( gvm );
 	gvm = NULL;
+	Cmd_UnregisterModule( MODULE_SGAME );
 	FS_VM_CloseFiles( H_QAGAME );
 }
 
-void SV_CompleteMapName( char *args, int argNum );
 
 /*
 ==================
@@ -742,20 +754,17 @@ static void SV_InitGameVM( qboolean restart ) {
 	for ( i = 0 ; i < sv_maxclients->integer ; i++ ) {
 		svs.clients[i].gentity = NULL;
 	}
-	
+
+	if ( currentGameMod == GAMEMOD_ETF ) {
+		Cmd_RegisterArray( etf_cmds, MODULE_SERVER );
+	}
+
 	// use the current msec count for a random seed
 	// init for this gamestate
 	if ( currentGameMod == GAMEMOD_LEGACY )
 		VM_Call( gvm, 5, GAME_INIT, sv.time, Com_Milliseconds(), restart, qtrue, com_legacyVersion->integer );
 	else
 		VM_Call( gvm, 3, GAME_INIT, sv.time, Com_Milliseconds(), restart );
-
-	if ( currentGameMod == GAMEMOD_ETF ) {
-		Cmd_AddCommand( "etfmap", NULL );
-		Cmd_AddCommand( "etfdevmap", NULL );
-		Cmd_SetCommandCompletionFunc( "etfmap", SV_CompleteMapName );
-		Cmd_SetCommandCompletionFunc( "etfdevmap", SV_CompleteMapName );
-	}
 }
 
 

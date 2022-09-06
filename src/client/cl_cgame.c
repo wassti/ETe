@@ -36,6 +36,36 @@ extern void startCamera( int camNum, int time );
 extern qboolean getCameraInfo( int camNum, int time, vec3_t *origin, vec3_t *angles, float *fov );
 #endif
 
+static void CL_Callvote_f( void ) {
+	CL_ForwardCommandToServer( Cmd_Cmd() );
+}
+
+static void CL_CompleteCallvote( char *args, int argNum ) {
+	if( argNum >= 2 )
+	{
+		if ( argNum == 3 && !Q_stricmp( Cmd_Argv( 1 ), "map" ) ) {
+			if ( cl_connectedToPureServer ) {
+				Field_CompleteFilename( "maps", "bsp", qtrue, FS_MATCH_PK3s | FS_MATCH_STICK );
+			} else {
+				Field_CompleteFilename( "maps", "bsp", qtrue, FS_MATCH_ANY | FS_MATCH_STICK );
+			}
+			return;
+		}
+
+		// Skip "callvote "
+		char *p = Com_SkipTokens( args, 1, " " );
+
+		if ( p > args )
+			Field_CompleteCommand( p, qtrue, qtrue );
+	}
+}
+
+static const cmdListItem_t cl_cmds[] = {
+	//{ "cv", CL_Callvote_f, CL_CompleteCallvote },
+	{ "callvote", CL_Callvote_f, CL_CompleteCallvote },
+	{ "locations", NULL, NULL }
+};
+
 /*
 ====================
 CL_GetGameState
@@ -198,15 +228,6 @@ static void CL_SetClientLerpOrigin( float x, float y, float z ) {
 	cl.cgameClientLerpOrigin[0] = x;
 	cl.cgameClientLerpOrigin[1] = y;
 	cl.cgameClientLerpOrigin[2] = z;
-}
-
-/*
-==============
-CL_AddCgameCommand
-==============
-*/
-static void CL_AddCgameCommand( const char *cmdName ) {
-	Cmd_AddCommand( cmdName, NULL );
 }
 
 
@@ -555,6 +576,7 @@ CL_ShutdonwCGame
 void CL_ShutdownCGame( void ) {
 	Key_SetCatcher( Key_GetCatcher( ) & ~KEYCATCH_CGAME );
 	cls.cgameStarted = qfalse;
+	Cmd_UnregisterArray( cl_cmds );
 	if ( !cgvm ) {
 		return;
 	}
@@ -562,6 +584,7 @@ void CL_ShutdownCGame( void ) {
 	VM_Call( cgvm, 0, CG_SHUTDOWN );
 	VM_Free( cgvm );
 	cgvm = NULL;
+	Cmd_UnregisterModule( MODULE_CGAME );
 	FS_VM_CloseFiles( H_CGAME );
 }
 
@@ -708,7 +731,8 @@ static intptr_t CL_CgameSystemCalls( intptr_t *args ) {
 		}
 		return 0;
 	case CG_ADDCOMMAND:
-		CL_AddCgameCommand( VMA(1) );
+		Cmd_AddCommand( VMA(1), NULL );
+		Cmd_SetModule( VMA(1), MODULE_CGAME );
 		return 0;
 	case CG_REMOVECOMMAND:
 		Cmd_RemoveCommandSafe( VMA(1) );
@@ -1304,14 +1328,16 @@ void CL_InitCGame( void ) {
 	}
 	cls.state = CA_LOADING;
 
+	Cmd_RegisterArray( cl_cmds, MODULE_CLIENT );
+
+	// init for this gamestate
+	// use the lastExecutedServerCommand instead of the serverCommandSequence
+	// otherwise server commands sent just before a gamestate are dropped
+	//bani - added clc.demoplaying, since some mods need this at init time, and drawactiveframe is too late for them
 	if ( currentGameMod == GAMEMOD_LEGACY ) {
 		VM_Call( cgvm, 7, CG_INIT, clc.serverMessageSequence, clc.lastExecutedServerCommand, clc.clientNum, clc.demoplaying, qtrue, NULL, com_legacyVersion->integer );
 	}
 	else {
-		// init for this gamestate
-		// use the lastExecutedServerCommand instead of the serverCommandSequence
-		// otherwise server commands sent just before a gamestate are dropped
-		//bani - added clc.demoplaying, since some mods need this at init time, and drawactiveframe is too late for them
 		VM_Call( cgvm, 4, CG_INIT, clc.serverMessageSequence, clc.lastExecutedServerCommand, clc.clientNum, clc.demoplaying );
 	}
 

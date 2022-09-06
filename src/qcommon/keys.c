@@ -1294,12 +1294,71 @@ static void Key_Bindlist_f( void ) {
 }
 
 
+// Helper function for Key_BindKeyList_f
+// returns qtrue when the key should be printed
+// currently that means AUX# keys are skipped
+static qboolean Key_IsPrintedKeyName( const char* n ) {
+	return ( strstr( n, "AUX" ) != n );
+}
+
+
+/*
+============
+Key_BindKeyList_f
+
+Prints the list of key names usable with /bind
+TODOD non-english
+============
+*/
+void Key_BindKeyList_f( void ) {
+	// the keynames array ends with a "NULL" entry
+	const int count = ARRAY_LEN(keynames) - 1;
+
+	int maxLength = 0;
+	int keyIdx, colIdx;
+	int columnCount;
+	for ( keyIdx = 0; keyIdx < count; keyIdx++ ) {
+		const char *name = keynames[keyIdx].name;
+		if ( !name || !Key_IsPrintedKeyName( name ) )
+			continue;
+
+		maxLength = MAX( maxLength, (int)strlen( name ) );
+	}
+	columnCount = 64 / (maxLength + 1);
+
+	for ( keyIdx = 0, colIdx = 0; keyIdx < count; keyIdx++ ) {
+		const char *name = keynames[keyIdx].name;
+		if ( !name || !Key_IsPrintedKeyName( name ) )
+			continue;
+
+		if ( colIdx == 0 )
+			Com_Printf( "  " );
+
+		Com_Printf( "%s ", name );
+
+		colIdx++;
+		if ( colIdx == columnCount ) {
+			colIdx = 0;
+			Com_Printf( "\n" );
+		}
+		else
+		{
+			const int l = (int)strlen( name );
+			int i;
+			for ( i = 0; i < maxLength - l; i++ ) {
+				Com_Printf( " " );
+			}
+		}
+	}
+	Com_Printf( "\n" );
+}
+
+
 /*
 ============
 Key_KeynameCompletion
 ============
 */
-// ENSI TODO, use language specific arrays
 void Key_KeynameCompletion( void(*callback)(const char *s) ) {
 	int	i;
 
@@ -1436,6 +1495,15 @@ void Key_ParseBinding( int key, qboolean down, unsigned time, qboolean forceAll 
 }
 
 
+static const cmdListItem_t key_cmds[] = {
+	{ "bind", Key_Bind_f, Key_CompleteBind },
+	{ "unbind", Key_Unbind_f, Key_CompleteUnbind },
+	{ "unbindall", Key_Unbindall_f, NULL },
+	{ "bindlist", Key_Bindlist_f, NULL },
+	{ "bindkeylist", Key_BindKeyList_f, NULL },
+};
+
+
 /*
 ===================
 Com_InitKeyCommands
@@ -1444,10 +1512,7 @@ Com_InitKeyCommands
 void Com_InitKeyCommands( void )
 {
 	// register our functions
-	Cmd_AddCommand( "bind", Key_Bind_f );
-	Cmd_SetCommandCompletionFunc( "bind", Key_CompleteBind );
-	Cmd_AddCommand( "unbind", Key_Unbind_f );
-	Cmd_SetCommandCompletionFunc( "unbind", Key_CompleteUnbind );
-	Cmd_AddCommand( "unbindall", Key_Unbindall_f );
-	Cmd_AddCommand( "bindlist", Key_Bindlist_f );
+	// common instead of client because we have bind commands available at startup
+	// and this prevents them from being deleted at client shutdown
+	Cmd_RegisterArray( key_cmds, MODULE_COMMON );
 }

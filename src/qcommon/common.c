@@ -2200,6 +2200,18 @@ void Hunk_SmallLog( void ) {
 #endif
 
 
+static const cmdListItem_t hunk_cmds[] = {
+#ifdef HUNK_DEBUG	
+	{ "hunklog", Hunk_Log, NULL },
+	{ "hunksmalllog", Hunk_SmallLog, NULL },
+#endif
+	{ "meminfo", Com_Meminfo_f, NULL },
+#ifdef ZONE_DEBUG	
+	{ "zonelog", Z_LogHeap, NULL },
+#endif
+};
+
+
 /*
 =================
 Com_InitHunkMemory
@@ -2232,14 +2244,7 @@ static void Com_InitHunkMemory( void ) {
 	s_hunkData = PADP( s_hunkData, 64 );
 	Hunk_Clear();
 
-	Cmd_AddCommand( "meminfo", Com_Meminfo_f );
-#ifdef ZONE_DEBUG
-	Cmd_AddCommand( "zonelog", Z_LogHeap );
-#endif
-#ifdef HUNK_DEBUG
-	Cmd_AddCommand( "hunklog", Hunk_Log );
-	Cmd_AddCommand( "hunksmalllog", Hunk_SmallLog );
-#endif
+	Cmd_RegisterArray( hunk_cmds, MODULE_COMMON );
 }
 
 
@@ -2983,6 +2988,7 @@ Just throw a fatal error to
 test error shutdown procedures
 =============
 */
+#ifdef _DEBUG
 static void NORETURN Com_Error_f (void) {
 	if ( Cmd_Argc() > 1 ) {
 		Com_Error( ERR_DROP, "Testing drop error" );
@@ -3003,6 +3009,10 @@ error recovery
 static void Com_Freeze_f( void ) {
 	int		s;
 	int		start, now;
+
+	if ( !com_developer || !com_developer->integer ) {
+		return;
+	}
 
 	if ( Cmd_Argc() != 2 ) {
 		Com_Printf( "freeze <seconds>\n" );
@@ -3029,8 +3039,13 @@ A way to force a bus error for development reasons
 =================
 */
 static void Com_Crash_f( void ) {
+	if ( !com_developer || !com_developer->integer ) {
+		return;
+	}
+
 	* ( volatile int * ) 0 = 0x12345678;
 }
+#endif
 
 
 /*
@@ -3710,6 +3725,19 @@ void Sys_SnapVector( float *vector )
 #endif // clang/gcc/mingw
 
 
+static const cmdListItem_t com_cmds[] = {
+	{ "changeVectors", MSG_ReportChangeVectors_f, NULL },
+#ifdef _DEBUG
+	{ "crash", Com_Crash_f, NULL },
+	{ "error", Com_Error_f, NULL },
+	{ "freeze", Com_Freeze_f, NULL },
+#endif
+	{ "game_restart", Com_GameRestart_f, NULL },
+	{ "quit", Com_Quit_f, NULL },
+	{ "writeconfig", Com_WriteConfig_f, Cmd_CompleteWriteCfgName },
+};
+
+
 /*
 =================
 Com_Init
@@ -3934,17 +3962,7 @@ void Com_Init( char *commandLine ) {
 		gw_minimized = qfalse;
 	}
 
-	if ( com_developer->integer ) {
-		Cmd_AddCommand( "error", Com_Error_f );
-		Cmd_AddCommand( "crash", Com_Crash_f );
-		Cmd_AddCommand( "freeze", Com_Freeze_f );
-	}
-
-	Cmd_AddCommand( "quit", Com_Quit_f );
-	Cmd_AddCommand( "changeVectors", MSG_ReportChangeVectors_f );
-	Cmd_AddCommand( "writeconfig", Com_WriteConfig_f );
-	Cmd_SetCommandCompletionFunc( "writeconfig", Cmd_CompleteWriteCfgName );
-	Cmd_AddCommand( "game_restart", Com_GameRestart_f );
+	Cmd_RegisterArray( com_cmds, MODULE_COMMON );
 
 	s = va( "%s %s %s", Q3_VERSION, PLATFORM_STRING, __DATE__ );
 	com_version = Cvar_Get( "version", s, CVAR_PROTECTED | CVAR_ROM | CVAR_SERVERINFO );
@@ -4801,6 +4819,50 @@ void Field_CompleteFilename( const char *dir, const char *ext, qboolean stripExt
 
 	if ( !Field_Complete() )
 		FS_FilenameCompletion( dir, ext, stripExt, PrintMatches, flags );
+}
+
+
+static void StringListCompletion( const char **strings, int numstrings, void(*callback)(const char *s) ) {
+	int	i;
+
+	for( i = 0; i < numstrings; i++ ) {
+		if ( strings[ i ] != NULL && strings[i][0] != '\0') {
+			callback( strings[i] );
+		}
+	}
+}
+
+
+void Field_CompleteStringList( const char **strings, int numstrings )
+{
+	matchCount = 0;
+	shortestMatch[ 0 ] = '\0';
+
+	StringListCompletion( strings, numstrings, FindMatches );
+
+	if ( !Field_Complete() )
+		StringListCompletion( strings, numstrings, PrintMatches );
+}
+
+
+static void IntRangeCompletion( const int minval, const int maxval, void(*callback)(const char *s) ) {
+	int	i;
+
+	for( i = minval; i <= maxval; i++ ) {
+		callback( va("%i", i) );
+	}
+}
+
+
+void Field_CompleteIntRange( const int minval, const int maxval )
+{
+	matchCount = 0;
+	shortestMatch[ 0 ] = '\0';
+
+	IntRangeCompletion( minval, maxval, FindMatches );
+
+	if ( !Field_Complete() )
+		IntRangeCompletion( minval, maxval, PrintMatches );
 }
 
 

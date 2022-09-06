@@ -1004,6 +1004,61 @@ void CL_SendCmd( void ) {
 	CL_WritePacket();
 }
 
+static const cmdListItem_t input_cmds[] = {
+	{ "-activate", IN_ActivateUp, NULL },
+	{ "-attack", IN_Button0Up, NULL },
+	{ "-attack2", IN_Wbutton0Up, NULL },
+	{ "-back", IN_BackUp, NULL },
+	{ "-button1", IN_Button1Up, NULL },
+	{ "-button4", IN_Button4Up, NULL },
+	{ "-forward", IN_ForwardUp, NULL },
+	{ "-leanleft", IN_LeanLeftUp, NULL },
+	{ "-leanright", IN_LeanRightUp, NULL },
+	{ "-left", IN_LeftUp, NULL },
+	{ "-lookdown", IN_LookdownUp, NULL },
+	{ "-lookup", IN_LookupUp, NULL },
+	{ "-mlook", IN_MLookUp, NULL },
+	{ "-movedown", IN_DownUp, NULL },
+	{ "-moveleft", IN_MoveleftUp, NULL },
+	{ "-moveright", IN_MoverightUp, NULL },
+	{ "-moveup", IN_UpUp, NULL },
+	{ "-prone", IN_ProneUp, NULL },
+	{ "-reload", IN_ReloadUp, NULL },
+	{ "-right", IN_RightUp, NULL },
+	{ "-salute", IN_Button3Up, NULL },
+	{ "-speed", IN_SpeedUp, NULL },
+	{ "-sprint", IN_SprintUp, NULL },
+	{ "-strafe", IN_StrafeUp, NULL },
+	{ "-useitem", IN_UseItemUp, NULL },
+	{ "-zoom", IN_ZoomUp, NULL },
+	{ "+activate", IN_ActivateDown, NULL },
+	{ "+attack", IN_Button0Down, NULL },
+	{ "+attack2", IN_Wbutton0Down, NULL },
+	{ "+back", IN_BackDown, NULL },
+	{ "+button1", IN_Button1Down, NULL },
+	{ "+button4", IN_Button4Down, NULL },
+	{ "+forward", IN_ForwardDown, NULL },
+	{ "+leanleft", IN_LeanLeftDown, NULL },
+	{ "+leanright", IN_LeanRightDown, NULL },
+	{ "+left", IN_LeftDown, NULL },
+	{ "+lookdown", IN_LookdownDown, NULL },
+	{ "+lookup", IN_LookupDown, NULL },
+	{ "+mlook", IN_MLookDown, NULL },
+	{ "+movedown", IN_DownDown, NULL },
+	{ "+moveleft", IN_MoveleftDown, NULL },
+	{ "+moveright", IN_MoverightDown, NULL },
+	{ "+moveup", IN_UpDown, NULL },
+	{ "+prone", IN_ProneDown, NULL },
+	{ "+reload", IN_ReloadDown , NULL },
+	{ "+right", IN_RightDown, NULL },
+	{ "+salute", IN_Button3Down, NULL },
+	{ "+speed", IN_SpeedDown, NULL },
+	{ "+sprint", IN_SprintDown, NULL },
+	{ "+strafe", IN_StrafeDown, NULL },
+	{ "+useitem", IN_UseItemDown, NULL },
+	{ "+zoom", IN_ZoomDown, NULL },
+};
+
 
 /*
 ============
@@ -1011,85 +1066,7 @@ CL_InitInput
 ============
 */
 void CL_InitInput( void ) {
-//	Cmd_AddCommand ("centerview",IN_CenterView);	// this is an exploit nowadays
-
-	Cmd_AddCommand( "+moveup",IN_UpDown );
-	Cmd_AddCommand( "-moveup",IN_UpUp );
-	Cmd_AddCommand( "+movedown",IN_DownDown );
-	Cmd_AddCommand( "-movedown",IN_DownUp );
-	Cmd_AddCommand( "+left",IN_LeftDown );
-	Cmd_AddCommand( "-left",IN_LeftUp );
-	Cmd_AddCommand( "+right",IN_RightDown );
-	Cmd_AddCommand( "-right",IN_RightUp );
-	Cmd_AddCommand( "+forward",IN_ForwardDown );
-	Cmd_AddCommand( "-forward",IN_ForwardUp );
-	Cmd_AddCommand( "+back",IN_BackDown );
-	Cmd_AddCommand( "-back",IN_BackUp );
-	Cmd_AddCommand( "+lookup", IN_LookupDown );
-	Cmd_AddCommand( "-lookup", IN_LookupUp );
-	Cmd_AddCommand( "+lookdown", IN_LookdownDown );
-	Cmd_AddCommand( "-lookdown", IN_LookdownUp );
-	Cmd_AddCommand( "+strafe", IN_StrafeDown );
-	Cmd_AddCommand( "-strafe", IN_StrafeUp );
-	Cmd_AddCommand( "+moveleft", IN_MoveleftDown );
-	Cmd_AddCommand( "-moveleft", IN_MoveleftUp );
-	Cmd_AddCommand( "+moveright", IN_MoverightDown );
-	Cmd_AddCommand( "-moveright", IN_MoverightUp );
-	Cmd_AddCommand( "+speed", IN_SpeedDown );
-	Cmd_AddCommand( "-speed", IN_SpeedUp );
-
-	Cmd_AddCommand( "+attack", IN_Button0Down );   // ---- id   (primary firing)
-	Cmd_AddCommand( "-attack", IN_Button0Up );
-//	Cmd_AddCommand ("+button0", IN_Button0Down);
-//	Cmd_AddCommand ("-button0", IN_Button0Up);
-
-	Cmd_AddCommand( "+button1", IN_Button1Down );
-	Cmd_AddCommand( "-button1", IN_Button1Up );
-
-	Cmd_AddCommand( "+useitem", IN_UseItemDown );
-	Cmd_AddCommand( "-useitem", IN_UseItemUp );
-
-	Cmd_AddCommand( "+salute",   IN_Button3Down ); //----(SA) salute
-	Cmd_AddCommand( "-salute",   IN_Button3Up );
-//	Cmd_AddCommand ("+button3", IN_Button3Down);
-//	Cmd_AddCommand ("-button3", IN_Button3Up);
-
-	Cmd_AddCommand( "+button4", IN_Button4Down );
-	Cmd_AddCommand( "-button4", IN_Button4Up );
-	//Cmd_AddCommand ("+button5", IN_Button5Down);
-	//Cmd_AddCommand ("-button5", IN_Button5Up);
-
-	//Cmd_AddCommand ("+button6", IN_Button6Down);
-	//Cmd_AddCommand ("-button6", IN_Button6Up);
-
-	// Rafael Activate
-	Cmd_AddCommand( "+activate", IN_ActivateDown );
-	Cmd_AddCommand( "-activate", IN_ActivateUp );
-	// done.
-
-	// Rafael Kick
-	// Arnout: now prone
-	Cmd_AddCommand( "+prone", IN_ProneDown );
-	Cmd_AddCommand( "-prone", IN_ProneUp );
-	// done
-
-	Cmd_AddCommand( "+sprint", IN_SprintDown );
-	Cmd_AddCommand( "-sprint", IN_SprintUp );
-
-	// wolf buttons
-	Cmd_AddCommand( "+attack2",      IN_Wbutton0Down );   //----(SA) secondary firing
-	Cmd_AddCommand( "-attack2",      IN_Wbutton0Up );
-	Cmd_AddCommand( "+zoom",     IN_ZoomDown );       //
-	Cmd_AddCommand( "-zoom",     IN_ZoomUp );
-	Cmd_AddCommand( "+reload",       IN_ReloadDown );     //
-	Cmd_AddCommand( "-reload",       IN_ReloadUp );
-	Cmd_AddCommand( "+leanleft", IN_LeanLeftDown );
-	Cmd_AddCommand( "-leanleft", IN_LeanLeftUp );
-	Cmd_AddCommand( "+leanright",    IN_LeanRightDown );
-	Cmd_AddCommand( "-leanright",    IN_LeanRightUp );
-
-	Cmd_AddCommand( "+mlook", IN_MLookDown );
-	Cmd_AddCommand( "-mlook", IN_MLookUp );
+	Cmd_RegisterArray( input_cmds, MODULE_INPUT );
 
 	cl_nodelta = Cvar_Get( "cl_nodelta", "0", CVAR_DEVELOPER );
 	cl_debugMove = Cvar_Get( "cl_debugMove", "0", 0 );
@@ -1166,56 +1143,5 @@ CL_ShutdownInput
 ============
 */
 void CL_ShutdownInput( void ) {
-	Cmd_RemoveCommand ("+moveup");
-	Cmd_RemoveCommand ("-moveup");
-	Cmd_RemoveCommand ("+movedown");
-	Cmd_RemoveCommand ("-movedown");
-	Cmd_RemoveCommand ("+left");
-	Cmd_RemoveCommand ("-left");
-	Cmd_RemoveCommand ("+right");
-	Cmd_RemoveCommand ("-right");
-	Cmd_RemoveCommand ("+forward");
-	Cmd_RemoveCommand ("-forward");
-	Cmd_RemoveCommand ("+back");
-	Cmd_RemoveCommand ("-back");
-	Cmd_RemoveCommand ("+lookup");
-	Cmd_RemoveCommand ("-lookup");
-	Cmd_RemoveCommand ("+lookdown");
-	Cmd_RemoveCommand ("-lookdown");
-	Cmd_RemoveCommand ("+strafe");
-	Cmd_RemoveCommand ("-strafe");
-	Cmd_RemoveCommand ("+moveleft");
-	Cmd_RemoveCommand ("-moveleft");
-	Cmd_RemoveCommand ("+moveright");
-	Cmd_RemoveCommand ("-moveright");
-	Cmd_RemoveCommand ("+speed");
-	Cmd_RemoveCommand ("-speed");
-	Cmd_RemoveCommand ("+attack");
-	Cmd_RemoveCommand ("-attack");
-	Cmd_RemoveCommand( "+button1");
-	Cmd_RemoveCommand( "-button1");
-	Cmd_RemoveCommand( "+useitem");
-	Cmd_RemoveCommand( "-useitem");
-	Cmd_RemoveCommand( "+salute");
-	Cmd_RemoveCommand( "-salute");
-	Cmd_RemoveCommand( "+button4");
-	Cmd_RemoveCommand( "-button4");
-	Cmd_RemoveCommand( "+activate");
-	Cmd_RemoveCommand( "-activate");
-	Cmd_RemoveCommand( "+prone");
-	Cmd_RemoveCommand( "-prone");
-	Cmd_RemoveCommand( "+sprint");
-	Cmd_RemoveCommand( "-sprint");
-	Cmd_RemoveCommand( "+attack2");
-	Cmd_RemoveCommand( "-attack2");
-	Cmd_RemoveCommand( "+zoom");
-	Cmd_RemoveCommand( "-zoom");
-	Cmd_RemoveCommand( "+reload");
-	Cmd_RemoveCommand( "-reload");
-	Cmd_RemoveCommand( "+leanleft");
-	Cmd_RemoveCommand( "-leanleft");
-	Cmd_RemoveCommand( "+leanright");
-	Cmd_RemoveCommand( "-leanright");
-	Cmd_RemoveCommand ("+mlook");
-	Cmd_RemoveCommand ("-mlook");
+	Cmd_UnregisterModule( MODULE_INPUT );
 }

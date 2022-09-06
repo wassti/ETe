@@ -903,8 +903,8 @@ static intptr_t CL_UISystemCalls( intptr_t *args ) {
 		return 0;
 
 	case UI_ADDCOMMAND:
-		// ENSI TODO we should keep track of these since there is no remove function
 		Cmd_AddCommand( VMA(1), NULL );
+		Cmd_SetModule( VMA(1), MODULE_UI );
 		// Check to see if mod defines any new/additional map commands
 		// Hook them up to the completion functor
 		{
@@ -1335,6 +1335,7 @@ void CL_ShutdownUI( void ) {
 	VM_Call( uivm, 0, UI_SHUTDOWN );
 	VM_Free( uivm );
 	uivm = NULL;
+	Cmd_UnregisterModule( MODULE_UI );
 	FS_VM_CloseFiles( H_Q3UI );
 }
 

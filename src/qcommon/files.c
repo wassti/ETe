@@ -362,6 +362,7 @@ static FILE*		missingFiles = NULL;
 static int FS_GetModList( char *listbuf, int bufsize );
 //static void FS_CheckIdPaks( void );
 void FS_Reload( void );
+static void FS_ListOpenFiles_f( void );
 
 
 /*
@@ -4938,6 +4939,17 @@ qboolean FS_ComparePaks( char *neededpaks, int len, qboolean dlstring ) {
 }
 
 
+static const cmdListItem_t fs_cmds[] = {
+	{ "dir", FS_Dir_f, NULL },
+	{ "fdir", FS_NewDir_f, NULL },
+	{ "fs_restart", FS_Reload, NULL },
+	{ "lsof", FS_ListOpenFiles_f, NULL },
+	{ "path", FS_Path_f, NULL },
+	{ "touchFile", FS_TouchFile_f, NULL },
+	{ "which", FS_Which_f, FS_CompleteFileName },
+};
+
+
 /*
 ================
 FS_Shutdown
@@ -5002,13 +5014,7 @@ void FS_Shutdown( qboolean closemfp )
 	fs_packCount = 0;
 	fs_dirCount = 0;
 
-	Cmd_RemoveCommand( "path" );
-	Cmd_RemoveCommand( "dir" );
-	Cmd_RemoveCommand( "fdir" );
-	Cmd_RemoveCommand( "touchFile" );
-	Cmd_RemoveCommand( "which" );
-	Cmd_RemoveCommand( "lsof" );
-	Cmd_RemoveCommand( "fs_restart" );
+	Cmd_UnregisterArray( fs_cmds );
 
 #ifdef FS_MISSING
 	if (closemfp)
@@ -5286,14 +5292,7 @@ static void FS_Startup( void ) {
 	end = Sys_Milliseconds();
 
 	// add our commands
-	Cmd_AddCommand( "path", FS_Path_f );
-	Cmd_AddCommand( "dir", FS_Dir_f );
-	Cmd_AddCommand( "fdir", FS_NewDir_f );
-	Cmd_AddCommand( "touchFile", FS_TouchFile_f );
-	Cmd_AddCommand( "lsof", FS_ListOpenFiles_f );
- 	Cmd_AddCommand( "which", FS_Which_f );
-	Cmd_SetCommandCompletionFunc( "which", FS_CompleteFileName );
-	Cmd_AddCommand( "fs_restart", FS_Reload );
+	Cmd_RegisterArray( fs_cmds, MODULE_COMMON );
 
 	// print the current search paths
 	//FS_Path_f();

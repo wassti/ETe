@@ -1094,6 +1094,26 @@ default values.
 ==========================================================
 */
 
+typedef enum module_e {
+	MODULE_NONE = 0,
+	MODULE_COMMON,
+	MODULE_SERVER,
+	MODULE_CLIENT,
+	MODULE_RENDERER,
+	MODULE_SOUND,
+	MODULE_NETWORK,
+	MODULE_INPUT,
+	//MODULE_SYSTEM,
+	//MODULE_DOWNLOAD,
+	MODULE_CONSOLE,
+	MODULE_CGAME,
+	MODULE_SGAME,
+	MODULE_UI,
+	MODULE_COUNT
+} module_t;
+
+#define CVAR_NONE 0
+
 #define CVAR_ARCHIVE        0x0001   // set to cause it to be saved to vars.rc
 								// used for system variables, not for player
 								// specific configurations

@@ -385,7 +385,9 @@ typedef struct cmd_function_s
 	struct cmd_function_s	*next;
 	char					*name;
 	xcommand_t				function;
-	completionFunc_t		complete;
+	xcommandCompFunc_t		complete;
+	module_t				init_module;
+	uint32_t				modules;
 } cmd_function_t;
 
 
@@ -714,7 +716,8 @@ void Cmd_AddCommand( const char *cmd_name, xcommand_t function ) {
 	cmd_function_t *cmd;
 
 	// fail if the command already exists
-	if ( Cmd_FindCommand( cmd_name ) )
+	cmd = Cmd_FindCommand( cmd_name );
+	if ( cmd )
 	{
 		// allow completion-only commands to be silently doubled
 		if ( function != NULL )
@@ -727,8 +730,34 @@ void Cmd_AddCommand( const char *cmd_name, xcommand_t function ) {
 	cmd->name = CopyString( cmd_name );
 	cmd->function = function;
 	cmd->complete = NULL;
-	cmd->next = cmd_functions;
-	cmd_functions = cmd;
+	cmd->init_module = MODULE_NONE;
+	cmd->modules = 0;
+
+	// add the command
+	if ( cmd_functions == NULL || Q_stricmp(cmd_functions->name, cmd_name) > 0 ) {
+		// insert as the first command
+		cmd_function_t *next = cmd_functions;
+		cmd_functions = cmd;
+		cmd->next = next;
+	} else {
+		// insert after some other command
+		cmd_function_t *curr = cmd_functions;
+		cmd_function_t *prev = cmd_functions;
+		cmd_function_t *next;
+		for (;;) {
+			if ( Q_stricmp(curr->name, cmd_name) > 0 )
+				break;
+
+			prev = curr;
+			if ( curr->next == NULL )
+				break;
+
+			curr = curr->next;
+		}
+		next = prev->next;
+		prev->next = cmd;
+		cmd->next = next;
+	}
 }
 
 
@@ -737,15 +766,20 @@ void Cmd_AddCommand( const char *cmd_name, xcommand_t function ) {
 Cmd_SetCommandCompletionFunc
 ============
 */
-void Cmd_SetCommandCompletionFunc( const char *command, completionFunc_t complete ) {
-	cmd_function_t *cmd;
+void Cmd_SetCommandCompletionFunc( const char *command, xcommandCompFunc_t complete ) {
+	cmd_function_t *cmd = Cmd_FindCommand( command );
 
-	for( cmd = cmd_functions; cmd; cmd = cmd->next ) {
-		if( !Q_stricmp( command, cmd->name ) ) {
-			cmd->complete = complete;
-			return;
-		}
+	if ( cmd ) {
+		cmd->complete = complete;
 	}
+}
+
+
+static void Cmd_Free( cmd_function_t *cmd ) {
+	if ( cmd->name ) {
+		Z_Free( cmd->name );
+	}
+	Z_Free( cmd );
 }
 
 
@@ -766,15 +800,13 @@ void Cmd_RemoveCommand( const char *cmd_name ) {
 		}
 		if ( !Q_stricmp( cmd_name, cmd->name ) ) {
 			*back = cmd->next;
-			if (cmd->name) {
-				Z_Free(cmd->name);
-			}
-			Z_Free (cmd);
+			Cmd_Free( cmd );
 			return;
 		}
 		back = &cmd->next;
 	}
 }
+
 
 static const char *safeCommands[] = {
 	"+button4",
@@ -797,7 +829,7 @@ Only remove commands with no associated function
 */
 void Cmd_RemoveCommandSafe( const char *cmd_name )
 {
-	cmd_function_t *cmd = Cmd_FindCommand( cmd_name );
+	const cmd_function_t *cmd = Cmd_FindCommand( cmd_name );
 
 	if( !cmd )
 		return;
@@ -971,6 +1003,14 @@ void Cmd_CompleteWriteCfgName( char *args, int argNum ) {
 	}
 }
 
+static const cmdListItem_t cmd_cmds[] = {
+	{ "cmdlist", Cmd_List_f, NULL },
+	{ "echo", Cmd_Echo_f, NULL },
+	{ "exec", Cmd_Exec_f, Cmd_CompleteCfgName },
+	{ "execq", Cmd_Exec_f, Cmd_CompleteCfgName },
+	{ "vstr", Cmd_Vstr_f, Cvar_CompleteCvarName },
+	{ "wait", Cmd_Wait_f, NULL }
+};
 
 /*
 ============
@@ -978,13 +1018,56 @@ Cmd_Init
 ============
 */
 void Cmd_Init( void ) {
-	Cmd_AddCommand ("cmdlist",Cmd_List_f);
-	Cmd_AddCommand ("exec",Cmd_Exec_f);
-	Cmd_AddCommand ("execq",Cmd_Exec_f);
-	Cmd_SetCommandCompletionFunc( "exec", Cmd_CompleteCfgName );
-	Cmd_SetCommandCompletionFunc( "execq", Cmd_CompleteCfgName );
-	Cmd_AddCommand ("vstr",Cmd_Vstr_f);
-	Cmd_SetCommandCompletionFunc( "vstr", Cvar_CompleteCvarName );
-	Cmd_AddCommand ("echo",Cmd_Echo_f);
-	Cmd_AddCommand ("wait", Cmd_Wait_f);
+	Cmd_RegisterArray( cmd_cmds, MODULE_COMMON );
+}
+
+
+void Cmd_RegisterList( const cmdListItem_t *cmds, int count, module_t module ) {
+	int i;
+	for ( i = 0; i < count; i++ ) {
+		const cmdListItem_t* item = &cmds[i];
+
+		Cmd_AddCommand( item->name, item->func );
+
+		if ( item->complete )
+			Cmd_SetCommandCompletionFunc( item->name, item->complete );
+
+		Cmd_SetModule( item->name, module );
+	}
+}
+
+
+void Cmd_UnregisterList( const cmdListItem_t *cmds, int count ) {
+	int i;
+	for ( i = 0; i < count; i++ ) {
+		Cmd_RemoveCommand( cmds[i].name );
+	}
+}
+
+
+void Cmd_SetModule( const char *cmd_name, module_t module ) {
+	cmd_function_t *cmd = Cmd_FindCommand( cmd_name );
+	if ( !cmd )
+		return;
+
+	cmd->modules |= (1 << (uint32_t)module);
+	if ( cmd->init_module == MODULE_NONE )
+		cmd->init_module = module;
+}
+
+
+void Cmd_UnregisterModule( module_t module ) {
+	if ( module <= MODULE_NONE || module >= MODULE_COUNT )
+		return;
+
+	cmd_function_t *cmd = cmd_functions;
+	while( cmd ) {
+		if ( cmd->init_module == module && cmd->modules == (1 << (uint32_t)module) ) {
+			cmd_function_t *next = cmd->next;
+			Cmd_RemoveCommand( cmd->name );
+			cmd = next;
+		} else {
+			cmd = cmd->next;
+		}
+	}
 }

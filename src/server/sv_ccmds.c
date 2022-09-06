@@ -1460,6 +1460,30 @@ void SV_CompleteMapName( char *args, int argNum ) {
 	}
 }
 
+static const cmdListItem_t sv_cmds[] = {
+	{ "devmap", SV_Map_f, SV_CompleteMapName },
+	{ "dumpuser", SV_DumpUser_f, NULL },
+	{ "filter", SV_AddFilter_f, NULL },
+	{ "filtercmd", SV_AddFilterCmd_f },
+	{ "gameCompleteStatus", SV_GameCompleteStatus_f, NULL },
+	{ "guidstatus", SV_GUIDStatus_f, NULL },
+	{ "heartbeat", SV_Heartbeat_f, NULL },
+	{ "killserver", SV_KillServer_f, NULL },
+	{ "map_restart", SV_MapRestart_f, NULL },
+	{ "map", SV_Map_f, SV_CompleteMapName },
+	{ "sectorlist", SV_SectorList_f, NULL },
+	{ "status", SV_Status_f, NULL },
+#ifdef USE_BANS
+	{ "banaddr", SV_BanAddr_f, NULL },
+	{ "bandel", SV_BanDel_f, NULL },
+	{ "exceptaddr", SV_ExceptAddr_f, NULL },
+	{ "exceptdel", SV_ExceptDel_f, NULL },
+	{ "flushbans", SV_FlushBans_f, NULL },
+	{ "listbans", SV_ListBans_f, NULL },
+	{ "rehashbans", SV_RehashBans_f, NULL },
+#endif
+};
+
 
 /*
 ==================
@@ -1474,29 +1498,7 @@ void SV_AddOperatorCommands( void ) {
 	}
 	initialized = qtrue;
 
-	Cmd_AddCommand( "heartbeat", SV_Heartbeat_f );
-	Cmd_AddCommand( "status", SV_Status_f );
-	Cmd_AddCommand( "guidstatus", SV_GUIDStatus_f );
-	Cmd_AddCommand( "dumpuser", SV_DumpUser_f );
-	Cmd_AddCommand( "map_restart", SV_MapRestart_f );
-	Cmd_AddCommand( "sectorlist", SV_SectorList_f );
-	Cmd_AddCommand( "map", SV_Map_f );
-	Cmd_SetCommandCompletionFunc( "map", SV_CompleteMapName );
-	Cmd_AddCommand( "gameCompleteStatus", SV_GameCompleteStatus_f );      // NERVE - SMF
-	Cmd_AddCommand( "devmap", SV_Map_f );
-	Cmd_SetCommandCompletionFunc( "devmap", SV_CompleteMapName );
-	Cmd_AddCommand( "killserver", SV_KillServer_f );
-#ifdef USE_BANS	
-	Cmd_AddCommand("rehashbans", SV_RehashBans_f);
-	Cmd_AddCommand("listbans", SV_ListBans_f);
-	Cmd_AddCommand("banaddr", SV_BanAddr_f);
-	Cmd_AddCommand("exceptaddr", SV_ExceptAddr_f);
-	Cmd_AddCommand("bandel", SV_BanDel_f);
-	Cmd_AddCommand("exceptdel", SV_ExceptDel_f);
-	Cmd_AddCommand("flushbans", SV_FlushBans_f);
-#endif
-	Cmd_AddCommand( "filter", SV_AddFilter_f );
-	Cmd_AddCommand( "filtercmd", SV_AddFilterCmd_f );
+	Cmd_RegisterArray( sv_cmds, MODULE_SERVER );
 }
 
 
@@ -1508,34 +1510,28 @@ SV_RemoveOperatorCommands
 void SV_RemoveOperatorCommands( void ) {
 #if 0
 	// removing these won't let the server start again
-	Cmd_RemoveCommand( "heartbeat" );
-	Cmd_RemoveCommand( "banUser" );
-	Cmd_RemoveCommand( "banClient" );
-	Cmd_RemoveCommand( "status" );
-	Cmd_RemoveCommand( "dumpuser" );
-	Cmd_RemoveCommand( "map_restart" );
-	Cmd_RemoveCommand( "sectorlist" );
+	Cmd_UnregisterModule( MODULE_SERVER );
 #endif
 }
 
 
+static const cmdListItem_t ded_cmds[] = {
+	{ "locations", SV_Locations_f, NULL },
+	{ "say", SV_ConSay_f, NULL },
+	{ "serverinfo", SV_Serverinfo_f, NULL },
+	{ "systeminfo", SV_Systeminfo_f, NULL },
+	{ "tell", SV_ConTell_f, NULL },
+	{ "wolfinfo", SV_Wolfinfo_f, NULL },
+};
+
+
 void SV_AddDedicatedCommands( void )
 {
-	Cmd_AddCommand( "serverinfo", SV_Serverinfo_f );
-	Cmd_AddCommand( "systeminfo", SV_Systeminfo_f );
-	Cmd_AddCommand( "wolfinfo", SV_Wolfinfo_f );
-	Cmd_AddCommand( "tell", SV_ConTell_f );
-	Cmd_AddCommand( "say", SV_ConSay_f );
-	Cmd_AddCommand( "locations", SV_Locations_f );
+	Cmd_RegisterArray( ded_cmds, MODULE_SERVER );
 }
 
 
 void SV_RemoveDedicatedCommands( void )
 {
-	Cmd_RemoveCommand( "serverinfo" );
-	Cmd_RemoveCommand( "systeminfo" );
-	Cmd_RemoveCommand( "wolfinfo" );
-	Cmd_RemoveCommand( "tell" );
-	Cmd_RemoveCommand( "say" );
-	Cmd_RemoveCommand( "locations" );
+	Cmd_UnregisterArray( ded_cmds );
 }

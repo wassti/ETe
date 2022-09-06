@@ -1482,8 +1482,6 @@ qboolean CL_Disconnect( qboolean showMainMenu ) {
 
 	CL_UpdateGUID();
 
-	Cmd_RemoveCommand( "callvote" );
-
 	if ( noGameRestart )
 		noGameRestart = qfalse;
 	else
@@ -2129,19 +2127,6 @@ static void CL_Wolfinfo_f( void ) {
 }
 
 
-static void CL_CompleteCallvote( char *args, int argNum )
-{
-	if( argNum >= 2 )
-	{
-		// Skip "callvote "
-		char *p = Com_SkipTokens( args, 1, " " );
-
-		if ( p > args )
-			Field_CompleteCommand( p, qtrue, qtrue );
-	}
-}
-
-
 //====================================================================
 
 /*
@@ -2213,11 +2198,6 @@ static void CL_DownloadsComplete( void ) {
 	// initialize the CGame
 	cls.cgameStarted = qtrue;
 	CL_InitCGame();
-
-	if ( clc.demofile == FS_INVALID_HANDLE ) {
-		Cmd_AddCommand( "callvote", NULL );
-		Cmd_SetCommandCompletionFunc( "callvote", CL_CompleteCallvote );
-	}
 
 	// set pure checksums
 	CL_SendPureChecksums();
@@ -3956,6 +3936,9 @@ static void CL_InitRef( void ) {
 
 	rimp.Cmd_AddCommand = Cmd_AddCommand;
 	rimp.Cmd_RemoveCommand = Cmd_RemoveCommand;
+	rimp.Cmd_RegisterList = Cmd_RegisterList;
+	rimp.Cmd_UnRegisterList = Cmd_UnregisterList;
+	rimp.Cmd_UnregisterModule = Cmd_UnregisterModule;
 	rimp.Cmd_Argc = Cmd_Argc;
 	rimp.Cmd_Argv = Cmd_Argv;
 	rimp.Cmd_ExecuteText = Cbuf_ExecuteText;
@@ -4415,6 +4398,62 @@ static void CL_InitGLimp_Cvars( void )
 }
 
 
+static const cmdListItem_t cl_cmds[] = {
+	{ "addFavorite", CL_AddFavorite_f, NULL },
+	{ "cache_endgather", CL_Cache_EndGather_f, NULL },
+	{ "cache_mapchange", CL_Cache_MapChange_f, NULL },
+	{ "cache_setindex", CL_Cache_SetIndex_f, NULL },
+	{ "cache_startgather", CL_Cache_StartGather_f, NULL },
+	{ "cache_usedfile", CL_Cache_UsedFile_f, NULL },
+	{ "cinematic", CL_PlayCinematic_f, CL_CompleteCinematicName },
+	{ "clientinfo", CL_Clientinfo_f, NULL },
+	{ "cmd", CL_ForwardToServer_f, CL_CompleteRcon },
+	{ "configstrings", CL_Configstrings_f, NULL },
+	{ "connect", CL_Connect_f, NULL },
+	{ "demo", CL_PlayDemo_f, CL_CompleteDemoName },
+	{ "disconnect", CL_Disconnect_f, NULL },
+#ifdef USE_CURL
+	{ "dlmap", CL_Download_f, NULL },
+	{ "download", CL_Download_f, NULL },
+#endif
+	{ "fs_openedList", CL_OpenedPK3List_f, NULL },
+	{ "fs_referencedList", CL_ReferencedPK3List_f, NULL },
+	{ "globalservers", CL_GlobalServers_f, NULL },
+	{ "listFavorites", CL_ListFavorites_f, NULL },
+#if !defined(__APPLE__) && !defined(__APPLE_CC__)
+	{ "LoadTranslations", CL_LoadTranslations_f, NULL },
+#endif
+	{ "localservers", CL_LocalServers_f, NULL },
+	{ "modelist", CL_ModeList_f, NULL },
+	{ "ping", CL_Ping_f, NULL },
+	{ "rcon", CL_Rcon_f, CL_CompleteRcon },
+	{ "reconnect", CL_Reconnect_f, NULL },
+	{ "record", CL_Record_f, CL_CompleteRecordName },
+#if !defined(__APPLE__) && !defined(__APPLE_CC__)
+	{ "SaveNewTranslations", CL_SaveNewTranslations_f, NULL },
+	{ "SaveTranslations", CL_SaveTranslations_f, NULL },
+#endif
+	{ "serverinfo", CL_Serverinfo_f, NULL },
+	{ "serverstatus", CL_ServerStatus_f, NULL },
+	{ "setRecommended", CL_SetRecommended_f, NULL },
+	{ "showip", CL_ShowIP_f, NULL },
+	{ "snd_reload", CL_Snd_Reload_f, NULL },
+	{ "snd_restart", CL_Snd_Restart_f, NULL },
+	{ "stoprecord", CL_StopRecord_f, NULL },
+	{ "stopvideo", CL_StopVideo_f, NULL },
+	{ "systeminfo", CL_Systeminfo_f, NULL },
+	{ "ui_restart", CL_UI_Restart_f, NULL },
+	{ "updatehunkusage", CL_UpdateLevelHunkUsage, NULL },
+	{ "updatescreen", SCR_UpdateScreen, NULL },
+	//{ "userinfo", CL_EatMe_f, NULL },
+	{ "vid_restart", CL_Vid_Restart_f, NULL },
+	{ "video-pipe", CL_Video_f, CL_CompleteVideoName },
+	{ "video", CL_Video_f, CL_CompleteVideoName },
+//	{ "wav_record", CL_WavRecord_f NULL },
+//	{ "wav_stoprecord", CL_WavStopRecord_f NULL },
+	{ "wolfinfo", CL_Wolfinfo_f, NULL },
+};
+
 /*
 ====================
 CL_Init
@@ -4612,74 +4651,7 @@ void CL_Init( void ) {
 	//
 	// register client commands
 	//
-	Cmd_AddCommand( "cmd", CL_ForwardToServer_f );
-	Cmd_AddCommand( "configstrings", CL_Configstrings_f );
-	Cmd_AddCommand( "clientinfo", CL_Clientinfo_f );
-	Cmd_AddCommand( "snd_reload", CL_Snd_Reload_f );
-	Cmd_AddCommand( "snd_restart", CL_Snd_Restart_f );
-	Cmd_AddCommand( "vid_restart", CL_Vid_Restart_f );
-	Cmd_AddCommand( "ui_restart", CL_UI_Restart_f );          // NERVE - SMF
-	Cmd_AddCommand( "disconnect", CL_Disconnect_f );
-	Cmd_AddCommand( "record", CL_Record_f );
-	Cmd_SetCommandCompletionFunc( "record", CL_CompleteRecordName );
-	Cmd_AddCommand( "demo", CL_PlayDemo_f );
-	Cmd_SetCommandCompletionFunc( "demo", CL_CompleteDemoName );
-	Cmd_AddCommand( "cinematic", CL_PlayCinematic_f );
-	Cmd_AddCommand( "stoprecord", CL_StopRecord_f );
-	Cmd_AddCommand( "connect", CL_Connect_f );
-	Cmd_AddCommand( "reconnect", CL_Reconnect_f );
-	Cmd_AddCommand( "localservers", CL_LocalServers_f );
-	Cmd_AddCommand( "globalservers", CL_GlobalServers_f );
-	Cmd_AddCommand( "rcon", CL_Rcon_f );
-	Cmd_SetCommandCompletionFunc( "rcon", CL_CompleteRcon );
-	Cmd_AddCommand( "ping", CL_Ping_f );
-	Cmd_AddCommand( "serverstatus", CL_ServerStatus_f );
-	Cmd_AddCommand( "showip", CL_ShowIP_f );
-	Cmd_AddCommand( "fs_openedList", CL_OpenedPK3List_f );
-	Cmd_AddCommand( "fs_referencedList", CL_ReferencedPK3List_f );
-
-	Cmd_AddCommand ("video", CL_Video_f );
-	Cmd_AddCommand ("video-pipe", CL_Video_f );
-	Cmd_SetCommandCompletionFunc( "video", CL_CompleteVideoName );
-	Cmd_AddCommand ("stopvideo", CL_StopVideo_f );
-	Cmd_AddCommand ("serverinfo", CL_Serverinfo_f );
-	Cmd_AddCommand ("systeminfo", CL_Systeminfo_f );
-	Cmd_AddCommand ("wolfinfo", CL_Wolfinfo_f );
-
-#ifdef USE_CURL
-	Cmd_AddCommand( "download", CL_Download_f );
-	Cmd_AddCommand( "dlmap", CL_Download_f );
-#endif
-
-	// Ridah, startup-caching system
-	Cmd_AddCommand( "cache_startgather", CL_Cache_StartGather_f );
-	Cmd_AddCommand( "cache_usedfile", CL_Cache_UsedFile_f );
-	Cmd_AddCommand( "cache_setindex", CL_Cache_SetIndex_f );
-	Cmd_AddCommand( "cache_mapchange", CL_Cache_MapChange_f );
-	Cmd_AddCommand( "cache_endgather", CL_Cache_EndGather_f );
-
-	Cmd_AddCommand( "updatehunkusage", CL_UpdateLevelHunkUsage );
-	Cmd_AddCommand( "updatescreen", SCR_UpdateScreen );
-	// done.
-#if !defined(__APPLE__) && !defined(__APPLE_CC__)  //DAJ USA
-	Cmd_AddCommand( "SaveTranslations", CL_SaveTranslations_f );     // NERVE - SMF - localization
-	Cmd_AddCommand( "SaveNewTranslations", CL_SaveNewTranslations_f );   // NERVE - SMF - localization
-	Cmd_AddCommand( "LoadTranslations", CL_LoadTranslations_f );     // NERVE - SMF - localization
-#endif
-	Cmd_AddCommand( "setRecommended", CL_SetRecommended_f );
-
-	//bani - we eat these commands to prevent exploits
-	//Cmd_AddCommand( "userinfo", CL_EatMe_f );
-
-//	Cmd_AddCommand( "wav_record", CL_WavRecord_f );
-//	Cmd_AddCommand( "wav_stoprecord", CL_WavStopRecord_f );
-
-	Cmd_AddCommand( "addFavorite", CL_AddFavorite_f );
-	Cmd_AddCommand( "listFavorites", CL_ListFavorites_f );
-
-	Cmd_AddCommand( "modelist", CL_ModeList_f );
-
-	Cmd_AddCommand( "locations", NULL );
+	Cmd_RegisterArray( cl_cmds, MODULE_CLIENT );
 
 	Cvar_Set( "cl_running", "1" );
 
@@ -4747,62 +4719,12 @@ void CL_Shutdown( const char *finalmsg, qboolean quit ) {
 
 	CL_ShutdownRef( quit ? REF_UNLOAD_DLL : REF_DESTROY_WINDOW );
 
-	Cmd_RemoveCommand ("cmd");
-	Cmd_RemoveCommand ("configstrings");
-	//Cmd_RemoveCommand ("userinfo");
-	Cmd_RemoveCommand ("clientinfo");
-	Cmd_RemoveCommand( "snd_reload" );
-	Cmd_RemoveCommand ("snd_restart");
-	Cmd_RemoveCommand ("vid_restart");
-	Cmd_RemoveCommand ("disconnect");
-	Cmd_RemoveCommand ("record");
-	Cmd_RemoveCommand ("demo");
-	Cmd_RemoveCommand ("cinematic");
-	Cmd_RemoveCommand ("stoprecord");
-	Cmd_RemoveCommand ("connect");
-	Cmd_RemoveCommand ("reconnect");
-	Cmd_RemoveCommand ("localservers");
-	Cmd_RemoveCommand ("globalservers");
-	Cmd_RemoveCommand ("rcon");
-	Cmd_RemoveCommand ("ping");
-	Cmd_RemoveCommand ("serverstatus");
-	Cmd_RemoveCommand ("showip");
-	Cmd_RemoveCommand ("fs_openedList");
-	Cmd_RemoveCommand ("fs_referencedList");
-	//Cmd_RemoveCommand( "model" );
-	Cmd_RemoveCommand ("video");
-	Cmd_RemoveCommand ("video-pipe");
-	Cmd_RemoveCommand ("stopvideo");
-	Cmd_RemoveCommand ("serverinfo");
-	Cmd_RemoveCommand ("systeminfo");
-	Cmd_RemoveCommand ("wolfinfo");
-
-	// Ridah, startup-caching system
-	Cmd_RemoveCommand( "cache_startgather" );
-	Cmd_RemoveCommand( "cache_usedfile" );
-	Cmd_RemoveCommand( "cache_setindex" );
-	Cmd_RemoveCommand( "cache_mapchange" );
-	Cmd_RemoveCommand( "cache_endgather" );
-
-	Cmd_RemoveCommand( "updatehunkusage" );
-	Cmd_RemoveCommand( "wav_record" );
-	Cmd_RemoveCommand( "wav_stoprecord" );
-	// done.
-
-	Cmd_RemoveCommand( "addFavorite" );
-	Cmd_RemoveCommand( "listFavorites" );
-
-	Cmd_RemoveCommand ("modelist");
-
 #ifdef USE_CURL
 	DL_Shutdown();
 	Com_DL_Cleanup( &download );
-
-	Cmd_RemoveCommand( "download" );
-	Cmd_RemoveCommand( "dlmap" );
 #endif
 
-	Cmd_RemoveCommand( "locations" );
+	Cmd_UnregisterModule( MODULE_CLIENT );
 
 #ifdef USE_DISCORD
 	if (cl_discordRichPresence->integer || cls.discordInit)

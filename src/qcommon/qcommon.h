@@ -496,6 +496,13 @@ then searches for a command or variable that matches the first token.
 */
 
 typedef void (*xcommand_t) (void);
+typedef void (*xcommandCompFunc_t)( char *args, int argNum );
+
+typedef struct cmdListItem_s {
+	const char	*name;
+	xcommand_t	func;
+	xcommandCompFunc_t	complete;
+} cmdListItem_t;
 
 void	Cmd_Init( void );
 
@@ -508,14 +515,22 @@ void	Cmd_AddCommand( const char *cmd_name, xcommand_t function );
 
 void	Cmd_RemoveCommand( const char *cmd_name );
 
-typedef void (*completionFunc_t)( char *args, int argNum );
+void Cmd_RegisterList( const cmdListItem_t* cmds, int count, module_t module );
+void Cmd_UnregisterList( const cmdListItem_t* cmds, int count );
+#define Cmd_RegisterArray( a, m )  Cmd_RegisterList( a, ARRAY_LEN(a), m )
+#define Cmd_UnregisterArray( a )   Cmd_UnregisterList( a, ARRAY_LEN(a) )
+
+void Cmd_SetModule( const char *cmd_name, module_t modulue );
+
+// Remove commands by module, and only if they match this module
+void Cmd_UnregisterModule( module_t module );
 
 // don't allow VMs to remove system commands
 void	Cmd_RemoveCommandSafe( const char *cmd_name );
 
 void	Cmd_CommandCompletion( void(*callback)(const char *s) );
 // callback with each valid string
-void	Cmd_SetCommandCompletionFunc( const char *command, completionFunc_t complete );
+void	Cmd_SetCommandCompletionFunc( const char *command, xcommandCompFunc_t complete );
 qboolean Cmd_CompleteArgument( const char *command, char *args, int argNum );
 void	Cmd_CompleteWriteCfgName( char *args, int argNum );
 
@@ -988,6 +1003,8 @@ void Field_AutoComplete( field_t *edit );
 void Field_CompleteKeyname( void );
 void Field_CompleteKeyBind( int key );
 void Field_CompleteFilename( const char *dir, const char *ext, qboolean stripExt, int flags );
+void Field_CompleteStringList( const char **strings, int numstrings );
+void Field_CompleteIntRange( const int minval, const int maxval );
 void Field_CompleteCommand( char *cmd, qboolean doCommands, qboolean doCvars );
 
 void Con_ResetHistory( void );

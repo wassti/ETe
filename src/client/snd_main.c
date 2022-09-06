@@ -653,6 +653,17 @@ void S_StopMusic_f( void )
 
 //=============================================================================
 
+static const cmdListItem_t snd_cmds[] = {
+	{ "music_queue", S_QueueMusic_f, NULL },
+	{ "music", S_Music_f, NULL },
+	{ "play", S_Play_f, NULL },
+	{ "s_info", S_SoundInfo, NULL },
+	{ "s_list", S_SoundList, NULL },
+	{ "s_stop", S_StopAllSounds, NULL },
+	{ "stopmusic", S_StopMusic_f, NULL },
+	{ "stream", S_Stream_f, NULL },
+};
+
 /*
 =================
 S_Init
@@ -685,14 +696,7 @@ void S_Init( void )
 
 		S_CodecInit();
 
-		Cmd_AddCommand( "play", S_Play_f );
-		Cmd_AddCommand( "music", S_Music_f );
-		Cmd_AddCommand( "music_queue", S_QueueMusic_f );
-		Cmd_AddCommand( "stopmusic", S_StopMusic_f );
-		Cmd_AddCommand( "stream", S_Stream_f );
-		Cmd_AddCommand( "s_list", S_SoundList );
-		Cmd_AddCommand( "s_stop", S_StopAllSounds );
-		Cmd_AddCommand( "s_info", S_SoundInfo );
+		Cmd_RegisterArray( snd_cmds, MODULE_SOUND );
 
 		/*cv = Cvar_Get( "s_useOpenAL", "1", CVAR_ARCHIVE );
 		if( cv->integer ) {
@@ -739,17 +743,9 @@ void S_Shutdown( void )
 
 	Com_Memset( &si, 0, sizeof( soundInterface_t ) );
 
-	Cmd_RemoveCommand( "play" );
-	Cmd_RemoveCommand( "music");
-	Cmd_RemoveCommand( "music_queue" );
-	Cmd_RemoveCommand( "stream" );
-	Cmd_RemoveCommand( "stopmusic");
-	Cmd_RemoveCommand( "s_list" );
-	Cmd_RemoveCommand( "s_stop" );
-	Cmd_RemoveCommand( "s_info" );
+	Cmd_UnregisterModule( MODULE_SOUND );
 
 	S_CodecShutdown();
 
 	cls.soundStarted = qfalse;
 }
-

@@ -1181,7 +1181,6 @@ Cycles a cvar for easy single key binding
 static void Cvar_Cycle_f( void ) {
 	int start, end, step, oldvalue, value;
 
-
 	if ( Cmd_Argc() < 4 || Cmd_Argc() > 5 ) {
 		Com_Printf( "usage: cycle <variable> <start> <end> [step]\n" );
 		return;
@@ -2402,6 +2401,44 @@ void Cvar_CompleteCvarName( char *args, int argNum )
 	}
 }
 
+static const char *varFuncHandlers[] = {
+	"add","sub","mul","div","mod","sin","cos", "rand"
+};
+
+static void Cvar_CompleteVarFunc( char *args, int argNum )
+{
+	if ( argNum == 2 )
+	{
+		Field_CompleteStringList( varFuncHandlers, (int)ARRAY_LEN(varFuncHandlers));
+	}
+	else if ( argNum == 3 )
+	{
+		// Skip "<cmd> <func> "
+		char *p = Com_SkipTokens( args, 2, " " );
+
+		if( p > args )
+			Field_CompleteCommand( p, qfalse, qtrue );
+	}
+}
+
+static const cmdListItem_t cvar_cmds[] = {
+	{ "cvar_modified", Cvar_ListModified_f, NULL },
+	{ "cvar_restart", Cvar_Restart_f, NULL },
+	{ "cvar_trim", Cvar_Trim_f, NULL },
+	{ "cvar_usercreated", Cvar_ListUserCreated_f, NULL },
+	{ "cvarlist", Cvar_List_f, NULL },
+	{ "cycle", Cvar_Cycle_f, Cvar_CompleteCvarName },
+	{ "print", Cvar_Print_f, NULL },
+	{ "reset", Cvar_Reset_f, Cvar_CompleteCvarName },
+	{ "set", Cvar_Set_f, Cvar_CompleteCvarName },
+	{ "seta", Cvar_Set_f, Cvar_CompleteCvarName },
+	{ "sets", Cvar_Set_f, Cvar_CompleteCvarName },
+	{ "setu", Cvar_Set_f, Cvar_CompleteCvarName },
+	{ "toggle", Cvar_Toggle_f, Cvar_CompleteCvarName },
+	{ "unset", Cvar_Unset_f, Cvar_CompleteCvarName },
+	{ "varfunc", Cvar_Func_f, Cvar_CompleteVarFunc },
+};
+
 
 /*
 ============
@@ -2420,32 +2457,5 @@ void Cvar_Init (void)
 	cvar_developer = Cvar_Get( "developer", "0", CVAR_TEMP );
 	Cvar_SetDescription( cvar_developer, "Developer mode" );
 
-	Cmd_AddCommand ("print", Cvar_Print_f);
-	Cmd_AddCommand ("toggle", Cvar_Toggle_f);
-	Cmd_SetCommandCompletionFunc( "toggle", Cvar_CompleteCvarName );
-	Cmd_AddCommand( "cycle", Cvar_Cycle_f );  // ydnar
-	Cmd_SetCommandCompletionFunc( "cycle", Cvar_CompleteCvarName );
-	Cmd_AddCommand ("set", Cvar_Set_f);
-	Cmd_SetCommandCompletionFunc( "set", Cvar_CompleteCvarName );
-	Cmd_AddCommand ("sets", Cvar_Set_f);
-	Cmd_SetCommandCompletionFunc( "sets", Cvar_CompleteCvarName );
-	Cmd_AddCommand ("setu", Cvar_Set_f);
-	Cmd_SetCommandCompletionFunc( "setu", Cvar_CompleteCvarName );
-	Cmd_AddCommand ("seta", Cvar_Set_f);
-	Cmd_SetCommandCompletionFunc( "seta", Cvar_CompleteCvarName );
-	Cmd_AddCommand ("reset", Cvar_Reset_f);
-	Cmd_SetCommandCompletionFunc( "reset", Cvar_CompleteCvarName );
-	Cmd_AddCommand ("unset", Cvar_Unset_f);
-	Cmd_SetCommandCompletionFunc("unset", Cvar_CompleteCvarName);
-
-	Cmd_AddCommand( "varfunc", Cvar_Func_f );
-
-	Cmd_AddCommand ("cvarlist", Cvar_List_f);
-	Cmd_AddCommand ("cvar_modified", Cvar_ListModified_f);
-	Cmd_AddCommand ("cvar_usercreated", Cvar_ListUserCreated_f);
-	Cmd_AddCommand ("cvar_restart", Cvar_Restart_f);
-	Cmd_AddCommand ("cvar_trim", Cvar_Trim_f);
-
-	// NERVE - SMF - can't rely on autoexec to do this
-	//Cvar_Get( "devdll", "1", CVAR_ROM );
+	Cmd_RegisterArray( cvar_cmds, MODULE_COMMON );
 }

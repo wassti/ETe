@@ -381,6 +381,17 @@ static void Cmd_CompleteTxtName( char *args, int argNum ) {
 }
 
 
+static const cmdListItem_t con_cmds[] = {
+	{ "clear", Con_Clear_f, NULL },
+	{ "clMessageMode", Con_MessageMode_f, NULL },
+	{ "clMessageMode2", Con_MessageMode2_f, NULL },
+	{ "clMessageMode3", Con_MessageMode3_f, NULL },
+	{ "condump", Con_Dump_f, Cmd_CompleteTxtName },
+	{ "toggleConsole", Con_ToggleConsole_f, NULL },
+	{ "toggleMenu", Con_ToggleMenu_f, NULL },
+};
+
+
 /*
 ================
 Con_Init
@@ -404,15 +415,7 @@ void Con_Init( void )
 	Field_Clear( &g_consoleField );
 	g_consoleField.widthInChars = g_console_field_width;
 
-	Cmd_AddCommand( "toggleConsole", Con_ToggleConsole_f );
-	Cmd_AddCommand( "toggleMenu", Con_ToggleMenu_f );
-	// ydnar: these are deprecated in favor of cgame/ui based version
-	Cmd_AddCommand( "clMessageMode", Con_MessageMode_f );
-	Cmd_AddCommand( "clMessageMode2", Con_MessageMode2_f );
-	Cmd_AddCommand( "clMessageMode3", Con_MessageMode3_f );
-	Cmd_AddCommand( "clear", Con_Clear_f );
-	Cmd_AddCommand( "condump", Con_Dump_f );
-	Cmd_SetCommandCompletionFunc( "condump", Cmd_CompleteTxtName );
+	Cmd_RegisterArray( con_cmds, MODULE_CONSOLE );
 }
 
 
@@ -423,13 +426,7 @@ Con_Shutdown
 */
 void Con_Shutdown( void )
 {
-	Cmd_RemoveCommand( "toggleConsole" );
-	Cmd_RemoveCommand( "toggleMenu" );
-	Cmd_RemoveCommand( "clMessageMode" );
-	Cmd_RemoveCommand( "clMessageMode2" );
-	Cmd_RemoveCommand( "clMessageMode3" );
-	Cmd_RemoveCommand( "clear" );
-	Cmd_RemoveCommand( "condump" );
+	Cmd_UnregisterModule( MODULE_CONSOLE );
 }
 
 

@@ -49,7 +49,7 @@ Returns the player with player id or name from Cmd_Argv(1)
 client_t *SV_GetPlayerByHandle( void ) {
 	client_t	*cl;
 	int			i;
-	char		*s;
+	const char	*s;
 	char		cleanName[ MAX_NAME_LENGTH ];
 
 	// make sure server is running
@@ -114,7 +114,7 @@ static client_t *SV_GetPlayerByNum( void ) {
 	client_t	*cl;
 	int			i;
 	int			idnum;
-	char		*s;
+	const char	*s;
 
 	// make sure server is running
 	if ( !com_sv_running->integer ) {
@@ -600,7 +600,7 @@ Parse a CIDR notation type string and return a netadr_t and suffix by reference
 ==================
 */
 
-static qboolean SV_ParseCIDRNotation(netadr_t *dest, int *mask, char *adrstr)
+static qboolean SV_ParseCIDRNotation(netadr_t *dest, int *mask, const char *adrstr)
 {
 	char *suffix;
 	
@@ -647,7 +647,7 @@ Ban a user from being able to play on this server based on his ip address.
 
 static void SV_AddBanToList(qboolean isexception)
 {
-	char *banstring;
+	const char *banstring;
 	char addy2[NET_ADDRSTRMAXLEN];
 	netadr_t ip;
 	int index, argc, mask;
@@ -793,7 +793,7 @@ static void SV_DelBanFromList(qboolean isexception)
 {
 	int index, count = 0, todel, mask;
 	netadr_t ip;
-	char *banstring;
+	const char *banstring;
 	
 	// make sure server is running
 	if ( !com_sv_running->integer ) {
@@ -1238,9 +1238,6 @@ SV_ConSay_f
 ==================
 */
 static void SV_ConSay_f( void ) {
-	char	*p;
-	char	text[1024];
-
 	// make sure server is running
 	if ( !com_sv_running->integer ) {
 		Com_Printf( "Server is not running.\n" );
@@ -1251,21 +1248,7 @@ static void SV_ConSay_f( void ) {
 		return;
 	}
 
-	strcpy( text, "console: " );
-	p = Cmd_ArgsFrom( 1 );
-
-	if ( strlen( p ) > 1000 ) {
-		return;
-	}
-
-	if ( *p == '"' ) {
-		p++;
-		p[strlen(p)-1] = '\0';
-	}
-
-	strcat( text, p );
-
-	SV_SendServerCommand( NULL, "chat \"%s\"", text );
+	SV_SendServerCommand( NULL, "chat \"console: %s\"", Cmd_ArgsFrom( 1 ) );
 }
 
 
@@ -1275,8 +1258,7 @@ SV_ConTell_f
 ==================
 */
 static void SV_ConTell_f( void ) {
-	char	*p;
-	char	text[1024];
+	const char	*msg;
 	client_t	*cl;
 
 	// make sure server is running
@@ -1295,22 +1277,10 @@ static void SV_ConTell_f( void ) {
 		return;
 	}
 
-	strcpy( text, S_COLOR_MAGENTA "console: " );
-	p = Cmd_ArgsFrom( 2 );
+	msg = Cmd_ArgsFrom( 2 );
 
-	if ( strlen( p ) > 1000 ) {
-		return;
-	}
-
-	if ( *p == '"' ) {
-		p++;
-		p[strlen(p)-1] = '\0';
-	}
-
-	strcat( text, p );
-
-	Com_Printf( "%s\n", text );
-	SV_SendServerCommand( cl, "chat \"%s\"", text );
+	Com_Printf( S_COLOR_MAGENTA "console: %s\n", msg );
+	SV_SendServerCommand( cl, "chat \"" S_COLOR_MAGENTA "console: %s\"", msg );
 }
 
 

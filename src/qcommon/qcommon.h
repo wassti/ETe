@@ -414,24 +414,6 @@ typedef enum {
 } vmInterpret_t;
 
 typedef enum {
-	TRAP_MEMSET = 100,
-	TRAP_MEMCPY,
-	TRAP_STRNCPY,
-	TRAP_SIN,
-	TRAP_COS,
-	TRAP_ATAN2,
-	TRAP_SQRT,
-	TRAP_MATRIXMULTIPLY,
-	TRAP_ANGLEVECTORS,
-	TRAP_PERPENDICULARVECTOR,
-	TRAP_FLOOR,
-	TRAP_CEIL,
-
-	TRAP_TESTPRINTINT,
-	TRAP_TESTPRINTFLOAT
-} sharedTraps_t;
-
-typedef enum {
 	VM_BAD = -1,
 	VM_GAME = 0,
 #ifndef DEDICATED
@@ -537,15 +519,15 @@ void	Cmd_SetCommandCompletionFunc( const char *command, completionFunc_t complet
 qboolean Cmd_CompleteArgument( const char *command, char *args, int argNum );
 void	Cmd_CompleteWriteCfgName( char *args, int argNum );
 
-int		Cmd_Argc( void );
-void	Cmd_Clear( void );
-char	*Cmd_Argv( int arg );
-void	Cmd_ArgvBuffer( int arg, char *buffer, int bufferLength );
-char	*Cmd_ArgsFrom( int arg );
-char	*Cmd_ArgsRange( int arg, int count );
-void	Cmd_ArgsBuffer( char *buffer, int bufferLength );
-char	*Cmd_Cmd( void );
-void	Cmd_Args_Sanitize( const char *separators, qboolean caplength );
+int			Cmd_Argc( void );
+void		Cmd_Clear( void );
+const char	*Cmd_Argv( int arg );
+void		Cmd_ArgvBuffer( int arg, char *buffer, int bufferLength );
+const char	*Cmd_ArgsFrom( int arg );
+const char	*Cmd_ArgsRange( int arg, int count );
+void		Cmd_ArgsBuffer( char *buffer, int bufferLength );
+const char	*Cmd_Cmd( void );
+void		Cmd_Args_Sanitize( const char *separators, qboolean caplength );
 // The functions that execute commands get their parameters with these
 // functions. Cmd_Argv () will return an empty string, not a NULL
 // if arg > argc, so string operations are allways safe.

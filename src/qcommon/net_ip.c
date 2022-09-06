@@ -1784,7 +1784,7 @@ void NET_Init( void ) {
 NET_Shutdown
 ====================
 */
-void NET_Shutdown( void ) {
+/*void NET_Shutdown( void ) {
 	if ( !networkingEnabled ) {
 		return;
 	}
@@ -1795,7 +1795,7 @@ void NET_Shutdown( void ) {
 	WSACleanup();
 	winsockInitialized = qfalse;
 #endif
-}
+}*/
 
 
 /*

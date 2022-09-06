@@ -47,7 +47,6 @@ struct vm_s {
 	void			*dllHandle;
 	vmMain_t		entryPoint;
 	dllSyscall_t	dllSyscall;
-	void (*destroy)(vm_t* self);
 
 	int callLevel;                  // for debug indenting
 

@@ -1451,6 +1451,8 @@ qboolean CL_Disconnect( qboolean showMainMenu ) {
 	// ETJump
 	Cvar_ForceReset( "shared" );
 
+	Cvar_ForceReset( "cm_optimizePatchPlanes" );
+
 	// send a disconnect message to the server
 	// send it a few times in case one is dropped
 	if ( cls.state >= CA_CONNECTED && cls.state != CA_CINEMATIC && !clc.demoplaying ) {
@@ -4179,7 +4181,7 @@ static void CL_CompleteVideoName( char *args, int argNum )
 {
 	if ( argNum == 2 )
 	{
-		Field_CompleteFilename( "videos", ".avi", qtrue, FS_MATCH_EXTERN | FS_MATCH_STICK );
+		Field_CompleteFilename( "videos", ".avi", qfalse, FS_MATCH_EXTERN | FS_MATCH_STICK );
 	}
 }
 

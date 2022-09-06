@@ -251,23 +251,9 @@ void VM_Free( vm_t *vm ) {
 		}
 	}
 
-	if ( vm->destroy )
-		vm->destroy( vm );
-
 	if ( vm->dllHandle )
 		Sys_UnloadLibrary( vm->dllHandle );
 
-#if 0	// now automatically freed by hunk
-	if ( vm->codeBase.ptr ) {
-		Z_Free( vm->codeBase.ptr );
-	}
-	if ( vm->dataBase ) {
-		Z_Free( vm->dataBase );
-	}
-	if ( vm->instructionPointers ) {
-		Z_Free( vm->instructionPointers );
-	}
-#endif
 	Com_Memset( vm, 0, sizeof( *vm ) );
 }
 

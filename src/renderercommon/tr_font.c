@@ -77,8 +77,9 @@ If you have questions concerning this license or the applicable additional terms
 // uncheck the exclude from build check box in the FreeType2 area of the Renderer project.
 
 
-#include "../renderer/tr_common.h"
+#include "../qcommon/q_shared.h"
 #include "../qcommon/qcommon.h"
+#include "../renderer/tr_common.h"
 
 //#define BUILD_FREETYPE
 #ifdef BUILD_FREETYPE

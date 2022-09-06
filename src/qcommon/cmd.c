@@ -422,7 +422,7 @@ void Cmd_Clear( void ) {
 Cmd_Argv
 ============
 */
-char *Cmd_Argv( int arg ) {
+const char *Cmd_Argv( int arg ) {
 	if ( (unsigned)arg >= cmd_argc ) {
 		return "";
 	}
@@ -450,7 +450,7 @@ Cmd_ArgsFrom
 Returns a single string containing argv(arg) to argv(argc()-1)
 ============
 */
-char *Cmd_ArgsFrom( int arg ) {
+const char *Cmd_ArgsFrom( int arg ) {
 	static char cmd_args[BIG_INFO_STRING], *s;
 	int i;
 
@@ -475,7 +475,7 @@ Cmd_ArgsRange
 Returns a single string containing argv(arg) to argv(count-1)
 ============
 */
-char *Cmd_ArgsRange( int arg, int count ) {
+const char *Cmd_ArgsRange( int arg, int count ) {
 	static char cmd_args[BIG_INFO_STRING], *s;
 	int i;
 
@@ -517,7 +517,7 @@ For rcon use when you want to transmit without altering quoting
 ATVI Wolfenstein Misc #284
 ============
 */
-char *Cmd_Cmd( void )
+const char *Cmd_Cmd( void )
 {
 	return cmd_cmd;
 }

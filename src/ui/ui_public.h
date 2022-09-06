@@ -41,7 +41,7 @@ typedef struct {
 } uiClientState_t;
 
 typedef enum {
-	UI_ERROR,
+	UI_ERROR = 0,
 	UI_PRINT,
 	UI_MILLISECONDS,
 	UI_CVAR_SET,

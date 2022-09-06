@@ -814,14 +814,14 @@ done:
 R_UploadSubImage
 ================
 */
-void R_UploadSubImage( byte *data, int x, int y, int width, int height, image_t *image )
+/*void R_UploadSubImage( byte *data, int x, int y, int width, int height, image_t *image )
 {
 	if ( image )
 	{
 		GL_Bind( image );
 		Upload32( data, x, y, width, height, image, qtrue ); // subImage = qtrue
 	}
-}
+}*/
 
 
 /*

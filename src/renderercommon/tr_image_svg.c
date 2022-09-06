@@ -33,6 +33,8 @@
  * @brief SVG LOADING
  */
 
+#include "../qcommon/q_shared.h"
+#include "../qcommon/qcommon.h"
 #include "../renderer/tr_common.h"
 
 #define NANOSVG_IMPLEMENTATION

@@ -27,6 +27,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "../qcommon/q_shared.h"
+#include "../qcommon/qcommon.h"
 #include "../renderercommon/tr_public.h"
 
 #define NOISE_SIZE 256

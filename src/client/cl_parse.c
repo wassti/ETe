@@ -604,11 +604,9 @@ void CL_SystemInfoChanged( qboolean onlyGame ) {
 			// If this cvar may not be modified by a server discard the value.
 			if ( !(cvar_flags & ( CVAR_SYSTEMINFO | CVAR_SERVER_CREATED | CVAR_USER_CREATED ) ) )
 			{
-#ifndef STANDALONE
 				if(Q_stricmp(key, "g_synchronousClients") && Q_stricmp(key, "pmove_fixed") &&
 				   Q_stricmp(key, "pmove_msec") && Q_stricmp(key, "shared") && Q_stricmp( key, "cm_optimizePatchPlanes") &&
 				   Q_stricmp(key, "sv_fps"))
-#endif
 				{
 					Com_Printf( S_COLOR_YELLOW "WARNING: server is not allowed to set %s=%s\n", key, value );
 					continue;

@@ -60,7 +60,7 @@ typedef struct {
 } snapshot_t;
 
 typedef enum cgameEvent_e {
-	CGAME_EVENT_NONE,
+	CGAME_EVENT_NONE = 0,
 	CGAME_EVENT_GAMEVIEW,
 	CGAME_EVENT_SPEAKEREDITOR,
 	CGAME_EVENT_CAMPAIGNBREIFING,
@@ -79,7 +79,7 @@ functions imported from the main executable
 #define CGAME_IMPORT_API_VERSION    3
 
 typedef enum {
-	CG_PRINT,
+	CG_PRINT = 0,
 	CG_ERROR,
 	CG_MILLISECONDS,
 	CG_CVAR_REGISTER,
@@ -288,7 +288,7 @@ functions exported to the main executable
 */
 
 typedef enum {
-	CG_INIT,
+	CG_INIT = 0,
 //	void CG_Init( int serverMessageNum, int serverCommandSequence, int clientNum, qboolean demoPlayback )
 	// called when the level loads or when the renderer is restarted
 	// all media should be registered at this time

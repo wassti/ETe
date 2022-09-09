@@ -1207,6 +1207,11 @@ image_t	*R_FindImageFile( const char *name, imgFlags_t flags )
 	return image;
 }
 
+#include "renderImage.h"
+
+static void R_CreateTCRenderImage( void ) {
+	tr.tcRenderImage = R_CreateImage( "*tcRender", NULL, (byte*)tcRenderImage, TCRENDER_SIZE, TCRENDER_SIZE, IMGFLAG_PICMIP );
+}
 
 /*
 ================
@@ -1456,6 +1461,8 @@ static void R_CreateBuiltinImages( void ) {
 
 	R_CreateDlightImage();
 	R_CreateFogImage();
+
+	R_CreateTCRenderImage();
 }
 
 

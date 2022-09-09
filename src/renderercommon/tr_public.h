@@ -158,6 +158,8 @@ typedef struct {
 
 	void	(*SyncRender)( void );
 
+	const cplane_t *(*GetFrustum)( void );
+
 	void* (*GetImageBuffer)(int size, bufferMemType_t bufferType);
 
 

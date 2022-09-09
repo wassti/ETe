@@ -813,6 +813,12 @@ qboolean CL_CloseAVI( qboolean reopen );
 aviRecordingState_t CL_VideoRecording( void );
 
 //
+// cl_tc_vis.c
+//
+void tc_vis_init(void);
+void tc_vis_render(const refdef_t *fd);
+
+//
 // cl_jpeg.c
 //
 size_t	CL_SaveJPGToBuffer( byte *buffer, size_t bufSize, int quality, int image_width, int image_height, byte *image_buffer, int padding );

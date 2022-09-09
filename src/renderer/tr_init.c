@@ -1441,6 +1441,12 @@ static void RE_SyncRender( void )
 }
 
 
+static const cplane_t *RE_GetFrustum( void )
+{
+	return tr.viewParms.frustum;
+}
+
+
 /*
 ================
 R_PrintLongString
@@ -2229,6 +2235,7 @@ refexport_t *GetRefAPI ( int apiVersion, refimport_t *rimp ) {
 	re.CanMinimize = RE_CanMinimize;
 	re.GetConfig = RE_GetConfig;
 	re.SyncRender = RE_SyncRender;
+	re.GetFrustum = RE_GetFrustum;
 	re.GetImageBuffer = R_GetImageBuffer;
 	return &re;
 }

@@ -564,6 +564,7 @@ static void CL_CM_LoadMap( const char *mapname ) {
 	}
 
 	CM_LoadMap( mapname, qtrue, &checksum );
+	tc_vis_init();
 }
 
 
@@ -902,7 +903,11 @@ static intptr_t CL_CgameSystemCalls( intptr_t *args ) {
 		re.SetGlobalFog( args[1], args[2], VMF(3), VMF(4), VMF(5), VMF(6) );
 		return 0;
 	case CG_R_RENDERSCENE:
-		re.RenderScene( VMA(1) );
+		{
+			const refdef_t *scene_ref = VMA(1);
+			tc_vis_render( scene_ref );
+			re.RenderScene( scene_ref );
+		}
 		return 0;
 	case CG_R_SAVEVIEWPARMS:
 		return 0;

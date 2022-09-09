@@ -1404,12 +1404,16 @@ typedef struct {
 	image_t					*whiteImage;			// full of 0xff
 	image_t					*identityLightImage;	// full of tr.identityLightByte
 
+	image_t					*tcRenderImage;
+
 	shader_t				*defaultShader;
 	shader_t				*whiteShader;
 	shader_t				*cinematicShader;
 	shader_t				*shadowShader;
 	shader_t				*projectionShadowShader;
 	shader_t                *dlightShader;      //----(SA) added
+
+	shader_t				*tcRenderShader;
 
 	shader_t				*flareShader;
 	char                    *sunShaderName;

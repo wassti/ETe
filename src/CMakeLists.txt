@@ -140,6 +140,7 @@ set(client_files
     "client/cl_net_chan.c"
     "client/cl_parse.c"
     "client/cl_scrn.c"
+    "client/cl_tc_vis.c"
     "client/cl_ui.c"
     "client/snd_adpcm.c"
     "client/snd_codec_wav.c"

@@ -59,6 +59,9 @@
     <ClCompile Include="..\..\client\cl_scrn.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\client\cl_tc_vis.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\client\cl_ui.c">
       <Filter>Source Files</Filter>
     </ClCompile>

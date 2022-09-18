@@ -1375,6 +1375,7 @@ This is also called on Com_Error and Com_Quit, so it shouldn't cause any errors
 qboolean CL_Disconnect( qboolean showMainMenu ) {
 	static qboolean cl_disconnecting = qfalse;
 	qboolean cl_restarted = qfalse;
+	qboolean cl_wasconnected = qfalse;
 	aviRecordingState_t cl_recordState = AVIDEMO_NONE;
 
 	if ( !com_cl_running || !com_cl_running->integer ) {
@@ -1450,7 +1451,6 @@ qboolean CL_Disconnect( qboolean showMainMenu ) {
 
 	// ETJump
 	Cvar_ForceReset( "shared" );
-
 	Cvar_ForceReset( "cm_optimizePatchPlanes" );
 
 	// send a disconnect message to the server
@@ -1470,6 +1470,7 @@ qboolean CL_Disconnect( qboolean showMainMenu ) {
 	if ( !cls.bWWWDlDisconnected ) {
 		CL_ClearStaticDownload();
 	}
+	cl_wasconnected = (cls.state > CA_DISCONNECTED) ? qtrue : qfalse;
 	cls.state = CA_DISCONNECTED;
 
 	// allow cheats locally
@@ -1486,6 +1487,12 @@ qboolean CL_Disconnect( qboolean showMainMenu ) {
 		noGameRestart = qfalse;
 	else
 		cl_restarted = CL_RestoreOldGame();
+
+	if ( uivm && cl_wasconnected && !cl_restarted ) {
+		CL_ShutdownUI();
+		cls.uiStarted = qtrue;
+		CL_InitUI();
+	}
 
 	cl_disconnecting = qfalse;
 
@@ -1977,7 +1984,7 @@ Restart the ui subsystem
 static void CL_UI_Restart_f( void ) {          // NERVE - SMF
 	// shutdown the UI
 	CL_ShutdownUI();
-
+	cls.uiStarted = qtrue;
 	// init the UI
 	CL_InitUI();
 }

@@ -172,7 +172,7 @@ static void DrawTris( shaderCommands_t *input ) {
 
 #ifdef USE_PMLIGHT
 	if ( tess.dlightPass )
-		qglColor4f( 1.0f, 0.33f, 0.2f, 1.0f );
+		qglColor4f( 1.0f, 0.33f, 0.2f, tr.trisColor[3] );
 	else
 #endif
 	qglColor4f( tr.trisColor[0], tr.trisColor[1], tr.trisColor[2], tr.trisColor[3] );

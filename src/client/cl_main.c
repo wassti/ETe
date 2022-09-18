@@ -4091,7 +4091,7 @@ static void CL_Video_f( void )
 		return;
 	}
 
-	if ( cl_avidemo->string[0] != '\0' ) {
+	if ( cl_avidemo->integer > 0 ) {
 		Com_Printf( "The %s command cannot be used when cl_avidemo is non-zero\n", Cmd_Argv( 0 ) );
 		return;
 	}
@@ -4510,7 +4510,7 @@ void CL_Init( void ) {
 	cl_activeAction = Cvar_Get( "activeAction", "", CVAR_TEMP | CVAR_PROTECTED );
 
 	cl_autoRecordDemo = Cvar_Get ("cl_autoRecordDemo", "0", CVAR_ARCHIVE);
-	cl_avidemo = Cvar_Get( "cl_avidemo", "0", CVAR_ROM ); // 0
+	cl_avidemo = Cvar_Get( "cl_avidemo", "0", CVAR_TEMP ); // 0
 	Cvar_CheckRange( cl_avidemo, "0", "0", CV_INTEGER );
 	//Cvar_CheckRange( cl_avidemo, "0", "1000", CV_INTEGER );
 

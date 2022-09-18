@@ -1510,8 +1510,8 @@ static void RB_IterateStagesVBO( const shaderCommands_t *input )
 	ARB_ProgramEnableExt( 0, 0 );
 
 	if ( r_showtris->integer ) {
-
-		if ( r_showtris->integer == 1 && backEnd.drawConsole )
+		qboolean hasAlpha = qfalse;
+		if ( r_showtris->integer == 1 && (backEnd.drawConsole || backEnd.projection2D) )
 			return;
 
 		ARB_ProgramEnableExt( 0, 0 );
@@ -1521,22 +1521,26 @@ static void RB_IterateStagesVBO( const shaderCommands_t *input )
 		GL_SelectTexture( 0 );
 		qglDisable( GL_TEXTURE_2D );
 
+		if ( tr.trisColor[3] < 1.f ) {
+			hasAlpha = qtrue;
+		}
+
 		if ( r_trisMode->integer ) {
-			GL_State( GLS_POLYMODE_LINE | GLS_DEPTHMASK_TRUE );
+			GL_State( hasAlpha ? (GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA | GLS_POLYMODE_LINE | GLS_DEPTHMASK_TRUE) : (GLS_POLYMODE_LINE | GLS_DEPTHMASK_TRUE)  );
 			qglDepthRange( 0, 0 );
 		}
 		else {
-			GL_State( GLS_POLYMODE_LINE );
+			GL_State( hasAlpha ? ( GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA | GLS_POLYMODE_LINE ) : GLS_POLYMODE_LINE );
 			qglEnable( GL_POLYGON_OFFSET_LINE );
 			qglPolygonOffset( r_offsetFactor->value, r_offsetUnits->value );
 		}
 
 		// green for IBO items
-		qglColor4f( 0.25f, 1.0f, 0.25f, 1.0f );
+		qglColor4f( 0.25f, 1.0f, 0.25f, hasAlpha ? tr.trisColor[3] : 1.0f );
 		VBO_RenderIBOItems();
 
 		// cyan for soft-index items
-		qglColor4f( 0.25f, 1.0f, 0.55f, 1.0f );
+		qglColor4f( 0.25f, 1.0f, 0.55f, hasAlpha ? tr.trisColor[3] : 1.0f );
 		VBO_RenderSoftItems();
 
 		if ( r_trisMode->integer ) {

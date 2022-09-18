@@ -1491,6 +1491,8 @@ typedef struct {
 
 	compressionState_t		allowCompress; // temporary variable for shader parsing
 
+	vec4_t trisColor;
+
 } trGlobals_t;
 
 extern backEndState_t backEnd;
@@ -1895,6 +1897,8 @@ void RB_AddQuadStampFadingCornersExt( const vec3_t origin, const vec3_t left, co
 void RB_ShowImages( void );
 
 void RB_DrawBounds( vec3_t mins, vec3_t maxs ); // ydnar
+
+void R_SetTrisColor( void );
 
 /*
 ============================================================

@@ -109,6 +109,40 @@ void R_BindAnimatedImage( const textureBundle_t *bundle ) {
 }
 
 
+void R_SetTrisColor( void ) {
+	const char *s = r_trisColor->string;
+
+	if ( *s == '0' && ( *( s + 1 ) == 'x' || *( s + 1 ) == 'X' ) ) {
+		s += 2;
+		if ( Q_IsHexColorString( s ) ) {
+			tr.trisColor[0] = ( (float)( gethex( *( s ) ) * 16 + gethex( *( s + 1 ) ) ) ) / 255.00;
+			tr.trisColor[1] = ( (float)( gethex( *( s + 2 ) ) * 16 + gethex( *( s + 3 ) ) ) ) / 255.00;
+			tr.trisColor[2] = ( (float)( gethex( *( s + 4 ) ) * 16 + gethex( *( s + 5 ) ) ) ) / 255.00;
+
+			if ( Q_HexColorStringHasAlpha( s ) ) {
+				tr.trisColor[3] = ( (float)( gethex( *( s + 6 ) ) * 16 + gethex( *( s + 7 ) ) ) ) / 255.00;
+			}
+		}
+	} else {
+		int i;
+		const char *token;
+
+		for ( i = 0 ; i < 4 ; i++ ) {
+			token = COM_ParseExt( &s, qfalse );
+			if ( token ) {
+				tr.trisColor[i] = Q_atof( token );
+			} else {
+				tr.trisColor[i] = 1.f;
+			}
+		}
+
+		if ( !tr.trisColor[3] ) {
+			tr.trisColor[3] = 1.f;
+		}
+	}
+}
+
+
 /*
 ================
 DrawTris
@@ -117,12 +151,10 @@ Draws triangle outlines for debugging
 ================
 */
 static void DrawTris( shaderCommands_t *input ) {
-	const char *s = r_trisColor->string;
-	vec4_t trisColor = { 1, 1, 1, 1 };
 	GLbitfield stateBits = 0;
 	GLboolean didDepth = GL_FALSE, polygonState = GL_FALSE;
 
-	if ( r_showtris->integer == 1 && backEnd.drawConsole )
+	if ( r_showtris->integer == 1 && (backEnd.drawConsole || backEnd.projection2D) )
 		return;
 
 	if ( tess.numIndexes == 0 )
@@ -134,36 +166,7 @@ static void DrawTris( shaderCommands_t *input ) {
 	GL_ClientState( 0, CLS_NONE );
 	qglDisable( GL_TEXTURE_2D );
 
-	if ( *s == '0' && ( *( s + 1 ) == 'x' || *( s + 1 ) == 'X' ) ) {
-		s += 2;
-		if ( Q_IsHexColorString( s ) ) {
-			trisColor[0] = ( (float)( gethex( *( s ) ) * 16 + gethex( *( s + 1 ) ) ) ) / 255.00;
-			trisColor[1] = ( (float)( gethex( *( s + 2 ) ) * 16 + gethex( *( s + 3 ) ) ) ) / 255.00;
-			trisColor[2] = ( (float)( gethex( *( s + 4 ) ) * 16 + gethex( *( s + 5 ) ) ) ) / 255.00;
-
-			if ( Q_HexColorStringHasAlpha( s ) ) {
-				trisColor[3] = ( (float)( gethex( *( s + 6 ) ) * 16 + gethex( *( s + 7 ) ) ) ) / 255.00;
-			}
-		}
-	} else {
-		int i;
-		const char *token;
-
-		for ( i = 0 ; i < 4 ; i++ ) {
-			token = COM_Parse( &s );
-			if ( token ) {
-				trisColor[i] = Q_atof( token );
-			} else {
-				trisColor[i] = 1.f;
-			}
-		}
-
-		if ( !trisColor[3] ) {
-			trisColor[3] = 1.f;
-		}
-	}
-
-	if ( trisColor[3] < 1.f ) {
+	if ( tr.trisColor[3] < 1.f ) {
 		stateBits |= ( GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA );
 	}
 
@@ -172,7 +175,7 @@ static void DrawTris( shaderCommands_t *input ) {
 		qglColor4f( 1.0f, 0.33f, 0.2f, 1.0f );
 	else
 #endif
-	qglColor4f( trisColor[0], trisColor[1], trisColor[2], trisColor[3] );
+	qglColor4f( tr.trisColor[0], tr.trisColor[1], tr.trisColor[2], tr.trisColor[3] );
 
 	if ( r_trisMode->integer ) {
 		stateBits |= ( GLS_POLYMODE_LINE | GLS_DEPTHMASK_TRUE );

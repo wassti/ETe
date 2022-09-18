@@ -265,6 +265,8 @@ void ARB_SetupLightParams( void )
 	radius = dl->radius;
 
 	fogPass = ( tess.fogNum && tess.shader->fogPass );
+	if ( fogPass && (tr.refdef.rdflags & RDF_SNOOPERVIEW || tess.shader->noFog || !r_wolffog->integer ) )
+		fogPass = qfalse;
 	fp = NULL;
 
 	vertexProgram = DLIGHT_VERTEX;

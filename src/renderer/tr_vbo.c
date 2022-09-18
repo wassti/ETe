@@ -956,7 +956,7 @@ void R_BuildWorldVBO( msurface_t *surf, int surfCount )
 			tris->vboItemIndex = i + 1;
 		} else if ( foliage->surfaceType == SF_FOLIAGE ) {
 			foliage->vboItemIndex = i + 1;
-		} else if ( grid->surfaceType == SF_GRID ){
+		} else if ( grid->surfaceType == SF_GRID ) {
 			grid->vboItemIndex = i + 1;
 		} else {
 			ri.Error( ERR_DROP, "Unexpected surface type" );
@@ -978,7 +978,7 @@ void R_BuildWorldVBO( msurface_t *surf, int surfCount )
 			vbo_item_t *vi = vbo->items + i + 1;
 			if ( vi->num_vertexes != grid->vboExpectVertices || vi->num_indexes != grid->vboExpectIndices ) {
 				ri.Error( ERR_DROP, "Unexpected grid vertexes/indexes count" );
-			} 
+			}
 		}
 		tess.numIndexes = 0;
 		tess.numVertexes = 0;
@@ -1364,10 +1364,18 @@ static void RB_IterateStagesVBO( const shaderCommands_t *input )
 
 	fogPass = ( tess.fogNum && tess.shader->fogPass );
 
+	if ( fogPass && (tr.refdef.rdflags & RDF_SNOOPERVIEW || tess.shader->noFog || !r_wolffog->integer ) )
+		fogPass = qfalse;
+
 	if ( fogPass && tess.shader->numUnfoggedPasses == 1 ) {
 		// combined fog + single stage program
 		pStage = input->xstages[ 0 ];
-		fparm = VBO_SetupFog( pStage->vboVPindex[1], pStage->vboFPindex[1], &vp, &fp ); 
+		if ( !tess.shader->noFog || pStage->isFogged )
+			fparm = VBO_SetupFog( pStage->vboVPindex[1], pStage->vboFPindex[1], &vp, &fp );
+		else {
+			fparm = NULL;
+			vp = fp = 0;
+		}
 	} else {
 		fparm = NULL;
 		vp = fp = 0;

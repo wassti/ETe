@@ -3812,13 +3812,15 @@ shader_t *R_FindShader( const char *name, int lightmapIndex, qboolean mipRawImag
 	// look for a single supported image file
 	//
 	{
-		imgFlags_t flags;
+		imgFlags_t flags = IMGFLAG_NONE;
 
-		flags = IMGFLAG_NONE;
+		if ( !shader.noMipMaps )
+			flags |= IMGFLAG_MIPMAP;
 
-		if ( mipRawImage )
-			flags |= IMGFLAG_MIPMAP | IMGFLAG_PICMIP;
-		else
+		if ( !shader.noPicMip )
+			flags |= IMGFLAG_PICMIP;
+
+		if ( !mipRawImage )
 			flags |= IMGFLAG_CLAMPTOEDGE;
 
 		image = R_FindImageFile( fileName, flags );

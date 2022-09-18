@@ -621,8 +621,10 @@ void CL_KeyDownEvent( int key, unsigned time )
 	// console key is hardcoded, so the user can never unbind it
 	if( key == K_CONSOLE || ( keys[K_SHIFT].down && key == K_ESCAPE ) )
 	{
+		Key_PreserveModifiers();
 		Con_ToggleConsole_f();
 		Key_ClearStates();
+		Key_RestoreModifiers();
 		return;
 	}
 
@@ -868,6 +870,31 @@ void CL_CharEvent( int key )
 	}
 }
 
+qboolean modifiers[3];
+int numModifiers = 0;
+void Key_PreserveModifiers( void )
+{
+	if ( keys[K_ALT].down ) {
+		modifiers[0] = qtrue;
+		numModifiers++;
+	}
+	if ( keys[K_CTRL].down ) {
+		modifiers[1] = qtrue;
+		numModifiers++;
+	}
+	if ( keys[K_SHIFT].down ) {
+		modifiers[2] = qtrue;
+		numModifiers++;
+	}
+}
+
+
+void Key_RestoreModifiers( void )
+{
+	memset( modifiers, 0, sizeof(modifiers) );
+	numModifiers = 0;
+}
+
 
 /*
 ===================
@@ -878,10 +905,20 @@ void Key_ClearStates( void )
 {
 	int		i;
 
-	anykeydown = 0;
+	if ( numModifiers > 0 )
+		anykeydown = numModifiers;
+	else
+		anykeydown = 0;
 
 	for ( i = 0 ; i < MAX_KEYS ; i++ )
 	{
+		if ( i == K_ALT && modifiers[0] )
+			continue;
+		else if ( i == K_CTRL && modifiers[1] )
+			continue;
+		else if ( i == K_SHIFT && modifiers[2] )
+			continue;
+
 		if ( keys[i].down )
 			CL_KeyEvent( i, qfalse, 0 );
 

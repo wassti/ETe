@@ -59,6 +59,9 @@ int Key_StringToKeynum( const char *str );
 qboolean Key_IsDown( int keynum );
 void Key_ClearStates( void );
 
+void Key_PreserveModifiers( void );
+void Key_RestoreModifiers( void );
+
 qboolean Key_GetOverstrikeMode( void );
 void Key_SetOverstrikeMode( qboolean state );
 

@@ -1850,12 +1850,20 @@ static qboolean R_LoadMDM( model_t *mod, void *buffer, int fileSize, const char 
 		return qfalse;
 	}
 
-	mod->type = MOD_MDM;
 	size = LittleLong( pinmodel->ofsEnd );
-	mod->dataSize += size;
-	mdm = mod->model.mdm = ri.Hunk_Alloc( size, h_low );
 
-	memcpy( mdm, buffer, LittleLong( pinmodel->ofsEnd ) );
+	if ( size > fileSize ) {
+		ri.Printf( PRINT_WARNING, "%s: %s has corrupted header\n", __func__, mod_name );
+		return qfalse;
+	}
+
+	mod->type = MOD_MDM;
+	mod->dataSize += size;
+	mod->model.mdm = ri.Hunk_Alloc( size, h_low );
+
+	memcpy( mod->model.mdm, buffer, size );
+
+	mdm = mod->model.mdm;
 
 	LL( mdm->ident );
 	LL( mdm->version );
@@ -1868,6 +1876,15 @@ static qboolean R_LoadMDM( model_t *mod, void *buffer, int fileSize, const char 
 	LL( mdm->ofsSurfaces );
 	mdm->lodBias = LittleFloat( mdm->lodBias );
 	mdm->lodScale = LittleFloat( mdm->lodScale );
+
+	if ( mdm->ofsTags > size || mdm->ofsSurfaces > size ) {
+		ri.Printf( PRINT_WARNING, "%s: %s has corrupted header\n", __func__, mod_name );
+		return qfalse;
+	}
+	if ( mdm->ofsSurfaces + ( mdm->numSurfaces ? 1 : 0 ) * sizeof( mdmSurface_t ) > fileSize ) {
+		ri.Printf( PRINT_WARNING, "%s: %s has corrupted header\n", __func__, mod_name );
+		return qfalse;
+	}
 
 /*	mdm->skel = RE_RegisterModel(mdm->bonesfile);
 	if ( !mdm->skel ) {
@@ -1897,6 +1914,8 @@ static qboolean R_LoadMDM( model_t *mod, void *buffer, int fileSize, const char 
 		tag = ( mdmTag_t * )( (byte *)mdm + mdm->ofsTags );
 		for ( i = 0 ; i < mdm->numTags ; i++ ) {
 			int ii;
+			// zero-terminate tag name
+			tag->name[sizeof( tag->name ) - 1] = '\0';
 			for ( ii = 0; ii < 3; ii++ )
 			{
 				tag->axis[ii][0] = LittleFloat( tag->axis[ii][0] );
@@ -1943,8 +1962,30 @@ static qboolean R_LoadMDM( model_t *mod, void *buffer, int fileSize, const char 
 			LL( surf->ofsEnd );
 		}
 
-		// change to surface identifier
-		surf->ident = SF_MDM;
+		if ( surf->ofsEnd > fileSize || (((byte*)surf - (byte*)mdm) + surf->ofsEnd) > fileSize ) {
+			ri.Printf( PRINT_WARNING, "%s: %s has corrupted surface header\n", __func__, mod_name );
+			return qfalse;
+		}
+		if ( surf->ofsCollapseMap + surf->numVerts * sizeof( int32_t ) > fileSize ) {
+			ri.Printf( PRINT_WARNING, "%s: %s has corrupted surface header\n", __func__, mod_name );
+			return qfalse;
+		}
+		if ( surf->ofsTriangles > fileSize || surf->ofsCollapseMap > fileSize || surf->ofsVerts > fileSize || surf->ofsBoneReferences > fileSize ) {
+			ri.Printf( PRINT_WARNING, "%s: %s has corrupted surface header\n", __func__, mod_name );
+			return qfalse;
+		}
+		if ( surf->ofsTriangles + surf->numTriangles * sizeof( mdmTriangle_t ) > fileSize ) {
+			ri.Printf( PRINT_WARNING, "%s: %s has corrupted surface header\n", __func__, mod_name );
+			return qfalse;
+		}
+		if ( surf->ofsVerts + surf->numVerts * sizeof( mdmVertex_t ) > fileSize ) {
+			ri.Printf( PRINT_WARNING, "%s: %s has corrupted surface header\n", __func__, mod_name );
+			return qfalse;
+		}
+		if ( surf->ofsBoneReferences + surf->numBoneReferences * sizeof( int32_t ) > fileSize ) {
+			ri.Printf( PRINT_WARNING, "%s: %s has corrupted surface header\n", __func__, mod_name );
+			return qfalse;
+		}
 
 		if ( surf->numVerts >= SHADER_MAX_VERTEXES ) {
 			ri.Printf( PRINT_WARNING, "R_LoadMDM: %s has more than %i verts on %s (%i).\n",
@@ -1959,8 +2000,16 @@ static qboolean R_LoadMDM( model_t *mod, void *buffer, int fileSize, const char 
 			return qfalse;
 		}
 
+		// change to surface identifier
+		surf->ident = SF_MDM;
+
+		// zero-terminate surface name
+		surf->name[sizeof( surf->name ) - 1] = '\0';
+
 		// register the shaders
 		if ( surf->shader[0] ) {
+			// zero-terminate shader name
+			surf->shader[sizeof( surf->shader ) - 1] = '\0';
 			sh = R_FindShader( surf->shader, LIGHTMAP_NONE, qtrue );
 			if ( sh->defaultShader ) {
 				surf->shaderIndex = 0;
@@ -2047,12 +2096,20 @@ static qboolean R_LoadMDX( model_t *mod, void *buffer, int fileSize, const char 
 		return qfalse;
 	}
 
-	mod->type = MOD_MDX;
 	size = LittleLong( pinmodel->ofsEnd );
-	mod->dataSize += size;
-	mdx = mod->model.mdx = ri.Hunk_Alloc( size, h_low );
 
-	memcpy( mdx, buffer, LittleLong( pinmodel->ofsEnd ) );
+	if ( size > fileSize ) {
+		ri.Printf( PRINT_WARNING, "%s: %s has corrupted header\n", __func__, mod_name );
+		return qfalse;
+	}
+
+	mod->type = MOD_MDX;
+	mod->dataSize += size;
+	mod->model.mdx = ri.Hunk_Alloc( size, h_low );
+
+	memcpy( mod->model.mdx, buffer, size );
+
+	mdx = mod->model.mdx;
 
 	LL( mdx->ident );
 	LL( mdx->version );
@@ -2062,6 +2119,16 @@ static qboolean R_LoadMDX( model_t *mod, void *buffer, int fileSize, const char 
 	LL( mdx->ofsBones );
 	LL( mdx->ofsEnd );
 	LL( mdx->torsoParent );
+
+	if ( mdx->numFrames < 1 ) {
+		ri.Printf( PRINT_WARNING, "%s: %s has no frames\n", __func__, mod_name );
+		return qfalse;
+	}
+
+	if ( mdx->ofsFrames > size || mdx->ofsBones > size ) {
+		ri.Printf( PRINT_WARNING, "%s: %s has corrupted header\n", __func__, mod_name );
+		return qfalse;
+	}
 
 	if ( LittleLong( 1 ) != 1 ) {
 		// swap all the frames

@@ -1495,7 +1495,7 @@ static int SV_WriteDownloadToClient( client_t *cl )
 
 						MSG_WriteByte( &msg, svc_EOF );
 						SV_Netchan_Transmit( cl, &msg );
-						return 0;
+						return 1;
 					}
 					Com_Printf( "Client '%s': falling back to regular downloading for failed file %s\n", cl->name, cl->downloadName );
 				}
@@ -1514,7 +1514,7 @@ static int SV_WriteDownloadToClient( client_t *cl )
 
 					MSG_WriteByte( &msg, svc_EOF );
 					SV_Netchan_Transmit( cl, &msg );
-					return 0;
+					return 1;
 				}
 				Com_Printf( "Client '%s' is not configured for www download\n", cl->name );
 			}
@@ -1534,7 +1534,7 @@ static int SV_WriteDownloadToClient( client_t *cl )
 			MSG_WriteShort( &msg, 0 ); // client is expecting block zero
 			MSG_WriteLong( &msg, -1 ); // illegal file size
 			*cl->downloadName = '\0';
-			MSG_WriteString( &msg, errorMessage ); // (could SV_DropClient isntead?)
+			MSG_WriteString( &msg, errorMessage ); // (could SV_DropClient instead?)
 
 			MSG_WriteByte( &msg, svc_EOF );
 			SV_Netchan_Transmit( cl, &msg );

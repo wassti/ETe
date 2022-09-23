@@ -2130,6 +2130,7 @@ const char* PC_Line_Parse( int handle );
 #else
 const char *String_Alloc( const char *p );
 qboolean PC_String_Parse( int handle, const char **out );
+qboolean PC_String_ParseLower( int handle, const char **out );
 #endif
 qboolean PC_String_ParseNoAlloc( int handle, char *out, size_t size );
 qboolean PC_Int_Parse( int handle, int *i );

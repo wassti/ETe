@@ -133,7 +133,7 @@ jobs:
           sudo dpkg --add-architecture i386
           sudo apt-get -qq update
           sudo apt-get -y install gcc-multilib g++-multilib ninja-build
-          sudo apt-get -y install libjpeg-dev:i386 libsdl2-dev:i386 libcurl4-openssl-dev:i386
+          sudo apt-get -y install libjpeg-dev:i386 libibus-1.0-dev:i386 libpulse-dev:i386 libsdl2-dev:i386 libcurl4-openssl-dev:i386
         else
           sudo apt-get -qq update
           sudo apt-get -y install ninja-build libjpeg-dev libsdl2-dev libcurl4-openssl-dev

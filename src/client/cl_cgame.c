@@ -36,6 +36,8 @@ extern void startCamera( int camNum, int time );
 extern qboolean getCameraInfo( int camNum, int time, vec3_t *origin, vec3_t *angles, float *fov );
 #endif
 
+static int nestedCmd; // nested command execution flag
+
 static void CL_Callvote_f( void ) {
 	CL_ForwardCommandToServer( Cmd_Cmd() );
 }
@@ -717,7 +719,7 @@ static intptr_t CL_CgameSystemCalls( intptr_t *args ) {
 		return FS_Delete( VMA(1) );
 	case CG_SENDCONSOLECOMMAND:
 		{
-			char *cmd = (char *)VMA(1);
+			const char *cmd = (const char *)VMA(1);
 			int len = (int)strlen(cmd);
 			// workaround etjump 2.4.0 silly exec badness
 			if ( len > 9 && !Q_stricmpn(cmd, "cmd exec ", 9) ) {
@@ -728,7 +730,10 @@ static intptr_t CL_CgameSystemCalls( intptr_t *args ) {
 				}
 				return 0;
 			}
-			Cbuf_AddText( cmd );
+			if ( nestedCmd > 0 )
+				Cbuf_InsertText( cmd );
+			else
+				Cbuf_AddText( cmd );
 		}
 		return 0;
 	case CG_ADDCOMMAND:
@@ -1316,6 +1321,8 @@ void CL_InitCGame( void ) {
 	const char          *mapname;
 	int t1, t2;
 
+	nestedCmd = 0;
+
 	t1 = Sys_Milliseconds();
 
 	// put away the console
@@ -1385,12 +1392,21 @@ CL_GameCommand
 See if the current console command is claimed by the cgame
 ====================
 */
+
 qboolean CL_GameCommand( void ) {
+	qboolean bRes;
+
 	if ( !cgvm ) {
 		return qfalse;
 	}
 
-	return VM_Call( cgvm, 0, CG_CONSOLE_COMMAND );
+	nestedCmd++;
+
+	bRes = (qboolean)VM_Call( cgvm, 0, CG_CONSOLE_COMMAND );
+
+	nestedCmd--;
+
+	return bRes;
 }
 
 

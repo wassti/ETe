@@ -615,6 +615,12 @@ void RE_EndFrame( int *frontEndMsec, int *backEndMsec ) {
 	backEnd.pc.msec = 0;
 	backEnd.throttle = qfalse;
 
+	if ( r_trisColor->modified )
+	{
+		R_SetTrisColor();
+		r_trisColor->modified = qfalse;
+	}
+
 	// recompile GPU shaders if needed
 	if ( ri.Cvar_CheckGroup( CVG_RENDERER ) )
 	{

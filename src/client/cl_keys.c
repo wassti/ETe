@@ -667,10 +667,10 @@ void CL_KeyDownEvent( int key, unsigned time )
 	if ( ( key < 128 || key == K_MOUSE1 )
 		&& ( clc.demoplaying || cls.state == CA_CINEMATIC ) && Key_GetCatcher( ) == 0 ) {
 
-		if ( Cvar_VariableIntegerValue( "com_cameraMode" ) == 0 ) {
+		//if ( Cvar_VariableIntegerValue( "com_cameraMode" ) == 0 ) {
 			Cvar_Set ("nextdemo","");
 			key = K_ESCAPE;
-		}
+		//}
 	}
 
 	// escape is always handled special
@@ -682,7 +682,9 @@ void CL_KeyDownEvent( int key, unsigned time )
 #endif
 		if ( Key_GetCatcher( ) & KEYCATCH_CONSOLE ) {
 			// escape also closes console
+			Key_PreserveModifiers();
 			Con_ToggleConsole_f();
+			Key_RestoreModifiers();
 			Key_ClearStates();
 			return;
 		}

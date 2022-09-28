@@ -52,7 +52,6 @@ cvar_t  *cl_showTimeDelta;
 
 cvar_t  *cl_shownet = NULL;     // NERVE - SMF - This is referenced in msg.c and we need to make sure it is NULL
 cvar_t  *cl_shownuments;        // DHM - Nerve
-cvar_t  *cl_visibleClients;     // DHM - Nerve
 cvar_t  *cl_showServerCommands; // NERVE - SMF
 cvar_t	*cl_autoRecordDemo;
 
@@ -4505,7 +4504,6 @@ void CL_Init( void ) {
 
 	cl_shownet = Cvar_Get( "cl_shownet", "0", CVAR_TEMP );
 	cl_shownuments = Cvar_Get( "cl_shownuments", "0", CVAR_TEMP );
-	cl_visibleClients = Cvar_Get( "cl_visibleClients", "0", CVAR_TEMP );
 	cl_showServerCommands = Cvar_Get( "cl_showServerCommands", "0", 0 );
 	cl_showTimeDelta = Cvar_Get( "cl_showTimeDelta", "0", CVAR_TEMP );
 	rcon_client_password = Cvar_Get( "rconPassword", "", CVAR_TEMP );
@@ -4532,9 +4530,11 @@ void CL_Init( void ) {
 	rconAddress = Cvar_Get( "rconAddress", "", 0 );
 	Cvar_SetDescription( rconAddress, "Alternate server address to remotely access via rcon protocol" );
 
-	cl_allowDownload = Cvar_Get( "cl_allowDownload", "1", CVAR_ARCHIVE_ND );
+	cl_allowDownload = Cvar_Get( "cl_allowDownload", "3", CVAR_ARCHIVE_ND );
+	Cvar_CheckRange( cl_allowDownload, 0, NULL, CV_INTEGER );
 #ifdef USE_CURL
 	cl_mapAutoDownload = Cvar_Get( "cl_mapAutoDownload", "0", CVAR_ARCHIVE_ND );
+	Cvar_CheckRange( cl_mapAutoDownload, "0", "1", CV_INTEGER );
 #ifdef USE_CURL_DLOPEN
 	cl_cURLLib = Cvar_Get( "cl_cURLLib", DEFAULT_CURL_LIB, 0 );
 #endif

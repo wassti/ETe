@@ -481,7 +481,6 @@ extern cvar_t  *cl_debugMove;
 extern cvar_t  *cl_timegraph;
 extern cvar_t  *cl_shownet;
 extern cvar_t  *cl_shownuments;             // DHM - Nerve
-extern cvar_t  *cl_visibleClients;          // DHM - Nerve
 extern cvar_t  *cl_showServerCommands;      // NERVE - SMF
 extern	cvar_t	*cl_autoNudge;
 extern	cvar_t	*cl_timeNudge;

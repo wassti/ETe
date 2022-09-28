@@ -1534,7 +1534,7 @@ extern cvar_t	*r_drawSun;				// controls drawing of sun quad
 										// "1" draw sun
 										// "2" also draw lens flare effect centered on sun
 extern cvar_t   *r_dynamiclight;        // dynamic lights enabled/disabled
-extern cvar_t	*r_mergeLightmaps;
+//extern cvar_t	*r_mergeLightmaps;
 #ifdef USE_PMLIGHT
 extern cvar_t	*r_dlightMode;			// 0 - vq3, 1 - pmlight
 extern cvar_t	*r_dlightSpecPower;		// 1 - 32

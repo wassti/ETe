@@ -154,6 +154,7 @@ netadr_t			rcon_address;
 char				cl_oldGame[ MAX_QPATH ];
 qboolean			cl_oldGameSet;
 static	qboolean	noGameRestart = qfalse;
+static	qboolean	cl_shutdownQuit = qfalse;
 
 #ifdef USE_CURL
 download_t			download;
@@ -1488,7 +1489,9 @@ qboolean CL_Disconnect( qboolean showMainMenu ) {
 	else
 		cl_restarted = CL_RestoreOldGame();
 
-	if ( uivm && cl_wasconnected && !cl_restarted ) {
+	// don't try a restart if uivm is NULL, as we might be in the middle of a restart already
+	// don't try a restart if shutting down, as we are in process of shutting it all down already
+	if ( !cl_shutdownQuit && uivm && cl_wasconnected && !cl_restarted ) {
 		CL_ShutdownUI();
 		cls.uiStarted = qtrue;
 		CL_InitUI();
@@ -4717,6 +4720,7 @@ void CL_Shutdown( const char *finalmsg, qboolean quit ) {
 	//}
 
 	noGameRestart = quit;
+	cl_shutdownQuit = quit;
 	CL_Disconnect( qfalse );
 
 	// clear and mute all sounds until next registration

@@ -1632,7 +1632,7 @@ static void S_GetSoundtime( void )
 
 	if ( aviRecord != AVIDEMO_NONE )
 	{
-		const float duration = MAX( (float)dma.speed / (AVIDEMO_CVAR ? cl_avidemo->value : cl_aviFrameRate->value), 1.0f );
+		const float duration = MAX( (float)dma.speed / (aviRecord == AVIDEMO_CVAR ? cl_avidemo->value : cl_aviFrameRate->value), 1.0f );
 		const float frameDuration = duration + clc.aviSoundFrameRemainder;
 		const int msec = (int)frameDuration;
 

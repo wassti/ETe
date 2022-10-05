@@ -43,7 +43,8 @@ cvar_t *s_volume;
 //cvar_t *s_muted;
 cvar_t *s_musicVolume;
 cvar_t *s_doppler;
-cvar_t *s_backend;
+cvar_t *s_mute;
+static cvar_t *s_backend;
 cvar_t *s_muteWhenMinimized;
 cvar_t *s_muteWhenUnfocused;
 
@@ -680,17 +681,24 @@ void S_Init( void )
 	s_musicVolume = Cvar_Get( "s_musicvolume", "0.25", CVAR_ARCHIVE );
 	s_doppler = Cvar_Get( "s_doppler", "1", CVAR_ARCHIVE_ND );
 	s_backend = Cvar_Get( "s_backend", "", CVAR_ROM );
+	s_mute = Cvar_Get( "s_mute", "0", CVAR_TEMP );
 	s_muteWhenUnfocused = Cvar_Get( "s_muteWhenUnfocused", "1", CVAR_ARCHIVE );
 	s_muteWhenMinimized = Cvar_Get( "s_muteWhenMinimized", "1", CVAR_ARCHIVE );
+
+	Cvar_SetDescription( s_volume, "global sound volume" );
+	Cvar_SetDescription( s_musicVolume, "music volume" );
+	Cvar_SetDescription( s_mute, "global sound mute toggle" );
 
 	Cvar_CheckRange( s_volume, "0", "1", CV_FLOAT );
 	Cvar_CheckRange( s_musicVolume, "0", "1", CV_FLOAT );
 	Cvar_CheckRange( s_doppler, "0", "1", CV_INTEGER );
+	Cvar_CheckRange( s_mute, "0", "1", CV_INTEGER );
 	Cvar_CheckRange( s_muteWhenUnfocused, "0", "1", CV_INTEGER );
 	Cvar_CheckRange( s_muteWhenMinimized, "0", "1", CV_INTEGER );
 
 	cv = Cvar_Get( "s_initsound", "1", 0 );
 	if ( !cv->integer ) {
+		Com_Memset( &si, 0, sizeof( si ) );
 		Com_Printf( "Sound disabled.\n" );
 	} else {
 
@@ -741,7 +749,7 @@ void S_Shutdown( void )
 		si.Shutdown();
 	}
 
-	Com_Memset( &si, 0, sizeof( soundInterface_t ) );
+	Com_Memset( &si, 0, sizeof( si ) );
 
 	Cmd_UnregisterModule( MODULE_SOUND );
 

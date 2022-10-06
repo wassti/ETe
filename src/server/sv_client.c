@@ -1368,6 +1368,13 @@ static int SV_WriteDownloadToClient( client_t *cl )
 
 	if ( cl->download == FS_INVALID_HANDLE ) {
 		qboolean idPack = qfalse;
+
+		//bani - prevent duplicate download notifications
+		if ( cl->downloadnotify & DLNOTIFY_BEGIN ) {
+			cl->downloadnotify &= ~DLNOTIFY_BEGIN;
+			Com_Printf( "clientDownload: %d : beginning \"%s\"\n", (int)( cl - svs.clients ), cl->downloadName );
+		}
+
  		// Chop off filename extension.
 		Q_strncpyz( pakbuf, cl->downloadName, sizeof( pakbuf ) );
 		pakptr = strrchr( pakbuf, '.' );
@@ -1472,7 +1479,7 @@ static int SV_WriteDownloadToClient( client_t *cl )
 					if ( downloadSize ) {
 						FS_FCloseFile( handle ); // don't keep open, we only care about the size
 
-						Q_strncpyz( cl->downloadURL, va( "%s/%s", sv_wwwBaseURL->string, cl->downloadName ), sizeof( cl->downloadURL ) );
+						Com_sprintf( cl->downloadURL, sizeof(cl->downloadURL), "%s/%s", sv_wwwBaseURL->string, cl->downloadName );
 
 						//bani - prevent multiple download notifications
 						if ( cl->downloadnotify & DLNOTIFY_REDIRECT ) {
@@ -1569,12 +1576,6 @@ static int SV_WriteDownloadToClient( client_t *cl )
 				cl->download = FS_INVALID_HANDLE;
 			}
 			return 1;
-		}
- 
-		//bani - prevent duplicate download notifications
-		if ( cl->downloadnotify & DLNOTIFY_BEGIN ) {
-			cl->downloadnotify &= ~DLNOTIFY_BEGIN;
-			Com_Printf( "clientDownload: %d : beginning \"%s\"\n", (int)( cl - svs.clients ), cl->downloadName );
 		}
 
 		// Init

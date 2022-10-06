@@ -817,6 +817,16 @@ static qboolean CL_UI_GetValue( char* value, int valueSize, const char* key ) {
 		return qtrue;
 	}
 
+	if ( !Q_stricmp( key, "cap_SVG" ) ) {
+		Com_sprintf( value, valueSize, "%i", 1 );
+		return qtrue;
+	}
+
+	if ( !Q_stricmp( key, "cap_PNG" ) ) {
+		Com_sprintf( value, valueSize, "%i", 1 );
+		return qtrue;
+	}
+
 	return qfalse;
 }
 

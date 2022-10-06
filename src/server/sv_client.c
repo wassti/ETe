@@ -122,6 +122,7 @@ v4-only auth server for these new types of connections.
 =================
 */
 void SV_GetChallenge( const netadr_t *from ) {
+	static	rateLimit_t bucket;
 	int		challenge;
 	int		clientChallenge;
 
@@ -130,7 +131,26 @@ void SV_GetChallenge( const netadr_t *from ) {
 		return;
 	}
 
-	//CHECKME WITH TEMPBANS
+#ifdef USE_BANS
+	// Check whether this client is banned.
+	if(SV_IsBanned(from, qfalse))
+	{
+		// avoid excessive outgoing traffic
+		if ( !SVC_RateLimit( &bucket, 10, 200 ) ) {
+			NET_OutOfBandPrint(NS_SERVER, &from, "print\nYou are banned from this server.\n");
+		}
+		return;
+	}
+#endif
+
+	if ( SV_TempBanIsBanned( from ) ) {
+		// avoid excessive outgoing traffic
+		if ( !SVC_RateLimit( &bucket, 10, 200 ) ) {
+			NET_OutOfBandPrint( NS_SERVER, from, "print\n%s\n", sv_tempbanmessage->string );
+		}
+		return;
+	}
+
 	// Prevent using getchallenge as an amplifier
 	if ( SVC_RateLimitAddress( from, 10, 1000 ) ) {
 		if ( com_developer->integer ) {
@@ -459,13 +479,19 @@ void SV_DirectConnect( const netadr_t *from ) {
 	// Check whether this client is banned.
 	if(SV_IsBanned(from, qfalse))
 	{
-		NET_OutOfBandPrint(NS_SERVER, &from, "print\n[err_dialog]You are banned from this server.\n");
+		// avoid excessive outgoing traffic
+		if ( !SVC_RateLimit( &bucket, 10, 200 ) ) {
+			NET_OutOfBandPrint(NS_SERVER, &from, "print\n[err_dialog]You are banned from this server.\n");
+		}
 		return;
 	}
 #endif
 
 	if ( SV_TempBanIsBanned( from ) ) {
-		NET_OutOfBandPrint( NS_SERVER, from, "print\n[err_dialog]%s\n", sv_tempbanmessage->string );
+		// avoid excessive outgoing traffic
+		if ( !SVC_RateLimit( &bucket, 10, 200 ) ) {
+			NET_OutOfBandPrint( NS_SERVER, from, "print\n[err_dialog]%s\n", sv_tempbanmessage->string );
+		}
 		return;
 	}
 

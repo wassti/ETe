@@ -45,6 +45,7 @@ static void CL_Callvote_f( void ) {
 static void CL_CompleteCallvote( char *args, int argNum ) {
 	if( argNum >= 2 )
 	{
+		char *p;
 		if ( argNum == 3 && !Q_stricmp( Cmd_Argv( 1 ), "map" ) ) {
 			if ( cl_connectedToPureServer ) {
 				Field_CompleteFilename( "maps", "bsp", qtrue, FS_MATCH_PK3s | FS_MATCH_STICK );
@@ -55,7 +56,7 @@ static void CL_CompleteCallvote( char *args, int argNum ) {
 		}
 
 		// Skip "callvote "
-		char *p = Com_SkipTokens( args, 1, " " );
+		p = Com_SkipTokens( args, 1, " " );
 
 		if ( p > args )
 			Field_CompleteCommand( p, qtrue, qtrue );
@@ -730,16 +731,6 @@ static intptr_t CL_CgameSystemCalls( intptr_t *args ) {
 	case CG_SENDCONSOLECOMMAND:
 		{
 			const char *cmd = (const char *)VMA(1);
-			int len = (int)strlen(cmd);
-			// workaround etjump 2.4.0 silly exec badness
-			if ( len > 9 && !Q_stricmpn(cmd, "cmd exec ", 9) ) {
-				qboolean need_newline = (cmd[len-1] != '\n') ? qtrue : qfalse;
-				Cbuf_AddText( cmd+4 );
-				if ( need_newline ) {
-					Cbuf_AddText( "\n" );
-				}
-				return 0;
-			}
 			if ( nestedCmd > 0 )
 				Cbuf_InsertText( cmd );
 			else

@@ -1196,7 +1196,7 @@ static void *DLGPA(const char *str)
 
 /*
 =================
-CL_cURL_Init
+DL_Init
 =================
 */
 qboolean DL_Init( void )
@@ -1271,7 +1271,7 @@ qboolean DL_Init( void )
 
 /*
 =================
-CL_cURL_Shutdown
+DL_Shutdown
 =================
 */
 void DL_Shutdown( void )
@@ -1373,7 +1373,7 @@ setup the download, return once we have a connection
 */
 int DL_BeginDownload( const char *localName, const char *remoteName, int debug ) {
 	if ( dl_request ) {
-		Com_Printf( "ERROR: DL_BeginDownload called with a download request already active\n" ); \
+		Com_Printf( S_COLOR_YELLOW "ERROR: DL_BeginDownload called with a download request already active\n" );
 		return 0;
 	}
 
@@ -1385,33 +1385,37 @@ int DL_BeginDownload( const char *localName, const char *remoteName, int debug )
 	DL_Cleanup();
 
 	if ( !DL_Init() ) {
-		Com_Printf("Client download subsystem failed to load\n");
+		Com_Printf( S_COLOR_YELLOW "Error initializing cURL library\n" );
 		return 0;
 	}
 
-	FS_CreatePath( localName );
+	if ( FS_CreatePath( localName ) ) {
+		Com_Printf( S_COLOR_RED "ERROR: DL_BeginDownload unable to create path '%s'\n", localName );
+		DL_Cleanup();
+		return 0;
+	}
 	dl_file = Sys_FOpen( localName, "wb+" );
 	if ( !dl_file ) {
-		Com_Printf( "ERROR: DL_BeginDownload unable to open '%s' for writing\n", localName );
+		Com_Printf( S_COLOR_RED "ERROR: DL_BeginDownload unable to open '%s' for writing\n", localName );
 		DL_Cleanup();
 		return 0;
 	}
 
 	dl_request = dl_curl_easy_init();
 	if ( !dl_request ) {
-		Com_Printf(" ERROR: DL_BeginDownload: easy_init() failed\n");
+		Com_Printf( S_COLOR_RED "ERROR: DL_BeginDownload: easy_init() failed\n" );
 		DL_Cleanup();
 		return 0;
 	}
 
 	dl_multi = dl_curl_multi_init();
 	if ( !dl_multi ) {
-		Com_Printf(" ERROR: DL_BeginDownload: multi_init() failed\n");
+		Com_Printf( S_COLOR_RED "ERROR: DL_BeginDownload: multi_init() failed\n" );
 		DL_Cleanup();
 		return 0;
 	}
 
-	Com_Printf( "Client download subsystem initialized\n" );
+	Com_Printf( "URL: %s\n", remoteName );
 	if ( debug )
 		dl_curl_easy_setopt( dl_request, CURLOPT_VERBOSE, 1 );
 	dl_curl_easy_setopt( dl_request, CURLOPT_USERAGENT, va( "%s %s", APP_NAME "/" APP_VERSION, dl_curl_version() ) );
@@ -1427,7 +1431,7 @@ int DL_BeginDownload( const char *localName, const char *remoteName, int debug )
 	dl_curl_easy_setopt( dl_request, CURLOPT_PROTOCOLS, ALLOWED_PROTOCOLS );
 
 	if ( dl_curl_multi_add_handle( dl_multi, dl_request ) != CURLM_OK ) {
-		Com_Printf(" ERROR: DL_BeginDownload: multi_add_handle() failed\n");
+		Com_Printf( S_COLOR_RED "ERROR: DL_BeginDownload: multi_add_handle() failed\n" );
 		DL_Cleanup();
 		return 0;
 	}

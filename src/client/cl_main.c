@@ -3229,6 +3229,20 @@ qboolean CL_NoDelay( void )
 
 /*
 ==================
+CL_ConnectedToRemoteServer
+==================
+*/
+qboolean CL_ConnectedToRemoteServer( void )
+{
+	if ( (!com_sv_running || !com_sv_running->integer) && cls.state >= CA_CONNECTED && !clc.demoplaying )
+		return qtrue;
+
+	return qfalse;
+}
+
+
+/*
+==================
 CL_CheckUserinfo
 ==================
 */

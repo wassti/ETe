@@ -756,6 +756,14 @@ cvar_t *Cvar_Set2( const char *var_name, const char *value, qboolean force ) {
 			return Cvar_Get( var_name, value, 0 );
 	}
 
+#ifndef DEDICATED
+	if ( (var->flags & (CVAR_SYSTEMINFO|CVAR_SERVER_CREATED)) && !force && CL_ConnectedToRemoteServer() )
+	{
+		Com_Printf( "%s can only be set by the server.\n", var_name );
+		return var;
+	}
+#endif
+
 	if ( var->flags & (CVAR_ROM | CVAR_INIT | CVAR_CHEAT | CVAR_DEVELOPER | CVAR_UNSAFE) && !force )
 	{
 		// ydnar: don't set unsafe variables when com_crashed is set

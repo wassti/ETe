@@ -1346,6 +1346,8 @@ void SCR_DebugGraph( float value );   // FIXME: move logging to common?
 void CL_SystemInfoChanged( qboolean onlyGame );
 qboolean CL_GameSwitch( void );
 
+qboolean CL_ConnectedToRemoteServer( void );
+
 // AVI files have the start of pixel lines 4 byte-aligned
 #define AVI_LINE_PADDING 4
 

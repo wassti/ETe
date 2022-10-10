@@ -815,7 +815,7 @@ aviRecordingState_t CL_VideoRecording( void );
 // cl_tc_vis.c
 //
 void tc_vis_init(void);
-void tc_vis_render(const refdef_t *fd);
+void tc_vis_render(void);
 
 //
 // cl_jpeg.c

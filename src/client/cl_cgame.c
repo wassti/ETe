@@ -911,7 +911,7 @@ static intptr_t CL_CgameSystemCalls( intptr_t *args ) {
 	case CG_R_RENDERSCENE:
 		{
 			const refdef_t *scene_ref = VMA(1);
-			tc_vis_render( scene_ref );
+			tc_vis_render();
 			re.RenderScene( scene_ref );
 		}
 		return 0;

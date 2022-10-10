@@ -116,11 +116,11 @@ void tc_vis_init(void) {
 	//add_landmines();
 }
 
-void tc_vis_render(const refdef_t *fd) {
-	if ( !fd || fd->rdflags > 0 )
+void tc_vis_render(void) {
+	if ( cls.glconfig.vidWidth == 0 || (Key_GetCatcher() & KEYCATCH_UI) )
 		return;
 
-	if ( cls.glconfig.vidWidth == 0 || fd->width < cls.glconfig.vidWidth )
+	if ( !cls.rendererStarted || !re.RegisterShader || !re.GetFrustum || !re.AddPolyToScene )
 		return;
 
 	if (triggers_draw->integer) {
@@ -264,7 +264,11 @@ static void add_slicks(void) {
 static void gen_visible_brush(int brushnum, const vec3_t origin, visBrushType_t type, const vec4_t color) {
 	int i;
 	cbrush_t *brush = &cm.brushes[brushnum];
-	visBrushNode_t *node = malloc(sizeof(visBrushNode_t));
+	visBrushNode_t *node;
+	if ( !brush->numsides )
+		return;
+	
+	node = malloc(sizeof(visBrushNode_t));
 	node->numFaces = brush->numsides;
 	node->faces = malloc(node->numFaces * sizeof(visFace_t));
 	for (i = 0; i < node->numFaces; i++) {
@@ -317,6 +321,8 @@ static void gen_visible_brush(int brushnum, const vec3_t origin, visBrushType_t 
 	for (i = 0; i < brush->numsides; i++) {
 		int j;
 		visFace_t *face = &node->faces[i];
+		if ( !face->numVerts )
+			continue;
 		VectorCopy(brush->sides[i].plane->normal, w_normal);
 		VectorClear(w_center);
 		ClearBounds(face->mins, face->maxs);
@@ -327,7 +333,8 @@ static void gen_visible_brush(int brushnum, const vec3_t origin, visBrushType_t 
 		VectorScale(w_center, 1.0f / face->numVerts, w_center);
 		VectorSubtract(face->verts[0].xyz, w_center, w_ref_vec);
 		w_ref_vec_len = VectorLength(w_ref_vec);
-		qsort(face->verts, face->numVerts, sizeof(face->verts[0]), winding_cmp);
+		if ( face->numVerts >= 2 )
+			qsort(face->verts, face->numVerts, sizeof(face->verts[0]), winding_cmp);
 	}
 
 	visBrushNode_t **head = NULL;

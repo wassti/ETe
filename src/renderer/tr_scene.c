@@ -57,7 +57,7 @@ int r_firstSceneDecalProjector;
 int r_numDecalProjectors;
 int r_firstSceneDecal;
 
-int skyboxportal;
+int skyboxportal; // signifies if the loaded map has a skyboxportal
 /*
 ====================
 R_InitNextFrame

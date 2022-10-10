@@ -530,14 +530,15 @@ static void RB_BeginDrawingView( void ) {
 //		clearBits = GL_DEPTH_BUFFER_BIT;	// (SA) always just clear depth for menus
 //	}
 	// ydnar: global q3 fog volume
-	else if ( tr.world && tr.world->globalFog >= 0 ) {
+	if ( tr.world && tr.world->globalFog >= 0 ) {
 		clearBits |= GL_DEPTH_BUFFER_BIT;
 		clearBits |= GL_COLOR_BUFFER_BIT;
 		//
 		qglClearColor( tr.world->fogs[tr.world->globalFog].shader->fogParms.color[ 0 ] * tr.identityLight,
 					   tr.world->fogs[tr.world->globalFog].shader->fogParms.color[ 1 ] * tr.identityLight,
 					   tr.world->fogs[tr.world->globalFog].shader->fogParms.color[ 2 ] * tr.identityLight, 1.0 );
-	} else if ( skyboxportal )      {
+	}
+	else if ( skyboxportal ) {
 		if ( backEnd.refdef.rdflags & RDF_SKYBOXPORTAL ) { // portal scene, clear whatever is necessary
 
 			clearBits |= GL_DEPTH_BUFFER_BIT;
@@ -591,6 +592,7 @@ static void RB_BeginDrawingView( void ) {
 		if ( backEnd.refdef.rdflags & RDF_NOWORLDMODEL ) {
 			clearBits &= ~GL_COLOR_BUFFER_BIT;
 		}
+
 		// -NERVE - SMF
 		else if ( r_fastsky->integer || backEnd.refdef.rdflags & RDF_NOWORLDMODEL ) {
 
@@ -613,12 +615,10 @@ static void RB_BeginDrawingView( void ) {
 		}
 	}
 
-
 	// ydnar: don't clear the color buffer when no world model is specified
 	if ( backEnd.refdef.rdflags & RDF_NOWORLDMODEL ) {
 		clearBits &= ~GL_COLOR_BUFFER_BIT;
 	}
-
 
 	if ( clearBits ) {
 		qglClear( clearBits );

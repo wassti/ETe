@@ -477,9 +477,8 @@ argv(0) god
 ==================
 */
 static void Cmd_God_f( gentity_t *ent ) {
-	char    *msg;
-	char    *name;
-	qboolean godAll = qfalse;
+	const char	*name, *msg;
+	qboolean	godAll = qfalse;
 
 	if ( !CheatsOk( ent ) ) {
 		return;
@@ -605,13 +604,13 @@ argv(0) nofatigue
 */
 
 static void Cmd_Nofatigue_f( gentity_t *ent ) {
-	char    *msg;
-
-	char    *name = ConcatArgs( 1 );
+	const char *name, *msg;
 
 	if ( !CheatsOk( ent ) ) {
 		return;
 	}
+
+	name = ConcatArgs( 1 );
 
 	if ( !Q_stricmp( name, "on" ) || atoi( name ) ) {
 		ent->flags |= FL_NOFATIGUE;
@@ -640,13 +639,22 @@ argv(0) notarget
 ==================
 */
 static void Cmd_Notarget_f( gentity_t *ent ) {
-	char    *msg;
+	const char *name, *msg;
 
 	if ( !CheatsOk( ent ) ) {
 		return;
 	}
 
-	ent->flags ^= FL_NOTARGET;
+	name = ConcatArgs( 1 );
+
+	if ( !Q_stricmp( name, "on" ) || atoi( name ) ) {
+		ent->flags |= FL_NOTARGET;
+	} else if ( !Q_stricmp( name, "off" ) || !Q_stricmp( name, "0" ) ) {
+		ent->flags &= ~FL_NOTARGET;
+	} else {
+		ent->flags ^= FL_NOTARGET;
+	}
+
 	if ( !( ent->flags & FL_NOTARGET ) ) {
 		msg = "notarget OFF\n";
 	} else {
@@ -665,13 +673,13 @@ argv(0) noclip
 ==================
 */
 static void Cmd_Noclip_f( gentity_t *ent ) {
-	char    *msg;
-
-	char    *name = ConcatArgs( 1 );
+	const char *name, *msg;
 
 	if ( !CheatsOk( ent ) ) {
 		return;
 	}
+
+	name = ConcatArgs( 1 );
 
 	if ( !Q_stricmp( name, "on" ) || atoi( name ) ) {
 		ent->client->noclip = qtrue;
@@ -3387,7 +3395,7 @@ void ClientCommand( int clientNum ) {
 		Cmd_Nofatigue_f( ent );
 	} else if ( Q_stricmp( cmd, "notarget" ) == 0 ) {
 		Cmd_Notarget_f( ent );
-	} else if ( Q_stricmp( cmd, "noclip" ) == 0 || Q_stricmp( cmd, "idclip" ) == 0 ) {
+	} else if ( Q_stricmp( cmd, "noclip" ) == 0 || Q_stricmp( cmd, "idclip" ) == 0 || Q_stricmp( cmd, "idspispopd" ) == 0 ) {
 		Cmd_Noclip_f( ent );
 	} else if ( Q_stricmp( cmd, "kill" ) == 0 ) {
 		Cmd_Kill_f( ent );

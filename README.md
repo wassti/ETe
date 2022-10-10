@@ -61,77 +61,7 @@ Original ioquake3 renderer, not available and unlikely to be ported
 * VoIP support (probably never going to add since Discord etc)
 * Extra sound codecs like ogg and opus
 
-## Build Instructions
-
-### windows/msvc
-
-Install Visual Studio Community Edition 2017 or later and compile all projects from solution
-
-`src/wolf.sln`
-
-Default settings are using Visual Studio 2017 with XP compatible toolset
-
-Only 32-bit binaries compatible until 64-bit mods become available and a 64-bit etmain is available
-
-Copy resulting exe from `src/[Debug|Release]` directory and `src/ded/[Debug|Release]` directory
-
-~~To compile with Vulkan backend - clean solution, right click on `wolf` project, find `Project Dependencies` and select `renderervk` instead of `renderer`~~
-
----
-
-### ~~windows/mingw~~
-
-TODO
-
-~~All build dependencies (libraries, headers) are bundled-in~~
-
-~~Build with either `make ARCH=x86` or `make ARCH=x86_64` commands depending from your target system, then copy resulting binaries from created `build` directory or use command:~~
-
-~~`make install DESTDIR=<path_to_game_files>`~~
-
----
-
-### linux/bsd
-
-[CMake](https://cmake.org/download/) is required to generate make files for this project under *nix
-
-Debian or Arch based distros:
-```
-cd src
-./linux_build.sh
-```
-
-Build artifacts ete.x86 and ete-ded.x86 are then found under the build directory.
-
-Only 32-bit binaries compatible until 64-bit mods become available and a 64-bit etmain is available
-
-The provided 32-bit cross compile toolchain is provided on this repository.
-
-Several options available for linux builds with CMake:
-
-`BUILD_CLIENT=ON` - build unified client/server executable, enabled by default
-
-`BUILD_DEDSERVER=ON` - build dedicated server executable, enabled by default
-
-`USE_SDL2=ON` - use SDL2 backend for video, audio, input subsystems
-
-`USE_SYSTEM_JPEG=ON` - use current system JPEG-turbo library, enabled by default
-
----
-
-### raspbery pi os
-
-TODO
-
----
-
-### macOS
-
-* install the official SDL2 framework to /Library/Frameworks
-* build should work similarly to linux/bsd section
-* aarch64 compilation not tested at all due to lack of device or Github Action support
-* Need testers and someone to help finish supporting the ET mac filesystem differences with regards to packaging and handling of mod binaries
-* Probably will skip PPC support but 32/64/aarch64 separate and universal would be ideal.
+## [Build Instructions](BUILD.md)
 
 ## Contacts
 

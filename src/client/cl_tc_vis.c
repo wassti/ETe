@@ -143,9 +143,8 @@ static void add_triggers(void) {
 	for (;; ) {
 		qboolean is_trigger = qfalse;
 		int model = -1;
-		vec3_t origin;
+		vec3_t origin = { 0 };
 		const char *token;
-		VectorCopy(vec3_origin, origin);
 
 		token = COM_Parse(&entities);
 		if (!entities)
@@ -178,7 +177,7 @@ static void add_triggers(void) {
 		}
 
 		if (is_trigger && model > 0) {
-			cLeaf_t *leaf = &cm.cmodels[model].leaf;
+			const cLeaf_t *leaf = &cm.cmodels[model].leaf;
 			int i;
 			for (i = 0; i < leaf->numLeafBrushes; i++) {
 				gen_visible_brush(cm.leafbrushes[leaf->firstLeafBrush + i], origin, TRIGGER_BRUSH, trigger_color);
@@ -190,8 +189,8 @@ static void add_triggers(void) {
 static void add_clips(void) {
 	int i, s;
 	for (i = 0; i < cm.numBrushes; i++) {
-		cbrush_t *brush = &cm.brushes[i];
-                // need to exclude ladders here explicitly since common/ladder is also CONTENTS_PLAYERCLIP
+		const cbrush_t *brush = &cm.brushes[i];
+        // need to exclude ladders here explicitly since common/ladder is also CONTENTS_PLAYERCLIP
 		if (brush->contents & CONTENTS_PLAYERCLIP && !(brush->sides->surfaceFlags & SURF_LADDER)) {
 			gen_visible_brush(i, vec3_origin, CLIP_BRUSH, clip_color);
 		}
@@ -200,7 +199,7 @@ static void add_clips(void) {
 		// to match parameters used in weaponclip shaders
 		for (s = 0; s < brush->numsides; s++)
 		{
-			cbrushside_t *side = &brush->sides[s];
+			const cbrushside_t *side = &brush->sides[s];
 			if (!(brush->contents & CONTENTS_SOLID) || (side->surfaceFlags & SURF_SLICK))
 			{
 				continue;
@@ -235,12 +234,12 @@ static ID_INLINE qboolean angleSlick(const cplane_t *plane) {
 static void add_slicks(void) {
 	int i, s;
 	for (i = 0; i < cm.numBrushes; i++) {
-		cbrush_t *brush = &cm.brushes[i];
+		const cbrush_t *brush = &cm.brushes[i];
 		if (!(brush->contents & CONTENTS_SOLID)) {
 			continue;
 		}
 		for (s = 0; s < brush->numsides; s++) {
-			cbrushside_t* side = &brush->sides[s];
+			const cbrushside_t* side = &brush->sides[s];
 			if (side->surfaceFlags & SURF_SLICK ||
 			    (!(side->surfaceFlags & SURF_NODRAW) && !(side->surfaceFlags & SURF_SKY) && angleSlick(side->plane))) {
 				gen_visible_brush(i, vec3_origin, SLICK_BRUSH, slick_color);
@@ -268,6 +267,7 @@ static void gen_visible_brush(int brushnum, const vec3_t origin, visBrushType_t 
 	int i;
 	cbrush_t *brush = &cm.brushes[brushnum];
 	visBrushNode_t *node;
+	visBrushNode_t **head = NULL;
 	if ( !brush->numsides )
 		return;
 	
@@ -286,7 +286,8 @@ static void gen_visible_brush(int brushnum, const vec3_t origin, visBrushType_t 
 			cplane_t *p2 = brush->sides[j].plane;
 			int k;
 			for (k = j+1; k < brush->numsides; k++) {
-				vec3_t p;
+				vec3_t p, v1, v2, v3;
+				vec2_t uv;
 				cplane_t *p3 = brush->sides[k].plane;
 				if (!intersect_planes(p1, p2, p3, p))
 					continue;
@@ -299,9 +300,6 @@ static void gen_visible_brush(int brushnum, const vec3_t origin, visBrushType_t 
 				VectorAdd(p, origin, p);
 
 				// fix z-fighting by slightly moving vertices outwards
-				vec3_t v1;
-				vec3_t v2;
-				vec3_t v3;
 				VectorScale(p1->normal, .0625f, v1);
 				VectorScale(p2->normal, .0625f, v2);
 				VectorScale(p3->normal, .0625f, v3);
@@ -309,13 +307,12 @@ static void gen_visible_brush(int brushnum, const vec3_t origin, visBrushType_t 
 				VectorAdd(p, v2, v2);
 				VectorAdd(p, v3, v3);
 
-				vec2_t uv;
-                                if (type != SLICK_BRUSH || brush->sides->surfaceFlags & SURF_SLICK || angleSlick(p1))
-                                  add_vert_to_face(&node->faces[i], v1, color, get_uv_coords(uv, p, p1->normal));
-                                if (type != SLICK_BRUSH || brush->sides->surfaceFlags & SURF_SLICK || angleSlick(p2))
-                                  add_vert_to_face(&node->faces[j], v2, color, get_uv_coords(uv, p, p2->normal));
-                                if (type != SLICK_BRUSH || brush->sides->surfaceFlags & SURF_SLICK || angleSlick(p3))
-                                  add_vert_to_face(&node->faces[k], v3, color, get_uv_coords(uv, p, p3->normal));
+				if (type != SLICK_BRUSH || brush->sides->surfaceFlags & SURF_SLICK || angleSlick(p1))
+					add_vert_to_face(&node->faces[i], v1, color, get_uv_coords(uv, p, p1->normal));
+				if (type != SLICK_BRUSH || brush->sides->surfaceFlags & SURF_SLICK || angleSlick(p2))
+					add_vert_to_face(&node->faces[j], v2, color, get_uv_coords(uv, p, p2->normal));
+				if (type != SLICK_BRUSH || brush->sides->surfaceFlags & SURF_SLICK || angleSlick(p3))
+					add_vert_to_face(&node->faces[k], v3, color, get_uv_coords(uv, p, p3->normal));
 			}
 		}
 	}
@@ -336,11 +333,10 @@ static void gen_visible_brush(int brushnum, const vec3_t origin, visBrushType_t 
 		VectorScale(w_center, 1.0f / face->numVerts, w_center);
 		VectorSubtract(face->verts[0].xyz, w_center, w_ref_vec);
 		w_ref_vec_len = VectorLength(w_ref_vec);
-		if ( face->numVerts >= 2 )
+		if (face->numVerts >= 2)
 			qsort(face->verts, face->numVerts, sizeof(face->verts[0]), winding_cmp);
 	}
 
-	visBrushNode_t **head = NULL;
 	switch (type)
 	{
 	case TRIGGER_BRUSH:
@@ -386,7 +382,7 @@ static qboolean intersect_planes(const cplane_t *p1, const cplane_t *p2, const c
 static qboolean point_in_brush(const vec3_t point, const cbrush_t *brush) {
 	int i;
 	for (i = 0; i < brush->numsides; i++) {
-		float d = DotProduct(point, brush->sides[i].plane->normal);
+		const float d = DotProduct(point, brush->sides[i].plane->normal);
 		// brushes with non-AA planes + AA bevel planes create too many intersections
 		// EPSILON 1e-1 too big => 1e-3
 		if (d - brush->sides[i].plane->dist > 1e-3)
@@ -443,7 +439,7 @@ static void add_vert_to_face(visFace_t *face, const vec3_t vert, const vec4_t co
 }
 
 static float *get_uv_coords(vec2_t uv, const vec3_t vert, const vec3_t normal) {
-	float x = fabsf(normal[0]), y = fabsf(normal[1]), z = fabsf(normal[2]);
+	const float x = fabsf(normal[0]), y = fabsf(normal[1]), z = fabsf(normal[2]);
 	if (x >= y && x >= z) {
 		uv[0] = -vert[1] / 32.f;
 		uv[1] = -vert[2] / 32.f;

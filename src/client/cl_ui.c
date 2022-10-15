@@ -30,6 +30,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "client.h"
 
 vm_t *uivm = NULL;
+static int nestedCmd; // nested command execution flag
 
 
 /*
@@ -900,16 +901,22 @@ static intptr_t CL_UISystemCalls( intptr_t *args ) {
 		return 0;
 
 	case UI_CMD_EXECUTETEXT:
-		if(args[1] == EXEC_NOW
-		&& (!strncmp(VMA(2), "snd_restart", 11)
-		|| !strncmp(VMA(2), "vid_restart", 11)
-		|| !strncmp(VMA(2), "disconnect", 10)
-		|| !strncmp(VMA(2), "quit", 5)))
 		{
-			Com_Printf (S_COLOR_YELLOW "turning EXEC_NOW '%.11s' into EXEC_INSERT\n", (const char*)VMA(2));
-			args[1] = EXEC_INSERT;
+			const char *cmd = (const char *)VMA(2);
+			if(args[1] == EXEC_NOW
+				&& (!strncmp(cmd, "snd_restart", 11)
+				|| !strncmp(cmd, "vid_restart", 11)
+				|| !strncmp(cmd, "game_restart", 12)
+				|| !strncmp(cmd, "disconnect", 10)
+				|| !strncmp(cmd, "quit", 5)))
+			{
+				Com_Printf (S_COLOR_YELLOW "turning EXEC_NOW '%.11s' into EXEC_INSERT\n", cmd);
+				args[1] = EXEC_INSERT;
+			}
+			if( nestedCmd > 0 && args[1] == EXEC_APPEND )
+				args[1] = EXEC_INSERT;
+			Cbuf_ExecuteText( args[1], cmd );
 		}
-		Cbuf_ExecuteText( args[1], VMA(2) );
 		return 0;
 
 	case UI_ADDCOMMAND:
@@ -1359,6 +1366,8 @@ CL_InitUI
 void CL_InitUI( void ) {
 	int v;
 
+	nestedCmd = 0;
+
 	uivm = VM_Create( VM_UI, CL_UISystemCalls, UI_DllSyscall, VMI_NATIVE );
 	if ( !uivm ) {
 		if ( cl_connectedToPureServer && CL_GameSwitch() ) {
@@ -1421,9 +1430,16 @@ See if the current console command is claimed by the ui
 ====================
 */
 qboolean UI_GameCommand( void ) {
+	qboolean bRes;
 	if ( !uivm ) {
 		return qfalse;
 	}
 
-	return VM_Call( uivm, 1, UI_CONSOLE_COMMAND, cls.realtime );
+	nestedCmd++;
+
+	bRes = (qboolean)VM_Call( uivm, 1, UI_CONSOLE_COMMAND, cls.realtime );
+
+	nestedCmd--;
+
+	return bRes;
 }

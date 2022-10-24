@@ -1682,7 +1682,7 @@ void CL_CompleteCinematicName( char *args, int argNum )
 {
 	if ( argNum == 2 )
 	{
-		Field_CompleteFilename( "video", ".roq", qtrue, FS_MATCH_EXTERN | FS_MATCH_STICK );
+		Field_CompleteFilename( "video", ".roq", qtrue, FS_MATCH_ANY | FS_MATCH_STICK );
 	}
 }
 

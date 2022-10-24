@@ -1151,12 +1151,20 @@ void Snd_Memset( void* dest, const int val, const size_t count )
 	Com_Memset( dest, val, count );
 }
 
+static int SNDDMA_KHzToHz( int khz )
+{
+	switch ( khz )
+	{
+		case 48: return 48000;
+		case 44: return 44100;
+		default:
+		case 22: return 22050;
+		case 11: return 11025;
+	}
+}
+
 qboolean SNDDMA_Init( void )
 {
-	cvar_t *sndbits;
-	cvar_t *sndspeed;
-	cvar_t *sndchannels;
-
 	struct audio_buf_info info;
 	int rc;
 	int fmt;
@@ -1167,9 +1175,6 @@ qboolean SNDDMA_Init( void )
 	if (snd_inited)
 		return qtrue;
 
-	sndbits = Cvar_Get("sndbits", "16", CVAR_ARCHIVE_ND | CVAR_LATCH);
-	sndspeed = Cvar_Get("sndspeed", "0", CVAR_ARCHIVE_ND | CVAR_LATCH);
-	sndchannels = Cvar_Get("sndchannels", "2", CVAR_ARCHIVE_ND |  CVAR_LATCH);
 	snddevice = Cvar_Get("snddevice", "/dev/dsp", CVAR_ARCHIVE_ND | CVAR_LATCH);
 
 	map_size = 0;
@@ -1201,7 +1206,7 @@ qboolean SNDDMA_Init( void )
 	/* SNDCTL_DSP_GETOSPACE moved to be called later */
 
 	// set sample bits & speed
-	dma.samplebits = (int)sndbits->value;
+	dma.samplebits = (int)s_bits->value;
 	if (dma.samplebits != 16 && dma.samplebits != 8) {
 		ioctl(audio_fd, SNDCTL_DSP_GETFMTS, &fmt);
 		if (fmt & AFMT_S16_LE) 
@@ -1210,7 +1215,7 @@ qboolean SNDDMA_Init( void )
 			dma.samplebits = 8;
 	}
 
-	dma.speed = (int)sndspeed->value;
+	dma.speed = SNDDMA_KHzToHz( s_khz->integer );
 	if (!dma.speed) {
 		for (i=0 ; i<sizeof(tryrates)/4 ; i++)
 			if (!ioctl(audio_fd, SNDCTL_DSP_SPEED, &tryrates[i])) 
@@ -1218,7 +1223,7 @@ qboolean SNDDMA_Init( void )
 		dma.speed = tryrates[i];
 	}
 
-	dma.channels = (int)sndchannels->value;
+	dma.channels = (int)s_numchannels->value;
 	if (dma.channels < 1 || dma.channels > 2)
 		dma.channels = 2;
 

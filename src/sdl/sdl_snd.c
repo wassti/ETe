@@ -247,7 +247,9 @@ qboolean SNDDMA_Init( void )
 		return qtrue;
 
 	s_sdlDevSamps = Cvar_Get( "s_sdlDevSamps", "0", CVAR_ARCHIVE_ND | CVAR_LATCH );
+	Cvar_SetDescription( s_sdlDevSamps, "SDL DMA buffer size override" );
 	s_sdlMixSamps = Cvar_Get( "s_sdlMixSamps", "0", CVAR_ARCHIVE_ND | CVAR_LATCH );
+	Cvar_SetDescription( s_sdlMixSamps, "SDL mix buffer size override" );
 	s_sdlLevelSamps = Cvar_Get( "s_sdlLevelSamps", "0", CVAR_ARCHIVE_ND | CVAR_LATCH );
 	Cvar_CheckRange( s_sdlLevelSamps, "0", "2", CV_INTEGER );
 

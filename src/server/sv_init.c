@@ -903,22 +903,30 @@ void SV_Init( void )
 	Cvar_Get( "sv_keywords", "", CVAR_SERVERINFO );
 	//Cvar_Get( "protocol", va( "%i", PROTOCOL_VERSION ), CVAR_SERVERINFO | CVAR_ROM );
 	sv_mapname = Cvar_Get( "mapname", "nomap", CVAR_SERVERINFO | CVAR_ROM );
+	Cvar_SetDescription( sv_mapname, "Display the name of the current map being used on a server" );
 	sv_privateClients = Cvar_Get( "sv_privateClients", "0", CVAR_SERVERINFO );
 	Cvar_CheckRange( sv_privateClients, "0", va( "%i", MAX_CLIENTS-1 ), CV_INTEGER );
+	Cvar_SetDescription( sv_privateClients, "The number of spots, out of sv_maxclients, reserved for players with the server password (sv_privatePassword)" );
 	sv_hostname = Cvar_Get( "sv_hostname", "ETHost", CVAR_SERVERINFO | CVAR_ARCHIVE );
+	Cvar_SetDescription( sv_hostname, "Sets the name of the server" );
 	sv_maxclients = Cvar_Get( "sv_maxclients", "20", CVAR_SERVERINFO | CVAR_LATCH );               // NERVE - SMF - changed to 20 from 8
 	Cvar_CheckRange( sv_maxclients, "1", XSTRING(MAX_CLIENTS), CV_INTEGER );
+	Cvar_SetDescription( sv_maxclients, "Maximum number of people allowed to join the server dedicated server" );
 
 	sv_maxclientsPerIP = Cvar_Get( "sv_maxclientsPerIP", "3", CVAR_ARCHIVE );
 	Cvar_CheckRange( sv_maxclientsPerIP, "1", NULL, CV_INTEGER );
-	Cvar_SetDescription( sv_maxclientsPerIP, "Limits number of simultaneous connections from the same IP address." );
+	Cvar_SetDescription( sv_maxclientsPerIP, "Limits number of simultaneous connections from the same IP address" );
 
 	sv_clientTLD = Cvar_Get( "sv_clientTLD", "0", CVAR_ARCHIVE_ND );
 	Cvar_CheckRange( sv_clientTLD, NULL, NULL, CV_INTEGER );
+	Cvar_SetDescription( sv_clientTLD, "Client country detection code" );
 
 	sv_minRate = Cvar_Get( "sv_minRate", "0", CVAR_ARCHIVE_ND | CVAR_SERVERINFO );
+	Cvar_SetDescription( sv_minRate, "Minimum server bandwidth (in bit per second) a client can use" );
 	sv_maxRate = Cvar_Get( "sv_maxRate", "0", CVAR_ARCHIVE_ND | CVAR_SERVERINFO );
+	Cvar_SetDescription( sv_maxRate, "Maximum server bandwidth (in bit per second) a client can use" );
 	sv_floodProtect = Cvar_Get( "sv_floodProtect", "1", CVAR_ARCHIVE | CVAR_SERVERINFO );
+	Cvar_SetDescription( sv_floodProtect, "Toggle server flood protection to keep players from bringing the server down" );
 	sv_friendlyFire = Cvar_Get( "g_friendlyFire", "1", CVAR_SERVERINFO | CVAR_ARCHIVE );           // NERVE - SMF
 	sv_maxlives = Cvar_Get( "g_maxlives", "0", CVAR_ARCHIVE | CVAR_LATCH | CVAR_SERVERINFO );      // NERVE - SMF
 	sv_needpass = Cvar_Get( "g_needpass", "0", CVAR_SERVERINFO | CVAR_ROM );
@@ -926,7 +934,7 @@ void SV_Init( void )
 	// systeminfo
 	//bani - added cvar_t for sv_cheats so server engine can reference it
 	sv_cheats = Cvar_Get( "sv_cheats", "1", CVAR_SYSTEMINFO | CVAR_ROM );
-	Cvar_SetDescription( sv_cheats, "Allow cheats" );
+	Cvar_SetDescription( sv_cheats, "Enable cheating commands (serverside or demo playback only)" );
 	sv_serverid = Cvar_Get( "sv_serverid", "0", CVAR_SYSTEMINFO | CVAR_ROM );
 	sv_pure = Cvar_Get( "sv_pure", "1", CVAR_SYSTEMINFO | CVAR_LATCH );
 	Cvar_SetDescription( sv_pure, "Pure server client file checksum verification:\n"
@@ -936,10 +944,13 @@ void SV_Init( void )
 	Cvar_Get( "sv_pakNames", "", CVAR_SYSTEMINFO | CVAR_ROM );
 	Cvar_Get( "sv_referencedPaks", "", CVAR_SYSTEMINFO | CVAR_ROM );
 	sv_referencedPakNames = Cvar_Get( "sv_referencedPakNames", "", CVAR_SYSTEMINFO | CVAR_ROM );
+	Cvar_SetDescription( sv_referencedPakNames, "Variable holds a list of all the pk3 files the server loaded data from" );
 
 	// server vars
 	sv_rconPassword = Cvar_Get( "rconPassword", "", CVAR_TEMP );
+	Cvar_SetDescription( sv_rconPassword, "Password for remote server commands" );
 	sv_privatePassword = Cvar_Get( "sv_privatePassword", "", CVAR_TEMP );
+	Cvar_SetDescription( sv_privatePassword, "Set password for private clients to login with" );
 	sv_fps = Cvar_Get( "sv_fps", "20", CVAR_TEMP );
 	Cvar_CheckRange( sv_fps, "10", "125", CV_INTEGER );
 	Cvar_SetDescription( sv_fps, "Frames per second the server runs at" );
@@ -952,6 +963,7 @@ void SV_Init( void )
 	Cvar_Get ("nextmap", "", CVAR_TEMP );
 
 	sv_allowDownload = Cvar_Get( "sv_allowDownload", "1", CVAR_ARCHIVE|CVAR_SERVERINFO );
+	Cvar_SetDescription( sv_allowDownload, "Toggle the ability for clients to download files maps etc. from server" );
 	Cvar_Get( "sv_dlURL", "", CVAR_SERVERINFO | CVAR_ARCHIVE );
 
 	// moved to Com_Init()
@@ -962,12 +974,17 @@ void SV_Init( void )
 	sv_master[4] = Cvar_Get( "sv_master5", "", CVAR_ARCHIVE_ND );
 	sv_reconnectlimit = Cvar_Get( "sv_reconnectlimit", "3", 0 );
 	Cvar_CheckRange( sv_reconnectlimit, "0", "12", CV_INTEGER );
+	Cvar_SetDescription( sv_reconnectlimit, "Number of seconds a disconnected client should wait before next reconnect" );
 
 	sv_tempbanmessage = Cvar_Get( "sv_tempbanmessage", "You have been kicked and are temporarily banned from joining this server.", 0 );
 	sv_padPackets = Cvar_Get( "sv_padPackets", "0", CVAR_DEVELOPER );
+	Cvar_SetDescription( sv_padPackets, "Adds padding bytes to network packets for rate debugging" );
 	sv_killserver = Cvar_Get( "sv_killserver", "0", 0 );
+	Cvar_SetDescription( sv_killserver, "Internal flag to manage server state" );
 	sv_mapChecksum = Cvar_Get( "sv_mapChecksum", "", CVAR_ROM );
+	Cvar_SetDescription( sv_mapChecksum, "Checksum of the currently loaded map" );
 	sv_lanForceRate = Cvar_Get( "sv_lanForceRate", "1", CVAR_ARCHIVE_ND );
+	Cvar_SetDescription( sv_lanForceRate, "Forces LAN clients to the maximum rate instead of accepting client setting" );
 
 	sv_onlyVisibleClients = Cvar_Get( "sv_onlyVisibleClients", "0", 0 );       // DHM - Nerve
 
@@ -1007,6 +1024,8 @@ void SV_Init( void )
 
 	// the download netcode tops at 18/20 kb/s, no need to make you think you can go above
 	sv_dl_maxRate = Cvar_Get( "sv_dl_maxRate", "42000", CVAR_ARCHIVE );
+	//Cvar_CheckRange( sv_dl_maxRate, "0", "100000", CV_INTEGER );
+	Cvar_SetDescription( sv_dl_maxRate, "Bandwidth allotted to PK3 file downloads via UDP, in byte/s" );
 
 	sv_wwwDownload = Cvar_Get( "sv_wwwDownload", "0", CVAR_ARCHIVE );
 	sv_wwwBaseURL = Cvar_Get( "sv_wwwBaseURL", "", CVAR_ARCHIVE );
@@ -1019,6 +1038,7 @@ void SV_Init( void )
 
 #ifdef USE_BANS
 	sv_banFile = Cvar_Get("sv_banFile", "serverbans.dat", CVAR_ARCHIVE);
+	Cvar_SetDescription( sv_banFile, "Name of the file that is used for storing the server bans" );
 #endif
 
 	sv_levelTimeReset = Cvar_Get( "sv_levelTimeReset", "0", CVAR_ARCHIVE_ND );
@@ -1028,6 +1048,7 @@ void SV_Init( void )
 		" however it may be necessary to disable in case of troubles with custom mods similar to ettv" );
 
 	sv_filter = Cvar_Get( "sv_filter", "filter.txt", CVAR_ARCHIVE );
+	Cvar_SetDescription( sv_filter, "Cvar that point to filter file, if it is "" then filtering will be disabled" );
 
 	sv_filterCommands = Cvar_Get( "sv_filterCommands", "1", CVAR_ARCHIVE );
 	Cvar_CheckRange( sv_filterCommands, "0", "2", CV_INTEGER );

@@ -2402,7 +2402,7 @@ qboolean S_Base_Init( soundInterface_t *si ) {
 		return qfalse;
 	}
 
-	s_khz = Cvar_Get( "s_khz", "22", CVAR_ARCHIVE_ND | CVAR_LATCH );
+	s_khz = Cvar_Get( "s_khz", "44", CVAR_ARCHIVE_ND | CVAR_LATCH );
 	Cvar_CheckRange( s_khz, "0", "48", CV_INTEGER );
 
 	switch( s_khz->integer ) {

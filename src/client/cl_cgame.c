@@ -42,6 +42,7 @@ static void CL_Callvote_f( void ) {
 	CL_ForwardCommandToServer( Cmd_Cmd() );
 }
 
+
 static void CL_CompleteCallvote( char *args, int argNum ) {
 	if( argNum >= 2 )
 	{

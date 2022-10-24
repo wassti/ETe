@@ -2404,6 +2404,7 @@ qboolean S_Base_Init( soundInterface_t *si ) {
 
 	s_khz = Cvar_Get( "s_khz", "44", CVAR_ARCHIVE_ND | CVAR_LATCH );
 	Cvar_CheckRange( s_khz, "0", "48", CV_INTEGER );
+	Cvar_SetDescription( s_khz, "Specifies the sound sampling rate, (11, 22, 44, 48) in kHz" );
 
 	switch( s_khz->integer ) {
 		case 48:
@@ -2419,14 +2420,19 @@ qboolean S_Base_Init( soundInterface_t *si ) {
 			break;
 	}
 
+	Cvar_Get( "s_currentMusic", "", CVAR_ROM );
+
 	s_mixahead = Cvar_Get( "s_mixAhead", "0.2", CVAR_ARCHIVE_ND );
 	Cvar_CheckRange( s_mixahead, "0.001", "0.5", CV_FLOAT );
+	Cvar_SetDescription( s_mixahead, "Amount of time to pre-mix sound data to avoid potential skips/stuttering in case of unstable framerate. Higher values add more CPU usage" );
 
 	s_mixOffset = Cvar_Get( "s_mixOffset", "0", CVAR_ARCHIVE_ND | CVAR_DEVELOPER );
 	Cvar_CheckRange( s_mixOffset, "0", "0.5", CV_FLOAT );
 
 	s_show = Cvar_Get( "s_show", "0", CVAR_CHEAT );
+	Cvar_SetDescription( s_show, "Debugging output (used sound files)" );
 	s_testsound = Cvar_Get( "s_testsound", "0", CVAR_CHEAT );
+	Cvar_SetDescription( s_testsound, "Debugging tool that plays a simple sine wave tone to test the sound system" );
 #if defined(__linux__) && !defined(USE_SDL)
 	s_device = Cvar_Get( "s_device", "default", CVAR_ARCHIVE_ND | CVAR_LATCH );
 	Cvar_SetDescription( s_device, "Set ALSA output device\n"
@@ -2448,8 +2454,10 @@ qboolean S_Base_Init( soundInterface_t *si ) {
 	// fretn
 	s_bits = Cvar_Get( "s_bits", "16", CVAR_LATCH | CVAR_ARCHIVE_ND );
 	Cvar_CheckRange( s_bits, "8", "16", CV_INTEGER );
+	Cvar_SetDescription( s_bits, "Sound bit resolution" );
 	s_numchannels = Cvar_Get( "s_channels", "2", CVAR_LATCH | CVAR_ARCHIVE_ND );
 	Cvar_CheckRange( s_numchannels, "1", "2", CV_INTEGER );
+	Cvar_SetDescription( s_numchannels, "Number of audio channels (1: mono, 2: stereo)" );
 
 	r = SNDDMA_Init();
 

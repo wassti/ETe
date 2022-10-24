@@ -42,17 +42,17 @@ cvar_t  *cl_motd;
 cvar_t	*cl_renderer;
 #endif
 
-cvar_t  *rcon_client_password;
-cvar_t  *rconAddress;
+cvar_t	*rcon_client_password;
+cvar_t	*rconAddress;
 
-cvar_t  *cl_timeout;
+cvar_t	*cl_timeout;
 cvar_t	*cl_autoNudge;
-cvar_t  *cl_timeNudge;
-cvar_t  *cl_showTimeDelta;
+cvar_t	*cl_timeNudge;
+cvar_t	*cl_showTimeDelta;
 
-cvar_t  *cl_shownet = NULL;     // NERVE - SMF - This is referenced in msg.c and we need to make sure it is NULL
-cvar_t  *cl_shownuments;        // DHM - Nerve
-cvar_t  *cl_showServerCommands; // NERVE - SMF
+cvar_t	*cl_shownet = NULL;     // NERVE - SMF - This is referenced in msg.c and we need to make sure it is NULL
+cvar_t	*cl_shownuments;        // DHM - Nerve
+cvar_t	*cl_showServerCommands; // NERVE - SMF
 cvar_t	*cl_autoRecordDemo;
 
 cvar_t	*cl_avidemo = NULL; // for etmain demo ui compatibility
@@ -66,7 +66,7 @@ cvar_t	*cl_activeAction;
 cvar_t	*cl_motdString;
 
 cvar_t	*cl_allowDownload;
-cvar_t  *cl_wwwDownload;
+cvar_t	*cl_wwwDownload;
 #ifdef USE_CURL
 cvar_t	*cl_mapAutoDownload;
 #endif
@@ -77,13 +77,9 @@ cvar_t	*cl_inGameVideo;
 cvar_t	*cl_serverStatusResendTime;
 
 // NERVE - SMF - localization
-cvar_t  *cl_language;
-cvar_t  *cl_debugTranslation;
+cvar_t	*cl_language;
+cvar_t	*cl_debugTranslation;
 // -NERVE - SMF
-// DHM - Nerve :: Auto-Update
-cvar_t  *cl_updateavailable;
-cvar_t  *cl_updatefiles;
-// DHM - Nerve
 
 cvar_t  *cl_profile;
 cvar_t  *cl_defaultProfile;
@@ -121,7 +117,7 @@ cvar_t *r_displayRefresh;
 cvar_t *r_fullscreen;
 cvar_t *r_mode;
 cvar_t *r_modeFullscreen;
-cvar_t *r_oldMode;
+//cvar_t *r_oldMode;
 cvar_t *r_customwidth;
 cvar_t *r_customheight;
 cvar_t *r_customaspect;
@@ -4357,12 +4353,15 @@ static void CL_InitGLimp_Cvars( void )
 {
 	// shared with GLimp
 	r_allowSoftwareGL = Cvar_Get( "r_allowSoftwareGL", "0", CVAR_LATCH );
+	Cvar_SetDescription( r_allowSoftwareGL, "Toggle the use of the default software OpenGL driver supplied by the Operating System" );
 	r_swapInterval = Cvar_Get( "r_swapInterval", "0", CVAR_ARCHIVE_ND );
-
+	Cvar_SetDescription( r_swapInterval, "V-blanks to wait before swapping buffers\n 0: No V-Sync\n 1: Synced to the monitor's refresh rate" );
 #ifndef USE_SDL
 	r_glDriver = Cvar_Get( "r_glDriver", OPENGL_DRIVER_NAME, CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE );
+	Cvar_SetDescription( r_glDriver, "Specifies the OpenGL driver to use, will revert back to default if driver name set is invalid" );
 #else
 	r_sdlDriver = Cvar_Get( "r_sdlDriver", "", CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE );
+	Cvar_SetDescription( r_sdlDriver, "Override hint to SDL which video driver to use, example \"x11\" or \"wayland\"" );
 #endif
 
 	r_displayRefresh = Cvar_Get( "r_displayRefresh", "0", CVAR_LATCH | CVAR_UNSAFE );
@@ -4373,14 +4372,16 @@ static void CL_InitGLimp_Cvars( void )
 	vid_ypos = Cvar_Get( "vid_ypos", "22", CVAR_ARCHIVE );
 	Cvar_CheckRange( vid_xpos, NULL, NULL, CV_INTEGER );
 	Cvar_CheckRange( vid_ypos, NULL, NULL, CV_INTEGER );
+	Cvar_SetDescription( vid_xpos, "Saves/Sets window X-coordinate when windowed, requires \\vid_restart" );
+	Cvar_SetDescription( vid_ypos, "Saves/Sets window Y-coordinate when windowed, requires \\vid_restart" );
 
 	r_noborder = Cvar_Get( "r_noborder", "0", CVAR_ARCHIVE_ND | CVAR_LATCH );
 	Cvar_CheckRange( r_noborder, "0", "1", CV_INTEGER );
-	Cvar_SetDescription( r_noborder, "Borderless window when in \\r_fullscreen 0 mode ");
+	Cvar_SetDescription( r_noborder, "Setting to 1 will remove window borders and titlebar in windowed mode, hold ALT to drag & drop it with opened console" );
 
 	r_mode = Cvar_Get( "r_mode", "-2", CVAR_ARCHIVE | CVAR_LATCH );
 	r_modeFullscreen = Cvar_Get( "r_modeFullscreen", "-2", CVAR_ARCHIVE | CVAR_LATCH );
-	r_oldMode = Cvar_Get( "r_oldMode", "", CVAR_ARCHIVE );                             // ydnar: previous "good" video mode
+	/*r_oldMode =*/ Cvar_Get( "r_oldMode", "", CVAR_ARCHIVE | CVAR_NOTABCOMPLETE );                             // ydnar: previous "good" video mode
 	Cvar_CheckRange( r_mode, "-2", va( "%i", s_numVidModes-1 ), CV_INTEGER );
 	Cvar_SetDescription( r_mode, "Set video mode:\n -2 - use current desktop resolution\n -1 - use \\r_customWidth and \\r_customHeight\n  0..N - enter \\modelist for details" );
 	Cvar_SetDescription( r_modeFullscreen, "Dedicated fullscreen mode, set to \"\" to use \\r_mode in all cases" );
@@ -4389,31 +4390,39 @@ static void CL_InitGLimp_Cvars( void )
 	Cvar_SetDescription( r_currentResolution, "Current game window resolution depending on fullscreen state" );
 
 	r_fullscreen = Cvar_Get( "r_fullscreen", "1", CVAR_ARCHIVE | CVAR_LATCH );
-	r_customaspect = Cvar_Get( "r_customaspect", "1", CVAR_ARCHIVE_ND | CVAR_LATCH );
+	Cvar_SetDescription( r_fullscreen, "Fullscreen mode. Set to 0 for windowed mode" );
+	r_customaspect = Cvar_Get( "r_customAspect", "1", CVAR_ARCHIVE_ND | CVAR_LATCH );
 	r_customwidth = Cvar_Get( "r_customWidth", "1280", CVAR_ARCHIVE | CVAR_LATCH );
 	r_customheight = Cvar_Get( "r_customHeight", "720", CVAR_ARCHIVE | CVAR_LATCH );
+	Cvar_CheckRange( r_customaspect, "0.001", NULL, CV_FLOAT ); // check better ranges
 	Cvar_CheckRange( r_customwidth, "4", NULL, CV_INTEGER );
 	Cvar_CheckRange( r_customheight, "4", NULL, CV_INTEGER );
+	Cvar_SetDescription( r_customaspect, "Enables custom aspect of the screen, with \\r_mode -1" );
 	Cvar_SetDescription( r_customwidth, "Custom width to use with \\r_mode -1" );
 	Cvar_SetDescription( r_customheight, "Custom height to use with \\r_mode -1" );
 
 	r_colorbits = Cvar_Get( "r_colorbits", "0", CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE );
 	Cvar_CheckRange( r_colorbits, "0", "32", CV_INTEGER );
+	Cvar_SetDescription( r_colorbits, "Sets color bit depth, set to 0 to use desktop settings" );
 
 	// shared with renderer:
 	cl_stencilbits = Cvar_Get( "r_stencilbits", "8", CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE );
 	Cvar_CheckRange( cl_stencilbits, "0", "8", CV_INTEGER );
+	Cvar_SetDescription( cl_stencilbits, "Stencil buffer size, value decreases Z-buffer depth" );
 	cl_depthbits = Cvar_Get( "r_depthbits", "0", CVAR_ARCHIVE_ND | CVAR_LATCH | CVAR_UNSAFE );
 	Cvar_CheckRange( cl_depthbits, "0", "32", CV_INTEGER );
+	Cvar_SetDescription( cl_depthbits, "Sets precision of Z-buffer" );
 
 	cl_drawBuffer = Cvar_Get( "r_drawBuffer", "GL_BACK", CVAR_CHEAT );
-
+	Cvar_SetDescription( cl_drawBuffer, "Specifies buffer to draw from: GL_FRONT or GL_BACK" );
 #ifdef USE_RENDERER_DLOPEN
 #ifdef RENDERER_DEFAULT
 	cl_renderer = Cvar_Get( "cl_renderer", XSTRING( RENDERER_DEFAULT ), CVAR_ARCHIVE | CVAR_LATCH );
 #else
 	cl_renderer = Cvar_Get( "cl_renderer", "opengl", CVAR_ARCHIVE | CVAR_LATCH );
 #endif
+	Cvar_SetDescription( cl_renderer, "Sets your desired renderer, requires \\vid_restart." );
+
 	if ( !isValidRenderer( cl_renderer->string ) ) {
 		Cvar_ForceReset( "cl_renderer" );
 	}
@@ -4503,57 +4512,74 @@ void CL_Init( void ) {
 	// register client variables
 	//
 	cl_noprint = Cvar_Get( "cl_noprint", "0", 0 );
+	Cvar_SetDescription( cl_noprint, "Disable printing of information in the console" );
 	cl_motd = Cvar_Get( "cl_motd", "1", 0 );
+	Cvar_SetDescription( cl_motd, "Toggle the display of the 'Message of the day'. When Enemy Territory starts a map up, it sends the GL_RENDERER string to the Message Of The Day server at id. This responds back with a message of the day to the client" );
 
 	cl_timeout = Cvar_Get( "cl_timeout", "200", 0 );
 	Cvar_CheckRange( cl_timeout, "5", NULL, CV_INTEGER );
-
+	Cvar_SetDescription( cl_timeout, "Duration of receiving nothing from server for client to decide it must be disconnected (in seconds)" );
 	//cl_wavefilerecord = Cvar_Get( "cl_wavefilerecord", "0", CVAR_TEMP );
 
 	cl_autoNudge = Cvar_Get( "cl_autoNudge", "0", CVAR_TEMP );
 	Cvar_CheckRange( cl_autoNudge, "0", "1", CV_FLOAT );
+	Cvar_SetDescription( cl_autoNudge, "Automatic time nudge that uses your average ping as the time nudge, values:\n  0 - use fixed \\cl_timeNudge\n (0..1] - factor of median average ping to use as timenudge" );
 	cl_timeNudge = Cvar_Get( "cl_timeNudge", "0", CVAR_TEMP );
 	Cvar_CheckRange( cl_timeNudge, "-30", "30", CV_INTEGER );
 	Cvar_SetDescription( cl_timeNudge, "Allows more or less latency to be added in the interest of better smoothness or better responsiveness" );
 
 	cl_shownet = Cvar_Get( "cl_shownet", "0", CVAR_TEMP );
+	Cvar_SetDescription( cl_shownet, "Toggle the display of current network status" );
 	cl_shownuments = Cvar_Get( "cl_shownuments", "0", CVAR_TEMP );
+	Cvar_SetDescription( cl_shownuments, "Toggle the display of parsed packet entity counts" );
 	cl_showServerCommands = Cvar_Get( "cl_showServerCommands", "0", 0 );
+	Cvar_SetDescription( cl_showServerCommands, "Prints incoming server commands to console. Requires \\developer 1" );
 	cl_showTimeDelta = Cvar_Get( "cl_showTimeDelta", "0", CVAR_TEMP );
+	Cvar_SetDescription( cl_showTimeDelta, "Prints the time delta of each packet to the console (the time delta between server updates)." );
 	rcon_client_password = Cvar_Get( "rconPassword", "", CVAR_TEMP );
-	Cvar_SetDescription( rcon_client_password, "Password for remote console access" );
+	Cvar_SetDescription( rcon_client_password, "Sets a remote console password so clients may change server settings without direct access to the server console" );
 	cl_activeAction = Cvar_Get( "activeAction", "", CVAR_TEMP | CVAR_PROTECTED );
+	Cvar_SetDescription( cl_activeAction, "Contents of this variable will be executed upon first frame of play.\nNote: It is cleared every time it is executed" );
 
 	cl_autoRecordDemo = Cvar_Get ("cl_autoRecordDemo", "0", CVAR_ARCHIVE);
+	Cvar_SetDescription( cl_autoRecordDemo, "Auto-record demos when starting or joining a game" );
 	cl_avidemo = Cvar_Get( "cl_avidemo", "0", CVAR_TEMP ); // 0
 	Cvar_CheckRange( cl_avidemo, "0", "0", CV_INTEGER );
 	//Cvar_CheckRange( cl_avidemo, "0", "1000", CV_INTEGER );
 
 	cl_aviFrameRate = Cvar_Get ("cl_aviFrameRate", "25", CVAR_ARCHIVE);
 	Cvar_CheckRange( cl_aviFrameRate, "1", "1000", CV_INTEGER );
+	Cvar_SetDescription( cl_aviFrameRate, "The framerate used for capturing video." );
 	cl_aviMotionJpeg = Cvar_Get ("cl_aviMotionJpeg", "1", CVAR_ARCHIVE);
+	Cvar_SetDescription( cl_aviMotionJpeg, "Enable/disable the MJPEG codec for avi output" );
 	Cvar_CheckRange( cl_aviMotionJpeg, "0", "1", CV_INTEGER );
 	cl_forceavidemo = Cvar_Get ("cl_forceavidemo", "0", 0);
+	Cvar_SetDescription( cl_forceavidemo, "Forces all demo recording into a sequence of screenshots in TGA format" );
 	Cvar_CheckRange( cl_forceavidemo, "0", "1", CV_INTEGER );
 
 	cl_aviPipeFormat = Cvar_Get( "cl_aviPipeFormat",
 		"-preset medium -crf 23 -vcodec libx264 -flags +cgop -pix_fmt yuvj420p "
 		"-bf 2 -codec:a aac -strict -2 -b:a 160k -movflags faststart",
 		CVAR_ARCHIVE );
+	Cvar_SetDescription( cl_aviPipeFormat, "Encoder parameters used for \\video-pipe" );
 
 	rconAddress = Cvar_Get( "rconAddress", "", 0 );
-	Cvar_SetDescription( rconAddress, "Alternate server address to remotely access via rcon protocol" );
+	Cvar_SetDescription( rconAddress, "The IP address of the remote console you wish to connect to" );
 
 	cl_allowDownload = Cvar_Get( "cl_allowDownload", "3", CVAR_ARCHIVE_ND );
+	Cvar_SetDescription( cl_allowDownload, "Enables downloading of content needed in server. Valid bitmask flags:\n 1: Downloading enabled\n 2: Do not use HTTP/FTP downloads\n 4: Do not use UDP downloads or (cl_wwwDownload)" );
 	Cvar_CheckRange( cl_allowDownload, 0, NULL, CV_INTEGER );
 #ifdef USE_CURL
 	cl_mapAutoDownload = Cvar_Get( "cl_mapAutoDownload", "0", CVAR_ARCHIVE_ND );
+	Cvar_SetDescription( cl_mapAutoDownload, "Automatic map download for play and demo playback (via automatic \\dlmap call)" );
 	Cvar_CheckRange( cl_mapAutoDownload, "0", "1", CV_INTEGER );
 #ifdef USE_CURL_DLOPEN
 	cl_cURLLib = Cvar_Get( "cl_cURLLib", DEFAULT_CURL_LIB, 0 );
+	Cvar_SetDescription( cl_cURLLib, "Filename of cURL library to load." );
 #endif
 #endif
 	cl_wwwDownload = Cvar_Get( "cl_wwwDownload", "1", CVAR_USERINFO | CVAR_ARCHIVE_ND );
+	Cvar_SetDescription( cl_wwwDownload, "Enables/Disables downloading of content needed in server over HTTP/FTP from server provided URL.\n Requires \\cl_allowDownload >= 1 but not including bit 4" );
 #ifdef USE_CURL
 	Cvar_CheckRange( cl_wwwDownload, "0", "1", CV_INTEGER );
 #else
@@ -4561,7 +4587,9 @@ void CL_Init( void ) {
 #endif
 
 	cl_profile = Cvar_Get( "cl_profile", "", CVAR_INIT );
+	Cvar_SetDescription( cl_profile, "Current game user profile. Can only be set as startup parameter or through menus" );
 	cl_defaultProfile = Cvar_Get( "cl_defaultProfile", "", CVAR_ROM );
+	Cvar_SetDescription( cl_defaultProfile, "The default loaded game user profile. Can only be set in menus" );
 
 	// init autoswitch so the ui will have it correctly even
 	// if the cgame hasn't been started
@@ -4573,15 +4601,17 @@ void CL_Init( void ) {
 	// done
 
 	cl_conXOffset = Cvar_Get( "cl_conXOffset", "0", 0 );
+	Cvar_SetDescription( cl_conXOffset, "Console notifications X-offset" );
 	cl_conColor = Cvar_Get( "cl_conColor", "", 0 );
-	Cvar_SetDescription( cl_conColor, "Custom Console Color [RRR GGG BBB AAA]");
+	Cvar_SetDescription( cl_conColor, "Console background color, set as R G B A values from 0-255, use with \\seta to save in config" );
 	cl_inGameVideo = Cvar_Get( "r_inGameVideo", "1", CVAR_ARCHIVE_ND );
-
-	Cvar_SetDescription( cl_inGameVideo, "Controls whether in game video should be draw" );
+	Cvar_SetDescription( cl_inGameVideo, "Controls whether in game video should be drawn" );
 
 	cl_serverStatusResendTime = Cvar_Get( "cl_serverStatusResendTime", "750", 0 );
+	Cvar_SetDescription( cl_serverStatusResendTime, "Time between resending server status requests if no response is received (in milli-seconds)" );
 
 	cl_motdString = Cvar_Get( "cl_motdString", "", CVAR_ROM );
+	Cvar_SetDescription( cl_motdString, "Message of the day string from id's master server, it is a read only variable." );
 
 	//bani - make these cvars visible to cgame
 	cl_demorecording = Cvar_Get( "cl_demorecording", "0", CVAR_ROM );
@@ -4593,8 +4623,10 @@ void CL_Init( void ) {
 
 	cv = Cvar_Get( "cl_maxPing", "800", CVAR_ARCHIVE_ND );
 	Cvar_CheckRange( cv, "100", "999", CV_INTEGER );
+	Cvar_SetDescription( cv, "Specify the maximum allowed ping to a server." );
 
 	cl_lanForcePackets = Cvar_Get( "cl_lanForcePackets", "1", CVAR_ARCHIVE_ND );
+	Cvar_SetDescription( cl_lanForcePackets, "Bypass \\cl_maxpackets for LAN games, send packets every frame" );
 
 	// NERVE - SMF
 	Cvar_Get( "cg_drawCompass", "1", CVAR_ARCHIVE | CVAR_VM_CREATED );
@@ -4624,12 +4656,13 @@ void CL_Init( void ) {
 
 	// ENSI NOTE need a URL for this
 	cl_dlURL = Cvar_Get( "cl_dlURL", ""/*"http://ws.q3df.org/maps/download/%1"*/, CVAR_ARCHIVE_ND );
+	Cvar_SetDescription( cl_dlURL, "URL for downloads initiated by \\dlmap and \\download commands" );
 
 	cl_dlDirectory = Cvar_Get( "cl_dlDirectory", "0", CVAR_ARCHIVE_ND );
 	Cvar_CheckRange( cl_dlDirectory, "0", "1", CV_INTEGER );
 	s = va( "Save downloads initiated by \\dlmap and \\download commands in:\n"
 		" 0 - current game directory\n"
-		" 1 - fs_basegame (%s) directory\n", FS_GetBaseGameDir() );
+		" 1 - fs_basegame (%s) directory", FS_GetBaseGameDir() );
 	Cvar_SetDescription( cl_dlDirectory, s );
 
 	cl_reconnectArgs = Cvar_Get( "cl_reconnectArgs", "", CVAR_ARCHIVE_ND | CVAR_NOTABCOMPLETE );
@@ -4662,6 +4695,7 @@ void CL_Init( void ) {
 
 #ifndef USE_SDL
 	in_forceCharset = Cvar_Get( "in_forceCharset", "0", CVAR_ARCHIVE_ND );
+	Cvar_SetDescription( in_forceCharset, "Try to translate non-ASCII chars in keyboard input or force EN/US keyboard layout" );
 #endif
 
 #ifdef USE_DISCORD

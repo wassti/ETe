@@ -2102,6 +2102,7 @@ static void Com_InitZoneMemory( void ) {
 	// allocate the random block zone
 	cv = Cvar_Get( "com_zoneMegs", XSTRING( DEF_COMZONEMEGS ), CVAR_LATCH | CVAR_ARCHIVE );
 	Cvar_CheckRange( cv, "1", NULL, CV_INTEGER );
+	Cvar_SetDescription( cv, "Initial amount of memory (RAM) allocated for the main block zone (in MB)" );
 
 #ifndef USE_MULTI_SEGMENT
 	if ( cv->integer < DEF_COMZONEMEGS )
@@ -2231,7 +2232,7 @@ static void Com_InitHunkMemory( void ) {
 	// allocate the stack based hunk allocator
 	cv = Cvar_Get( "com_hunkMegs", XSTRING( DEF_COMHUNKMEGS ), CVAR_LATCH | CVAR_ARCHIVE );
 	Cvar_CheckRange( cv, XSTRING( MIN_COMHUNKMEGS ), NULL, CV_INTEGER );
-	Cvar_SetDescription( cv, "The size of the hunk memory segment" );
+	Cvar_SetDescription( cv, "Amount of memory (RAM) allocated for the hunk memory segment (in MB)" );
 
 	s_hunkTotal = cv->integer * 1024 * 1024;
 
@@ -3787,7 +3788,7 @@ void Com_Init( char *commandLine ) {
 	com_developer = Cvar_Get( "developer", "0", CVAR_TEMP );
 	Cvar_CheckRange( com_developer, NULL, NULL, CV_INTEGER );
 
-	Cvar_SetDescription( com_developer, "Developer mode" );
+	Cvar_SetDescription( com_developer, "Toggles developer mode. Prints more info to console and provides more commands" );
 
 	// bani: init this early
 	Com_StartupVariable( "com_ignorecrash" );
@@ -3811,6 +3812,7 @@ void Com_Init( char *commandLine ) {
 	Cvar_Get( "sv_master2", "master.etlegacy.com", CVAR_INIT );
 
 	com_protocol = Cvar_Get( "protocol", XSTRING( DEFAULT_PROTOCOL_VERSION ), 0 );
+	Cvar_SetDescription( com_protocol, "Specify network protocol version number" );
 	if ( Q_stristr( com_protocol->string, "-compat" ) > com_protocol->string ) {
 		// strip -compat suffix
 		Cvar_Set2( "protocol", va( "%i", com_protocol->integer ), qtrue );
@@ -3823,8 +3825,6 @@ void Com_Init( char *commandLine ) {
 	Cvar_CheckRange( com_protocol, "0", NULL, CV_INTEGER );
 	com_protocol->flags &= ~CVAR_USER_CREATED;
 	com_protocol->flags |= CVAR_SERVERINFO | CVAR_ROM;
-
-	Cvar_SetDescription( com_protocol, "Network protocol version" );
 
 	Com_StartupVariable( "com_legacyVersion" );
 	com_legacyVersion = Cvar_Get( "com_legacyVersion", XSTRING(ETLEGACY_VERSION), CVAR_INIT | CVAR_NOTABCOMPLETE | CVAR_PRIVATE | CVAR_PROTECTED | CVAR_NORESTART );
@@ -3878,6 +3878,8 @@ void Com_Init( char *commandLine ) {
 	com_dedicated = Cvar_Get( "dedicated", "0", CVAR_LATCH );
 	Cvar_CheckRange( com_dedicated, "0", "2", CV_INTEGER );
 #endif
+	Cvar_SetDescription( com_dedicated, "Enables dedicated server mode.\n 0: Listen server\n 1: Unlisted dedicated server \n 2: Listed dedicated server" );
+
 	// allocate the stack based hunk allocator
 	Com_InitHunkMemory();
 
@@ -3890,15 +3892,19 @@ void Com_Init( char *commandLine ) {
 	//
 #ifndef DEDICATED
 	com_maxfps = Cvar_Get( "com_maxfps", "125", 0 ); // try to force that in some light way
-	com_maxfpsUnfocused = Cvar_Get( "com_maxfpsUnfocused", "60", CVAR_ARCHIVE_ND );
 	Cvar_CheckRange( com_maxfps, "0", "1000", CV_INTEGER );
+	Cvar_SetDescription( com_maxfps, "Sets maximum frames per second" );
+	com_maxfpsUnfocused = Cvar_Get( "com_maxfpsUnfocused", "60", CVAR_ARCHIVE_ND );
 	Cvar_CheckRange( com_maxfpsUnfocused, "0", "1000", CV_INTEGER );
+	Cvar_SetDescription( com_maxfpsUnfocused, "Sets maximum frames per second in unfocused game window" );
 	com_yieldCPU = Cvar_Get( "com_yieldCPU", "1", CVAR_ARCHIVE_ND );
 	Cvar_CheckRange( com_yieldCPU, "0", "16", CV_INTEGER );
+	Cvar_SetDescription( com_yieldCPU, "Attempt to sleep specified amout of time between rendered frames when game is active, this will greatly reduce CPU load. Use 0 only if you're experiencing some lag" );
 #endif
 
 #ifdef USE_AFFINITY_MASK
 	com_affinityMask = Cvar_Get( "com_affinityMask", "0", CVAR_ARCHIVE_ND );
+	Cvar_SetDescription( com_affinityMask, "Bind ETe process to bitmask-specified CPU core(s)" );
 	com_affinityMask->modified = qfalse;
 #endif
 
@@ -3913,10 +3919,15 @@ void Com_Init( char *commandLine ) {
 
 	com_timescale = Cvar_Get( "timescale", "1", CVAR_CHEAT | CVAR_SYSTEMINFO );
 	Cvar_CheckRange( com_timescale, "0", "100", CV_FLOAT );
+	Cvar_SetDescription( com_timescale, "System timing factor:\n < 1: Slows the game down\n = 1: Regular speed\n > 1: Speeds the game up" );
 	com_fixedtime = Cvar_Get( "fixedtime", "0", CVAR_CHEAT );
+	Cvar_SetDescription( com_fixedtime, "Toggle the rendering of every frame the game will wait until each frame is completely rendered before sending the next frame" );
 	com_showtrace = Cvar_Get( "com_showtrace", "0", CVAR_CHEAT );
+	Cvar_SetDescription( com_showtrace, "Debugging tool that prints out trace information" );
 	com_viewlog = Cvar_Get( "viewlog", "0", 0 );
+	Cvar_SetDescription( com_viewlog, "Toggle the display of the startup console window over the game screen (Windows only)" );
 	com_speeds = Cvar_Get( "com_speeds", "0", 0 );
+	Cvar_SetDescription( com_speeds, "Prints speed information per frame to the console. Used for debugging" );
 	com_cameraMode = Cvar_Get( "com_cameraMode", "0", CVAR_CHEAT );
 
 	com_watchdog = Cvar_Get( "com_watchdog", "60", CVAR_ARCHIVE_ND );
@@ -3928,25 +3939,32 @@ void Com_Init( char *commandLine ) {
 #ifndef DEDICATED	
 	com_timedemo = Cvar_Get( "timedemo", "0", CVAR_CHEAT );
 	Cvar_CheckRange( com_timedemo, "0", "1", CV_INTEGER );
+	Cvar_SetDescription( com_timedemo, "When set to '1' times a demo and returns frames per second like a benchmark" );
 	cl_paused = Cvar_Get( "cl_paused", "0", CVAR_ROM );
 	cl_packetdelay = Cvar_Get( "cl_packetdelay", "0", CVAR_CHEAT );
+	Cvar_SetDescription( cl_packetdelay, "Artificially set the client's latency. Simulates packet delay, which can lead to packet loss" );
 	cl_packetloss = Cvar_Get( "cl_packetloss", "0", CVAR_CHEAT );
 	com_cl_running = Cvar_Get( "cl_running", "0", CVAR_ROM | CVAR_NOTABCOMPLETE );
+	Cvar_SetDescription( com_cl_running, "Can be used to check the status of the client game" );
 #endif
 
 	sv_paused = Cvar_Get( "sv_paused", "0", CVAR_ROM );
 	sv_packetdelay = Cvar_Get( "sv_packetdelay", "0", CVAR_CHEAT );
+	Cvar_SetDescription( sv_packetdelay, "Simulates packet delay, which can lead to packet loss. Server side" );
 	sv_packetloss = Cvar_Get( "sv_packetloss", "0", CVAR_CHEAT );
 	com_sv_running = Cvar_Get( "sv_running", "0", CVAR_ROM | CVAR_NOTABCOMPLETE );
+	Cvar_SetDescription( com_sv_running, "Communicates to game modules if there is a server currently running" );
 
 	com_buildScript = Cvar_Get( "com_buildScript", "0", 0 );
+	Cvar_SetDescription( com_buildScript, "Loads all game assets, regardless whether they are required or not" );
 
 	Cvar_Get( "com_errorMessage", "", CVAR_ROM | CVAR_NORESTART );
 
 #ifndef DEDICATED
 	com_introPlayed = Cvar_Get( "com_introplayed", "0", CVAR_ARCHIVE );
+	Cvar_SetDescription( com_introPlayed, "Skips the introduction cinematic" );
 	com_skipIdLogo  = Cvar_Get( "com_skipIdLogo", "0", CVAR_ARCHIVE );
-	Cvar_SetDescription( com_skipIdLogo, "Allows intro movies to be skipped" );
+	Cvar_SetDescription( com_skipIdLogo, "Skip playing Id Software logo cinematic at startup" );
 	com_recommendedSet = Cvar_Get( "com_recommendedSet", "0", CVAR_ARCHIVE );
 #endif
 
@@ -3966,6 +3984,7 @@ void Com_Init( char *commandLine ) {
 
 	s = va( "%s %s %s", Q3_VERSION, PLATFORM_STRING, __DATE__ );
 	com_version = Cvar_Get( "version", s, CVAR_PROTECTED | CVAR_ROM | CVAR_SERVERINFO );
+	Cvar_SetDescription( com_version, "Contains the version of the game engine" );
 
 	// this cvar is the single entry point of the entire extension system
 	Cvar_Get( "//trap_GetValue", va( "%i", COM_TRAP_GETVALUE ), CVAR_PROTECTED | CVAR_ROM | CVAR_NOTABCOMPLETE );

@@ -1069,10 +1069,13 @@ void CL_InitInput( void ) {
 	Cmd_RegisterArray( input_cmds, MODULE_INPUT );
 
 	cl_nodelta = Cvar_Get( "cl_nodelta", "0", CVAR_DEVELOPER );
+	Cvar_SetDescription( cl_nodelta, "Disables delta compression on uploaded user commands" );
 	cl_debugMove = Cvar_Get( "cl_debugMove", "0", 0 );
 	Cvar_CheckRange( cl_debugMove, "0", "2", CV_INTEGER );
+	Cvar_SetDescription( cl_debugMove, "Prints a graph of view angle deltas\n 0: Disabled\n 1: Yaw\n 2: Pitch" );
 
 	cl_showSend = Cvar_Get( "cl_showSend", "0", CVAR_TEMP );
+	Cvar_SetDescription( cl_showSend, "Prints client to server packet information" );
 
 	cl_yawspeed = Cvar_Get( "cl_yawspeed", "140", CVAR_ARCHIVE_ND );
 	Cvar_SetDescription( cl_yawspeed, "Yaw change speed when holding down +left or +right button" );
@@ -1083,17 +1086,17 @@ void CL_InitInput( void ) {
 
 	cl_maxpackets = Cvar_Get ("cl_maxpackets", "60", CVAR_ARCHIVE );
 	Cvar_CheckRange( cl_maxpackets, "15", "125", CV_INTEGER );
-	Cvar_SetDescription( cl_maxpackets, "Controls how many updates you send to the server" );
+	Cvar_SetDescription( cl_maxpackets, "Set how many client packets are sent to the server per second, can't exceed \\com_maxFPS" );
 	cl_packetdup = Cvar_Get( "cl_packetdup", "1", CVAR_ARCHIVE_ND );
 	Cvar_CheckRange( cl_packetdup, "0", "5", CV_INTEGER );
-	Cvar_SetDescription( cl_packetdup, "Determines how many duplicate packets you send to the server to avoid packet loss" );
+	Cvar_SetDescription( cl_packetdup, "Limits the number of previous client commands added in packet, helps in packetloss mitigation, increases client command packets size a bit" );
 
 	cl_run = Cvar_Get( "cl_run", "1", CVAR_ARCHIVE_ND );
-	Cvar_SetDescription( cl_run, "Enables \"Always run\"" );
+	Cvar_SetDescription( cl_run, "Persistent player running movement" );
 	cl_sensitivity = Cvar_Get( "sensitivity", "5", CVAR_ARCHIVE );
-	Cvar_SetDescription( cl_sensitivity, "Mouse view sensitivity" );
+	Cvar_SetDescription( cl_sensitivity, "Sets base mouse sensitivity (mouse speed)" );
 	cl_mouseAccel = Cvar_Get( "cl_mouseAccel", "0", CVAR_ARCHIVE_ND );
-	Cvar_SetDescription( cl_mouseAccel, "Mouse acceleration" );
+	Cvar_SetDescription( cl_mouseAccel, "Toggle the use of mouse acceleration the mouse speeds up or becomes more sensitive as it continues in one direction" );
 	cl_freelook = Cvar_Get( "cl_freelook", "1", CVAR_ARCHIVE_ND );
 	Cvar_SetDescription( cl_freelook, "Mouse aiming" );
 
@@ -1107,9 +1110,10 @@ void CL_InitInput( void ) {
 	// this should be set to the max rate value
 	cl_mouseAccelOffset = Cvar_Get( "cl_mouseAccelOffset", "5", CVAR_ARCHIVE_ND );
 	Cvar_CheckRange( cl_mouseAccelOffset, "0.001", "50000", CV_FLOAT );
-	Cvar_SetDescription( cl_mouseAccelOffset, "Offset for the power function (Only used with \\cl_mouseAccelStyle 1)" );
+	Cvar_SetDescription( cl_mouseAccelOffset, "Sets how much base mouse delta will be doubled by acceleration. Requires '\\cl_mouseAccelStyle 1'" );
 
-	cl_showMouseRate = Cvar_Get( "cl_showmouserate", "0", 0 );
+	cl_showMouseRate = Cvar_Get( "cl_showMouseRate", "0", 0 );
+	Cvar_SetDescription( cl_showMouseRate, "Prints mouse acceleration info when 'cl_mouseAccel' has a value set (rate of mouse samples per frame)" );
 
 	m_pitch = Cvar_Get( "m_pitch", "0.022", CVAR_ARCHIVE_ND );
 	Cvar_SetDescription( m_pitch, "Mouse pitch scale" );

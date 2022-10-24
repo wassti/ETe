@@ -5198,9 +5198,11 @@ static void FS_Startup( void ) {
 	Com_Printf( "----- FS_Startup -----\n" );
 
 	fs_debug = Cvar_Get( "fs_debug", "0", 0 );
+	Cvar_SetDescription( fs_debug, "Debugging tool for the filesystem. Run the game in debug mode. Prints additional information regarding read files into the console" );
 	fs_basepath = Cvar_Get( "fs_basepath", Sys_DefaultBasePath(), CVAR_INIT | CVAR_PROTECTED | CVAR_PRIVATE );
-	Cvar_SetDescription(fs_basepath, "Directory to read game installation files from.");
+	Cvar_SetDescription( fs_basepath, "Directory to read game installation files from" );
 	fs_basegame = Cvar_Get( "fs_basegame", BASEGAME, CVAR_INIT | CVAR_PROTECTED );
+	Cvar_SetDescription( fs_basegame, "Directory specifying the path to the base game folder" );
 	fs_steampath = Cvar_Get( "fs_steampath", Sys_SteamPath(), CVAR_INIT | CVAR_PROTECTED | CVAR_PRIVATE );
 	fs_msstorepath = Cvar_Get( "fs_msstorepath", Sys_MicrosoftStorePath(), CVAR_INIT | CVAR_PROTECTED | CVAR_PRIVATE );
 
@@ -5224,8 +5226,7 @@ static void FS_Startup( void ) {
 
 	fs_gamedirvar = Cvar_Get( "fs_game", "", CVAR_INIT | CVAR_SYSTEMINFO );
 	Cvar_CheckRange( fs_gamedirvar, NULL, NULL, CV_FSPATH );
-
-	Cvar_SetDescription( fs_gamedirvar, "Mod path" );
+	Cvar_SetDescription( fs_gamedirvar, "Specify an alternate mod directory to run the game with" );
 
 	if ( !Q_stricmp( fs_basegame->string, fs_gamedirvar->string ) ) {
 		Cvar_ForceReset( "fs_game" );

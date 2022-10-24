@@ -92,7 +92,7 @@ void SND_setup( void )
 
 	cv = Cvar_Get( "com_soundMegs", DEF_COMSOUNDMEGS, CVAR_LATCH | CVAR_ARCHIVE );
 	Cvar_CheckRange( cv, "1", "512", CV_INTEGER );
-	Cvar_SetDescription( cv, "The size of the sound memory segment" );
+	Cvar_SetDescription( cv, "Amount of memory (RAM) assigned to the sound buffer (in MB)" );
 
 	scs = ( cv->integer * 512 ); // reduce memory waste by reverting to ET value here, below is about 3x as much memory
 	//scs = ( cv->integer * /*1536*/ 12 * dma.speed ) / 22050;

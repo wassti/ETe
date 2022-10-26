@@ -1875,6 +1875,36 @@ static void R_LoadNodesAndLeafs( const lump_t *nodeLump, const lump_t *leafLump 
 
 /*
 =================
+R_ReplaceShaders
+
+replaces some buggy map shaders
+=================
+*/
+static void R_ReplaceMapShaders( dshader_t *out, int count ) 
+{
+	if ( Q_stricmp( s_worldData.baseName, "etf_opposition" ) == 0 ) {
+		int i;
+		for ( i = 0; i < count; i++ ) {
+			if( strncmp( out[i].shader, "textures/q3f_sunburn", 20 ) == 0 ) {
+				out[i].shader[9] = 'e';
+				out[i].shader[10] = 't';
+			}
+			if( strncmp( out[i].shader, "textures/q3f_banners", 20 ) == 0 ) {
+				Q_replace( "q3f", "etf", out[i].shader, sizeof(out[i].shader) );
+				if ( strstr( out[i].shader, "long_logo_nonsolid") ) {
+					Q_replace( "long_logo_nonsolid", "logo2_long", out[i].shader, sizeof(out[i].shader) );
+				}
+				if ( strstr( out[i].shader, "logo4_nonsolid") ) {
+					Q_replace( "logo4_nonsolid", "logo2", out[i].shader, sizeof(out[i].shader) );
+				}
+			}
+		}
+	}
+}
+
+
+/*
+=================
 R_LoadShaders
 =================
 */
@@ -1892,6 +1922,8 @@ static void R_LoadShaders( const lump_t *l ) {
 	s_worldData.numShaders = count;
 
 	memcpy( out, in, count * sizeof( *out ) );
+
+	R_ReplaceMapShaders( out, count );
 
 	for ( i = 0 ; i < count ; i++ ) {
 		out[i].surfaceFlags = LittleLong( out[i].surfaceFlags );

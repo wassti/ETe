@@ -1505,7 +1505,14 @@ static void Cvar_Func_f( void ) {
 			Com_Printf( "Cvar '%s' does not exist.\n", cvar_name );
 			return; // FIXME: allow cvar creation for some functions?
 		}
-	} else if ( cvar->flags & ( CVAR_INIT | CVAR_ROM | CVAR_PROTECTED ) ) {
+	}
+#ifndef DEDICATED
+	else if ( (cvar->flags & (CVAR_SYSTEMINFO|CVAR_SERVER_CREATED)) && CL_ConnectedToRemoteServer() ) {
+		Com_Printf( "Cvar '%s' can only be set by the server.\n", cvar_name );
+		return;
+	}
+#endif
+	else if ( cvar->flags & ( CVAR_INIT | CVAR_ROM | CVAR_PROTECTED ) ) {
 		Com_Printf( "Cvar '%s' is write-protected.\n", cvar_name );
 		return;
 	} else if ( ( cvar->flags & CVAR_DEVELOPER ) && !cvar_developer->integer ) {

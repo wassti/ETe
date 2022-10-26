@@ -3787,15 +3787,17 @@ void Com_Init( char *commandLine ) {
 	Com_StartupVariable( "developer" );
 	com_developer = Cvar_Get( "developer", "0", CVAR_TEMP );
 	Cvar_CheckRange( com_developer, NULL, NULL, CV_INTEGER );
-
 	Cvar_SetDescription( com_developer, "Toggles developer mode. Prints more info to console and provides more commands" );
 
 	// bani: init this early
 	Com_StartupVariable( "com_ignorecrash" );
 	com_ignorecrash = Cvar_Get( "com_ignorecrash", "0", 0 );
+	Cvar_CheckRange( com_ignorecrash, "0", "1", CV_INTEGER );
+	Cvar_SetDescription( com_ignorecrash, "Ignore crashed state of a previous session. Won't wipe unsafe cvars" );
 
 	// ydnar: init crashed variable as early as possible
 	com_crashed = Cvar_Get( "com_crashed", "0", CVAR_TEMP );
+	Cvar_SetDescription( com_crashed, "Status to indicate whether a previous session crashed" );
 
 	Com_StartupVariable( "journal" );
 	com_journal = Cvar_Get( "journal", "0", CVAR_INIT | CVAR_PROTECTED );

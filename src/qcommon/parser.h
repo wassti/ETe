@@ -51,6 +51,8 @@ If you have questions concerning this license or the applicable additional terms
 #define INDENT_ELIF             0x0004
 #define INDENT_IFDEF            0x0008
 #define INDENT_IFNDEF           0x0010
+#define INDENT_ELIFDEF          0x0020
+#define INDENT_ELIFNDEF         0x0040
 
 //macro definitions
 typedef struct define_s
@@ -140,6 +142,6 @@ int PC_LoadSourceHandle( const char *filename );
 int PC_FreeSourceHandle( int handle );
 int PC_ReadTokenHandle( int handle, struct pc_token_s *pc_token );
 int PC_SourceFileAndLine( int handle, char *filename, int *line );
-void PC_CheckOpenSourceHandles( void );
+//void PC_CheckOpenSourceHandles( void );
 void PC_UnreadLastTokenHandle( int handle );
 #endif

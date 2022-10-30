@@ -168,6 +168,7 @@ void PS_CreatePunctuationTable( script_t *script, punctuation_t *punctuations ) 
 // Returns:					-
 // Changes Globals:		-
 //===========================================================================
+#ifdef DEBUG_EVAL
 char *PunctuationFromNum( script_t *script, int num ) {
 	int i;
 
@@ -179,6 +180,7 @@ char *PunctuationFromNum( script_t *script, int num ) {
 	} //end for
 	return "unkown punctuation";
 } //end of the function PunctuationFromNum
+#endif
 //===========================================================================
 //
 // Parameter:				-

@@ -237,7 +237,9 @@ void SetScriptPunctuations( script_t *script, punctuation_t *p );
 //returns true if at the end of the script
 int EndOfScript( script_t *script );
 //returns a pointer to the punctuation with the given number
+#ifdef DEBUG_EVAL // parser.c
 char *PunctuationFromNum( script_t *script, int num );
+#endif
 //load a script from the given file at the given offset with the given length
 script_t *LoadScriptFile( const char *filename );
 //load a script from the given memory with the given length

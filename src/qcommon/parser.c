@@ -1380,7 +1380,7 @@ void PC_AddGlobalDefinesToSource( source_t *source ) {
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-int PC_Directive_if_def( source_t *source, int type ) {
+static int PC_Directive_if_def( source_t *source, int type ) {
 	token_t token;
 	define_t *d;
 	int skip;
@@ -1421,6 +1421,46 @@ int PC_Directive_ifdef( source_t *source ) {
 int PC_Directive_ifndef( source_t *source ) {
 	return PC_Directive_if_def( source, INDENT_IFNDEF );
 } //end of the function PC_Directive_ifndef
+
+static int PC_Directive_elif_def( source_t *source, int type ) {
+	token_t token;
+	define_t *d;
+	int skip, checktype;
+
+	PC_PopIndent( source, &checktype, &skip );
+	if ( !checktype || checktype == INDENT_ELSE ) {
+		SourceError( source, "misplaced #elifdef" );
+		return qfalse;
+	} //end if
+
+	if ( !PC_ReadLine( source, &token ) ) {
+		SourceError( source, "#elifdef without name" );
+		return qfalse;
+	} //end if
+	if ( token.type != TT_NAME ) {
+		PC_UnreadSourceToken( source, &token );
+		SourceError( source, "expected name after #elifdef, found %s", token.string );
+		return qfalse;
+	} //end if
+#if DEFINEHASHING
+	d = PC_FindHashedDefine( source->definehash, token.string );
+#else
+	d = PC_FindDefine( source->defines, token.string );
+#endif //DEFINEHASHING
+	skip = ( type == INDENT_ELIFDEF ) == ( d == NULL );
+	PC_PushIndent( source, type, skip );
+	return qtrue;
+} //end of the function PC_Directiveif_def
+
+int PC_Directive_elifdef( source_t *source ) {
+	return PC_Directive_elif_def( source, INDENT_ELIFDEF );
+} //end of the function PC_Directive_elifdef
+
+int PC_Directive_elifndef( source_t *source ) {
+	return PC_Directive_elif_def( source, INDENT_ELIFNDEF );
+} //end of the function PC_Directive_elifndef
+
+
 //============================================================================
 //
 // Parameter:				-
@@ -2381,6 +2421,8 @@ static const directive_t directives[] =
 	{"ifdef", PC_Directive_ifdef},
 	{"ifndef", PC_Directive_ifndef},
 	{"elif", PC_Directive_elif},
+	{"elifdef", PC_Directive_elifdef},
+	{"elifndef", PC_Directive_elifndef},
 	{"else", PC_Directive_else},
 	{"endif", PC_Directive_endif},
 	{"include", PC_Directive_include},
@@ -3082,7 +3124,7 @@ int PC_SourceFileAndLine( int handle, char *filename, int *line ) {
 // Returns:				-
 // Changes Globals:		-
 //============================================================================
-void PC_CheckOpenSourceHandles( void ) {
+/*void PC_CheckOpenSourceHandles( void ) {
 	int i;
 
 	for ( i = 1; i < MAX_SOURCEFILES; i++ )
@@ -3092,3 +3134,4 @@ void PC_CheckOpenSourceHandles( void ) {
 		} //end if
 	} //end for
 } //end of the function PC_CheckOpenSourceHandles
+*/

@@ -1421,7 +1421,12 @@ int PC_Directive_ifdef( source_t *source ) {
 int PC_Directive_ifndef( source_t *source ) {
 	return PC_Directive_if_def( source, INDENT_IFNDEF );
 } //end of the function PC_Directive_ifndef
-
+//============================================================================
+//
+// Parameter:				-
+// Returns:					-
+// Changes Globals:		-
+//============================================================================
 static int PC_Directive_elif_def( source_t *source, int type ) {
 	token_t token;
 	define_t *d;
@@ -1450,17 +1455,25 @@ static int PC_Directive_elif_def( source_t *source, int type ) {
 	skip = ( type == INDENT_ELIFDEF ) == ( d == NULL );
 	PC_PushIndent( source, type, skip );
 	return qtrue;
-} //end of the function PC_Directiveif_def
-
+} //end of the function PC_Directive_elif_def
+//============================================================================
+//
+// Parameter:				-
+// Returns:					-
+// Changes Globals:		-
+//============================================================================
 int PC_Directive_elifdef( source_t *source ) {
 	return PC_Directive_elif_def( source, INDENT_ELIFDEF );
 } //end of the function PC_Directive_elifdef
-
+//============================================================================
+//
+// Parameter:				-
+// Returns:					-
+// Changes Globals:		-
+//============================================================================
 int PC_Directive_elifndef( source_t *source ) {
 	return PC_Directive_elif_def( source, INDENT_ELIFNDEF );
 } //end of the function PC_Directive_elifndef
-
-
 //============================================================================
 //
 // Parameter:				-
@@ -2331,6 +2344,20 @@ int PC_Directive_error( source_t *source ) {
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
+int PC_Directive_warning( source_t *source ) {
+	token_t token;
+
+	token.string[0] = '\0';
+	PC_ReadSourceToken( source, &token );
+	SourceWarning( source, "#warning directive: %s", token.string );
+	return qtrue;
+} //end of the function PC_Directive_warning
+//============================================================================
+//
+// Parameter:				-
+// Returns:					-
+// Changes Globals:		-
+//============================================================================
 int PC_Directive_pragma( source_t *source ) {
 	token_t token;
 
@@ -2430,6 +2457,7 @@ static const directive_t directives[] =
 	{"undef", PC_Directive_undef},
 	{"line", PC_Directive_line},
 	{"error", PC_Directive_error},
+	{"warning", PC_Directive_warning},
 	{"pragma", PC_Directive_pragma},
 	{"eval", PC_Directive_eval},
 	{"evalfloat", PC_Directive_evalfloat},

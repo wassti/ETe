@@ -389,7 +389,7 @@ static qboolean FS_PakIsPure( const pack_t *pack ) {
 			// NOTE TTimo: a pk3 with same checksum but different name would be validated too
 			//   I don't see this as allowing for any exploit, it would only happen if the client does manips of its file names 'not a bug'
 			if ( pack->checksum == fs_serverPaks[i] ) {
-				return qtrue;		// on the aproved list
+				return qtrue;		// on the approved list
 			}
 		}
 		return qfalse;	// not on the pure server pak list
@@ -4217,11 +4217,19 @@ static int FS_GetModList( char *listbuf, int bufsize ) {
 			}
 		}
 
-		// we also drop BASEGAME, "." and ".."
-		if ( bDrop /*|| Q_stricmp( name, fs_basegame->string ) == 0 */ ) {
+		if ( bDrop ) {
 			continue;
 		}
+		// we also drop "." and ".."
 		if ( strcmp( name, "." ) == 0 || strcmp( name, ".." ) == 0 ) {
+			continue;
+		}
+		// we also drop "hidden" folders
+		if ( Sys_IsHiddenFolder( name ) ) {
+			continue;
+		}
+		// drop etpro because compatibility
+		if ( !Q_stricmp( name, "etpro" ) ) {
 			continue;
 		}
 

@@ -1461,6 +1461,7 @@ void		Sys_ShowIP(void);
 void	Sys_Mkdir( const char *path );
 FILE	*Sys_FOpen( const char *ospath, const char *mode );
 qboolean Sys_ResetReadOnlyAttribute( const char *ospath );
+qboolean Sys_IsHiddenFolder( const char *ospath );
 
 const char *Sys_Pwd( void );
 const char *Sys_DefaultBasePath( void );

@@ -263,6 +263,28 @@ qboolean Sys_ResetReadOnlyAttribute( const char *ospath ) {
 
 /*
 ==============
+Sys_IsHiddenFolder
+Note: Assumes caller has already verified ospath in other means
+==============
+*/
+qboolean Sys_IsHiddenFolder( const char *ospath ) {
+	DWORD dwAttr;
+
+	dwAttr = GetFileAttributesA( ospath );
+	if ( dwAttr & (FILE_ATTRIBUTE_HIDDEN|FILE_ATTRIBUTE_SYSTEM) ) {
+		return qtrue;
+	}
+
+	if ( ospath[0] == '.' ) {
+		return qtrue;
+	}
+
+	return qfalse;
+}
+
+
+/*
+==============
 Sys_Pwd
 ==============
 */

@@ -700,7 +700,7 @@ void S_Init( void )
 	Cvar_CheckRange( s_muteWhenMinimized, "0", "1", CV_INTEGER );
 
 	cv = Cvar_Get( "s_initsound", "1", 0 );
-	Cvar_SetDescription( cv, " Whether or not to startup the sound system" );
+	Cvar_SetDescription( cv, "Whether or not to startup the sound system" );
 	if ( !cv->integer ) {
 		Com_Memset( &si, 0, sizeof( si ) );
 		Com_Printf( "Sound disabled.\n" );

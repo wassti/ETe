@@ -934,7 +934,7 @@ void SV_Init( void )
 	// systeminfo
 	//bani - added cvar_t for sv_cheats so server engine can reference it
 	sv_cheats = Cvar_Get( "sv_cheats", "1", CVAR_SYSTEMINFO | CVAR_ROM );
-	Cvar_SetDescription( sv_cheats, "Enable cheating commands (serverside or demo playback only)" );
+	Cvar_SetDescription( sv_cheats, "Enable cheating commands (server side or demo playback only)" );
 	sv_serverid = Cvar_Get( "sv_serverid", "0", CVAR_SYSTEMINFO | CVAR_ROM );
 	sv_pure = Cvar_Get( "sv_pure", "1", CVAR_SYSTEMINFO | CVAR_LATCH );
 	Cvar_SetDescription( sv_pure, "Pure server client file checksum verification:\n"

@@ -2454,10 +2454,10 @@ qboolean S_Base_Init( soundInterface_t *si ) {
 	// fretn
 	s_bits = Cvar_Get( "s_bits", "16", CVAR_LATCH | CVAR_ARCHIVE_ND );
 	Cvar_CheckRange( s_bits, "8", "16", CV_INTEGER );
-	Cvar_SetDescription( s_bits, "Sound bit resolution" );
+	Cvar_SetDescription( s_bits, "Bits per-sample to request for audio output (possible options: 8 or 16). When set to 0 it uses 16" );
 	s_numchannels = Cvar_Get( "s_channels", "2", CVAR_LATCH | CVAR_ARCHIVE_ND );
 	Cvar_CheckRange( s_numchannels, "1", "2", CV_INTEGER );
-	Cvar_SetDescription( s_numchannels, "Number of audio channels (1: mono, 2: stereo)" );
+	Cvar_SetDescription( s_numchannels, "Number of audio channels to request for audio output. The Enemy Territory audio mixer only supports mono and stereo. Additional channels are silent" );
 
 	r = SNDDMA_Init();
 

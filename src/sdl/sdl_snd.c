@@ -247,9 +247,9 @@ qboolean SNDDMA_Init( void )
 		return qtrue;
 
 	s_sdlDevSamps = Cvar_Get( "s_sdlDevSamps", "0", CVAR_ARCHIVE_ND | CVAR_LATCH );
-	Cvar_SetDescription( s_sdlDevSamps, "SDL DMA buffer size override" );
+	Cvar_SetDescription( s_sdlDevSamps, "Number of audio samples to provide to the SDL audio output device. When set to 0 it picks a value based on s_khz" );
 	s_sdlMixSamps = Cvar_Get( "s_sdlMixSamps", "0", CVAR_ARCHIVE_ND | CVAR_LATCH );
-	Cvar_SetDescription( s_sdlMixSamps, "SDL mix buffer size override" );
+	Cvar_SetDescription( s_sdlMixSamps, "Number of audio samples for Enemy Territory's audio mixer when using SDL audio output" );
 	s_sdlLevelSamps = Cvar_Get( "s_sdlLevelSamps", "0", CVAR_ARCHIVE_ND | CVAR_LATCH );
 	Cvar_CheckRange( s_sdlLevelSamps, "0", "2", CV_INTEGER );
 
@@ -357,6 +357,7 @@ qboolean SNDDMA_Init( void )
 #ifdef USE_SDL_AUDIO_CAPTURE
 	// !!! FIXME: some of these SDL_OpenAudioDevice() values should be cvars.
 	s_sdlCapture = Cvar_Get( "s_sdlCapture", "1", CVAR_ARCHIVE | CVAR_LATCH );
+	Cvar_SetDescription( s_sdlCapture, "Set to 1 to enable SDL audio capture" );
 	// !!! FIXME: pulseaudio capture records audio the entire time the program is running. https://bugzilla.libsdl.org/show_bug.cgi?id=4087
 	if (Q_stricmp(SDL_GetCurrentAudioDriver(), "pulseaudio") == 0)
 	{

@@ -4228,10 +4228,12 @@ static int FS_GetModList( char *listbuf, int bufsize ) {
 		if ( Sys_IsHiddenFolder( name ) ) {
 			continue;
 		}
+#ifndef id386
 		// drop etpro because compatibility
 		if ( !Q_stricmp( name, "etpro" ) ) {
 			continue;
 		}
+#endif
 
 		// in order to be a valid mod the directory must contain at least one .pk3
 		// we didn't keep the information when we merged the directory names, as to what OS Path it was found under

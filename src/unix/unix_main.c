@@ -632,8 +632,8 @@ void Sys_Sleep(int msec)
 	fd_set fdset;
 	int res;
 
-	if (msec == 0)
-		return;
+	//if (msec == 0)
+	//	return;
 
 	if (msec < 0)
 	{
@@ -660,7 +660,9 @@ void Sys_Sleep(int msec)
 		}
 		return;
 	}
-
+#if 1
+	usleep( msec * 1000 );
+#else
 	if (com_dedicated->integer && stdin_active)
 	{
 		FD_ZERO(&fdset);
@@ -673,6 +675,7 @@ void Sys_Sleep(int msec)
 	{
 		usleep(msec * 1000);
 	}
+#endif
 }
 
 #ifndef DEDICATED

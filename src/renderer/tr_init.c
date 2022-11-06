@@ -793,8 +793,6 @@ static void InitOpenGL( void )
 		gls.initTime = ri.Milliseconds();
 	}
 
-	VarInfo();
-
 	// set default state
 	GL_SetDefaultState();
 
@@ -1520,7 +1518,7 @@ static void GfxInfo( void )
 	if ( glConfig.isFullscreen )
 	{
 		const char *modefs = ri.Cvar_VariableString( "r_modeFullscreen" );
-		if ( *modefs ) 
+		if ( *modefs )
 			mode = atoi( modefs );
 		else
 			mode = ri.Cvar_VariableIntegerValue( "r_mode" );
@@ -2108,6 +2106,8 @@ void R_Init( void ) {
 	InitOpenGL();
 
 	R_InitImages();
+
+	VarInfo();
 
 	R_InitShaders();
 

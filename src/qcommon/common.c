@@ -3463,7 +3463,7 @@ static void CPUID( int func, unsigned int *regs )
 static void Sys_GetProcessorId( char *vendor )
 {
 	uint32_t regs[4]; // EAX, EBX, ECX, EDX
-	uint32_t /*cpuid_level, */cpuid_level_ex;
+	uint32_t cpuid_level_ex;
 	char vendor_str[12 + 1]; // short CPU vendor string
 
 	// setup initial features
@@ -3479,7 +3479,6 @@ static void Sys_GetProcessorId( char *vendor )
 
 	// get CPUID level & short CPU vendor string
 	CPUID( 0x0, regs );
-	//cpuid_level = regs[0];
 	memcpy(vendor_str + 0, (char*)&regs[1], 4);
 	memcpy(vendor_str + 4, (char*)&regs[3], 4);
 	memcpy(vendor_str + 8, (char*)&regs[2], 4);
@@ -3867,6 +3866,15 @@ void Com_Init( char *commandLine ) {
 	Sys_SteamInit();
 #endif
 
+	com_logfile = Cvar_Get( "logfile", "0", CVAR_TEMP );
+	Cvar_CheckRange( com_logfile, "0", "4", CV_INTEGER );
+	Cvar_SetDescription( com_logfile, "System console logging:\n"
+		" 0 - disabled\n"
+		" 1 - overwrite mode, buffered\n"
+		" 2 - overwrite mode, synced\n"
+		" 3 - append mode, buffered\n"
+		" 4 - append mode, synced\n" );
+
 	Com_InitJournaling();
 
 	Com_GetGameInfo();
@@ -3923,15 +3931,6 @@ void Com_Init( char *commandLine ) {
 	Cvar_SetDescription( com_affinityMask, "Bind ETe process to bitmask-specified CPU core(s)" );
 	com_affinityMask->modified = qfalse;
 #endif
-
-	com_logfile = Cvar_Get( "logfile", "0", CVAR_TEMP );
-	Cvar_CheckRange( com_logfile, "0", "4", CV_INTEGER );
-	Cvar_SetDescription( com_logfile, "System console logging:\n"
-		" 0 - disabled\n"
-		" 1 - overwrite mode, buffered\n"
-		" 2 - overwrite mode, synced\n"
-		" 3 - append mode, buffered\n"
-		" 4 - append mode, synced\n" );
 
 	com_timescale = Cvar_Get( "timescale", "1", CVAR_CHEAT | CVAR_SYSTEMINFO );
 	Cvar_CheckRange( com_timescale, "0", "100", CV_FLOAT );

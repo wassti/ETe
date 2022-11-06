@@ -247,6 +247,7 @@ int FORMAT_PRINTF(1, 0) QDECL Com_VPrintf( const char *fmt, va_list argptr ) {
 			struct tm *newtime;
 			time_t aclock;
 			int mode;
+			char timestr[32];
 
 			opening_qconsole = qtrue;
 
@@ -262,7 +263,8 @@ int FORMAT_PRINTF(1, 0) QDECL Com_VPrintf( const char *fmt, va_list argptr ) {
 
 			if ( logfile != FS_INVALID_HANDLE )
 			{
-				Com_Printf( "logfile opened on %s\n", asctime( newtime ) );
+				strftime( timestr, sizeof(timestr), "%a %b %d %X %Y", newtime );
+				Com_Printf( "logfile opened on %s\n", timestr );
 
 				if ( mode & 1 )
 				{

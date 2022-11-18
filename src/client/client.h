@@ -419,8 +419,7 @@ typedef struct {
 	qhandle_t consoleShader;
 	qhandle_t consoleShader2;       // NERVE - SMF - merged from WolfSP
 
-	int			lastVidRestart;
-	int			soundMuted;
+	//int			lastVidRestart;
 
 	// www downloading
 	// in the static stuff since this may have to survive server disconnects

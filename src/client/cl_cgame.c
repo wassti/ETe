@@ -416,7 +416,7 @@ rescan:
 		// reparse the string, because Con_ClearNotify() may have done another Cmd_TokenizeString()
 		Cmd_TokenizeString( s );
 		Com_Memset( cl.cmds, 0, sizeof( cl.cmds ) );
-		cls.lastVidRestart = Sys_Milliseconds(); // hack for OSP mod
+		//cls.lastVidRestart = Sys_Milliseconds(); // hack for OSP mod
 		return qtrue;
 	}
 
@@ -1383,7 +1383,7 @@ void CL_InitCGame( void ) {
 	CL_UpdateLevelHunkUsage();
 
 	// do not allow vid_restart for first time
-	cls.lastVidRestart = Sys_Milliseconds();
+	//cls.lastVidRestart = Sys_Milliseconds();
 }
 
 

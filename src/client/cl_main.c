@@ -1961,9 +1961,9 @@ Wrapper for CL_Vid_Restart
 static void CL_Vid_Restart_f( void ) {
 
 	 // hack for OSP mod: do not allow vid restart right after cgame init
-	if ( cls.lastVidRestart )
-		if ( abs( cls.lastVidRestart - Sys_Milliseconds() ) < 500 )
-			return;
+	//if ( cls.lastVidRestart )
+	//	if ( abs( cls.lastVidRestart - Sys_Milliseconds() ) < 500 )
+	//		return;
 
 	if ( Q_stricmp( Cmd_Argv(1), "keep_window" ) == 0 )
 		CL_Vid_Restart( qtrue );

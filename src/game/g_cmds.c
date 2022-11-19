@@ -3205,16 +3205,28 @@ static void Cmd_Ignore_f( gentity_t* ent ) {
 
 	trap_Argv( 1, cmd, sizeof( cmd ) );
 
-	if ( !*cmd ) {
-		trap_SendServerCommand( ent - g_entities, "print \"usage: Ignore <clientname>.\n\"\n" );
+	if ( trap_Argc () < 2 ) {
+		CP( "print \"usage: ignore <player id>\n\"" );
 		return;
 	}
 
-	cnum = G_refClientnumForName( ent, cmd );
-
-	if ( cnum != MAX_CLIENTS ) {
-		COM_BitSet( ent->client->sess.ignoreClients, cnum );
+	cnum = ClientNumberFromString( ent, cmd );
+	if ( cnum == -1 ) {
+		return;
 	}
+
+	if ( cnum == ent->s.number ) {
+		CP( "print \"Cannot ignore yourself.\n\"" );
+		return;
+	}
+
+	if ( COM_BitCheck(ent->client->sess.ignoreClients, cnum ) ) {
+		CP( va("print \"Player '%s^7' (^5%d^7) is already on the ignore list\n\"", level.clients[cnum].pers.netname, cnum) );
+		return;
+	}
+
+	COM_BitSet( ent->client->sess.ignoreClients, cnum );
+	CP( va("print \"Player '%s^7' (^5%d^7) is now being ignored\n\"", level.clients[cnum].pers.netname, cnum) );
 }
 
 
@@ -3224,16 +3236,28 @@ static void Cmd_UnIgnore_f( gentity_t* ent ) {
 
 	trap_Argv( 1, cmd, sizeof( cmd ) );
 
-	if ( !*cmd ) {
-		trap_SendServerCommand( ent - g_entities, "print \"usage: Unignore <clientname>.\n\"\n" );
+	if ( trap_Argc () < 2 ) {
+		CP( "print \"usage: unignore <player id>\n\"" );
 		return;
 	}
 
-	cnum = G_refClientnumForName( ent, cmd );
-
-	if ( cnum != MAX_CLIENTS ) {
-		COM_BitClear( ent->client->sess.ignoreClients, cnum );
+	cnum = ClientNumberFromString( ent, cmd );
+	if ( cnum == -1 ) {
+		return;
 	}
+
+	if ( cnum == ent->s.number ) {
+		CP( "print \"Cannot ignore yourself.\n\"" );
+		return;
+	}
+
+	if ( !COM_BitCheck(ent->client->sess.ignoreClients, cnum ) ) {
+		CP( va("print \"Player '%s^7' (^5%d^7) is not currently ignored\n\"", level.clients[cnum].pers.netname, cnum) );
+		return;
+	}
+
+	COM_BitClear( ent->client->sess.ignoreClients, cnum );
+	CP( va("print \"Player '%s^7' (^5%d^7) is no longer being ignored\n\"", level.clients[cnum].pers.netname, cnum) );
 }
 
 

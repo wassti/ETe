@@ -900,40 +900,75 @@ void *Sys_LoadGameDll(const char *name, vmMain_t *entryPoint, dllSyscall_t syste
 
 /*****************************************************************************/
 
-static const struct ETToAnsiColorTable_s
+// colors hash from http://wolfwiki.anime.net/index.php/Color_Codes
+static const int etAnsiHash[][6] =
 {
-	const char ETcolor;
-	const char *ANSIcolor;
-} tty_colorTable[] =
-	{
-		{COLOR_BLACK, "30"},
-		{COLOR_RED, "31"},
-		{COLOR_GREEN, "32"},
-		{COLOR_YELLOW, "33"},
-		{COLOR_BLUE, "34"},
-		{COLOR_CYAN, "36"},
-		{COLOR_MAGENTA, "35"},
-		{COLOR_WHITE, "0"},
-		{COLOR_ORANGE, "33"},
-		{COLOR_MDGREY, "30"},
-		{COLOR_LTGREY, "30"},
-		//	{ COLOR_LTGREY,   "30" },
-		{COLOR_MDGREEN, "32"},
-		{COLOR_MDYELLOW, "33"},
-		{COLOR_MDBLUE, "34"},
-		{COLOR_MDRED, "31"},
-		{COLOR_LTORANGE, "33"},
-		{COLOR_MDCYAN, "36"},
-		{COLOR_MDPURPLE, "35"}};
+	// here should be black, but it's invisible in terminal
+	// so you see dark grey here. like in 9 color
+	{ 1,  30, 0,   '0', 'p',  'P'  },
+	{ 1,  31, 0,   '1', 'q',  'Q'  },
+	{ 1,  32, 0,   '2', 'r',  'R'  },
+	{ 1,  33, 0,   '3', 's',  'S'  },
+	{ 1,  34, 0,   '4', 't',  'T'  },
+	{ 1,  36, 0,   '5', 'u',  'U'  },
+	{ 1,  35, 0,   '6', 'v',  'V'  },
+	{ 1,  37, 0,   '7', 'w',  'W'  },
 
-static const char *getANSIcolor(char ETcolor)
+	{ 38, 5,  208, '8', 'x',  'X'  },
+	{ 1,  30, 0,   '9', 'y',  'Y'  },
+	{ 0,  37, 0,   'z', 'Z',  ':'  }, // the same
+	{ 0,  37, 0,   '[', '{',  ';'  }, // --------
+	{ 0,  32, 0,   '<', '\\', '|'  },
+	{ 0,  33, 0,   '=', ']',  '}'  },
+	{ 0,  34, 0,   '>', '~',  '^'  },
+	{ 0,  31, 0,   '?', '_',  0    },
+	{ 38, 5,  94,  '@', '`',  0    },
+
+	{ 38, 5,  214, 'a', 'A',  '!'  },
+	{ 38, 5,  30,  'b', 'B',  '"'  },
+	{ 38, 5,  90,  'c', 'C',  '#'  },
+	{ 38, 5,  33,  'd', 'D',  '$'  },
+	{ 38, 5,  93,  'e', 'E',  '%'  },
+	{ 38, 5,  38,  'f', 'F',  '&'  },
+	{ 38, 5,  194, 'g', 'G',  '\'' },
+	{ 38, 5,  29,  'h', 'H',  '('  },
+
+	{ 38, 5,  197, 'i', 'I',  ')'  },
+	{ 38, 5,  124, 'j', 'J',  0    },
+	{ 38, 5,  130, 'k', 'K',  '+'  },
+	{ 38, 5,  179, 'l', 'L',  ','  },
+	{ 38, 5,  143, 'm', 'M',  '-'  },
+	{ 38, 5,  229, 'n', 'N',  '.'  },
+	{ 38, 5,  228, 'o', 'O',  '/'  }
+};
+
+static const char *getANSIcolor(const int ETcolor)
 {
-	int i;
-	for (i = 0; i < ARRAY_LEN(tty_colorTable); i++)
+	int i, j;
+
+	if (ETcolor == COLOR_NULL)
 	{
-		if (ETcolor == tty_colorTable[i].ETcolor)
+		// '^*' is return previous color in some cases
+		// The in-game console treats it as COLOR_WHITE
+		// Note: see cl_console.c define CONSOLE_COLOR
+		return "1;37";
+	}
+
+	for (i = 0; i < (int)ARRAY_LEN(etAnsiHash); i++)
+	{
+		for(j = 3; j < 6; j++)
 		{
-			return tty_colorTable[i].ANSIcolor;
+			if (etAnsiHash[i][j] != 0 && ETcolor == etAnsiHash[i][j])
+			{
+				if (etAnsiHash[i][2] == 0)
+				{
+					return va("%d;%d", etAnsiHash[i][0], etAnsiHash[i][1]);
+				}
+				else
+				{
+					return va("%d;%d;%d", etAnsiHash[i][0], etAnsiHash[i][1], etAnsiHash[i][2]);
+				}
+			}
 		}
 	}
 	return NULL;
@@ -951,7 +986,7 @@ void Sys_ANSIColorify(const char *msg, char *buffer, int bufferSize)
 {
 	int msgLength;
 	int i;
-	char tempBuffer[8];
+	char tempBuffer[15];
 	const char *ANSIcolor;
 
 	if (!msg || !buffer)

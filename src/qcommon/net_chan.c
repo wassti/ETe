@@ -477,12 +477,13 @@ typedef struct packetQueue_s {
         int length;
         byte *data;
         netadr_t to;
+		netsrc_t sock; // only used for loopback type
         int release;
 } packetQueue_t;
 
 static packetQueue_t *packetQueue = NULL;
 
-static void NET_QueuePacket( int length, const void *data, const netadr_t *to, int offset )
+static void NET_QueuePacket( int length, const void *data, const netsrc_t sock, const netadr_t *to, int offset )
 {
 	packetQueue_t *newp, *next = packetQueue;
 
@@ -493,6 +494,7 @@ static void NET_QueuePacket( int length, const void *data, const netadr_t *to, i
 	newp->data = S_Malloc(length);
 	Com_Memcpy(newp->data, data, length);
 	newp->length = length;
+	newp->sock = sock;
 	newp->to = *to;
 	newp->release = Sys_Milliseconds() + (int)((float)offset / com_timescale->value);	
 	newp->next = NULL;
@@ -520,7 +522,17 @@ void NET_FlushPacketQueue( void )
 		now = Sys_Milliseconds();
 		if ( packetQueue->release - now >= 0 )
 			break;
-		Sys_SendPacket( packetQueue->length, packetQueue->data, &packetQueue->to );
+
+		if ( showpackets->integer ) {
+			// todo delayed ms display doesn't work with this code
+			// because of above check stopping calls if not ready to send
+			Com_Printf( "delayed packet %4i\n", packetQueue->length );
+		}
+
+		if ( packetQueue->to.type == NA_LOOPBACK )
+			NET_SendLoopPacket( packetQueue->sock, packetQueue->length, packetQueue->data );
+		else
+			Sys_SendPacket( packetQueue->length, packetQueue->data, &packetQueue->to );
 		last = packetQueue;
 		packetQueue = packetQueue->next;
 		Z_Free( last->data );
@@ -549,6 +561,17 @@ void NET_SendPacket( netsrc_t sock, int length, const void *data, const netadr_t
 		}
 	}
 
+#ifndef DEDICATED
+	if ( to->type >= NA_LOOPBACK && sock == NS_CLIENT && cl_packetdelay->integer > 0 ) {
+		NET_QueuePacket( length, data, sock, to, cl_packetdelay->integer );
+		return;
+	}
+#endif
+	if ( to->type >= NA_LOOPBACK && sock == NS_SERVER && sv_packetdelay->integer > 0 ) {
+		NET_QueuePacket( length, data, sock, to, sv_packetdelay->integer );
+		return;
+	}
+
 	// sequenced packets are shown in netchan, so just show oob
 	if ( showpackets->integer && *(int32_t *)data == -1 ) {
 		Com_Printf ("send packet %4i\n", length);
@@ -564,17 +587,8 @@ void NET_SendPacket( netsrc_t sock, int length, const void *data, const netadr_t
 	if ( to->type == NA_BAD ) {
 		return;
 	}
-#ifndef DEDICATED
-	if ( sock == NS_CLIENT && cl_packetdelay->integer > 0 ) {
-		NET_QueuePacket( length, data, to, cl_packetdelay->integer );
-	} else
-#endif
-	if ( sock == NS_SERVER && sv_packetdelay->integer > 0 ) {
-		NET_QueuePacket( length, data, to, sv_packetdelay->integer );
-	}
-	else {
-		Sys_SendPacket( length, data, to );
-	}
+
+	Sys_SendPacket( length, data, to );
 }
 
 

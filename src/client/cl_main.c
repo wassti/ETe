@@ -3902,6 +3902,14 @@ static void CL_SetScaling( float factor, int captureWidth, int captureHeight ) {
 	cls.captureHeight = captureHeight;
 }
 
+static void Ref_Cmd_RegisterList( const cmdListItem_t *cmds, int count ) {
+	Cmd_RegisterList( cmds, count, MODULE_RENDERER );
+}
+
+static void Ref_Cmd_UnregisterModule( void ) {
+	Cmd_UnregisterModule( MODULE_RENDERER );
+}
+
 
 /*
 ============
@@ -3955,9 +3963,8 @@ static void CL_InitRef( void ) {
 
 	rimp.Cmd_AddCommand = Cmd_AddCommand;
 	rimp.Cmd_RemoveCommand = Cmd_RemoveCommand;
-	rimp.Cmd_RegisterList = Cmd_RegisterList;
-	rimp.Cmd_UnRegisterList = Cmd_UnregisterList;
-	rimp.Cmd_UnregisterModule = Cmd_UnregisterModule;
+	rimp.Cmd_RegisterList = Ref_Cmd_RegisterList;
+	rimp.Cmd_UnregisterModule = Ref_Cmd_UnregisterModule;
 	rimp.Cmd_Argc = Cmd_Argc;
 	rimp.Cmd_Argv = Cmd_Argv;
 	rimp.Cmd_ExecuteText = Cbuf_ExecuteText;

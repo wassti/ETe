@@ -1634,6 +1634,21 @@ static void TexModeList_f( void ) {
 }
 
 
+static const cmdListItem_t r_cmds[] = {
+	{ "fontlist", R_FontList_f, NULL },
+	{ "gfxinfo", GfxInfo_f, NULL },
+	{ "imagelist", R_ImageList_f, NULL },
+	{ "modellist", R_Modellist_f, NULL },
+	{ "screenshot", R_ScreenShot_f, NULL },
+	{ "screenshotBMP", R_ScreenShot_f, NULL },
+	{ "screenshotJPEG", R_ScreenShot_f, NULL },
+	{ "shaderlist", R_ShaderList_f, NULL },
+	{ "skinlist", R_SkinList_f, NULL },
+	{ "taginfo", R_TagInfo_f, NULL },
+	{ "texmodelist", TexModeList_f, NULL },
+};
+
+
 /*
 ===============
 R_Register
@@ -1641,18 +1656,8 @@ R_Register
 */
 static void R_Register( void )
 {
-	// make sure all the commands added here are also removed in R_Shutdown
-	ri.Cmd_AddCommand( "imagelist", R_ImageList_f );
-	ri.Cmd_AddCommand( "shaderlist", R_ShaderList_f );
-	ri.Cmd_AddCommand( "skinlist", R_SkinList_f );
-	ri.Cmd_AddCommand( "modellist", R_Modellist_f );
-	ri.Cmd_AddCommand( "fontlist", R_FontList_f );
-	ri.Cmd_AddCommand( "screenshot", R_ScreenShot_f );
-	ri.Cmd_AddCommand( "screenshotJPEG", R_ScreenShot_f );
-	ri.Cmd_AddCommand( "screenshotBMP", R_ScreenShot_f );
-	ri.Cmd_AddCommand( "gfxinfo", GfxInfo_f );
-	ri.Cmd_AddCommand( "taginfo", R_TagInfo_f );
-	ri.Cmd_AddCommand( "texmodelist", TexModeList_f );
+	ri.Cmd_RegisterList( r_cmds, ARRAY_LEN(r_cmds) );
+
 	//
 	// temporary latched variables that can only change over a restart
 	//
@@ -2139,18 +2144,7 @@ static void RE_Shutdown( refShutdownCode_t code ) {
 
 	ri.Printf( PRINT_ALL, "RE_Shutdown( %i )\n", code );
 
-	ri.Cmd_RemoveCommand( "modellist" );
-	ri.Cmd_RemoveCommand( "screenshotBMP" );
-	ri.Cmd_RemoveCommand( "screenshotJPEG" );
-	ri.Cmd_RemoveCommand( "screenshot" );
-	ri.Cmd_RemoveCommand( "imagelist" );
-	ri.Cmd_RemoveCommand( "shaderlist" );
-	ri.Cmd_RemoveCommand( "skinlist" );
-	ri.Cmd_RemoveCommand( "fontlist" );
-	ri.Cmd_RemoveCommand( "gfxinfo" );
-	ri.Cmd_RemoveCommand( "shaderstate" );
-	ri.Cmd_RemoveCommand( "taginfo" );
-	ri.Cmd_RemoveCommand( "texmodelist" );
+	ri.Cmd_UnregisterModule();
 
 	// Ridah
 	//ri.Cmd_RemoveCommand( "cropimages" );

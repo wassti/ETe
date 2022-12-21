@@ -244,38 +244,36 @@ int FORMAT_PRINTF(1, 0) QDECL Com_VPrintf( const char *fmt, va_list argptr ) {
 		// TTimo: only open the qconsole.log if the filesystem is in an initialized state
 		//   also, avoid recursing in the qconsole.log opening (i.e. if fs_debug is on)
 		if ( logfile == FS_INVALID_HANDLE && FS_Initialized() && !opening_qconsole ) {
-			struct tm *newtime;
-			time_t aclock;
+			const char *logName = "etconsole.log";
 			int mode;
-			char timestr[32];
 
 			opening_qconsole = qtrue;
-
-			time( &aclock );
-			newtime = localtime( &aclock );
 
 			mode = com_logfile->integer - 1;
 
 			if ( mode & 2 )
-				logfile = FS_FOpenFileAppend( "etconsole.log" );
+				logfile = FS_FOpenFileAppend( logName );
 			else
-				logfile = FS_FOpenFileWrite( "etconsole.log" );
+				logfile = FS_FOpenFileWrite( logName );
 
-			if ( logfile != FS_INVALID_HANDLE )
-			{
-				strftime( timestr, sizeof(timestr), "%a %b %d %X %Y", newtime );
+			if ( logfile != FS_INVALID_HANDLE ) {
+				struct tm *newtime;
+				time_t aclock;
+				char timestr[32];
+
+				time( &aclock );
+				newtime = localtime( &aclock );
+				strftime( timestr, sizeof( timestr ), "%a %b %d %X %Y", newtime );
+
 				Com_Printf( "logfile opened on %s\n", timestr );
 
-				if ( mode & 1 )
-				{
+				if ( mode & 1 ) {
 					// force it to not buffer so we get valid
 					// data even if we are crashing
 					FS_ForceFlush( logfile );
 				}
-			}
-			else
-			{
-				Com_Printf( "Opening etconsole.log failed!\n" );
+			} else {
+				Com_Printf( S_COLOR_YELLOW "Opening %s failed!\n", logName );
 				Cvar_Set( "logfile", "0" );
 			}
 

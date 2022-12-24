@@ -569,7 +569,7 @@ qboolean CL_BindUICommand( const char *cmd ) {
 	return qfalse;
 }
 
-qboolean CL_NumPadEvent(int key)
+static qboolean CL_NumPadEvent(int key)
 {
 	switch (key)
 	{
@@ -596,31 +596,33 @@ CL_KeyDownEvent
 Called by CL_KeyEvent to handle a keypress
 ===================
 */
-void CL_KeyDownEvent( int key, unsigned time )
+static void CL_KeyDownEvent( int key, unsigned time )
 {
 	qboolean bypassMenu = qfalse;       // NERVE - SMF
 	qboolean onlybinds = qfalse;
 	keys[key].down = qtrue;
+	keys[key].bound = qfalse;
 	keys[key].repeats++;
 
-	if ( keys[key].repeats == 1 )
+	if ( keys[key].repeats == 1 ) {
 		anykeydown++;
+	}
 
-	if ( Sys_IsNumLockDown() && CL_NumPadEvent( key ) )
+	if ( Sys_IsNumLockDown() && CL_NumPadEvent( key ) ) {
 		onlybinds = qtrue;
+	}
 
 #ifndef _WIN32
-	if ( keys[K_ALT].down && key == K_ENTER ) {
-		Cvar_SetValue( "r_fullscreen",
-			!Cvar_VariableIntegerValue( "r_fullscreen" ) );
+	if ( keys[K_ALT].down && key == K_ENTER )
+	{
+		Cvar_SetValue( "r_fullscreen", !Cvar_VariableIntegerValue( "r_fullscreen" ) );
 		Cbuf_ExecuteText( EXEC_APPEND, "vid_restart\n" );
 		return;
 	}
 #endif
 
 	// console key is hardcoded, so the user can never unbind it
-	if( key == K_CONSOLE || ( keys[K_SHIFT].down && key == K_ESCAPE ) )
-	{
+	if ( key == K_CONSOLE || ( keys[K_SHIFT].down && key == K_ESCAPE ) ) {
 		Key_PreserveModifiers();
 		Con_ToggleConsole_f();
 		Key_ClearStates();
@@ -681,7 +683,7 @@ void CL_KeyDownEvent( int key, unsigned time )
 		}
 #endif
 		if ( Key_GetCatcher( ) & KEYCATCH_CONSOLE ) {
-			// escape also closes console
+			// escape always closes console
 			Key_PreserveModifiers();
 			Con_ToggleConsole_f();
 			Key_RestoreModifiers();
@@ -770,6 +772,7 @@ void CL_KeyDownEvent( int key, unsigned time )
 	}
 }
 
+
 /*
 ===================
 CL_KeyUpEvent
@@ -777,27 +780,32 @@ CL_KeyUpEvent
 Called by CL_KeyEvent to handle a keyrelease
 ===================
 */
-void CL_KeyUpEvent( int key, unsigned time )
+static void CL_KeyUpEvent( int key, unsigned time )
 {
+	const qboolean bound = keys[key].bound;
 	qboolean onlybinds = qfalse;
 
 	keys[key].repeats = 0;
 	keys[key].down = qfalse;
-	anykeydown--;
+	keys[key].bound = qfalse;
 
-	if ( anykeydown < 0 )
+	if ( --anykeydown < 0 ) {
 		anykeydown = 0;
+	}
 
-	if ( Sys_IsNumLockDown() && CL_NumPadEvent( key ) )
+	if ( Sys_IsNumLockDown() && CL_NumPadEvent( key ) ) {
 		onlybinds = qtrue;
+	}
 
 	// don't process key-up events for the console key
-	if ( key == K_CONSOLE || ( key == K_ESCAPE && keys[K_SHIFT].down ) )
+	if ( key == K_CONSOLE || ( key == K_ESCAPE && keys[K_SHIFT].down ) ) {
 		return;
+	}
 
 	// hardcoded screenshot key
-	if ( key == K_PRINT )
+	if ( key == K_PRINT ) {
 		return;
+	}
 
 	//
 	// key up events only perform actions if the game key binding is
@@ -805,8 +813,11 @@ void CL_KeyUpEvent( int key, unsigned time )
 	// console mode and menu mode, to keep the character from continuing
 	// an action started before a mode switch.
 	//
-	if( cls.state != CA_DISCONNECTED )
-		Key_ParseBinding( key, qfalse, time, qfalse );
+	if ( cls.state != CA_DISCONNECTED ) {
+		if ( bound ) {
+			Key_ParseBinding( key, qfalse, time, qfalse );
+		}
+	}
 
 	if ( Key_GetCatcher( ) & KEYCATCH_UI && uivm ) {
 		if ( !onlybinds || VM_Call( uivm, 0, UI_WANTSBINDKEYS ) ) {
@@ -818,6 +829,7 @@ void CL_KeyUpEvent( int key, unsigned time )
 		}
 	}
 }
+
 
 /*
 ===================

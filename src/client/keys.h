@@ -33,6 +33,7 @@ If you have questions concerning this license or the applicable additional terms
 
 typedef struct {
 	qboolean	down;
+	qboolean	bound;
 	int			repeats;		// if > 1, it is autorepeating
 	char		*binding;
 } qkey_t;

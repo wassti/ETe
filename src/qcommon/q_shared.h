@@ -201,8 +201,11 @@ float FloatSwap( const float *f );
 #ifdef Q3_VM
 	typedef int intptr_t;
 #else
-	#if defined (_MSC_VER)
+	#if defined (_MSC_VER) && !defined(__clang__)
 		#if _MSC_VER >= 1600
+			#if !defined(__STDC_LIMIT_MACROS)
+				#define __STDC_LIMIT_MACROS
+			#endif
 			#include <stdint.h>
 		#else
 			#include <io.h>

@@ -25,26 +25,20 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
+#include "../qcommon/q_shared.h"
+#include "../qcommon/qcommon.h"
+#include "linux_local.h"
 #include <unistd.h>
 #include <signal.h>
-#include <stdlib.h>
-#include <limits.h>
 #include <sys/time.h>
-#include <sys/types.h>
-#include <unistd.h>
 #include <fcntl.h>
-#include <stdarg.h>
-#include <stdio.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <sys/stat.h>
-#include <string.h>
-#include <ctype.h>
 #include <sys/wait.h>
 #include <sys/mman.h>
 #include <errno.h>
 #include <libgen.h> // dirname
-
 #include <dlfcn.h>
 
 #ifdef __linux__
@@ -59,12 +53,6 @@ If you have questions concerning this license or the applicable additional terms
 
 // FIXME TTimo should we gard this? most *nix system should comply?
 #include <termios.h>
-
-#include "../qcommon/q_shared.h"
-#include "../qcommon/qcommon.h"
-#include "../renderercommon/tr_public.h"
-
-#include "linux_local.h" // bk001204
 
 #ifndef DEDICATED
 #include "../client/client.h"
@@ -679,7 +667,6 @@ void Sys_Sleep(int msec)
 }
 
 #ifndef DEDICATED
-extern int cl_connectedToPureServer;
 static qboolean Sys_DLLNeedsUnpacking(const char *name)
 {
 #if defined(DEDICATED)
@@ -1183,7 +1170,6 @@ NOTE: might even want to add a small delay?
 */
 void Sys_StartProcess(const char *cmdline, qboolean doexit)
 {
-
 	if (doexit)
 	{
 		Com_DPrintf("Sys_StartProcess %s (delaying to final exit)\n", cmdline);

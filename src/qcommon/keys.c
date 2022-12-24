@@ -1436,7 +1436,7 @@ void Key_ParseBinding( int key, qboolean down, unsigned time, qboolean forceAll 
 		return;
 #endif
 
-	if( !keys[key].binding || !keys[key].binding[0] )
+	if( !keys[key].binding || keys[key].binding[0] == '\0' )
 		return;
 
 	p = buf;
@@ -1469,12 +1469,13 @@ void Key_ParseBinding( int key, qboolean down, unsigned time, qboolean forceAll 
 			// subframe corrected
 			if ( allCommands || ( allowUpCmds && !down ) ) {
 				char cmd[1024];
-				Com_sprintf( cmd, sizeof( cmd ), "%c%s %d %d\n",
-					( down ) ? '+' : '-', p + 1, key, time );
+				Com_sprintf( cmd, sizeof( cmd ), "%c%s %d %d\n", ( down ) ? '+' : '-', p + 1, key, time );
 				Cbuf_AddText( cmd );
+				if ( down )
+					keys[ key ].bound = qtrue;
 			}
 		}
-		else if( down )
+		else if ( down )
 		{
 			// normal commands only execute on key press
 #ifndef DEDICATED

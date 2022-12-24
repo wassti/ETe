@@ -33,13 +33,13 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "../qcommon/q_shared.h"
 #include "../qcommon/qcommon.h"
-#include "../qcommon/vm_local.h"
 #include "../renderercommon/tr_public.h"
+#include "../qcommon/vm_local.h"
 #include "../ui/ui_public.h"
-#include "keys.h"
-#include "snd_public.h"
 #include "../cgame/cg_public.h"
 #include "../game/bg_public.h"
+#include "snd_public.h"
+#include "keys.h"
 
 #ifndef DEDICATED
 #ifndef USE_CURL

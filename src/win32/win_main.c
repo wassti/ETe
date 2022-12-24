@@ -27,15 +27,19 @@ If you have questions concerning this license or the applicable additional terms
 */
 // win_main.c
 
-#include "../client/client.h"
+#include "../qcommon/q_shared.h"
 #include "../qcommon/qcommon.h"
 #include "win_local.h"
-#include "glw_win.h"
 #include "resource.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <direct.h>
 #include <io.h>
+
+#ifndef DEDICATED
+#include "../client/client.h"
+#include "glw_win.h"
+#endif
 
 #if !defined(DEDICATED) && defined(USE_STEAMAPI)
 #include "../../steam/steamshim_child.h"
@@ -667,7 +671,6 @@ void Sys_UnloadLibrary( void *handle )
 
 
 #ifndef DEDICATED
-extern int cl_connectedToPureServer;
 static qboolean Sys_DLLNeedsUnpacking( const char* name ) {
 #if defined(DEDICATED)
 	return qfalse;

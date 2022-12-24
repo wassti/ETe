@@ -46,14 +46,14 @@ If you have questions concerning this license or the applicable additional terms
 
 #endif
 
-#if defined (_MSC_VER) && (_MSC_VER >= 1200)
-#pragma warning(disable : 4201)
-#pragma warning( push )
-#endif
+//#if defined (_MSC_VER) && (_MSC_VER >= 1200)
+//#pragma warning(disable : 4201)
+//#pragma warning( push )
+//#endif
 #include <windows.h>
-#if defined (_MSC_VER) && (_MSC_VER >= 1200)
-#pragma warning( pop )
-#endif
+//#if defined (_MSC_VER) && (_MSC_VER >= 1200)
+//#pragma warning( pop )
+//#endif
 
 #define HK_MOD_ALT		0x00100
 #define HK_MOD_CONTROL  0x00200

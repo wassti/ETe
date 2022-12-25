@@ -26,6 +26,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define QDECL
 
 #define idppc 0
+#define idppc64 0
 #define id386 0
 #define idx64 0
 #define arm32 0
@@ -115,6 +116,20 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define idppc 1
 #endif // __ppc__
 
+#if defined(__PPC64__)
+#if defined (__LITTLE_ENDIAN__)
+#define ARCH_STRING "ppc64le"
+#define Q3_LITTLE_ENDIAN
+#undef idppc64
+#define idppc64 1
+#else
+#define ARCH_STRING "ppc64"
+#define Q3_BIG_ENDIAN
+#undef idppc64
+#define idppc64 1
+#endif
+#endif // __PPC64__
+
 #if defined (__i386__)
 #define ARCH_STRING "i386"
 #define Q3_LITTLE_ENDIAN
@@ -180,7 +195,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define OSARCH_STRING OS_STRING "32"
 #elif defined (__x86_64__) || defined (__amd64__)
 #define OSARCH_STRING OS_STRING "64"
-#elif defined (__e2k__)
+#else
 #define OSARCH_STRING OS_STRING ARCH_STRING
 #endif
 #define ID_INLINE inline
@@ -207,7 +222,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define OSARCH_STRING OS_STRING "32"
 #elif defined (__x86_64__) || defined (__amd64__)
 #define OSARCH_STRING OS_STRING "64"
-#elif defined (__e2k__)
+#else
 #define OSARCH_STRING OS_STRING ARCH_STRING
 #endif
 

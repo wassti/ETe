@@ -3617,9 +3617,16 @@ static void Sys_GetProcessorId( char *vendor )
 #endif
 }
 
-#if idppc
-#error "PPC support not available for CPUID/Sys_GetProcessorId"
+#if idppc || idppc64
+static void Sys_GetProcessorId( char *vendor )
+{
+	Com_sprintf( vendor, 100, "%s", ARCH_STRING );
+}
 #endif
+
+//#if idppc
+//#error "PPC support not available for CPUID/Sys_GetProcessorId"
+//#endif
 
 #endif // !_WIN32
 

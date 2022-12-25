@@ -1552,7 +1552,7 @@ void Com_GetHunkInfo( int* hunkused, int* hunkexpected );
 // ui_mp_x86.dll
 #define SYS_DLLNAME_UI "ui_mp_" ARCH_STRING DLL_EXT
 
-#elif defined( __linux__ )
+#elif defined( __linux__ ) || defined (__FreeBSD__) || defined (__NetBSD__) || defined (__OpenBSD__)
 
 // qagame.mp.i386.so
 #define SYS_DLLNAME_QAGAME "qagame.mp." ARCH_STRING DLL_EXT

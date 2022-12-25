@@ -638,10 +638,17 @@ int PC_ExpandBuiltinDefine( source_t *source, token_t *deftoken, define_t *defin
 	{
 		t = time( NULL );
 		curtime = ctime( &t );
-		strcpy( token->string, "\"" );
-		strncat( token->string, curtime + 4, 7 );
-		strncat( token->string + 7, curtime + 20, 4 );
-		strcat( token->string, "\"" );
+		if ( strlen( curtime ) < 24 )
+		{
+			strcpy( token->string, "*** BAD CURTIME ***" );
+		}
+		else
+		{
+			strcpy( token->string, "\"" );
+			strncat( token->string, curtime + 4, 7 );
+			strncat( token->string + 7, curtime + 20, 4 );
+			strcat( token->string, "\"" );
+		}
 //			free(curtime);
 		token->type = TT_NAME;
 		token->subtype = (int)strlen( token->string );
@@ -653,10 +660,17 @@ int PC_ExpandBuiltinDefine( source_t *source, token_t *deftoken, define_t *defin
 	{
 		t = time( NULL );
 		curtime = ctime( &t );
-		strcpy( token->string, "\"" );
-		strncat( token->string, curtime + 11, 8 );
-		strcat( token->string, "\"" );
-//			free(curtime);
+		if ( strlen( curtime ) < 24 )
+		{
+			strcpy( token->string, "*** BAD CURTIME ***" );
+		}
+		else
+		{
+			strcpy( token->string, "\"" );
+			strncat( token->string, curtime + 11, 8 );
+			strcat( token->string, "\"" );
+		}
+	//		free(curtime);
 		token->type = TT_NAME;
 		token->subtype = (int)strlen( token->string );
 		*firsttoken = token;
@@ -664,6 +678,12 @@ int PC_ExpandBuiltinDefine( source_t *source, token_t *deftoken, define_t *defin
 		break;
 	}     //end case
 	case BUILTIN_STDC:
+	{
+		SourceWarning( source, "__STDC__ not supported" );
+		*firsttoken = NULL;
+		*lasttoken = NULL;
+		break;
+	}     //end case
 	default:
 	{
 		*firsttoken = NULL;
@@ -2788,7 +2808,7 @@ int PC_ReadToken( source_t *source, token_t *token ) {
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-int PC_CheckTokenString( source_t *source, char *string ) {
+int PC_CheckTokenString( source_t *source, const char *string ) {
 	token_t tok;
 
 	if ( !PC_ReadToken( source, &tok ) ) {
@@ -3042,7 +3062,6 @@ int PC_LoadSourceHandle( const char *filename ) {
 	if ( i >= MAX_SOURCEFILES ) {
 		return 0;
 	}
-	//PS_SetBaseFolder( "" );
 	source = LoadSourceFile( filename );
 	if ( !source ) {
 		return 0;
@@ -3136,16 +3155,6 @@ int PC_SourceFileAndLine( int handle, char *filename, int *line ) {
 	}
 	return qtrue;
 } //end of the function PC_SourceFileAndLine
-//============================================================================
-//
-// Parameter:			-
-// Returns:				-
-// Changes Globals:		-
-//============================================================================
-/*void PC_SetBaseFolder(const char *path)
-{
-	PS_SetBaseFolder(path);
-}*/ //end of the function PC_SetBaseFolder
 //============================================================================
 //
 // Parameter:			-

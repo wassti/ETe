@@ -45,81 +45,83 @@ If you have questions concerning this license or the applicable additional terms
 static punctuation_t default_punctuations[] =
 {
 	//binary operators
-	{">>=",P_RSHIFT_ASSIGN, NULL},
-	{"<<=",P_LSHIFT_ASSIGN, NULL},
+	{">>=",P_RSHIFT_ASSIGN},
+	{"<<=",P_LSHIFT_ASSIGN},
 	//
-	{"...",P_PARMS, NULL},
+	{"...",P_PARMS},
 	//define merge operator
-	{"##",P_PRECOMPMERGE, NULL},
+	{"##",P_PRECOMPMERGE},
 	//logic operators
-	{"&&",P_LOGIC_AND, NULL},
-	{"||",P_LOGIC_OR, NULL},
-	{">=",P_LOGIC_GEQ, NULL},
-	{"<=",P_LOGIC_LEQ, NULL},
-	{"==",P_LOGIC_EQ, NULL},
-	{"!=",P_LOGIC_UNEQ, NULL},
+	{"&&",P_LOGIC_AND},
+	{"||",P_LOGIC_OR},
+	{">=",P_LOGIC_GEQ},
+	{"<=",P_LOGIC_LEQ},
+	{"==",P_LOGIC_EQ},
+	{"!=",P_LOGIC_UNEQ},
 	//arithmatic operators
-	{"*=",P_MUL_ASSIGN, NULL},
-	{"/=",P_DIV_ASSIGN, NULL},
-	{"%=",P_MOD_ASSIGN, NULL},
-	{"+=",P_ADD_ASSIGN, NULL},
-	{"-=",P_SUB_ASSIGN, NULL},
-	{"++",P_INC, NULL},
-	{"--",P_DEC, NULL},
+	{"*=",P_MUL_ASSIGN},
+	{"/=",P_DIV_ASSIGN},
+	{"%=",P_MOD_ASSIGN},
+	{"+=",P_ADD_ASSIGN},
+	{"-=",P_SUB_ASSIGN},
+	{"++",P_INC},
+	{"--",P_DEC},
 	//binary operators
-	{"&=",P_BIN_AND_ASSIGN, NULL},
-	{"|=",P_BIN_OR_ASSIGN, NULL},
-	{"^=",P_BIN_XOR_ASSIGN, NULL},
-	{">>",P_RSHIFT, NULL},
-	{"<<",P_LSHIFT, NULL},
+	{"&=",P_BIN_AND_ASSIGN},
+	{"|=",P_BIN_OR_ASSIGN},
+	{"^=",P_BIN_XOR_ASSIGN},
+	{">>",P_RSHIFT},
+	{"<<",P_LSHIFT},
 	//reference operators
-	{"->",P_POINTERREF, NULL},
+	{"->",P_POINTERREF},
 	//C++
-	{"::",P_CPP1, NULL},
-	{".*",P_CPP2, NULL},
+	{"::",P_CPP1},
+	{".*",P_CPP2},
 	//arithmatic operators
-	{"*",P_MUL, NULL},
-	{"/",P_DIV, NULL},
-	{"%",P_MOD, NULL},
-	{"+",P_ADD, NULL},
-	{"-",P_SUB, NULL},
-	{"=",P_ASSIGN, NULL},
+	{"*",P_MUL},
+	{"/",P_DIV},
+	{"%",P_MOD},
+	{"+",P_ADD},
+	{"-",P_SUB},
+	{"=",P_ASSIGN},
 	//binary operators
-	{"&",P_BIN_AND, NULL},
-	{"|",P_BIN_OR, NULL},
-	{"^",P_BIN_XOR, NULL},
-	{"~",P_BIN_NOT, NULL},
+	{"&",P_BIN_AND},
+	{"|",P_BIN_OR},
+	{"^",P_BIN_XOR},
+	{"~",P_BIN_NOT},
 	//logic operators
-	{"!",P_LOGIC_NOT, NULL},
-	{">",P_LOGIC_GREATER, NULL},
-	{"<",P_LOGIC_LESS, NULL},
+	{"!",P_LOGIC_NOT},
+	{">",P_LOGIC_GREATER},
+	{"<",P_LOGIC_LESS},
 	//reference operator
-	{".",P_REF, NULL},
+	{".",P_REF},
 	//seperators
-	{",",P_COMMA, NULL},
-	{";",P_SEMICOLON, NULL},
+	{",",P_COMMA},
+	{";",P_SEMICOLON},
 	//label indication
-	{":",P_COLON, NULL},
+	{":",P_COLON},
 	//if statement
-	{"?",P_QUESTIONMARK, NULL},
+	{"?",P_QUESTIONMARK},
 	//embracements
-	{"(",P_PARENTHESESOPEN, NULL},
-	{")",P_PARENTHESESCLOSE, NULL},
-	{"{",P_BRACEOPEN, NULL},
-	{"}",P_BRACECLOSE, NULL},
-	{"[",P_SQBRACKETOPEN, NULL},
-	{"]",P_SQBRACKETCLOSE, NULL},
+	{"(",P_PARENTHESESOPEN},
+	{")",P_PARENTHESESCLOSE},
+	{"{",P_BRACEOPEN},
+	{"}",P_BRACECLOSE},
+	{"[",P_SQBRACKETOPEN},
+	{"]",P_SQBRACKETCLOSE},
 	//
-	{"\\",P_BACKSLASH, NULL},
+	{"\\",P_BACKSLASH},
 	//precompiler operator
-	{"#",P_PRECOMP, NULL},
+	{"#",P_PRECOMP},
 #ifdef DOLLAR
-	{"$",P_DOLLAR, NULL},
+	{"$",P_DOLLAR},
 #endif //DOLLAR
 	{NULL, 0}
 };
 
-//static char basefolder[MAX_QPATH];
+static int default_punctuationtable[256];
+static int default_nextpunctuation[ARRAY_LEN(default_punctuations)];
+static qboolean default_setup;
 
 //===========================================================================
 //
@@ -127,40 +129,66 @@ static punctuation_t default_punctuations[] =
 // Returns:					-
 // Changes Globals:		-
 //===========================================================================
-void PS_CreatePunctuationTable( script_t *script, punctuation_t *punctuations ) {
-	int i;
-	punctuation_t *p, *lastp, *newp;
+void PS_CreatePunctuationTable( script_t *script, const punctuation_t *punctuations ) {
+	int i, n, lastp;
+	const punctuation_t *p, *newp;
 
 	//get memory for the table
-	if ( !script->punctuationtable ) {
-		script->punctuationtable = (punctuation_t **)
-								   Z_TagMalloc( 256 * sizeof( punctuation_t * ), TAG_BOTLIB );
+	if ( punctuations == default_punctuations ) {
+		script->punctuationtable = default_punctuationtable;
+		script->nextpunctuation = default_nextpunctuation;
+		if ( default_setup ) {
+			return;
+		}
+		default_setup = qtrue;
+		i = (int)ARRAY_LEN(default_punctuations);
 	}
-	memset( script->punctuationtable, 0, 256 * sizeof( punctuation_t * ) );
+	else {
+		if ( !script->punctuationtable || script->punctuationtable == default_punctuationtable ) {
+			script->punctuationtable = (int *)
+									Z_TagMalloc( 256 * sizeof( int ), TAG_BOTLIB );
+		}
+		if ( script->nextpunctuation && script->nextpunctuation != default_nextpunctuation ) {
+			Z_Free( script->nextpunctuation );
+		}
+		for( i = 0; punctuations[i].p; i++ )
+		{
+		}
+		script->nextpunctuation = (int *) Z_TagMalloc( i * sizeof( int ), TAG_BOTLIB );
+	}
+	memset( script->punctuationtable, 0xFF, 256 * sizeof( punctuation_t * ) );
+	memset( script->nextpunctuation, 0xFF, i * sizeof( int ) );
 	//add the punctuations in the list to the punctuation table
 	for ( i = 0; punctuations[i].p; i++ )
 	{
 		newp = &punctuations[i];
-		lastp = NULL;
+		lastp = -1;
 		//sort the punctuations in this table entry on length (longer punctuations first)
-		for ( p = script->punctuationtable[(unsigned int) newp->p[0]]; p; p = p->next )
+		for ( n = script->punctuationtable[(unsigned int) newp->p[0]]; n >= 0; n = script->nextpunctuation[n] )
 		{
+			p = &punctuations[n];
 			if ( strlen( p->p ) < strlen( newp->p ) ) {
-				newp->next = p;
-				if ( lastp ) {
-					lastp->next = newp;
-				} else { script->punctuationtable[(unsigned int) newp->p[0]] = newp;}
+				script->nextpunctuation[i] = n;
+				if ( lastp >= 0 ) {
+					script->nextpunctuation[lastp] = i;
+				}
+				else {
+					script->punctuationtable[(unsigned int) newp->p[0]] = i;
+				}
 				break;
-			} //end if
-			lastp = p;
-		} //end for
-		if ( !p ) {
-			newp->next = NULL;
-			if ( lastp ) {
-				lastp->next = newp;
-			} else { script->punctuationtable[(unsigned int) newp->p[0]] = newp;}
-		} //end if
-	} //end for
+			}
+			lastp = n;
+		}
+		if ( n < 0 ) {
+			script->nextpunctuation[i] = -1;
+			if ( lastp >= 0 ) {
+				script->nextpunctuation[lastp] = i;
+			}
+			else {
+				script->punctuationtable[(unsigned int) newp->p[0]] = i;
+			}
+		}
+	}
 } //end of the function PS_CreatePunctuationTable
 //===========================================================================
 //
@@ -168,8 +196,7 @@ void PS_CreatePunctuationTable( script_t *script, punctuation_t *punctuations ) 
 // Returns:					-
 // Changes Globals:		-
 //===========================================================================
-#ifdef DEBUG_EVAL
-char *PunctuationFromNum( script_t *script, int num ) {
+const char *PunctuationFromNum( script_t *script, int num ) {
 	int i;
 
 	for ( i = 0; script->punctuations[i].p; i++ )
@@ -177,10 +204,26 @@ char *PunctuationFromNum( script_t *script, int num ) {
 		if ( script->punctuations[i].n == num ) {
 			return script->punctuations[i].p;
 		}
-	} //end for
+	}
 	return "unkown punctuation";
 } //end of the function PunctuationFromNum
-#endif
+//===========================================================================
+//
+// Parameter:				-
+// Returns:					-
+// Changes Globals:		-
+//===========================================================================
+/*int PunctuationNum( script_t *script, const char *p ) {
+	int i;
+
+	for ( i = 0; script->punctuations[i].p; i++ )
+	{
+		if ( !strcmp( script->punctuations[i].p, p ) ) {
+			return script->punctuations[i].n;
+		}
+	}
+	return 0;
+}*/
 //===========================================================================
 //
 // Parameter:				-
@@ -227,15 +270,21 @@ void FORMAT_PRINTF(2, 3) QDECL ScriptWarning(script_t *script, const char *fmt, 
 // Returns:					-
 // Changes Globals:		-
 //===========================================================================
-void SetScriptPunctuations( script_t *script, punctuation_t *p ) {
+static void SetScriptPunctuations( script_t *script, const punctuation_t *p ) {
 #ifdef PUNCTABLE
 	if ( p ) {
 		PS_CreatePunctuationTable( script, p );
-	} else { PS_CreatePunctuationTable( script, default_punctuations );}
+	}
+	else {
+		PS_CreatePunctuationTable( script, default_punctuations );
+	}
 #endif //PUNCTABLE
 	if ( p ) {
 		script->punctuations = p;
-	} else { script->punctuations = default_punctuations;}
+	}
+	else {
+		script->punctuations = default_punctuations;
+	}
 } //end of the function SetScriptPunctuations
 //============================================================================
 // Reads spaces, tabs, C-like comments etc.
@@ -399,9 +448,9 @@ static int PS_ReadEscapeCharacter( script_t *script, char *ch ) {
 // Returns:					qtrue when a string was read succesfully
 // Changes Globals:		-
 //============================================================================
-int PS_ReadString( script_t *script, token_t *token, int quote ) {
+static int PS_ReadString( script_t *script, token_t *token, int quote ) {
 	int len, tmpline;
-	char *tmpscript_p;
+	const char *tmpscript_p;
 
 	if ( quote == '\"' ) {
 		token->type = TT_STRING;
@@ -737,13 +786,14 @@ int PS_ReadLiteral( script_t *script, token_t *token ) {
 // Changes Globals:		-
 //============================================================================
 int PS_ReadPunctuation( script_t *script, token_t *token ) {
-	int len;
-	char *p;
-	punctuation_t *punc;
+	int len, n;
+	const char *p;
+	const punctuation_t *punc;
 
 #ifdef PUNCTABLE
-	for ( punc = script->punctuationtable[(unsigned int)*script->script_p]; punc; punc = punc->next )
+	for ( n = script->punctuationtable[(unsigned int)*script->script_p]; n >= 0; n = script->nextpunctuation[n] )
 	{
+		punc = &script->punctuations[n];
 #else
 	int i;
 
@@ -874,7 +924,7 @@ int PS_ReadToken( script_t *script, token_t *token ) {
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-/*int PS_ExpectTokenString( script_t *script, char *string ) {
+/*int PS_ExpectTokenString( script_t *script, const char *string ) {
 	token_t token;
 
 	if ( !PS_ReadToken( script, &token ) ) {
@@ -947,7 +997,7 @@ int PS_ExpectTokenType( script_t *script, int type, int subtype, token_t *token 
 			if ( subtype & TT_INTEGER ) {
 				strcat( str, " integer" );
 			}
-			ScriptError( script, "expected %s, found %s", str, token->string );
+			ScriptError( script, "expected %s, found '%s'", str, token->string );
 			return 0;
 		} //end if
 	} //end if
@@ -957,8 +1007,8 @@ int PS_ExpectTokenType( script_t *script, int type, int subtype, token_t *token 
 			return 0;
 		} //end if
 		if ( token->subtype != subtype ) {
-			ScriptError( script, "expected %s, found %s",
-						 script->punctuations[subtype].p, token->string );
+			ScriptError( script, "expected '%s', found '%s'",
+						 PunctuationFromNum( script, subtype ), token->string );
 			return 0;
 		} //end if
 	} //end else if
@@ -986,7 +1036,7 @@ int PS_ExpectTokenType( script_t *script, int type, int subtype, token_t *token 
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-/*int PS_CheckTokenString( script_t *script, char *string ) {
+/*int PS_CheckTokenString( script_t *script, const char *string ) {
 	token_t tok;
 
 	if ( !PS_ReadToken( script, &tok ) ) {
@@ -1028,7 +1078,7 @@ int PS_ExpectTokenType( script_t *script, int type, int subtype, token_t *token 
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-/*int PS_SkipUntilString( script_t *script, char *string ) {
+/*int PS_SkipUntilString( script_t *script, const char *string ) {
 	token_t token;
 
 	while ( PS_ReadToken( script, &token ) )
@@ -1239,12 +1289,9 @@ script_t *LoadScriptFile( const char *filename ) {
 	int length;
 	void *buffer;
 	script_t *script;
+	char *buf;
 
-	//if ( basefolder[0] != '\0' )
-	//	Com_sprintf( pathname, sizeof( pathname ), "%s/%s", basefolder, filename );
-	//else
-		Com_sprintf( pathname, sizeof( pathname ), "%s", filename );
-
+	Com_sprintf( pathname, sizeof( pathname ), "%s", filename );
 	length = FS_FOpenFileByMode( pathname, &fp, FS_READ );
 	if (!fp) return NULL;
 
@@ -1253,8 +1300,11 @@ script_t *LoadScriptFile( const char *filename ) {
 	script = (script_t *) buffer;
 	Com_Memset(script, 0, sizeof(script_t));
 	Q_strncpyz(script->filename, filename, sizeof(script->filename));
-	script->buffer = (char *) buffer + sizeof(script_t);
-	script->buffer[length] = 0;
+	buf = (char *) buffer + sizeof(script_t);
+	FS_Read( buf, length, fp );
+	buf[length] = '\0';
+	FS_FCloseFile( fp );
+	script->buffer = buf;
 	script->length = length;
 	//pointer in script buffer
 	script->script_p = script->buffer;
@@ -1270,10 +1320,6 @@ script_t *LoadScriptFile( const char *filename ) {
 	//
 	SetScriptPunctuations( script, NULL );
 	//
-	FS_Read( script->buffer, length, fp );
-	FS_FCloseFile( fp );
-	//
-
 	return script;
 } //end of the function LoadScriptFile
 //============================================================================
@@ -1286,14 +1332,17 @@ script_t *LoadScriptMemory(const char *ptr, int length, const char *name)
 {
 	void *buffer;
 	script_t *script;
+	char *buf;
 
 	buffer = Z_TagMalloc(sizeof(script_t) + (unsigned int)length + 1, TAG_BOTLIB);
 	memset( buffer, 0, sizeof(script_t) + (unsigned int)length + 1 );
 	script = (script_t *) buffer;
 	Com_Memset(script, 0, sizeof(script_t));
 	Q_strncpyz(script->filename, name, sizeof(script->filename));
-	script->buffer = (char *) buffer + sizeof(script_t);
-	script->buffer[length] = 0;
+	buf = (char *) buffer + sizeof(script_t);
+	memcpy( buf, ptr, length );
+	buf[length] = '\0';
+	script->buffer = buf;
 	script->length = length;
 	//pointer in script buffer
 	script->script_p = script->buffer;
@@ -1309,7 +1358,7 @@ script_t *LoadScriptMemory(const char *ptr, int length, const char *name)
 	//
 	SetScriptPunctuations( script, NULL );
 	//
-	memcpy( script->buffer, ptr, (unsigned int)length );
+	//memcpy( script->buffer, ptr, (unsigned int)length );
 	//
 	return script;
 } //end of the function LoadScriptMemory
@@ -1321,19 +1370,14 @@ script_t *LoadScriptMemory(const char *ptr, int length, const char *name)
 //============================================================================
 void FreeScript( script_t *script ) {
 #ifdef PUNCTABLE
-	if ( script->punctuationtable ) {
+	if( script->punctuationtable && script->punctuationtable != default_punctuationtable ) {
 		Z_Free( script->punctuationtable );
+		script->punctuationtable = NULL;
+	}
+	if( script->nextpunctuation && script->nextpunctuation != default_nextpunctuation ) {
+		Z_Free( script->nextpunctuation );
+		script->nextpunctuation = NULL;
 	}
 #endif //PUNCTABLE
 	Z_Free( script );
 } //end of the function FreeScript
-//============================================================================
-//
-// Parameter:				-
-// Returns:					-
-// Changes Globals:		-
-//============================================================================
-/*void PS_SetBaseFolder(const char *path)
-{
-	Q_strncpyz( basefolder, path, sizeof( basefolder ) );
-}*/ //end of the function PS_SetBaseFolder

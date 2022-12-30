@@ -84,9 +84,10 @@ cvar_t	*cl_debugTranslation;
 cvar_t  *cl_profile;
 cvar_t  *cl_defaultProfile;
 
-cvar_t  *cl_demorecording; // fretn
-cvar_t  *cl_demofilename; // bani
-cvar_t  *cl_demooffset; // bani
+static cvar_t	*cl_demorecording; // fretn
+static cvar_t	*cl_demofilename; // bani
+static cvar_t	*cl_demooffset; // bani
+static cvar_t	*cl_silentRecord;
 
 cvar_t  *cl_waverecording; //bani
 cvar_t  *cl_wavefilename; //bani
@@ -359,7 +360,7 @@ void CL_StopRecord_f( void ) {
 
 	if ( !clc.demorecording ) {
 		Com_Printf( "Not recording a demo.\n" );
-	} else {
+	} else if ( !cl_silentRecord->integer ) {
 		Com_Printf( "Stopped demo recording.\n" );
 	}
 
@@ -687,7 +688,9 @@ static void CL_Record_f( void ) {
 	// save desired filename without extension
 	Q_strncpyz( clc.recordName, name, sizeof( clc.recordName ) );
 
-	Com_Printf( "recording to %s.\n", name );
+	if ( !cl_silentRecord->integer ) {
+		Com_Printf( "recording to %s.\n", name );
+	}
 
 	// start new record with temporary extension
 	Q_strcat( name, sizeof( name ), ".tmp" );
@@ -4618,7 +4621,7 @@ void CL_Init( void ) {
 	Cvar_SetDescription( cl_serverStatusResendTime, "Time between re-sending server status requests if no response is received (in milliseconds)" );
 
 	cl_motdString = Cvar_Get( "cl_motdString", "", CVAR_ROM );
-	Cvar_SetDescription( cl_motdString, "Message of the day string from id's master server, it is a read only variable." );
+	Cvar_SetDescription( cl_motdString, "Message of the day string from id's master server, it is a read only variable" );
 
 	//bani - make these cvars visible to cgame
 	cl_demorecording = Cvar_Get( "cl_demorecording", "0", CVAR_ROM );
@@ -4627,6 +4630,8 @@ void CL_Init( void ) {
 	cl_waverecording = Cvar_Get( "cl_waverecording", "0", CVAR_ROM );
 	cl_wavefilename = Cvar_Get( "cl_wavefilename", "", CVAR_ROM );
 	cl_waveoffset = Cvar_Get( "cl_waveoffset", "0", CVAR_ROM );
+	cl_silentRecord = Cvar_Get( "cl_silentRecord", "0", CVAR_ARCHIVE_ND );
+	Cvar_SetDescription( cl_silentRecord, "Whether to print recording messages to console on begin/stop recording" );
 
 	cv = Cvar_Get( "cl_maxPing", "800", CVAR_ARCHIVE_ND );
 	Cvar_CheckRange( cv, "100", "999", CV_INTEGER );

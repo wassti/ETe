@@ -47,7 +47,7 @@ jobs:
             pkg_suffix: x64
 
     steps:
-    - uses: microsoft/setup-msbuild@v1.0.2
+    - uses: microsoft/setup-msbuild@latest
 
     #- name: Install v141_xp Toolset
     #  shell: powershell
@@ -63,7 +63,7 @@ jobs:
     #        Write-Host "components were not installed"
     #    }
 
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         submodules: recursive
 
@@ -98,7 +98,7 @@ jobs:
 
 #copy win32\msvc2017\output\${{ matrix.config }}\ete-steamlaunch.exe ${{github.workspace}}\bin\ete-steamlaunch${{ matrix.suffix }}.exe
 
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v3
       if: ${{ matrix.config == 'Release' }}
       with:
         name: windows-${{ matrix.pkg_suffix }}
@@ -110,7 +110,7 @@ jobs:
 
   ubuntu-x86:
     name: ${{ matrix.config }} Ubuntu ${{ matrix.arch }}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
@@ -138,7 +138,7 @@ jobs:
           sudo apt-get -qq update
           sudo apt-get -y install ninja-build libjpeg-dev libsdl2-dev libcurl4-openssl-dev
         fi
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         submodules: recursive
 
@@ -173,7 +173,7 @@ jobs:
       working-directory: ${{github.workspace}}/src/bin
       run: cmake --build . --config ${{ matrix.config }} --parallel
 
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v3
       if: matrix.cc == 'gcc' && matrix.config == 'Release'
       with:
         name: linux-${{ matrix.arch }}
@@ -201,7 +201,7 @@ jobs:
     - name: Install tools
       run: brew install coreutils ninja sdl2
 
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         submodules: recursive
 
@@ -227,7 +227,7 @@ jobs:
       working-directory: ${{github.workspace}}/src/bin
       run: cmake --build . --config ${{ matrix.config }} --parallel
 
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v3
       if: matrix.cc == 'clang' && matrix.config == 'Release'
       with:
         name: macos-${{ matrix.arch }}
@@ -242,12 +242,12 @@ jobs:
     needs: [windows-msvc, ubuntu-x86, macos-x86]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
 
       - name: Download Artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
 
       - name: Create binary archives
         run: |

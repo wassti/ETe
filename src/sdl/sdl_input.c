@@ -117,6 +117,64 @@ static void IN_PrintKey( const SDL_Keysym *keysym, keyNum_t key, qboolean down )
 
 #define MAX_CONSOLE_KEYS 16
 
+typedef struct consoleKey_s
+{
+	enum
+	{
+		QUAKE_KEY,
+		CHARACTER
+	} type;
+
+	union
+	{
+		keyNum_t key;
+		int character;
+	} u;
+} consoleKey_t;
+
+static consoleKey_t consoleKeys[ MAX_CONSOLE_KEYS ];
+static int numConsoleKeys = 0;
+
+/*
+Only called on init and on cl_consoleKeys cvar modified
+*/
+static void IN_ParseConsoleKeys( void ) {
+	const char *text_p, *token;
+
+	cl_consoleKeys->modified = qfalse;
+	text_p = cl_consoleKeys->string;
+	numConsoleKeys = 0;
+
+	while( numConsoleKeys < MAX_CONSOLE_KEYS )
+	{
+		consoleKey_t *c = &consoleKeys[ numConsoleKeys ];
+		int charCode = 0;
+
+		token = COM_Parse( &text_p );
+		if( !token[ 0 ] )
+			break;
+
+		charCode = Com_HexStrToInt( token );
+
+		if( charCode > 0 )
+		{
+			c->type = CHARACTER;
+			c->u.character = charCode;
+		}
+		else
+		{
+			c->type = QUAKE_KEY;
+			c->u.key = Key_StringToKeynum( token );
+
+			// 0 isn't a key
+			if ( c->u.key <= 0 )
+				continue;
+		}
+
+		numConsoleKeys++;
+	}
+}
+
 /*
 ===============
 IN_IsConsoleKey
@@ -127,23 +185,6 @@ TODO: If the SDL_Scancode situation improves, use it instead of
 */
 static qboolean IN_IsConsoleKey( keyNum_t key, int character )
 {
-	typedef struct consoleKey_s
-	{
-		enum
-		{
-			QUAKE_KEY,
-			CHARACTER
-		} type;
-
-		union
-		{
-			keyNum_t key;
-			int character;
-		} u;
-	} consoleKey_t;
-
-	static consoleKey_t consoleKeys[ MAX_CONSOLE_KEYS ];
-	static int numConsoleKeys = 0;
 	int i;
 
 	/*if (key == K_GRAVE
@@ -154,45 +195,6 @@ static qboolean IN_IsConsoleKey( keyNum_t key, int character )
 	{
 		return qtrue;
 	}*/
-
-	// Only parse the variable when it changes
-	if ( cl_consoleKeys->modified )
-	{
-		const char *text_p, *token;
-
-		cl_consoleKeys->modified = qfalse;
-		text_p = cl_consoleKeys->string;
-		numConsoleKeys = 0;
-
-		while( numConsoleKeys < MAX_CONSOLE_KEYS )
-		{
-			consoleKey_t *c = &consoleKeys[ numConsoleKeys ];
-			int charCode = 0;
-
-			token = COM_Parse( &text_p );
-			if( !token[ 0 ] )
-				break;
-
-			charCode = Com_HexStrToInt( token );
-
-			if( charCode > 0 )
-			{
-				c->type = CHARACTER;
-				c->u.character = charCode;
-			}
-			else
-			{
-				c->type = QUAKE_KEY;
-				c->u.key = Key_StringToKeynum( token );
-
-				// 0 isn't a key
-				if ( c->u.key <= 0 )
-					continue;
-			}
-
-			numConsoleKeys++;
-		}
-	}
 
 	// If the character is the same as the key, prefer the character
 	if ( key == character )
@@ -378,7 +380,7 @@ static keyNum_t IN_TranslateSDLToQ3Key( SDL_Keysym *keysym, qboolean down )
 	if( in_keyboardDebug->integer )
 		IN_PrintKey( keysym, key, down );
 
-	if ( !(keysym->mod & KMOD_CTRL) && keysym->scancode == SDL_SCANCODE_GRAVE )
+	if ( /*!(keysym->mod & KMOD_CTRL) &&*/ keysym->scancode == SDL_SCANCODE_GRAVE )
 	{
 		SDL_Keycode translated = SDL_GetKeyFromScancode( SDL_SCANCODE_GRAVE );
 
@@ -388,7 +390,7 @@ static keyNum_t IN_TranslateSDLToQ3Key( SDL_Keysym *keysym, qboolean down )
 			key = K_CONSOLE;
 		}
 	}
-	else if( !(keysym->mod & KMOD_CTRL) && IN_IsConsoleKey( key, 0 ) )
+	else if( /*!(keysym->mod & KMOD_CTRL) &&*/ IN_IsConsoleKey( key, 0 ) )
 	{
 		// Console keys can't be bound or generate characters
 		key = K_CONSOLE;
@@ -641,6 +643,7 @@ static void IN_InitJoystick( void )
 	Com_DPrintf( "Buttons:    %d\n", SDL_JoystickNumButtons(stick) );
 	Com_DPrintf( "Balls:      %d\n", SDL_JoystickNumBalls(stick) );
 	Com_DPrintf( "Use Analog: %s\n", in_joystickUseAnalog->integer ? "Yes" : "No" );
+	Com_DPrintf( "Threshold: %f\n", in_joystickThreshold->value );
 	Com_DPrintf( "Is gamepad: %s\n", gamepad ? "Yes" : "No" );
 
 	SDL_JoystickEventState(SDL_QUERY);
@@ -1358,6 +1361,12 @@ void IN_Frame( void )
 
 	IN_ActivateMouse();
 
+	// Only parse the variable when it changes
+	if ( cl_consoleKeys->modified )
+	{
+		IN_ParseConsoleKeys();
+	}
+
 	//IN_ProcessEvents();
 	//HandleEvents();
 
@@ -1447,6 +1456,9 @@ void IN_Init( void )
 	// ~ and `, as keys and characters
 	cl_consoleKeys = Cvar_Get( "cl_consoleKeys", "~ ` 0x7e 0x60", CVAR_ARCHIVE );
 	Cvar_SetDescription( cl_consoleKeys, "Space delimited list of key names or characters that toggle the console" );
+
+	// Parse the console keys at least once
+	IN_ParseConsoleKeys();
 
 	mouseAvailable = ( in_mouse->value != 0 ) ? qtrue : qfalse;
 

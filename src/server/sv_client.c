@@ -1476,7 +1476,7 @@ static int SV_WriteDownloadToClient( client_t *cl )
 				if ( !cl->bFallback ) {
 					fileHandle_t handle;
 					int downloadSize = FS_SV_FOpenFileRead( cl->downloadName, &handle );
-					if ( downloadSize ) {
+					if ( downloadSize >= 0 ) {
 						FS_FCloseFile( handle ); // don't keep open, we only care about the size
 
 						Com_sprintf( cl->downloadURL, sizeof(cl->downloadURL), "%s/%s", sv_wwwBaseURL->string, cl->downloadName );

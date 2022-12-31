@@ -29,17 +29,16 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "../qcommon/q_shared.h"
 #include "../qcommon/qcommon.h"
+#ifndef DEDICATED
+#include "../client/client.h"
+#include "glw_win.h"
+#endif
 #include "win_local.h"
 #include "resource.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <direct.h>
 #include <io.h>
-
-#ifndef DEDICATED
-#include "../client/client.h"
-#include "glw_win.h"
-#endif
 
 #if !defined(DEDICATED) && defined(USE_STEAMAPI)
 #include "../../steam/steamshim_child.h"

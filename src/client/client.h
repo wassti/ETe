@@ -49,7 +49,7 @@ If you have questions concerning this license or the applicable additional terms
 
 #ifdef USE_CURL
 #include "cl_curl.h"
-#endif /* USE_CURL */
+#endif
 
 #define RETRANSMIT_TIMEOUT  3000    // time between connection packet retransmits
 
@@ -837,15 +837,17 @@ void CL_DiscordUpdatePresence(void);
 #endif
 
 // platform-specific
-void	GLimp_Init( glconfig_t *config );
-void	GLimp_Shutdown( qboolean unloadDLL );
-void	GLimp_EndFrame( void );
-
 void	GLimp_InitGamma( glconfig_t *config );
 void	GLimp_SetGamma( unsigned char red[256], unsigned char green[256], unsigned char blue[256] );
 
-void	*GL_GetProcAddress( const char *name );
+// OpenGL
+#ifdef USE_OPENGL_API
+void	GLimp_Init( glconfig_t *config );
+void	GLimp_Shutdown( qboolean unloadDLL );
+void	GLimp_EndFrame( void );
 int		GLimp_NormalFontBase( void );
+void	*GL_GetProcAddress( const char *name );
+#endif
 
 // Vulkan
 #ifdef USE_VULKAN_API

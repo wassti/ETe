@@ -32,6 +32,8 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __GLW_WIN_H__
 #define __GLW_WIN_H__
 
+#include <windows.h>
+
 typedef struct
 {
 	qboolean	isattached;

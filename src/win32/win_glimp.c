@@ -45,11 +45,14 @@ If you have questions concerning this license or the applicable additional terms
 #include "resource.h"
 #include "win_local.h"
 #include "glw_win.h"
+
+#ifdef USE_OPENGL_API
 #include "../renderer/qgl.h"
 
 // Enable High Performance Graphics while using Integrated Graphics.
 __declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;		// Nvidia
 __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;	// AMD
+#endif
 
 typedef enum {
 	RSERR_OK,
@@ -74,13 +77,13 @@ static DEVMODE dm_current;
 static rserr_t	GLW_SetMode( int mode, const char *modeFS, int colorbits,
 							 qboolean cdsFullscreen, qboolean vulkan );
 
-static qboolean s_classRegistered = qfalse;
-
 //
 // function declaration
 //
+#ifdef USE_OPENGL_API
 qboolean	QGL_Init( const char *dllname );
 void		QGL_Shutdown( qboolean unloadDLL );
+#endif
 
 #ifdef USE_VULKAN_API
 qboolean	QVK_Init( void );
@@ -93,12 +96,16 @@ void		QVK_Shutdown( qboolean unloadDLL );
 glwstate_t glw_state;
 
 // GLimp-specific cvars
+#ifdef USE_OPENGL_API
 static cvar_t *r_maskMinidriver;		// allow a different dll name to be treated as if it were opengl32.dll
 static cvar_t *r_stereoEnabled;
 static cvar_t *r_verbose;				// used for verbose debug spew
+#endif
 
+#ifdef USE_OPENGL_API
 int gl_NormalFontBase = 0;
 static qboolean fontbase_init = qfalse;
+#endif
 
 /*
 ** GLW_StartDriverAndSetMode
@@ -128,6 +135,7 @@ static rserr_t GLW_StartDriverAndSetMode( int mode, const char *modeFS, int colo
 }
 
 
+#ifdef USE_OPENGL_API
 /*
 ** GLW_ChoosePFD
 **
@@ -582,6 +590,7 @@ static qboolean GLW_InitOpenGLDriver( int colorbits )
 
 	return qtrue;
 }
+#endif // USE_OPENGL_API
 
 
 /*
@@ -626,12 +635,13 @@ static qboolean GLW_InitVulkanDriver( int colorbits )
 */
 static qboolean GLW_CreateWindow( int width, int height, int colorbits, qboolean cdsFullscreen, qboolean vulkan )
 {
+	static qboolean s_classRegistered = qfalse;
 	RECT			r;
 	int				stylebits;
 	int				x, y, w, h;
 	int				exstyle;
 	qboolean		oldFullscreen;
-	qboolean		res;
+	qboolean		res = qfalse;
 	char windowTitle[sizeof(cl_title)+(sizeof(ARCH_STRING)-1)+6] = { 0 };
 
 	//
@@ -770,9 +780,11 @@ static qboolean GLW_CreateWindow( int width, int height, int colorbits, qboolean
 #ifdef USE_VULKAN_API
 	if ( vulkan )
 		res = GLW_InitVulkanDriver( colorbits );
-	else
 #endif
+#ifdef USE_OPENGL_API
+	if ( !vulkan )
 		res = GLW_InitOpenGLDriver( colorbits );
+#endif
 
 	if ( !res )
 	{
@@ -1223,6 +1235,22 @@ static rserr_t GLW_SetMode( int mode, const char *modeFS, int colorbits, qboolea
 }
 
 
+static void GLimp_DetectSteamOverlay( void ) {
+	HMODULE gameoverlaydll = GetModuleHandle( T( "GameOverlayRenderer.dll" ) );
+
+	if ( !gameoverlaydll ) {
+		memset( &glw_state.overlay, 0, sizeof( glw_state.overlay ) );
+		return;
+	}
+
+	glw_state.overlay.isattached = qtrue;
+	glw_state.overlay.handle = gameoverlaydll;
+
+	Com_Printf( S_COLOR_CYAN "Steam Overlay Detected\n" );
+}
+
+
+#ifdef USE_OPENGL_API
 #define QGL_List_PROCS \
 	GLE( GLuint, glGenLists, GLsizei range ) \
 	GLE( void, glDeleteLists, GLuint list, GLsizei range )
@@ -1415,21 +1443,6 @@ static qboolean GLW_StartOpenGL( void )
 }
 
 
-static void GLimp_DetectSteamOverlay( void ) {
-	HMODULE gameoverlaydll = GetModuleHandle( T( "GameOverlayRenderer.dll" ) );
-
-	if ( !gameoverlaydll ) {
-		memset( &glw_state.overlay, 0, sizeof( glw_state.overlay ) );
-		return;
-	}
-
-	glw_state.overlay.isattached = qtrue;
-	glw_state.overlay.handle = gameoverlaydll;
-
-	Com_Printf( S_COLOR_CYAN "Steam Overlay Detected\n" );
-}
-
-
 /*
 ** GLimp_Init
 **
@@ -1571,6 +1584,7 @@ void GLimp_Shutdown( qboolean unloadDLL )
 	// shutdown QGL subsystem
 	QGL_Shutdown( unloadDLL );
 }
+#endif // USE_OPENGL_API
 
 
 #ifdef USE_VULKAN_API

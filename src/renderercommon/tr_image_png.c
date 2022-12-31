@@ -179,11 +179,11 @@ struct PNG_Chunk_IHDR
  *  The compressed data starts with a header ...
  */
 
-struct PNG_ZlibHeader
+/*struct PNG_ZlibHeader
 {
 	uint8_t CompressionMethod;
 	uint8_t Flags;
-};
+};*/
 
 #define PNG_ZlibHeader_Size (2)
 
@@ -253,7 +253,7 @@ static struct BufferedFile *ReadBufferedFile(const char *name)
 	 *  Read the file.
 	 */
 
-	BF->Length = ri.FS_ReadFile((char *) name, &buffer.v);
+	BF->Length = ri.FS_ReadFile(name, &buffer.v);
 	BF->Buffer = buffer.b;
 
 	/*
@@ -573,7 +573,7 @@ static uint32_t DecompressIDATs(struct BufferedFile *BF, uint8_t **Buffer)
 		{
 			/*
 			 *  Rewind to the start of this adventure
-			 *  and return unsuccessfull
+			 *  and return unsuccessful
 			 */
 
 			BufferedFileRewind(BF, BytesToRewind);
@@ -756,7 +756,7 @@ static uint32_t DecompressIDATs(struct BufferedFile *BF, uint8_t **Buffer)
 	ri.Free(CompressedData);
 
 	/*
-	 *  Check if the last puff() was successfull.
+	 *  Check if the last puff() was successful.
 	 */
 
 	if(!((puffResult == 0) && (puffDestLen > 0)))
@@ -1968,7 +1968,7 @@ void R_LoadPNG(const char *name, byte **pic, int *width, int *height)
 	}           
 
 	/*
-	 *  Read the siganture of the file.
+	 *  Read the signature of the file.
 	 */
 
 	Signature = BufferedFileRead(ThePNG, PNG_Signature_Size);

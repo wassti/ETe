@@ -35,6 +35,9 @@ If you have questions concerning this license or the applicable additional terms
 ** QGL_Init() - loads libraries, assigns function pointers, etc.
 ** QGL_Shutdown() - unloads libraries, NULLs function pointers
 */
+
+#ifdef USE_OPENGL_API
+
 #include "../qcommon/q_shared.h"
 #include "../qcommon/qcommon.h"
 #include "../renderer/qgl.h"
@@ -159,3 +162,5 @@ qboolean QGL_Init( const char *dllname )
 #undef GLE
 	return qtrue;
 }
+
+#endif // USE_OPENGL_API

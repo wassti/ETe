@@ -61,7 +61,7 @@ typedef struct {
 	// size display elements
 	void ( *BeginRegistration )( glconfig_t *config );
 	qhandle_t ( *RegisterModel )( const char *name );
-	qhandle_t ( *RegisterModelAllLODs )( const char *name );
+	//qhandle_t ( *RegisterModelAllLODs )( const char *name );
 	qhandle_t ( *RegisterSkin )( const char *name );
 	qhandle_t ( *RegisterShader )( const char *name );
 	qhandle_t ( *RegisterShaderNoMip )( const char *name );
@@ -246,7 +246,7 @@ typedef struct {
 	e_status (*CIN_RunCinematic)( int handle );
 
 	void	(*CL_WriteAVIVideoFrame)( const byte *buffer, int size );
-	
+
 	size_t	(*CL_SaveJPGToBuffer)( byte *buffer, size_t bufSize, int quality, int image_width, int image_height, byte *image_buffer, int padding );
 	void	(*CL_SaveJPG)( const char *filename, int quality, int image_width, int image_height, byte *image_buffer, int padding );
 	void	(*CL_LoadJPG)( const char *filename, unsigned char **pic, int *width, int *height );
@@ -264,14 +264,16 @@ typedef struct {
 	int		(*Com_RealTime)( qtime_t *qtime );
 
 	// platform-dependent functions
+	void	(*GLimp_InitGamma)( glconfig_t *config );
+	void	(*GLimp_SetGamma)( unsigned char red[256], unsigned char green[256], unsigned char blue[256] );
+	void	(*GLimp_FlashWindow)( int state );
+
+	// OpenGL
 	void	(*GLimp_Init)( glconfig_t *config );
 	void	(*GLimp_Shutdown)( qboolean unloadDLL );
 	void	(*GLimp_EndFrame)( void );
-	void	(*GLimp_InitGamma)( glconfig_t *config );
-	void	(*GLimp_SetGamma)( unsigned char red[256], unsigned char green[256], unsigned char blue[256] );
-
-	void*	(*GL_GetProcAddress)( const char *name );
 	int		(*GLimp_NormalFontBase)( void );
+	void*	(*GL_GetProcAddress)( const char *name );
 
 	// Vulkan
 	void	(*VKimp_Init)( glconfig_t *config );

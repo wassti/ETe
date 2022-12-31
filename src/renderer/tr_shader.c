@@ -4105,7 +4105,7 @@ static int loadShaderBuffers( char **shaderFiles, const int numShaderFiles, char
 				memcpy( buffers[i] + 0x5459, "*/", 2 );
 			}
 		}
-		
+
 		// comment some buggy shaders from pak0
 		//if ( summand == 35910 && strcmp( shaderFiles[i], "sky.shader" ) == 0) 
 		//{

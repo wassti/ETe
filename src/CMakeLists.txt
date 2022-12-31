@@ -585,7 +585,7 @@ if(BUILD_CLIENT)
         set_target_properties(ete PROPERTIES SUFFIX ".${Architecture}") #NOTE changeme when multi-platform and multi-arch support is added
     endif(X86)
     target_include_directories(ete PUBLIC "${SRCDIR}/server ${SRCDIR}/client ${SRCDIR}/qcommon")
-    target_compile_definitions(ete PUBLIC "USE_CURL" "USE_CURL_DLOPEN")
+    target_compile_definitions(ete PUBLIC "USE_CURL" "USE_CURL_DLOPEN" "USE_OPENGL_API")
     target_include_directories(ete PRIVATE ${CURL_INCLUDE_DIRS})
     if(USE_STEAMAPI)
         target_compile_definitions(ete PUBLIC "USE_STEAMAPI")

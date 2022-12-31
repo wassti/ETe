@@ -104,7 +104,7 @@ cvar_t	*r_drawentities;
 cvar_t	*r_drawworld;
 cvar_t	*r_drawfoliage;     // ydnar
 cvar_t	*r_speeds;
-cvar_t	*r_fullbright; // JPW NERVE removed per atvi request
+static cvar_t	*r_fullbright;
 cvar_t	*r_novis;
 cvar_t	*r_nocull;
 cvar_t	*r_facePlaneCull;
@@ -1666,7 +1666,7 @@ static void R_Register( void )
 	//
 	// temporary latched variables that can only change over a restart
 	//
-	r_fullbright = ri.Cvar_Get( "r_fullbright", "0", CVAR_CHEAT ); // ensi note unused but some mods might expect it to exist?
+	r_fullbright = ri.Cvar_Get( "r_fullbright", "0", CVAR_ROM | CVAR_NOTABCOMPLETE );
 	r_overBrightBits = ri.Cvar_Get( "r_overBrightBits", "0", CVAR_ARCHIVE_ND | CVAR_LATCH ); // Arnout: disable overbrightbits by default
 	ri.Cvar_CheckRange( r_overBrightBits, "0", "1", CV_INTEGER ); // ydnar: limit to overbrightbits 1 (sorry 1337 players)
 	ri.Cvar_SetDescription( r_overBrightBits, "Sets the intensity of overall brightness of texture pixels" );

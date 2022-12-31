@@ -852,7 +852,7 @@ int PC_ExpandDefineIntoSource( source_t *source, token_t *deftoken, define_t *de
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-void PC_ConvertPath(char *path)
+static void PC_ConvertPath(char *path)
 {
 	char *ptr;
 

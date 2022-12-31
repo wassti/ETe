@@ -290,7 +290,10 @@ typedef struct searchpath_s {
 static	cvar_t		*fs_debug;
 static	cvar_t		*fs_homepath;
 static	cvar_t		*fs_steampath;
+static	cvar_t		*fs_gogpath;
+#ifdef _WIN32
 static	cvar_t		*fs_msstorepath;
+#endif
 static	cvar_t		*fs_basepath;
 static	cvar_t		*fs_basegame;
 static	cvar_t		*fs_gamedirvar;
@@ -880,7 +883,7 @@ fileHandle_t FS_SV_FOpenFileWrite( const char *filename ) {
 	FS_InitHandle( fd );
 
 	if ( fs_debug->integer ) {
-		Com_Printf( "FS_SV_FOpenFileWrite: %s\n", ospath );
+		Com_Printf( "%s: %s\n", __func__, ospath );
 	}
 
 	FS_CheckFilenameIsNotAllowed( ospath, __func__, qtrue );
@@ -941,7 +944,7 @@ int FS_SV_FOpenFileRead( const char *filename, fileHandle_t *fp ) {
 	ospath = FS_BuildOSPath( fs_homepath->string, filename, NULL );
 
 	if ( fs_debug->integer ) {
-		Com_Printf( "FS_SV_FOpenFileRead (fs_homepath): %s\n", ospath );
+		Com_Printf( "%s (fs_homepath): %s\n", __func__, ospath );
 	}
 
 	fd->handleFiles.file.o = Sys_FOpen( ospath, "rb" );
@@ -955,7 +958,7 @@ int FS_SV_FOpenFileRead( const char *filename, fileHandle_t *fp ) {
 
 			if ( fs_debug->integer )
 			{
-				Com_Printf( "FS_SV_FOpenFileRead (fs_basepath): %s\n", ospath );
+				Com_Printf( "%s (fs_basepath): %s\n", __func__, ospath );
 			}
 
 			fd->handleFiles.file.o = Sys_FOpen( ospath, "rb" );
@@ -969,12 +972,27 @@ int FS_SV_FOpenFileRead( const char *filename, fileHandle_t *fp ) {
 
 			if ( fs_debug->integer )
 			{
-				Com_Printf( "FS_SV_FOpenFileRead (fs_steampath): %s\n", ospath );
+				Com_Printf( "%s (fs_steampath): %s\n", __func__, ospath );
 			}
 
 			fd->handleFiles.file.o = Sys_FOpen( ospath, "rb" );
 		}
 
+		// Check fs_gogpath too
+		if ( !fd->handleFiles.file.o && fs_gogpath->string[0] )
+		{
+			// search gogpath
+			ospath = FS_BuildOSPath( fs_gogpath->string, filename, NULL );
+
+			if ( fs_debug->integer )
+			{
+				Com_Printf( "%s (fs_gogpath): %s\n", __func__, ospath );
+			}
+
+			fd->handleFiles.file.o = Sys_FOpen( ospath, "rb" );
+		}
+
+#ifdef _WIN32
 		// Check fs_msstorepath too
 		if ( !fd->handleFiles.file.o && fs_msstorepath->string[0] )
 		{
@@ -983,11 +1001,12 @@ int FS_SV_FOpenFileRead( const char *filename, fileHandle_t *fp ) {
 
 			if ( fs_debug->integer )
 			{
-				Com_Printf( "FS_SV_FOpenFileRead (fs_msstorepath): %s\n", ospath );
+				Com_Printf( "%s (fs_msstorepath): %s\n", __func__, ospath );
 			}
 
 			fd->handleFiles.file.o = Sys_FOpen( ospath, "rb" );
 		}
+#endif
 	}
 
 	if( fd->handleFiles.file.o != NULL ) {
@@ -1025,7 +1044,7 @@ void FS_SV_Rename( const char *from, const char *to ) {
 	to_ospath = FS_BuildOSPath( fs_homepath->string, to, NULL );
 
 	if ( fs_debug->integer ) {
-		Com_Printf( "FS_SV_Rename: %s --> %s\n", from_ospath, to_ospath );
+		Com_Printf( "%s: %s --> %s\n", __func__, from_ospath, to_ospath );
 	}
 
 	f = Sys_FOpen( from_ospath, "rb" );
@@ -1064,7 +1083,7 @@ void FS_Rename( const char *from, const char *to ) {
 	to_ospath = FS_BuildOSPath( fs_homepath->string, fs_gamedir, to );
 
 	if ( fs_debug->integer ) {
-		Com_Printf( "FS_Rename: %s --> %s\n", from_ospath, to_ospath );
+		Com_Printf( "%s: %s --> %s\n", __func__, from_ospath, to_ospath );
 	}
 
 	f = Sys_FOpen( from_ospath, "rb" );
@@ -1242,7 +1261,7 @@ fileHandle_t FS_FOpenFileWrite( const char *filename ) {
 	ospath = FS_BuildOSPath( fs_homepath->string, fs_gamedir, filename );
 
 	if ( fs_debug->integer ) {
-		Com_Printf( "FS_FOpenFileWrite: %s\n", ospath );
+		Com_Printf( "%s: %s\n", __func__, ospath );
 	}
 
 	FS_CheckFilenameIsNotAllowed( ospath, __func__, qfalse );
@@ -1302,7 +1321,7 @@ static fileHandle_t FS_FOpenDLLWrite( const char *filename ) {
 
 	if (fs_debug->integer)
 	{
-		Com_Printf("FS_FOpenDLLWrite: %s\n", ospath);
+		Com_Printf( "%s: %s\n", __func__, ospath);
 	}
 
 	f = FS_HandleForFile();
@@ -1361,7 +1380,7 @@ fileHandle_t FS_FOpenFileAppend( const char *filename ) {
 	ospath = FS_BuildOSPath( fs_homepath->string, fs_gamedir, filename );
 
 	if ( fs_debug->integer ) {
-		Com_Printf( "FS_FOpenFileAppend: %s\n", ospath );
+		Com_Printf( "%s: %s\n", __func__, ospath );
 	}
 
 	FS_CheckFilenameIsNotAllowed(ospath, __func__, qfalse);
@@ -1620,8 +1639,8 @@ static int FS_OpenFileInPak( fileHandle_t *file, pack_t *pak, fileInPack_t *pakF
 	pak->handleUsed++;
 
 	if ( fs_debug->integer ) {
-		Com_Printf( "FS_FOpenFileRead: %s (found in '%s')\n",
-			pakFile->name, pak->pakFilename );
+		Com_Printf( "%s: %s (found in '%s')\n",
+			__func__, pakFile->name, pak->pakFilename );
 	}
 
 	return zfi->cur_file_info.uncompressed_size;
@@ -1826,7 +1845,7 @@ int FS_FOpenFileRead( const char *filename, fileHandle_t *file, qboolean uniqueF
 			f->zipFile = qfalse;
 
 			if ( fs_debug->integer ) {
-				Com_Printf( "FS_FOpenFileRead: %s (found in '%s/%s')\n", filename,
+				Com_Printf( "%s: %s (found in '%s/%s')\n", __func__, filename,
 					dir->path, dir->gamedir );
 			}
 
@@ -2306,13 +2325,13 @@ int FS_Write( const void *buffer, int len, fileHandle_t h ) {
 			if (!tries) {
 				tries = 1;
 			} else {
-				Com_Printf( "FS_Write: 0 bytes written (%d attempted)\n", block );
+				Com_Printf( "%s: 0 bytes written (%d attempted)\n", __func__, block );
 				return 0;
 			}
 		}
 
 		if (written < 0) {
-			Com_Printf( "FS_Write: %d bytes written (%d attempted)\n", written, block );
+			Com_Printf( "%s: %d bytes written (%d attempted)\n", __func__, written, block );
 			return 0;
 		}
 
@@ -4186,13 +4205,18 @@ static int FS_GetModList( char *listbuf, int bufsize ) {
 	qboolean bDrop = qfalse;
 
 	// paths to search for mods
-	cvar_t *const *paths[] = { &fs_basepath, &fs_homepath, &fs_steampath, &fs_msstorepath };
+	cvar_t *const *paths[] = {
+		&fs_basepath, &fs_homepath, &fs_steampath, &fs_gogpath,
+#ifdef _WIN32
+		, &fs_msstorepath
+#endif
+		};
 
 	*listbuf = '\0';
 	nMods = nTotal = 0;
 
 	// iterate through paths and get list of potential mods
-	for (i = 0; i < ARRAY_LEN( paths ); i++) {
+	for (i = 0; i < (int)ARRAY_LEN( paths ); i++) {
 		if ( !*paths[ i ] || !(*paths[i])->string[0] )
 			continue;
 		pFiles0 = Sys_ListFiles( (*paths[i])->string, NULL, NULL, &dummy, qtrue );
@@ -5214,7 +5238,10 @@ static void FS_Startup( void ) {
 	fs_basegame = Cvar_Get( "fs_basegame", BASEGAME, CVAR_INIT | CVAR_PROTECTED );
 	Cvar_SetDescription( fs_basegame, "Directory specifying the path to the base game folder" );
 	fs_steampath = Cvar_Get( "fs_steampath", Sys_SteamPath(), CVAR_INIT | CVAR_PROTECTED | CVAR_PRIVATE );
+	fs_gogpath = Cvar_Get( "fs_gogpath", Sys_GogPath(), CVAR_INIT | CVAR_PROTECTED | CVAR_PRIVATE );
+#ifdef _WIN32
 	fs_msstorepath = Cvar_Get( "fs_msstorepath", Sys_MicrosoftStorePath(), CVAR_INIT | CVAR_PROTECTED | CVAR_PRIVATE );
+#endif
 
 #ifndef USE_HANDLE_CACHE
 	fs_locked = Cvar_Get( "fs_locked", "0", CVAR_INIT );
@@ -5255,9 +5282,15 @@ static void FS_Startup( void ) {
 #endif
 #endif
 
+#ifdef _WIN32
 	// add search path elements in reverse priority order
 	if ( fs_msstorepath->string[0] ) {
 		FS_AddGameDirectory( fs_msstorepath->string, fs_basegame->string );
+	}
+#endif
+
+	if ( fs_gogpath->string[0] ) {
+		FS_AddGameDirectory( fs_gogpath->string, fs_basegame->string );
 	}
 
 	if ( fs_steampath->string[0] ) {
@@ -5276,8 +5309,13 @@ static void FS_Startup( void ) {
 
 	// check for additional game folder for mods
 	if ( fs_gamedirvar->string[0] && Q_stricmp( fs_gamedirvar->string, fs_basegame->string ) ) {
+#ifdef _WIN32
 		if ( fs_msstorepath->string[0] ) {
 			FS_AddGameDirectory( fs_msstorepath->string, fs_gamedirvar->string );
+		}
+#endif
+		if ( fs_gogpath->string[0] ) {
+			FS_AddGameDirectory( fs_gogpath->string, fs_gamedirvar->string );
 		}
 		if ( fs_steampath->string[0] ) {
 			FS_AddGameDirectory( fs_steampath->string, fs_gamedirvar->string );
@@ -6483,7 +6521,7 @@ fileHandle_t FS_PipeOpenWrite( const char *cmd, const char *filename ) {
 	ospath = FS_BuildOSPath( fs_homepath->string, fs_gamedir, filename );
 
 	if ( fs_debug->integer ) {
-		Com_Printf( "FS_PipeOpenWrite: %s\n", ospath );
+		Com_Printf( "%s: %s\n", __func__, ospath );
 	}
 
 	FS_CheckFilenameIsNotAllowed( ospath, __func__, qfalse );

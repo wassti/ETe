@@ -312,7 +312,7 @@ intptr_t QDECL VM_Call( vm_t *vm, int nargs, int callnum, ... )
 
 #ifdef _DEBUG
 	if ( vm_debugLevel ) {
-	  Com_Printf( "VM_Call( %d )\n", callnum );
+		Com_Printf( "VM_Call( %d )\n", callnum );
 	}
 
 	if ( nargs >= MAX_VMMAIN_CALL_ARGS ) {

@@ -232,6 +232,14 @@ const char *Sys_SteamPath( void )
 }
 
 
+const char *Sys_GogPath( void )
+{
+	static TCHAR gogPath[ MAX_OSPATH ]; // will be converted from TCHAR to ANSI
+
+	return (const char*)gogPath;
+}
+
+
 const char *Sys_MicrosoftStorePath( void )
 {
 	// TODO

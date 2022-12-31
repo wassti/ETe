@@ -1062,7 +1062,7 @@ void Cmd_UnregisterModule( module_t module ) {
 
 	cmd_function_t *cmd = cmd_functions;
 	while( cmd ) {
-		if ( cmd->init_module == module && cmd->modules == (1 << (uint32_t)module) ) {
+		if ( cmd->init_module == module && cmd->modules == (1u << (uint32_t)module) ) {
 			cmd_function_t *next = cmd->next;
 			Cmd_RemoveCommand( cmd->name );
 			cmd = next;

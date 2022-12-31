@@ -4206,7 +4206,7 @@ static int FS_GetModList( char *listbuf, int bufsize ) {
 
 	// paths to search for mods
 	cvar_t *const *paths[] = {
-		&fs_basepath, &fs_homepath, &fs_steampath, &fs_gogpath,
+		&fs_basepath, &fs_homepath, &fs_steampath, &fs_gogpath
 #ifdef _WIN32
 		, &fs_msstorepath
 #endif

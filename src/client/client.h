@@ -543,7 +543,6 @@ extern	cvar_t	*r_colorbits;
 extern	cvar_t	*cl_stencilbits;
 extern	cvar_t	*cl_depthbits;
 extern	cvar_t	*cl_drawBuffer;
-extern	cvar_t	*r_currentResolution;
 #ifndef USE_SDL
 extern	cvar_t	*in_forceCharset;
 #endif

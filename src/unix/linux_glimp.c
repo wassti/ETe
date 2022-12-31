@@ -1122,8 +1122,6 @@ void GLimp_Shutdown( qboolean unloadDLL )
 
 	IN_Shutdown();
 
-	Cvar_ForceReset("r_currentResolution");
-
 	if ( dpy )
 	{
 		XSync( dpy, True );
@@ -1196,8 +1194,6 @@ void VKimp_Shutdown( qboolean unloadDLL )
 	IN_DeactivateMouse();
 
 	IN_Shutdown();
-
-	Cvar_ForceReset("r_currentResolution");
 
 	if ( dpy )
 	{
@@ -1290,17 +1286,14 @@ static rserr_t GLW_StartDriverAndSetMode( int mode, const char *modeFS, qboolean
 	{
 	case RSERR_INVALID_FULLSCREEN:
 		Com_Printf( "...WARNING: fullscreen unavailable in this mode\n" );
-		Cvar_ForceReset("r_currentResolution");
 		return err;
 
 	case RSERR_INVALID_MODE:
 		Com_Printf( "...WARNING: could not set the given mode (%d)\n", mode );
-		Cvar_ForceReset("r_currentResolution");
 		return err;
 
 	case RSERR_FATAL_ERROR:
 		Com_Printf( "...WARNING: couldn't open the X display\n" );
-		Cvar_ForceReset("r_currentResolution");
 		return err;
 
 	default:
@@ -1308,7 +1301,6 @@ static rserr_t GLW_StartDriverAndSetMode( int mode, const char *modeFS, qboolean
 	}
 
 	glw_state.config->isFullscreen = fullscreen;
-	Cvar_Set("r_currentResolution", va("%dx%d", glw_state.config->vidWidth, glw_state.config->vidHeight));
 
 	return RSERR_OK;
 }
@@ -1915,7 +1907,7 @@ void GLimp_Init( glconfig_t *config )
 		return;
 	}
 
-	// This values force the UI to disable driver selection
+	// These values force the UI to disable driver selection
 	config->driverType = GLDRV_ICD;
 	config->hardwareType = GLHW_GENERIC;
 

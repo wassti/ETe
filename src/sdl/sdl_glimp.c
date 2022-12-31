@@ -65,8 +65,6 @@ void GLimp_Shutdown( qboolean unloadDLL )
 {
 	IN_Shutdown();
 
-	Cvar_ForceReset("r_currentResolution");
-
 	SDL_DestroyWindow( SDL_window );
 	SDL_window = NULL;
 
@@ -572,7 +570,6 @@ static rserr_t GLimp_StartDriverAndSetMode( int mode, const char *modeFS, qboole
 		if ( SDL_Init( SDL_INIT_VIDEO ) != 0 )
 		{
 			Com_Printf( "SDL_Init( SDL_INIT_VIDEO ) FAILED (%s)\n", SDL_GetError() );
-			Cvar_ForceReset("r_currentResolution");
 			return RSERR_FATAL_ERROR;
 		}
 
@@ -587,11 +584,9 @@ static rserr_t GLimp_StartDriverAndSetMode( int mode, const char *modeFS, qboole
 	{
 		case RSERR_INVALID_FULLSCREEN:
 			Com_Printf( "...WARNING: fullscreen unavailable in this mode\n" );
-			Cvar_ForceReset("r_currentResolution");
 			return err;
 		case RSERR_INVALID_MODE:
 			Com_Printf( "...WARNING: could not set the given mode (%d)\n", mode );
-			Cvar_ForceReset("r_currentResolution");
 			return err;
 		default:
 			break;
@@ -657,8 +652,6 @@ void GLimp_Init( glconfig_t *config )
 	// These values force the UI to disable driver selection
 	config->driverType = GLDRV_ICD;
 	config->hardwareType = GLHW_GENERIC;
-
-	Cvar_Set("r_currentResolution", va("%dx%d", config->vidWidth, config->vidHeight));
 
 	// This depends on SDL_INIT_VIDEO, hence having it here
 	IN_Init();
@@ -761,8 +754,6 @@ void VKimp_Init( glconfig_t *config )
 	config->driverType = GLDRV_ICD;
 	config->hardwareType = GLHW_GENERIC;
 
-	Cvar_Set("r_currentResolution", va("%dx%d", config->vidWidth, config->vidHeight));
-
 	// This depends on SDL_INIT_VIDEO, hence having it here
 	IN_Init();
 
@@ -805,8 +796,6 @@ VKimp_Shutdown
 void VKimp_Shutdown( qboolean unloadDLL )
 {
 	IN_Shutdown();
-
-	Cvar_ForceReset("r_currentResolution");
 
 	SDL_DestroyWindow( SDL_window );
 	SDL_window = NULL;

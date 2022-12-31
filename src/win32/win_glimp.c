@@ -121,16 +121,13 @@ static rserr_t GLW_StartDriverAndSetMode( int mode, const char *modeFS, int colo
 	{
 	case RSERR_INVALID_FULLSCREEN:
 		Com_Printf( "...WARNING: fullscreen unavailable in this mode\n" );
-		Cvar_ForceReset("r_currentResolution");
 		return err;
 	case RSERR_INVALID_MODE:
 		Com_Printf( "...WARNING: could not set the given mode (%d)\n", mode );
-		Cvar_ForceReset("r_currentResolution");
 		return err;
 	default:
 		break;
 	}
-	Cvar_Set("r_currentResolution", va("%dx%d", glw_state.config->vidWidth, glw_state.config->vidHeight));
 	return RSERR_OK;
 }
 
@@ -1528,8 +1525,6 @@ void GLimp_Shutdown( qboolean unloadDLL )
 
 	Com_Printf( "Shutting down OpenGL subsystem\n" );
 
-	Cvar_ForceReset("r_currentResolution");
-
 	// restore gamma.  We do this first because 3Dfx's extension needs a valid OGL subsystem
 	GLW_RestoreGamma();
 
@@ -1670,8 +1665,6 @@ void VKimp_Shutdown( qboolean unloadDLL )
 	IN_Shutdown();
 
 	Com_Printf( "Shutting down Vulkan subsystem\n" );
-
-	Cvar_ForceReset("r_currentResolution");
 
 	// restore gamma
 	GLW_RestoreGamma();

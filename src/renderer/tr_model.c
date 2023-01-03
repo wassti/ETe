@@ -2225,7 +2225,7 @@ void R_Modellist_f( void ) {
 		int lods = 1;
 		mod = tr.models[i];
 
-		if ( match && !Com_Filter( match, mod->name ) ) {
+		if ( match && !ri.Com_Filter( match, mod->name ) ) {
 			continue;
 		}
 

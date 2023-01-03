@@ -223,11 +223,11 @@ void R_ImageList_f( void ) {
 
 		image = tr.images[ i ];
 
-		if ( match && !Com_Filter( match, image->imgName ) ) {
+		if ( match && !ri.Com_Filter( match, image->imgName ) ) {
 			if ( Q_stricmp( image->imgName, image->imgName2 ) == 0 ) {
 				continue;
 			}
-			else if ( !Com_Filter( match, image->imgName2 ) ) {
+			else if ( !ri.Com_Filter( match, image->imgName2 ) ) {
 				continue;
 			}
 		}
@@ -2015,7 +2015,7 @@ void	R_SkinList_f( void ) {
 	for ( i = 0 ; i < tr.numSkins ; i++ ) {
 		skin = tr.skins[i];
 
-		if ( match && !Com_Filter( match, skin->name ) ) {
+		if ( match && !ri.Com_Filter( match, skin->name ) ) {
 			continue;
 		}
 

@@ -565,7 +565,7 @@ void R_FontList_f(void) {
 	for( i = 0; i < registeredFontCount; i++ ) {
 		font = &registeredFont[i];
 
-		if ( match && !Com_Filter( match, font->name ) ) {
+		if ( match && !ri.Com_Filter( match, font->name ) ) {
 			continue;
 		}
 		count++;

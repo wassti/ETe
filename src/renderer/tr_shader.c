@@ -4030,7 +4030,7 @@ void	R_ShaderList_f (void) {
 	count = 0;
 	for ( i = 0 ; i < tr.numShaders ; i++ ) {
 		sh = tr.sortedShaders[i];
-		if ( match && !Com_Filter( match, sh->name ) ) {
+		if ( match && !ri.Com_Filter( match, sh->name ) ) {
 			continue;
 		}
 

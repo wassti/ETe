@@ -1529,12 +1529,6 @@ int HuffmanGetSymbol( unsigned int* symbol, const byte* buffer, int bitIndex );
 
 void Com_GetHunkInfo( int* hunkused, int* hunkexpected );
 
-// flags for sv_allowDownload and cl_allowDownload
-#define	DLF_ENABLE		1
-#define	DLF_NO_REDIRECT	2
-#define	DLF_NO_UDP		4
-#define	DLF_NO_DISCONNECT 8
-
 // functional gate syscall number
 #define COM_TRAP_GETVALUE 700
 

@@ -260,8 +260,6 @@ typedef struct {
 	fileHandle_t download;
 	char		downloadName[MAX_OSPATH];
 	char		downloadTempName[MAX_OSPATH + 4]; // downloadName + ".tmp"
-	int			sv_allowDownload;
-	char		sv_dlURL[MAX_CVAR_VALUE_STRING];
 	int downloadNumber;
 	int downloadBlock;          // block we are waiting for
 	int downloadCount;          // how many bytes we got
@@ -274,14 +272,6 @@ typedef struct {
 	qboolean bWWWDlAborting;    // disable the CL_WWWDownload until server gets us a gamestate (used for aborts)
 	char redirectedList[MAX_INFO_STRING];        // list of files that we downloaded through a redirect since last FS_ComparePaks
 	char badChecksumList[MAX_INFO_STRING];        // list of files for which wwwdl redirect is broken (wrong checksum)
-#ifdef USE_CURL
-	qboolean	cURLEnabled;
-	qboolean	cURLUsed;
-	qboolean	cURLDisconnected;
-	char		downloadURL[MAX_OSPATH];
-	CURL		*downloadCURL;
-	CURLM		*downloadCURLM;
-#endif /* USE_CURL */
 
 	// demo information
 	char		demoName[MAX_OSPATH];

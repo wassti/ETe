@@ -1086,10 +1086,6 @@ void CL_ShutdownAll( void ) {
 	if ( clc.demorecording )
 		CL_StopRecord_f();
 
-#ifdef USE_CURL
-	CL_cURL_Shutdown();
-#endif
-
 	// clear and mute all sounds until next registration
 	S_DisableSounds();
 
@@ -2144,23 +2140,6 @@ Called when all downloading has been completed
 */
 static void CL_DownloadsComplete( void ) {
 
-#ifdef USE_CURL
-	// if we downloaded with cURL
-	if ( clc.cURLUsed ) {
-		clc.cURLUsed = qfalse;
-		CL_cURL_Shutdown();
-		if ( clc.cURLDisconnected ) {
-			if ( clc.downloadRestart ) {
-				FS_Restart( clc.checksumFeed );
-				clc.downloadRestart = qfalse;
-			}
-			clc.cURLDisconnected = qfalse;
-			CL_Reconnect_f();
-			return;
-		}
-	}
-#endif
-
 	// if we downloaded files we need to restart the file system
 	if ( clc.downloadRestart ) {
 		clc.downloadRestart = qfalse;
@@ -2258,7 +2237,6 @@ void CL_NextDownload( void )
 {
 	char *s;
 	char *remoteName, *localName;
-	qboolean useCURL = qfalse;
 
 	// A download has finished, check whether this matches a referenced checksum
 	if(*clc.downloadName)
@@ -2295,58 +2273,13 @@ void CL_NextDownload( void )
 		else
 			s = localName + strlen(localName); // point at the null byte
 
-#ifdef USE_CURL
-		if(!(cl_allowDownload->integer & DLF_NO_REDIRECT)) {
-			if(clc.sv_allowDownload & DLF_NO_REDIRECT) {
-				if ( !cl_wwwDownload->integer ) {
-					Com_Printf("WARNING: server does not "
-						"allow download redirection "
-						"(sv_allowDownload is %d)\n",
-						clc.sv_allowDownload);
-				}
-			}
-			else if(!*clc.sv_dlURL && !*cl_dlURL->string && !cl_wwwDownload->integer) {
-				Com_Printf("WARNING: server allows "
-					"download redirection, but does not "
-					"have sv_dlURL set\n");
-			}
-			else if(!CL_cURL_Init()) {
-				Com_Printf("WARNING: could not load "
-					"cURL library\n");
-			}
-			else {
-				if(*clc.sv_dlURL) {
-					CL_cURL_BeginDownload(localName, va("%s/%s", clc.sv_dlURL, remoteName));
-					useCURL = qtrue;
-				}
-				else if(*cl_dlURL->string) {
-					CL_cURL_BeginDownload(localName, va("%s/%s", cl_dlURL->string, remoteName));
-					useCURL = qtrue;
-				}
-				else {
-					Com_Printf("WARNING: client download redirection enabled, but no cl_dlURL fallback set\n");
-				}
-			}
+		if( !cl_allowDownload->integer ) {
+			Com_Error(ERR_DROP, "UDP Downloads are disabled on your client. "
+					"(cl_allowDownload is %d)", cl_allowDownload->integer);
+			return;
 		}
-		else if(!(clc.sv_allowDownload & DLF_NO_REDIRECT)) {
-			Com_Printf("WARNING: server allows download "
-				"redirection, but it disabled by client "
-				"configuration (cl_allowDownload is %d)\n",
-				cl_allowDownload->integer);
-		}
-#endif /* USE_CURL */
-
-		if( !useCURL ) {
-		if( (cl_allowDownload->integer & DLF_NO_UDP) ) {
-				Com_Error(ERR_DROP, "UDP Downloads are "
-					"disabled on your client. "
-					"(cl_allowDownload is %d)",
-					cl_allowDownload->integer);
-				return;
-			}
-			else {
-				CL_BeginDownload( localName, remoteName );
-			}
+		else {
+			CL_BeginDownload( localName, remoteName );
 		}
 		clc.downloadRestart = qtrue;
 
@@ -2389,7 +2322,7 @@ void CL_InitDownloads( void ) {
 	// reset the redirect checksum tracking
 	clc.redirectedList[0] = '\0';
 
-	if ( (cl_allowDownload->integer & DLF_ENABLE) && FS_ComparePaks( clc.downloadList, sizeof( clc.downloadList ), qtrue ) ) {
+	if ( cl_allowDownload->integer && FS_ComparePaks( clc.downloadList, sizeof( clc.downloadList ), qtrue ) ) {
 		// this gets printed to UI, i18n
 		Com_Printf( CL_TranslateStringBuf( "Need paks: %s\n" ), clc.downloadList );
 
@@ -2407,7 +2340,7 @@ void CL_InitDownloads( void ) {
 	}
 
 #ifdef USE_CURL
-	if ( cl_mapAutoDownload->integer && ( !(clc.sv_allowDownload & DLF_ENABLE) || clc.demoplaying ) )
+	if ( cl_mapAutoDownload->integer && ( clc.demoplaying || (clc.download == FS_INVALID_HANDLE && !*clc.downloadName) ) )
 	{
 		const char *info, *mapname, *bsp;
 
@@ -3397,24 +3330,6 @@ void CL_Frame( int msec, int realMsec ) {
 
 	// save the msec before checking pause
 	cls.realFrametime = realMsec;
-
-#ifdef USE_CURL
-	if ( clc.downloadCURLM ) {
-		CL_cURL_PerformDownload();
-		// we can't process frames normally when in disconnected
-		// download mode since the ui vm expects cls.state to be
-		// CA_CONNECTED
-		if ( clc.cURLDisconnected ) {
-			cls.frametime = msec;
-			cls.realtime += msec;
-			cls.framecount++;
-			SCR_UpdateScreen();
-			S_Update( realMsec );
-			Con_RunConsole();
-			return;
-		}
-	}
-#endif
 
 	if ( cls.cddialog ) {
 		// bring up the cd error dialog if needed
@@ -4591,9 +4506,9 @@ void CL_Init( void ) {
 	rconAddress = Cvar_Get( "rconAddress", "", 0 );
 	Cvar_SetDescription( rconAddress, "The IP address of the remote console you wish to connect to" );
 
-	cl_allowDownload = Cvar_Get( "cl_allowDownload", "3", CVAR_ARCHIVE_ND );
-	Cvar_SetDescription( cl_allowDownload, "Enables downloading of content needed in server. Valid bitmask flags:\n 1: Downloading enabled\n 2: Do not use HTTP/FTP downloads\n 4: Do not use UDP downloads or (cl_wwwDownload)" );
-	Cvar_CheckRange( cl_allowDownload, 0, NULL, CV_INTEGER );
+	cl_allowDownload = Cvar_Get( "cl_allowDownload", "1", CVAR_ARCHIVE_ND );
+	Cvar_SetDescription( cl_allowDownload, "Enables downloading of content needed in server" );
+	Cvar_CheckRange( cl_allowDownload, "0", "1", CV_INTEGER );
 #ifdef USE_CURL
 	cl_mapAutoDownload = Cvar_Get( "cl_mapAutoDownload", "0", CVAR_ARCHIVE_ND );
 	Cvar_SetDescription( cl_mapAutoDownload, "Automatic map download for play and demo playback (via automatic \\dlmap call)" );
@@ -4759,8 +4674,6 @@ void CL_Init( void ) {
 	Cvar_SetGroup( cl_language, CVG_LANGUAGE );
 	Cvar_SetGroup( in_forceCharset, CVG_LANGUAGE );
 #endif
-	Cvar_SetGroup( cl_allowDownload, CVG_CLDOWNLOAD );
-	Cvar_SetGroup( cl_wwwDownload, CVG_CLDOWNLOAD );
 
 	CL_TrackCvarChanges( qtrue );
 
@@ -6347,23 +6260,6 @@ void CL_TrackCvarChanges( qboolean force ) {
 		Cvar_ResetGroup( CVG_LANGUAGE, qfalse );
 	}
 #endif
-	if ( force || Cvar_CheckGroup( CVG_CLDOWNLOAD ) ) {
-		if ( cl_wwwDownload->integer != 0 && (cl_allowDownload->integer & DLF_NO_UDP) ) {
-			int newValue = (cl_allowDownload->integer & ~DLF_NO_UDP);
-			Com_Printf( S_COLOR_YELLOW "WARNING: cl_wwwDownload 1 requires cl_allowDownload without %d\n"
-						"Setting cl_allowDownload to %d\n", DLF_NO_UDP, newValue );
-			Cvar_SetIntegerValue( "cl_allowDownload", newValue );
-		}
-
-		if ( cl_wwwDownload->integer != 0 && !(cl_allowDownload->integer & DLF_NO_REDIRECT) ) {
-			int newValue = (cl_allowDownload->integer | DLF_NO_REDIRECT);
-			Com_Printf( S_COLOR_YELLOW "WARNING: cl_allowDownload %d is not compatible with cl_wwwDownload 1\n"
-						"Setting cl_allowDownload to %d\n", cl_allowDownload->integer, newValue );
-			Cvar_SetIntegerValue( "cl_allowDownload", newValue );
-		}
-
-		Cvar_ResetGroup( CVG_CLDOWNLOAD, qfalse );
-	}
 }
 
 /*

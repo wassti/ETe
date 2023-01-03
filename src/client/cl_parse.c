@@ -641,21 +641,9 @@ CL_ParseServerInfo
 void CL_ParseServerInfo( void )
 {
 	const char *serverInfo;
-	size_t	len;
 
 	serverInfo = cl.gameState.stringData
 		+ cl.gameState.stringOffsets[ CS_SERVERINFO ];
-
-	clc.sv_allowDownload = atoi(Info_ValueForKey(serverInfo,
-		"sv_allowDownload"));
-	Q_strncpyz(clc.sv_dlURL,
-		Info_ValueForKey(serverInfo, "sv_dlURL"),
-		sizeof(clc.sv_dlURL));
-
-	/* remove ending slash in URLs */
-	len = strlen( clc.sv_dlURL );
-	if ( len > 0 &&  clc.sv_dlURL[len-1] == '/' )
-		clc.sv_dlURL[len-1] = '\0';
 
 #ifdef USE_DISCORD
 	// Discord
@@ -1120,9 +1108,6 @@ static void CL_ParseCommandString( msg_t *msg ) {
 	Q_strncpyz( clc.serverCommands[ index ], s, sizeof( clc.serverCommands[ index ] ) );
 	clc.serverCommandsIgnore[ index ] = qfalse;
 
-#ifdef USE_CURL
-	if ( !clc.cURLUsed )
-#endif
 	// -EC- : we may stuck on downloading because of non-working cgvm
 	// or in "awaiting snapshot..." state so handle "disconnect" here
 	if ( ( !cgvm && cls.state == CA_CONNECTED && clc.download != FS_INVALID_HANDLE ) || ( cgvm && cls.state == CA_PRIMED ) ) {

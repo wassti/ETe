@@ -260,8 +260,11 @@ typedef struct {
 
 	void	(*Sys_SetClipboardBitmap)( const byte *bitmap, int size );
 	qboolean(*Sys_LowPhysicalMemory)( void );
+	const void *(*Sys_OmnibotRender)( const void *data );
 
 	int		(*Com_RealTime)( qtime_t *qtime );
+	int		(*Com_Filter)( const char *filter, const char *name );
+	int		(*MSG_HashKey)( const char *string, int maxlen );
 
 	// platform-dependent functions
 	void	(*GLimp_InitGamma)( glconfig_t *config );

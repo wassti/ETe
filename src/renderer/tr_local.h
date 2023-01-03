@@ -1416,7 +1416,7 @@ typedef struct {
 	shader_t				*tcRenderShader;
 
 	shader_t				*flareShader;
-	char                    *sunShaderName;
+	char                    sunShaderName[MAX_QPATH];
 	shader_t				*sunShader;
 	shader_t                *sunflareShader[6];  //----(SA) for the camera lens flare effect for sun
 

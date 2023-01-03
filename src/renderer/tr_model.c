@@ -2214,8 +2214,8 @@ void R_Modellist_f( void ) {
 	const model_t *mod;
 	int total = 0, models = 0;
 	const char *match;
-	if ( Cmd_Argc() > 1 ) {
-		match = Cmd_Argv( 1 );
+	if ( ri.Cmd_Argc() > 1 ) {
+		match = ri.Cmd_Argv( 1 );
 	} else {
 		match = NULL;
 	}

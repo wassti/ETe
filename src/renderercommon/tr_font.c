@@ -554,8 +554,8 @@ void R_FontList_f(void) {
 	int i, count = 0;
 	const char *match;
 
-	if ( Cmd_Argc() > 1 ) {
-		match = Cmd_Argv( 1 );
+	if ( ri.Cmd_Argc() > 1 ) {
+		match = ri.Cmd_Argv( 1 );
 	} else {
 		match = NULL;
 	}

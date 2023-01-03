@@ -2418,7 +2418,7 @@ void RE_LoadWorldMap( const char *name ) {
 	R_SetFog( FOG_CMD_SWITCHFOG, FOG_MAP,20,0,0,0,0 );
 
 //----(SA)	set the sun shader if there is one
-	if ( tr.sunShaderName ) {
+	if ( *tr.sunShaderName ) {
 		tr.sunShader = R_FindShader( tr.sunShaderName, LIGHTMAP_NONE, qtrue );
 	}
 

@@ -1532,7 +1532,7 @@ static void GfxInfo( void )
 	else
 	{
 		mode = ri.Cvar_VariableIntegerValue( "r_mode" );
-		if ( Cvar_VariableIntegerValue( "r_noborder" ) != 0 )
+		if ( ri.Cvar_VariableIntegerValue( "r_noborder" ) != 0 )
 			fs = fsstrings[2];
 		else
 			fs = fsstrings[0];

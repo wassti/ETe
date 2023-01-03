@@ -2065,7 +2065,7 @@ void RB_ExecuteRenderCommands( const void *data ) {
 			data = RB_Finish( data );
 			break;
 		case RC_DRAW_OMNIBOT:
-			data = Sys_OmnibotRender( data );
+			data = ri.Sys_OmnibotRender( data );
 			break;
 		case RC_END_OF_LIST:
 		default:

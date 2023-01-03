@@ -206,8 +206,8 @@ void R_ImageList_f( void ) {
 	const char *match;
 	int matchCount = 0;
 
-	if ( Cmd_Argc() > 1 ) {
-		match = Cmd_Argv( 1 );
+	if ( ri.Cmd_Argc() > 1 ) {
+		match = ri.Cmd_Argv( 1 );
 	} else {
 		match = NULL;
 	}
@@ -1742,7 +1742,7 @@ qboolean RE_GetSkinModel( qhandle_t skinid, const char *type, char *name ) {
 	skin_t  *skin;
 
 	skin = tr.skins[skinid];
-	hash = MSG_HashKey( type, strlen( type ) );
+	hash = ri.MSG_HashKey( type, strlen( type ) );
 
 	for ( i = 0; i < skin->numModels; i++ ) {
 		if ( hash != skin->models[i]->hash ) {
@@ -1916,7 +1916,7 @@ qhandle_t RE_RegisterSkin( const char *name ) {
 			// this is specifying a model
 			model = skin->models[ skin->numModels ] = ri.Hunk_Alloc( sizeof( *skin->models[0] ), h_low );
 			Q_strncpyz( model->type, token, sizeof( model->type ) );
-			model->hash = MSG_HashKey( model->type, sizeof( model->type ) );
+			model->hash = ri.MSG_HashKey( model->type, sizeof( model->type ) );
 
 			// get the model name
 			token = CommaParse( &text_p );
@@ -1933,7 +1933,7 @@ qhandle_t RE_RegisterSkin( const char *name ) {
 		if ( skin->numSurfaces < MAX_SKIN_SURFACES ) {
 			surf = &parseSurfaces[skin->numSurfaces];
 			Q_strncpyz( surf->name, surfName, sizeof( surf->name ) );
-			surf->hash = MSG_HashKey( surf->name, sizeof( surf->name ) );
+			surf->hash = ri.MSG_HashKey( surf->name, sizeof( surf->name ) );
 			surf->shader = R_FindShader( token, LIGHTMAP_NONE, qtrue );
 			skin->numSurfaces++;
 		}
@@ -2004,8 +2004,8 @@ void	R_SkinList_f( void ) {
 	const char *match;
 	int matchCount = 0;
 
-	if ( Cmd_Argc() > 1 ) {
-		match = Cmd_Argv( 1 );
+	if ( ri.Cmd_Argc() > 1 ) {
+		match = ri.Cmd_Argv( 1 );
 	} else {
 		match = NULL;
 	}

@@ -384,7 +384,7 @@ void R_AddMDCSurfaces( trRefEntity_t *ent ) {
 //----(SA)	added blink
 			if ( ent->e.renderfx & RF_BLINK ) {
 				const char *s = va( "%s_b", surface->name ); // append '_b' for 'blink'
-				hash = MSG_HashKey( s, strlen( s ) );
+				hash = ri.MSG_HashKey( s, strlen( s ) );
 				for ( j = 0 ; j < skin->numSurfaces ; j++ ) {
 					if ( hash != skin->surfaces[j].hash ) {
 						continue;
@@ -397,7 +397,7 @@ void R_AddMDCSurfaces( trRefEntity_t *ent ) {
 			}
 
 			if ( shader == tr.defaultShader ) {    // blink reference in skin was not found
-				hash = MSG_HashKey( surface->name, sizeof( surface->name ) );
+				hash = ri.MSG_HashKey( surface->name, sizeof( surface->name ) );
 				for ( j = 0 ; j < skin->numSurfaces ; j++ ) {
 					// the names have both been lowercased
 					if ( hash != skin->surfaces[j].hash ) {

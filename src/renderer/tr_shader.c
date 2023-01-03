@@ -2096,7 +2096,7 @@ static qboolean ParseShader( const char **text )
 				ri.Printf( PRINT_WARNING, "WARNING: missing shader name for 'sunshader'\n" );
 				continue;
 			}
-			tr.sunShaderName = CopyString( token );
+			Q_strncpyz( tr.sunShaderName, token, sizeof(tr.sunShaderName) );
 		}
 //----(SA)	added
 		else if ( !Q_stricmp( token, "lightgridmulamb" ) ) { // ambient multiplier for lightgrid
@@ -4018,8 +4018,8 @@ void	R_ShaderList_f (void) {
 	const shader_t *sh;
 	const char *match;
 
-	if ( Cmd_Argc() > 1 ) {
-		match = Cmd_Argv( 1 );
+	if ( ri.Cmd_Argc() > 1 ) {
+		match = ri.Cmd_Argv( 1 );
 	} else {
 		match = NULL;
 	}

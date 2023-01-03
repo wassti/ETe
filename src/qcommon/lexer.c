@@ -156,7 +156,7 @@ void PS_CreatePunctuationTable( script_t *script, const punctuation_t *punctuati
 		}
 		script->nextpunctuation = (int *) Z_TagMalloc( i * sizeof( int ), TAG_BOTLIB );
 	}
-	memset( script->punctuationtable, 0xFF, 256 * sizeof( punctuation_t * ) );
+	memset( script->punctuationtable, 0xFF, 256 * sizeof( int ) );
 	memset( script->nextpunctuation, 0xFF, i * sizeof( int ) );
 	//add the punctuations in the list to the punctuation table
 	for ( i = 0; punctuations[i].p; i++ )

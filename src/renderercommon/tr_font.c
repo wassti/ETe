@@ -437,7 +437,7 @@ void RE_RegisterFont(const char *fontName, int pointSize, fontInfo_t *font) {
 	// make a 256x256 image buffer, once it is full, register it, clean it and keep going
 	// until all glyphs are rendered
 
-	out = Z_Malloc( 1024 * 1024 );
+	out = ri.Malloc( 1024 * 1024 );
 	if ( out == NULL ) {
 		ri.Printf( PRINT_ALL, "RE_RegisterFont: Z_Malloc failure during output image creation.\n" );
 		return;
@@ -505,7 +505,7 @@ void RE_RegisterFont(const char *fontName, int pointSize, fontInfo_t *font) {
 			Com_Memset( out, 0, 1024 * 1024 );
 			xOut = 0;
 			yOut = 0;
-			Z_Free( imageBuff );
+			ri.Free( imageBuff );
 			i++;
 		} else {
 			memcpy( &font->glyphs[i], glyph, sizeof( glyphInfo_t ) );

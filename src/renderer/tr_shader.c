@@ -3299,8 +3299,8 @@ qboolean RE_LoadDynamicShader( const char *shadername, const char *shadertext ) 
 		dptr = dshader;
 		while ( dptr ) {
 			lastdptr = dptr->next;
-			Z_Free( dptr->shadertext );
-			Z_Free( dptr );
+			ri.Free( dptr->shadertext );
+			ri.Free( dptr );
 			dptr = lastdptr;
 		}
 		dshader = NULL;
@@ -3323,8 +3323,8 @@ qboolean RE_LoadDynamicShader( const char *shadername, const char *shadertext ) 
 				} else {
 					lastdptr->next = dptr->next;
 				}
-				Z_Free( dptr->shadertext );
-				Z_Free( dptr );
+				ri.Free( dptr->shadertext );
+				ri.Free( dptr );
 				return qtrue;
 			}
 			ri.Printf( PRINT_WARNING, "WARNING: %s: shader %s already exists!\n", __func__, shadername );
@@ -3341,16 +3341,16 @@ qboolean RE_LoadDynamicShader( const char *shadername, const char *shadertext ) 
 	}
 
 	//create a new shader
-	dptr = (dynamicshader_t *)Z_Malloc( sizeof( *dptr ) );
+	dptr = (dynamicshader_t *)ri.Malloc( sizeof( *dptr ) );
 	if ( !dptr ) {
-		Com_Error( ERR_FATAL, "%s: Couldn't allocate struct for dynamic shader %s", __func__, shadername );
+		ri.Error( ERR_FATAL, "%s: Couldn't allocate struct for dynamic shader %s", __func__, shadername );
 	}
 	if ( lastdptr ) {
 		lastdptr->next = dptr;
 	}
-	dptr->shadertext = Z_Malloc( strlen( shadertext ) + 1 );
+	dptr->shadertext = ri.Malloc( strlen( shadertext ) + 1 );
 	if ( !dptr->shadertext ) {
-		Com_Error( ERR_FATAL, "%s: Couldn't allocate buffer for dynamic shader %s", __func__, shadername );
+		ri.Error( ERR_FATAL, "%s: Couldn't allocate buffer for dynamic shader %s", __func__, shadername );
 	}
 	Q_strncpyz( dptr->shadertext, shadertext, strlen( shadertext ) + 1 );
 	dptr->next = NULL;

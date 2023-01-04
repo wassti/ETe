@@ -2927,6 +2927,7 @@ qhandle_t   trap_R_RegisterSkin( const char *name );            // returns all w
 qhandle_t   trap_R_RegisterShader( const char *name );          // returns all white if not found
 qhandle_t   trap_R_RegisterShaderNoMip( const char *name );         // returns all white if not found
 
+// NOTE: char *name expects an array sized 64 (MAX_QPATH)
 qboolean    trap_R_GetSkinModel( qhandle_t skinid, const char *type, char *name );          //----(SA) added
 qhandle_t   trap_R_GetShaderFromModel( qhandle_t modelid, int surfnum, int withlightmap );  //----(SA)	added
 
@@ -3007,10 +3008,6 @@ qboolean    trap_GetUserCmd( int cmdNumber, usercmd_t *ucmd );
 // used for the weapon/holdable select and zoom
 void        trap_SetUserCmdValue( int stateValue, int flags, float sensitivityScale, int mpIdentClient );
 void        trap_SetClientLerpOrigin( float x, float y, float z );      // DHM - Nerve
-
-// aids for VM testing
-void        testPrintInt( char *string, int i );
-void        testPrintFloat( char *string, float f );
 
 int         trap_MemoryRemaining( void );
 void        trap_R_RegisterFont( const char *fontName, int pointSize, fontInfo_t *font );

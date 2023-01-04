@@ -367,11 +367,11 @@ qboolean SV_GameSnapshotCallback( int entityNum, int clientNum ) {
 
 //==============================================
 
-static int FloatAsInt( float f ) {
+/*static int FloatAsInt( float f ) {
 	floatint_t fi;
 	fi.f = f;
 	return fi.i;
-}
+}*/
 
 
 /*
@@ -615,7 +615,7 @@ static intptr_t SV_GameSystemCalls( intptr_t *args ) {
 		SV_BotClientCommand( args[1], VMA( 2 ) );
 		return 0;
 
-	case G_MEMSET:
+	/*case G_MEMSET:
 		Com_Memset( VMA(1), args[2], args[3] );
 		return args[1];
 
@@ -655,7 +655,7 @@ static intptr_t SV_GameSystemCalls( intptr_t *args ) {
 		return FloatAsInt( floor( VMF( 1 ) ) );
 
 	case G_CEIL:
-		return FloatAsInt( ceil( VMF( 1 ) ) );
+		return FloatAsInt( ceil( VMF( 1 ) ) );*/
 
 	case PB_STAT_REPORT:
 		return 0 ;

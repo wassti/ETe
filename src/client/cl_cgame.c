@@ -594,11 +594,11 @@ void CL_ShutdownCGame( void ) {
 }
 
 
-static int FloatAsInt( float f ) {
+/*static int FloatAsInt( float f ) {
 	floatint_t fi;
 	fi.f = f;
 	return fi.i;
-}
+}*/
 
 
 static void *VM_ArgPtr( intptr_t intValue ) {
@@ -982,10 +982,7 @@ static intptr_t CL_CgameSystemCalls( intptr_t *args ) {
 		Key_SetOverstrikeMode( args[1] );
 		return 0;
 
-
-
-
-	case CG_MEMSET:
+	/*case CG_MEMSET:
 		Com_Memset( VMA(1), args[2], args[3] );
 		return args[1];
 	case CG_MEMCPY:
@@ -1007,7 +1004,7 @@ static intptr_t CL_CgameSystemCalls( intptr_t *args ) {
 	case CG_CEIL:
 		return FloatAsInt( ceil( VMF(1) ) );
 	case CG_ACOS:
-		return FloatAsInt( Q_acos( VMF(1) ) );
+		return FloatAsInt( Q_acos( VMF(1) ) );*/
 
 	case CG_PC_ADD_GLOBAL_DEFINE:
 		return PC_AddGlobalDefine( VMA(1) );
@@ -1054,12 +1051,12 @@ static intptr_t CL_CgameSystemCalls( intptr_t *args ) {
 		re.RemapShader( VMA(1), VMA(2), VMA(3) );
 		return 0;
 
-	case CG_TESTPRINTINT:
+	/*case CG_TESTPRINTINT:
 		Com_Printf( "%s%i\n", (char *)VMA(1), (int)args[2] );
 		return 0;
 	case CG_TESTPRINTFLOAT:
 		Com_Printf( "%s%f\n", (char *)VMA(1), VMF(2) );
-		return 0;
+		return 0;*/
 
 	case CG_LOADCAMERA:
 #ifdef ENABLE_SPLINES

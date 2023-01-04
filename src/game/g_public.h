@@ -258,7 +258,7 @@ typedef enum {
 	G_REGISTERSOUND,    // xkan, 10/28/2002 - register the sound
 	G_GET_SOUND_LENGTH, // xkan, 10/28/2002 - get the length of the sound
 
-	G_MEMSET = 100,
+	/*G_MEMSET = 100,
 	G_MEMCPY,
 	G_STRNCPY,
 	G_SIN,
@@ -272,7 +272,7 @@ typedef enum {
 	G_CEIL,
 
 	G_TESTPRINTINT,
-	G_TESTPRINTFLOAT,
+	G_TESTPRINTFLOAT,*/
 
 	BOTLIB_SETUP = 200,             // ( void );
 	BOTLIB_SHUTDOWN,                // ( void );

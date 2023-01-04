@@ -339,7 +339,7 @@ static const char *TruncateGLExtensionsString( const char *extensionsString, int
 		extensionsLen = p - extensionsString - 1;
 	}
 
-	truncatedExtensions = (char *)Hunk_Alloc( extensionsLen + 1, h_low );
+	truncatedExtensions = (char *)ri.Hunk_Alloc( extensionsLen + 1, h_low );
 	Q_strncpyz( truncatedExtensions, extensionsString, extensionsLen + 1 );
 
 	return truncatedExtensions;

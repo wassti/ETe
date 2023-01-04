@@ -3963,7 +3963,9 @@ static void CL_InitRef( void ) {
 
 	rimp.Sys_SetClipboardBitmap = Sys_SetClipboardBitmap;
 	rimp.Sys_LowPhysicalMemory = Sys_LowPhysicalMemory;
+	rimp.Sys_OmnibotRender = Sys_OmnibotRender;
 	rimp.Com_RealTime = Com_RealTime;
+	rimp.Com_Filter = Com_Filter;
 	rimp.MSG_HashKey = MSG_HashKey;
 
 	rimp.GLimp_InitGamma = GLimp_InitGamma;

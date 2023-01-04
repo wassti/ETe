@@ -640,12 +640,12 @@ CL_ParseServerInfo
 */
 void CL_ParseServerInfo( void )
 {
+#ifdef USE_DISCORD
 	const char *serverInfo;
 
 	serverInfo = cl.gameState.stringData
 		+ cl.gameState.stringOffsets[ CS_SERVERINFO ];
 
-#ifdef USE_DISCORD
 	// Discord
 	Q_strncpyz(cl.discord.hostName, Info_ValueForKey(serverInfo, "sv_hostname"), sizeof(cl.discord.hostName));
 	cl.discord.maxPlayers = atoi(Info_ValueForKey(serverInfo, "sv_maxclients"));

@@ -646,7 +646,9 @@ extern int cl_connectedToCheatServer;
 extern int cl_optimizedPatchServer;
 
 void CL_ParseServerInfo(void);
+#ifdef USE_DISCORD
 void CL_ParsePlayerInfo(void);
+#endif
 
 void CL_ParseServerMessage( msg_t *msg );
 

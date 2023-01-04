@@ -1368,6 +1368,8 @@ static int SV_WriteDownloadToClient( client_t *cl )
 
 	if ( cl->download == FS_INVALID_HANDLE ) {
 		qboolean idPack = qfalse;
+		fileHandle_t handle = FS_INVALID_HANDLE;
+		int downloadSize = -1;
 
 		//bani - prevent duplicate download notifications
 		if ( cl->downloadnotify & DLNOTIFY_BEGIN ) {
@@ -1407,12 +1409,12 @@ static int SV_WriteDownloadToClient( client_t *cl )
 			}
 		}
 
-		cl->download = FS_INVALID_HANDLE;
+		//cl->download = FS_INVALID_HANDLE;
 
 		// We open the file here
 		if ( !sv_allowDownload->integer ||
 			idPack || unreferenced ||
-			( cl->downloadSize = FS_SV_FOpenFileRead( cl->downloadName, &cl->download ) ) < 0 ) {
+			( downloadSize = FS_SV_FOpenFileRead( cl->downloadName, &handle ) ) < 0 ) {
 
 			// cannot auto-download file
 			if(unreferenced)
@@ -1457,9 +1459,9 @@ static int SV_WriteDownloadToClient( client_t *cl )
 
 			*cl->downloadName = '\0';
 
-			if ( cl->download != FS_INVALID_HANDLE ) {
-				FS_FCloseFile( cl->download );
-				cl->download = FS_INVALID_HANDLE;
+			if ( handle != FS_INVALID_HANDLE ) {
+				FS_FCloseFile( handle );
+				handle = FS_INVALID_HANDLE;
 			}
 
 			return 1;
@@ -1472,8 +1474,8 @@ static int SV_WriteDownloadToClient( client_t *cl )
 		if ( sv_wwwDownload->integer ) {
 			if ( cl->bDlOK ) {
 				if ( !cl->bFallback ) {
-					fileHandle_t handle;
-					int downloadSize = FS_SV_FOpenFileRead( cl->downloadName, &handle );
+					//fileHandle_t handle;
+					/*int */downloadSize = FS_SV_FOpenFileRead( cl->downloadName, &handle );
 					if ( downloadSize >= 0 ) {
 						FS_FCloseFile( handle ); // don't keep open, we only care about the size
 

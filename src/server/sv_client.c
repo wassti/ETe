@@ -1409,12 +1409,11 @@ static int SV_WriteDownloadToClient( client_t *cl )
 			}
 		}
 
-		//cl->download = FS_INVALID_HANDLE;
+		downloadSize = FS_SV_FOpenFileRead( cl->downloadName, &handle );
 
 		// We open the file here
 		if ( !sv_allowDownload->integer ||
-			idPack || unreferenced ||
-			( downloadSize = FS_SV_FOpenFileRead( cl->downloadName, &handle ) ) < 0 ) {
+			idPack || unreferenced || downloadSize < 0 ) {
 
 			// cannot auto-download file
 			if(unreferenced)
@@ -1474,43 +1473,38 @@ static int SV_WriteDownloadToClient( client_t *cl )
 		if ( sv_wwwDownload->integer ) {
 			if ( cl->bDlOK ) {
 				if ( !cl->bFallback ) {
-					//fileHandle_t handle;
-					/*int */downloadSize = FS_SV_FOpenFileRead( cl->downloadName, &handle );
-					if ( downloadSize >= 0 ) {
+					if ( handle != FS_INVALID_HANDLE ) {
 						FS_FCloseFile( handle ); // don't keep open, we only care about the size
-
-						Com_sprintf( cl->downloadURL, sizeof(cl->downloadURL), "%s/%s", sv_wwwBaseURL->string, cl->downloadName );
-
-						//bani - prevent multiple download notifications
-						if ( cl->downloadnotify & DLNOTIFY_REDIRECT ) {
-							cl->downloadnotify &= ~DLNOTIFY_REDIRECT;
-							Com_Printf( "Redirecting client '%s' to %s\n", cl->name, cl->downloadURL );
-						}
-						// once cl->downloadName is set (and possibly we have our listening socket), let the client know
-						cl->bWWWDl = qtrue;
-						
-						MSG_Init( &msg, msgBuffer, sizeof( msgBuffer ) - 8 );
-						MSG_WriteLong( &msg, cl->lastClientCommand );
-
-						MSG_WriteByte( &msg, svc_download );
-						MSG_WriteShort( &msg, -1 ); // block -1 means ftp/http download
-						// compatible with legacy svc_download protocol: [size] [size bytes]
-						// download URL, size of the download file, download flags
-						MSG_WriteString( &msg, cl->downloadURL );
-						MSG_WriteLong( &msg, downloadSize );
-						download_flag = 0;
-						if ( sv_wwwDlDisconnected->integer ) {
-							download_flag |= ( 1 << DL_FLAG_DISCON );
-						}
-						MSG_WriteLong( &msg, download_flag ); // flags
-
-						MSG_WriteByte( &msg, svc_EOF );
-						SV_Netchan_Transmit( cl, &msg );
-						return 1;
-					} else {
-						// that should NOT happen - even regular download would fail then anyway
-						Com_Printf( "ERROR: Client '%s': couldn't extract file size for %s\n", cl->name, cl->downloadName );
 					}
+
+					Com_sprintf( cl->downloadURL, sizeof(cl->downloadURL), "%s/%s", sv_wwwBaseURL->string, cl->downloadName );
+
+					//bani - prevent multiple download notifications
+					if ( cl->downloadnotify & DLNOTIFY_REDIRECT ) {
+						cl->downloadnotify &= ~DLNOTIFY_REDIRECT;
+						Com_Printf( "Redirecting client '%s' to %s\n", cl->name, cl->downloadURL );
+					}
+					// once cl->downloadName is set (and possibly we have our listening socket), let the client know
+					cl->bWWWDl = qtrue;
+					
+					MSG_Init( &msg, msgBuffer, sizeof( msgBuffer ) - 8 );
+					MSG_WriteLong( &msg, cl->lastClientCommand );
+
+					MSG_WriteByte( &msg, svc_download );
+					MSG_WriteShort( &msg, -1 ); // block -1 means ftp/http download
+					// compatible with legacy svc_download protocol: [size] [size bytes]
+					// download URL, size of the download file, download flags
+					MSG_WriteString( &msg, cl->downloadURL );
+					MSG_WriteLong( &msg, downloadSize );
+					download_flag = 0;
+					if ( sv_wwwDlDisconnected->integer ) {
+						download_flag |= ( 1 << DL_FLAG_DISCON );
+					}
+					MSG_WriteLong( &msg, download_flag ); // flags
+
+					MSG_WriteByte( &msg, svc_EOF );
+					SV_Netchan_Transmit( cl, &msg );
+					return 1;
 				} else {
 					cl->bFallback = qfalse;
 
@@ -1528,6 +1522,11 @@ static int SV_WriteDownloadToClient( client_t *cl )
 
 						MSG_WriteByte( &msg, svc_EOF );
 						SV_Netchan_Transmit( cl, &msg );
+
+						if ( handle != FS_INVALID_HANDLE ) {
+							FS_FCloseFile( handle );
+							handle = FS_INVALID_HANDLE;
+						}
 						return 1;
 					}
 					Com_Printf( "Client '%s': falling back to regular downloading for failed file %s\n", cl->name, cl->downloadName );
@@ -1547,36 +1546,21 @@ static int SV_WriteDownloadToClient( client_t *cl )
 
 					MSG_WriteByte( &msg, svc_EOF );
 					SV_Netchan_Transmit( cl, &msg );
+
+					if ( handle != FS_INVALID_HANDLE ) {
+						FS_FCloseFile( handle );
+						handle = FS_INVALID_HANDLE;
+					}
+
 					return 1;
 				}
 				Com_Printf( "Client '%s' is not configured for www download\n", cl->name );
 			}
 		}
 
-		// find file
 		cl->bWWWDl = qfalse;
-		cl->downloadSize = FS_SV_FOpenFileRead( cl->downloadName, &cl->download );
-		if ( cl->downloadSize <= 0 ) {
-			Com_Printf( "clientDownload: %d : \"%s\" file not found on server\n", (int)(cl - svs.clients), cl->downloadName );
-			Com_sprintf( errorMessage, sizeof( errorMessage ), "File \"%s\" not found on server for autodownloading.\n", cl->downloadName );
-
-			MSG_Init( &msg, msgBuffer, sizeof( msgBuffer ) - 8 );
-			MSG_WriteLong( &msg, cl->lastClientCommand );
-
-			MSG_WriteByte( &msg, svc_download );
-			MSG_WriteShort( &msg, 0 ); // client is expecting block zero
-			MSG_WriteLong( &msg, -1 ); // illegal file size
-			*cl->downloadName = '\0';
-			MSG_WriteString( &msg, errorMessage ); // (could SV_DropClient instead?)
-
-			MSG_WriteByte( &msg, svc_EOF );
-			SV_Netchan_Transmit( cl, &msg );
-			if ( cl->download != FS_INVALID_HANDLE ) {
-				FS_FCloseFile( cl->download );
-				cl->download = FS_INVALID_HANDLE;
-			}
-			return 1;
-		}
+		cl->download = handle;
+		cl->downloadSize = downloadSize;
 
 		// Init
 		cl->downloadCurrentBlock = cl->downloadClientBlock = cl->downloadXmitBlock = 0;

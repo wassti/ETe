@@ -1086,6 +1086,7 @@ static const char *gcmds[] =
 	"campaign",
 	"clientkick",
 	"commands",
+	"cv",
 	"entitylist",
 	"fireteam",
 	"follow",

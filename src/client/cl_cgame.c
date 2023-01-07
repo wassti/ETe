@@ -65,8 +65,8 @@ static void CL_CompleteCallvote( char *args, int argNum ) {
 }
 
 static const cmdListItem_t cl_cmds[] = {
-	//{ "cv", CL_Callvote_f, CL_CompleteCallvote },
 	{ "callvote", CL_Callvote_f, CL_CompleteCallvote },
+	{ "cv", CL_Callvote_f, CL_CompleteCallvote },
 	{ "locations", NULL, NULL }
 };
 

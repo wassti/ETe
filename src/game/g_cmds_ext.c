@@ -66,6 +66,7 @@ static const cmd_reference_t aCommandInfo[] = {
 //	{ "coachkick",		qtrue,	qtrue,	NULL, " <player_ID>:^7 Kicks active coach from team" },
 	{ "commands",        qtrue,  qtrue,  G_commands_cmd, ":^7 Gives a list of OSP-specific commands" },
 	{ "currenttime", qtrue,  qtrue,  NULL, ":^7 Displays current local time" },
+	{ "cv",       	 qtrue,  qfalse, ( void( * ) ( gentity_t *, unsigned int, qboolean ) )Cmd_CallVote_f, " <params>:^7 Calls a vote" },
 	{ "follow",          qfalse, qtrue,  Cmd_Follow_f, " <player_ID|allies|axis>:^7 Spectates a particular player or team" },
 //	{ "invite",			qtrue,	qtrue,	NULL, " <player_ID>:^7 Invites a player to join a team" },
 	{ "lock",            qtrue,  qtrue,  G_lock_cmd, ":^7 Locks a player's team to prevent others from joining" },

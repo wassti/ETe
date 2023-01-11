@@ -158,7 +158,7 @@ typedef enum {
 	UI_OPENURL,
 	UI_SET_PBSVSTATUS,              // TTimo
 
-	UI_MEMSET = 200,
+	/*UI_MEMSET = 200,
 	UI_MEMCPY,
 	UI_STRNCPY,
 	UI_SIN,
@@ -166,8 +166,8 @@ typedef enum {
 	UI_ATAN2,
 	UI_SQRT,
 	UI_FLOOR,
-	UI_CEIL,
-	UI_GETHUNKDATA,
+	UI_CEIL,*/
+	UI_GETHUNKDATA = 209,
 
 #if !defined(UIDLL) && !defined(CGAMEDLL)
 	// engine extensions

@@ -26,7 +26,7 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-// console.c
+// cl_console.c
 
 #include "client.h"
 
@@ -42,20 +42,19 @@ int smallchar_height;
 
 console_t con;
 
-cvar_t      *con_conspeed;
-cvar_t      *con_notifytime;
-cvar_t		*con_scale;
-cvar_t      *con_autoclear;
-cvar_t		*con_drawnotify;
-
+static cvar_t	*con_conspeed;
+static cvar_t	*con_notifytime;
+static cvar_t	*con_autoclear;
+static cvar_t	*con_drawnotify;
+static cvar_t	*con_height;
 // DHM - Nerve :: Must hold CTRL + SHIFT + ~ to get console
-cvar_t      *con_restricted;
+static cvar_t	*con_restricted;
+cvar_t			*con_scale;
 
 int			g_console_field_width;
 
-
-vec4_t console_color = {1.0, 1.0, 1.0, 1.0};
-vec4_t console_highlightcolor = {0.5, 0.5, 0.2, 0.45};
+static const vec4_t console_color = {1.0, 1.0, 1.0, 1.0};
+static const vec4_t console_highlightcolor = {0.5, 0.5, 0.2, 0.45};
 
 /*
 ================
@@ -101,7 +100,7 @@ void Con_ToggleConsole_f( void ) {
 		}
 		// normal half-screen console
 		else {
-			con.desiredFrac = 0.5;
+			con.desiredFrac = Com_ClampFloat(( 5.0 * smallchar_height ) / cls.glconfig.vidHeight, 1.0f, con_height->value);
 		}
 	}
 }
@@ -407,8 +406,14 @@ void Con_Init( void )
 
 	con_scale = Cvar_Get( "con_scale", "1", CVAR_ARCHIVE_ND );
 	Cvar_CheckRange( con_scale, "0.5", "8", CV_FLOAT );
+	Cvar_SetDescription( con_scale, "Text scale modifier for all console text" );
+
+	con_height = Cvar_Get( "con_height", "0.5", CVAR_ARCHIVE_ND );
+	Cvar_CheckRange( con_height, "0.01", "1", CV_FLOAT );
+	Cvar_SetDescription( con_height, "Default height for normal console open" );
 
 	con_drawnotify = Cvar_Get( "con_drawnotify", "0", CVAR_CHEAT );
+	Cvar_SetDescription( con_drawnotify, "Draw console print messages at top of screen" );
 
 	Field_Clear( &g_consoleField );
 	g_consoleField.widthInChars = g_console_field_width;
@@ -863,6 +868,10 @@ static void Con_DrawSolidConsole( float frac ) {
 
 	// draw the text
 	con.vislines = lines;
+
+	// draw the input prompt, user text, and cursor if desired
+	Con_DrawInput();
+
 	//rows = ( lines - SMALLCHAR_WIDTH ) / SMALLCHAR_WIDTH;     // rows of text to draw
 	rows = lines / smallchar_width - 1;	// rows of text to draw
 
@@ -925,9 +934,6 @@ static void Con_DrawSolidConsole( float frac ) {
 			SCR_DrawSmallChar( con.xadjust + (x + 1) * smallchar_width, y, text[x] & 0xff );
 		}
 	}
-
-	// draw the input prompt, user text, and cursor if desired
-	Con_DrawInput();
 
 	re.SetColor( NULL );
 }

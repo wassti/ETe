@@ -36,7 +36,7 @@ extern void startCamera( int camNum, int time );
 extern qboolean getCameraInfo( int camNum, int time, vec3_t *origin, vec3_t *angles, float *fov );
 #endif
 
-static int nestedCmd; // nested command execution flag
+static int nestedCmdOffset; // nested command buffer offset
 
 static void CL_Callvote_f( void ) {
 	CL_ForwardCommandToServer( Cmd_Cmd() );
@@ -732,12 +732,9 @@ static intptr_t CL_CgameSystemCalls( intptr_t *args ) {
 	case CG_SENDCONSOLECOMMAND:
 		{
 			const char *cmd = (const char *)VMA(1);
-			if ( nestedCmd > 0 )
-				Cbuf_InsertText( cmd );
-			else
-				Cbuf_AddText( cmd );
+			nestedCmdOffset = Cbuf_Add( cmd, nestedCmdOffset );
+			return 0;
 		}
-		return 0;
 	case CG_ADDCOMMAND:
 		Cmd_AddCommand( VMA(1), NULL );
 		Cmd_SetModule( VMA(1), MODULE_CGAME );
@@ -1320,7 +1317,7 @@ void CL_InitCGame( void ) {
 	const char          *mapname;
 	int t1, t2;
 
-	nestedCmd = 0;
+	nestedCmdOffset = 0;
 
 	t1 = Sys_Milliseconds();
 
@@ -1399,11 +1396,9 @@ qboolean CL_GameCommand( void ) {
 		return qfalse;
 	}
 
-	nestedCmd++;
-
 	bRes = (qboolean)VM_Call( cgvm, 0, CG_CONSOLE_COMMAND );
 
-	nestedCmd--;
+	nestedCmdOffset = 0;
 
 	return bRes;
 }

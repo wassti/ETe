@@ -30,7 +30,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "client.h"
 
 vm_t *uivm = NULL;
-static int nestedCmd; // nested command execution flag
+static int nestedCmdOffset; // nested command buffer offset
 
 
 /*
@@ -913,9 +913,16 @@ static intptr_t CL_UISystemCalls( intptr_t *args ) {
 				Com_Printf (S_COLOR_YELLOW "turning EXEC_NOW '%.11s' into EXEC_INSERT\n", cmd);
 				args[1] = EXEC_INSERT;
 			}
-			if( nestedCmd > 0 && args[1] == EXEC_APPEND )
-				args[1] = EXEC_INSERT;
-			Cbuf_ExecuteText( args[1], cmd );
+			if(args[1] == EXEC_APPEND && !strncmp(cmd, "exec preset_", 12))
+			{
+				Com_Printf (S_COLOR_YELLOW "bypassing preset command '%s'\n", cmd);
+				return 0;
+			}
+			//if( args[1] == EXEC_APPEND ) {
+			//	nestedCmdOffset = Cbuf_Add( cmd, nestedCmdOffset );
+			//}
+			//else
+				Cbuf_ExecuteText( args[1], cmd );
 		}
 		return 0;
 
@@ -1366,7 +1373,7 @@ CL_InitUI
 void CL_InitUI( void ) {
 	int v;
 
-	nestedCmd = 0;
+	nestedCmdOffset = 0;
 
 	uivm = VM_Create( VM_UI, CL_UISystemCalls, UI_DllSyscall, VMI_NATIVE );
 	if ( !uivm ) {
@@ -1435,11 +1442,9 @@ qboolean UI_GameCommand( void ) {
 		return qfalse;
 	}
 
-	nestedCmd++;
-
 	bRes = (qboolean)VM_Call( uivm, 1, UI_CONSOLE_COMMAND, cls.realtime );
 
-	nestedCmd--;
+	nestedCmdOffset = 0;
 
 	return bRes;
 }

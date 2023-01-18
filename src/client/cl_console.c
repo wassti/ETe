@@ -31,7 +31,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "client.h"
 
 #define DEFAULT_CONSOLE_WIDTH   78
-#define  MAX_CONSOLE_WIDTH 120
+#define MAX_CONSOLE_WIDTH 120
 
 #define CONSOLE_COLOR  COLOR_WHITE //COLOR_BLACK
 
@@ -51,9 +51,8 @@ static cvar_t	*con_height;
 static cvar_t	*con_restricted;
 cvar_t			*con_scale;
 
-int			g_console_field_width;
+int				g_console_field_width;
 
-static const vec4_t console_color = {1.0, 1.0, 1.0, 1.0};
 static const vec4_t console_highlightcolor = {0.5, 0.5, 0.2, 0.45};
 
 /*

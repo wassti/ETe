@@ -403,27 +403,29 @@ static void CL_KeyMove( usercmd_t *cmd ) {
 
 	// Arnout: double tap
 	cmd->doubleTap = DT_NONE; // reset
-	if ( com_frameTime - cl.doubleTap.lastdoubleTap > cl_doubletapdelay->integer + 150 + cls.frametime ) {   // double tap only once every 500 msecs (add
-																											 // frametime for low(-ish) fps situations)
-		int i;
-		qboolean key_down;
+	if ( cl_doubletapdelay->integer > 0 ) {
+		if ( com_frameTime - cl.doubleTap.lastdoubleTap > cl_doubletapdelay->integer + 150 + cls.frametime ) {   // double tap only once every 500 msecs (add
+																												// frametime for low(-ish) fps situations)
+			int i;
+			qboolean key_down;
 
-		for ( i = 1; i < DT_NUM; i++ ) {
-			key_down = kb[dtmapping[i]].active || kb[dtmapping[i]].wasPressed;
+			for ( i = 1; i < DT_NUM; i++ ) {
+				key_down = kb[dtmapping[i]].active || kb[dtmapping[i]].wasPressed;
 
-			if ( key_down && !cl.doubleTap.pressedTime[i] ) {
-				cl.doubleTap.pressedTime[i] = com_frameTime;
-			} else if ( !key_down && !cl.doubleTap.releasedTime[i]
-						&& ( com_frameTime - cl.doubleTap.pressedTime[i] ) < ( cl_doubletapdelay->integer + cls.frametime ) ) {
-				cl.doubleTap.releasedTime[i] = com_frameTime;
-			} else if ( key_down && ( com_frameTime - cl.doubleTap.pressedTime[i] ) < ( cl_doubletapdelay->integer + cls.frametime )
-						&& ( com_frameTime - cl.doubleTap.releasedTime[i] ) < ( cl_doubletapdelay->integer + cls.frametime ) ) {
-				cl.doubleTap.pressedTime[i] = cl.doubleTap.releasedTime[i] = 0;
-				cmd->doubleTap = i;
-				cl.doubleTap.lastdoubleTap = com_frameTime;
-			} else if ( !key_down && ( cl.doubleTap.pressedTime[i] || cl.doubleTap.releasedTime[i] ) ) {
-				if ( com_frameTime - cl.doubleTap.pressedTime[i] >= ( cl_doubletapdelay->integer + cls.frametime ) ) {
+				if ( key_down && !cl.doubleTap.pressedTime[i] ) {
+					cl.doubleTap.pressedTime[i] = com_frameTime;
+				} else if ( !key_down && !cl.doubleTap.releasedTime[i]
+							&& ( com_frameTime - cl.doubleTap.pressedTime[i] ) < ( cl_doubletapdelay->integer + cls.frametime ) ) {
+					cl.doubleTap.releasedTime[i] = com_frameTime;
+				} else if ( key_down && ( com_frameTime - cl.doubleTap.pressedTime[i] ) < ( cl_doubletapdelay->integer + cls.frametime )
+							&& ( com_frameTime - cl.doubleTap.releasedTime[i] ) < ( cl_doubletapdelay->integer + cls.frametime ) ) {
 					cl.doubleTap.pressedTime[i] = cl.doubleTap.releasedTime[i] = 0;
+					cmd->doubleTap = i;
+					cl.doubleTap.lastdoubleTap = com_frameTime;
+				} else if ( !key_down && ( cl.doubleTap.pressedTime[i] || cl.doubleTap.releasedTime[i] ) ) {
+					if ( com_frameTime - cl.doubleTap.pressedTime[i] >= ( cl_doubletapdelay->integer + cls.frametime ) ) {
+						cl.doubleTap.pressedTime[i] = cl.doubleTap.releasedTime[i] = 0;
+					}
 				}
 			}
 		}
@@ -1136,7 +1138,8 @@ void CL_InitInput( void ) {
 
 	cl_bypassMouseInput = Cvar_Get( "cl_bypassMouseInput", "0", 0 ); //CVAR_ROM );			// NERVE - SMF
 
-	cl_doubletapdelay = Cvar_Get( "cl_doubletapdelay", "350", CVAR_ARCHIVE_ND ); // Arnout: double tap
+	cl_doubletapdelay = Cvar_Get( "cl_doubletapdelay", "0", CVAR_ARCHIVE_ND ); // Arnout: double tap
+	Cvar_CheckRange( cl_doubletapdelay, "0", NULL, CV_INTEGER );
 	Cvar_SetDescription( cl_doubletapdelay, "Time in ms between keypresses required for double tap actions" );
 }
 

@@ -684,8 +684,8 @@ float Q_acos( float c ) {
 }
 
 
-#if id386 && !( ( defined __linux__ || defined __FreeBSD__ || defined __GNUC__ ) && ( defined __i386__ ) ) // rb010123
-long myftol( float f ) {
+#if id386 && defined(_WIN32)
+long Q_ftol( float f ) {
 	static int tmp;
 	__asm fld f
 	__asm fistp tmp

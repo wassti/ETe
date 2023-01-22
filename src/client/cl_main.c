@@ -3865,18 +3865,18 @@ static void CL_InitRef( void ) {
 
 #ifdef USE_RENDERER_DLOPEN
 
-#if defined (__linux__) && defined(__i386__)
+#if defined (__linux__) && id386
 #define REND_ARCH_STRING "x86"
 #else
 #define REND_ARCH_STRING ARCH_STRING
 #endif
 
-	Com_sprintf( dllName, sizeof( dllName ), RENDERER_PREFIX "_%s_" REND_ARCH_STRING DLL_EXT, cl_renderer->string );
+	Com_sprintf( dllName, sizeof( dllName ), RENDERER_PREFIX "_%s_" REND_ARCH_STRING REN_DLL_EXT, cl_renderer->string );
 	rendererLib = FS_LoadLibrary( dllName );
 	if ( !rendererLib )
 	{
 		Cvar_ForceReset( "cl_renderer" );
-		Com_sprintf( dllName, sizeof( dllName ), RENDERER_PREFIX "_%s_" REND_ARCH_STRING DLL_EXT, cl_renderer->string );
+		Com_sprintf( dllName, sizeof( dllName ), RENDERER_PREFIX "_%s_" REND_ARCH_STRING REN_DLL_EXT, cl_renderer->string );
 		rendererLib = FS_LoadLibrary( dllName );
 		if ( !rendererLib )
 		{

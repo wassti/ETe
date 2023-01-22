@@ -557,11 +557,11 @@ static void DynamicLightSinglePass( void ) {
 			}
 
 			// add to color
-			color = colors[ 0 ] + myftol( floatColor[ 0 ] * modulate );
+			color = colors[ 0 ] + Q_ftol( floatColor[ 0 ] * modulate );
 			colors[ 0 ] = color > 255 ? 255 : color;
-			color = colors[ 1 ] + myftol( floatColor[ 1 ] * modulate );
+			color = colors[ 1 ] + Q_ftol( floatColor[ 1 ] * modulate );
 			colors[ 1 ] = color > 255 ? 255 : color;
-			color = colors[ 2 ] + myftol( floatColor[ 2 ] * modulate );
+			color = colors[ 2 ] + Q_ftol( floatColor[ 2 ] * modulate );
 			colors[ 2 ] = color > 255 ? 255 : color;
 		}
 	}
@@ -697,11 +697,11 @@ static void DynamicLightPass( void ) {
 			}
 
 			// set color
-			color = myftol( floatColor[ 0 ] * modulate );
+			color = Q_ftol( floatColor[ 0 ] * modulate );
 			colors[ 0 ] = color > 255 ? 255 : color;
-			color = myftol( floatColor[ 1 ] * modulate );
+			color = Q_ftol( floatColor[ 1 ] * modulate );
 			colors[ 1 ] = color > 255 ? 255 : color;
-			color = myftol( floatColor[ 2 ] * modulate );
+			color = Q_ftol( floatColor[ 2 ] * modulate );
 			colors[ 2 ] = color > 255 ? 255 : color;
 		}
 

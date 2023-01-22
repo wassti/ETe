@@ -75,7 +75,11 @@ If you have questions concerning this license or the applicable additional terms
 typedef struct {
 	vec3_t xyz;
 	float st[2];
+#ifdef USE_VULKAN
+	color4ub_t	modulate;
+#else
 	byte modulate[4];
+#endif
 } polyVert_t;
 
 typedef struct poly_s {
@@ -140,7 +144,11 @@ typedef struct {
 	qhandle_t customShader;         // use one image for the entire thing
 
 	// misc
+#ifdef USE_VULKAN
+	color4ub_t shader;
+#else
 	byte shaderRGBA[4];             // colors used by rgbgen entity shaders
+#endif
 	float shaderTexCoord[2];        // texture coordinates used by tcMod entity modifiers
 
 	// subtracted from refdef time to control effect start times
@@ -329,7 +337,7 @@ typedef struct {
 	// used CDS.
 	qboolean				isFullscreen;
 	qboolean				stereoEnabled;
-	qboolean				smpActive;		// UNUSED, present for compatibility
+	qboolean				unused_smpActive;		// UNUSED, present for compatibility
 } glconfig_t;
 
 
@@ -350,7 +358,11 @@ typedef struct {
 typedef struct polyBuffer_s {
 	vec4_t xyz[MAX_PB_VERTS];
 	vec2_t st[MAX_PB_VERTS];
+#ifdef USE_VULKAN
+	color4ub_t color[MAX_PB_VERTS];
+#else
 	byte color[MAX_PB_VERTS][4];
+#endif
 	int numVerts;
 
 	int indicies[MAX_PB_INDICIES];

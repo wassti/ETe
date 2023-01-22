@@ -58,7 +58,7 @@ const int demo_protocols[] = { OLD_PROTOCOL_VERSION, NEW_PROTOCOL_VERSION, 0 };
 #define DEF_COMZONEMEGS		25
 #endif
 
-#define ETLEGACY_VERSION	280020089
+#define ETLEGACY_VERSION	280020876
 
 static jmp_buf abortframe;	// an ERR_DROP occurred, exit the entire frame
 
@@ -3382,7 +3382,7 @@ qboolean Com_WriteProfile( const char *profile_path ) {
 	fileHandle_t f;
 
 	if ( FS_FileExists( profile_path ) ) {
-		FS_Delete( (char *)profile_path );
+		FS_Delete( profile_path );
 	}
 
 	f = FS_FOpenFileWrite( profile_path );

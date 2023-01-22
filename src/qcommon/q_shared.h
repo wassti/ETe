@@ -257,6 +257,13 @@ typedef union floatint_u
 }
 floatint_t;
 
+#if defined(USE_VULKAN)
+typedef union {
+	byte rgba[4];
+	uint32_t u32;
+} color4ub_t;
+#endif
+
 typedef int		qhandle_t;
 typedef int		sfxHandle_t;
 typedef int		fileHandle_t;
@@ -636,13 +643,11 @@ float Q_exp2f( float f );
 
 
 // fast float to int conversion
-#if id386 && !( ( defined __linux__ || defined __FreeBSD__ || defined __GNUC__ ) && ( defined __i386__ ) ) // rb010123
-long myftol( float f );
-#elif defined(__APPLE__) || defined(__APPLE_CC__)
-#define myftol( x ) (long)( x )
+#if id386 && defined(_WIN32)
+long Q_ftol( float f );
 #else
-extern long int lrintf( float x );
-#define myftol( x ) lrintf( x )
+//extern long int lrintf( float x );
+#define Q_ftol( x ) lrintf( x )
 #endif
 
 signed char ClampChar( int i );

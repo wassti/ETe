@@ -3756,7 +3756,7 @@ shader_t *R_FindShader( const char *name, int lightmapIndex, qboolean mipRawImag
 
 	InitShader( strippedName, lightmapIndex );
 
-	// FIXME: set these "need" values apropriately
+	// FIXME: set these "need" values appropriately
 	//shader.needsNormal = qtrue;
 	//shader.needsST1 = qtrue;
 	//shader.needsST2 = qtrue;

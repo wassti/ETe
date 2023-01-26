@@ -325,7 +325,11 @@ static const char *sizeToString( int size )
 Com_DL_CallbackProgress
 =================
 */
+#if CURL_AT_LEAST_VERSION(7, 32, 0)
+static int Com_DL_CallbackProgress( void *data, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow )
+#else
 static int Com_DL_CallbackProgress( void *data, double dltotal, double dlnow, double ultotal, double ulnow )
+#endif
 {
 	double percentage, speed;
 	download_t *dl = (download_t *)data;
@@ -589,12 +593,24 @@ qboolean Com_DL_Begin( download_t *dl, const char *localName, const char *remote
 		dl->func.easy_setopt( dl->cURL, CURLOPT_HEADERDATA, dl );
 	}
 	dl->func.easy_setopt( dl->cURL, CURLOPT_NOPROGRESS, 0 );
+#if CURL_AT_LEAST_VERSION(7, 32, 0)
+	dl->func.easy_setopt( dl->cURL, CURLOPT_XFERINFOFUNCTION, Com_DL_CallbackProgress );
+	dl->func.easy_setopt( dl->cURL, CURLOPT_XFERINFODATA, dl );
+#else
 	dl->func.easy_setopt( dl->cURL, CURLOPT_PROGRESSFUNCTION, Com_DL_CallbackProgress );
 	dl->func.easy_setopt( dl->cURL, CURLOPT_PROGRESSDATA, dl );
+#endif
 	dl->func.easy_setopt( dl->cURL, CURLOPT_FAILONERROR, 1 );
 	dl->func.easy_setopt( dl->cURL, CURLOPT_FOLLOWLOCATION, 1 );
 	dl->func.easy_setopt( dl->cURL, CURLOPT_MAXREDIRS, 5 );
+#if CURL_AT_LEAST_VERSION(7, 85, 0)
+	dl->func.easy_setopt( dl->cURL, CURLOPT_PROTOCOLS_STR, ALLOWED_PROTOCOLS_STR );
+#else
 	dl->func.easy_setopt( dl->cURL, CURLOPT_PROTOCOLS, ALLOWED_PROTOCOLS );
+#endif
+#if CURL_AT_LEAST_VERSION(7, 53, 0)
+	dl->func.easy_setopt( dl->cURL, CURLOPT_BUFFERSIZE, CURL_MAX_READ_SIZE );
+#endif
 
 	dl->cURLM = dl->func.multi_init();
 
@@ -906,13 +922,13 @@ void DL_Cleanup(void)
 		if(dl_request) {
 			result = dl_curl_multi_remove_handle(dl_multi, dl_request);
 			if(result != CURLM_OK) {
-				Com_DPrintf("dl_curl_multi_remove_handle failed: %s\n", dl_curl_multi_strerror(result));
+				Com_DPrintf("%s: dl_curl_multi_remove_handle failed: %s\n", __func__, dl_curl_multi_strerror(result));
 			}
 			dl_curl_easy_cleanup(dl_request);
 		}
 		result = dl_curl_multi_cleanup(dl_multi);
 		if(result != CURLM_OK) {
-			Com_DPrintf("CL_cURL_Cleanup: dl_curl_multi_cleanup failed: %s\n", dl_curl_multi_strerror(result));
+			Com_DPrintf("%s: dl_curl_multi_cleanup failed: %s\n", __func__, dl_curl_multi_strerror(result));
 		}
 		dl_multi = NULL;
 		dl_request = NULL;
@@ -948,7 +964,12 @@ static size_t DL_cb_FWriteFile( void *ptr, size_t size, size_t nmemb, void *stre
 /*
 ** Print progress
 */
-static int DL_cb_Progress( void *clientp, double dltotal, double dlnow, double ultotal, double ulnow ) {
+#if CURL_AT_LEAST_VERSION(7, 32, 0)
+static int DL_cb_Progress( void *clientp, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow )
+#else
+static int DL_cb_Progress( void *clientp, double dltotal, double dlnow, double ultotal, double ulnow )
+#endif
+{
 	/* cl_downloadSize and cl_downloadTime are set by the Q3 protocol...
 	   and it would probably be expensive to verify them here.   -zinx */
 
@@ -960,6 +981,7 @@ static int DL_cb_Progress( void *clientp, double dltotal, double dlnow, double u
 	//Cvar_SetValue( "cl_downloadCount", (float)dlnow );
 	return 0;
 }
+
 
 /*
 ===============
@@ -1019,12 +1041,25 @@ int DL_BeginDownload( const char *localName, const char *remoteName, int debug )
 	dl_curl_easy_setopt( dl_request, CURLOPT_URL, remoteName );
 	dl_curl_easy_setopt( dl_request, CURLOPT_WRITEFUNCTION, DL_cb_FWriteFile );
 	dl_curl_easy_setopt( dl_request, CURLOPT_WRITEDATA, (void*)dl_file );
-	dl_curl_easy_setopt( dl_request, CURLOPT_PROGRESSFUNCTION, DL_cb_Progress );
 	dl_curl_easy_setopt( dl_request, CURLOPT_NOPROGRESS, 0 );
+#if CURL_AT_LEAST_VERSION(7, 32, 0)
+	dl_curl_easy_setopt( dl_request, CURLOPT_XFERINFOFUNCTION, DL_cb_Progress );
+	dl_curl_easy_setopt( dl_request, CURLOPT_XFERINFODATA, NULL );
+#else
+	dl_curl_easy_setopt( dl_request, CURLOPT_PROGRESSFUNCTION, DL_cb_Progress );
+	dl_curl_easy_setopt( dl_request, CURLOPT_XFERINFODATA, NULL );
+#endif
 	dl_curl_easy_setopt( dl_request, CURLOPT_FAILONERROR, 1 );
 	dl_curl_easy_setopt( dl_request, CURLOPT_FOLLOWLOCATION, 1 );
 	dl_curl_easy_setopt( dl_request, CURLOPT_MAXREDIRS, 5 );
+#if CURL_AT_LEAST_VERSION(7, 85, 0)
+	dl_curl_easy_setopt( dl_request, CURLOPT_PROTOCOLS_STR, ALLOWED_PROTOCOLS_STR );
+#else
 	dl_curl_easy_setopt( dl_request, CURLOPT_PROTOCOLS, ALLOWED_PROTOCOLS );
+#endif
+#if CURL_AT_LEAST_VERSION(7, 53, 0)
+	dl_curl_easy_setopt( dl_request, CURLOPT_BUFFERSIZE, CURL_MAX_READ_SIZE );
+#endif
 
 	if ( dl_curl_multi_add_handle( dl_multi, dl_request ) != CURLM_OK ) {
 		Com_Printf( S_COLOR_RED "ERROR: DL_BeginDownload: multi_add_handle() failed\n" );

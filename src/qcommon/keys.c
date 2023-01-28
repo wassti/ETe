@@ -26,7 +26,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #ifdef DEDICATED
 #include "../client/keys.h"
 #else
-// Needed for cls struct access and cl_language
+// Needed for cl_language
 #include "../client/client.h"
 #endif
 
@@ -1415,9 +1415,6 @@ static void Key_CompleteUnbind( char *args, int argNum )
 	}
 }
 
-#ifndef DEDICATED
-qboolean CL_BindUICommand( const char *cmd );
-#endif
 
 /*
 ===================
@@ -1426,15 +1423,9 @@ Key_ParseBinding
 Execute the commands in the bind string
 ===================
 */
-void Key_ParseBinding( int key, qboolean down, unsigned time, qboolean forceAll )
+void Key_ParseBinding( int key, qboolean down, unsigned int time )
 {
 	char buf[ MAX_STRING_CHARS ], *p, *end;
-	qboolean allCommands, allowUpCmds;
-
-#ifndef DEDICATED
-	if ( cls.state == CA_DISCONNECTED && Key_GetCatcher() == 0 )
-		return;
-#endif
 
 	if( !keys[key].binding || keys[key].binding[0] == '\0' )
 		return;
@@ -1442,18 +1433,6 @@ void Key_ParseBinding( int key, qboolean down, unsigned time, qboolean forceAll 
 	p = buf;
 
 	Q_strncpyz( buf, keys[key].binding, sizeof( buf ) );
-
-#ifndef DEDICATED
-	// run all bind commands if console, ui, etc aren't reading keys
-	allCommands = forceAll || ( Key_GetCatcher() == 0 );
-
-	// allow button up commands if in game even if key catcher is set
-	allowUpCmds = ( cls.state != CA_DISCONNECTED );
-#else
-	allCommands = forceAll || qtrue;
-
-	allowUpCmds = qfalse;
-#endif
 
 	while( 1 )
 	{
@@ -1467,27 +1446,17 @@ void Key_ParseBinding( int key, qboolean down, unsigned time, qboolean forceAll 
 			// button commands add keynum and time as parameters
 			// so that multiple sources can be discriminated and
 			// subframe corrected
-			if ( allCommands || ( allowUpCmds && !down ) ) {
-				char cmd[1024];
-				Com_sprintf( cmd, sizeof( cmd ), "%c%s %d %d\n", ( down ) ? '+' : '-', p + 1, key, time );
-				Cbuf_AddText( cmd );
-				if ( down )
-					keys[ key ].bound = qtrue;
-			}
+			char cmd[1024];
+			Com_sprintf( cmd, sizeof( cmd ), "%c%s %d %d\n", ( down ) ? '+' : '-', p + 1, key, time );
+			Cbuf_AddText( cmd );
+			if ( down )
+				keys[ key ].bound = qtrue;
 		}
 		else if ( down )
 		{
 			// normal commands only execute on key press
-#ifndef DEDICATED
-			if ( allCommands || CL_BindUICommand( p ) )
-#else
-			if ( allCommands )
-#endif
-			{
-
-				Cbuf_AddText( p );
-				Cbuf_AddText( "\n" );
-			}
+			Cbuf_AddText( p );
+			Cbuf_AddText( "\n" );
 		}
 		if( !end )
 			break;

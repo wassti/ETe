@@ -50,7 +50,7 @@ void Key_SetBinding( int keynum, const char *binding );
 void Key_GetBindingBuf( int keynum, char *buf, int buflen );
 void Key_GetBindingByString( const char* binding, int* key1, int* key2 );
 const char *Key_GetBinding( int keynum );
-void Key_ParseBinding( int key, qboolean down, unsigned time, qboolean forceAll );
+void Key_ParseBinding( int key, qboolean down, unsigned int time );
 
 int Key_GetKey( const char *binding );
 const char *Key_KeynumToString( int keynum, qboolean bTranslate );

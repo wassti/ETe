@@ -550,25 +550,6 @@ static void Message_Key( int key ) {
 
 //============================================================================
 
-/*
-===================
-CL_BindUICommand
-Returns qtrue if bind command should be executed while user interface is shown
-===================
-*/
-qboolean CL_BindUICommand( const char *cmd ) {
-	if ( !Q_stricmp( cmd, "toggleconsole" ) )
-		return qtrue;
-
-	if ( Key_GetCatcher( ) & KEYCATCH_CONSOLE )
-		return qfalse;
-
-	if ( !Q_stricmp( cmd, "togglemenu" ) )
-		return qtrue;
-
-	return qfalse;
-}
-
 static qboolean CL_NumPadEvent(int key)
 {
 	switch (key)
@@ -743,23 +724,18 @@ static void CL_KeyDownEvent( int key, unsigned time )
 		}
 	}
 
-	// send the bound action
-	Key_ParseBinding( key, qtrue, time, bypassMenu );
-
 	// distribute the key down event to the apropriate handler
 	if ( Key_GetCatcher() & KEYCATCH_CONSOLE ) {
 		if ( !onlybinds ) {
 			Console_Key( key );
 		}
-	} else if ( Key_GetCatcher() & KEYCATCH_UI && !bypassMenu ) {
+	} else if ( (Key_GetCatcher() & KEYCATCH_UI) && uivm && !bypassMenu ) {
 		if ( !onlybinds || VM_Call( uivm, 0, UI_WANTSBINDKEYS ) ) {
 			VM_Call( uivm, 2, UI_KEY_EVENT, key, qtrue );
 		}
-	} else if ( Key_GetCatcher() & KEYCATCH_CGAME && !bypassMenu ) {
-		if ( cgvm ) {
-			if ( !onlybinds || VM_Call( cgvm, 0, CG_WANTSBINDKEYS ) ) {
-				VM_Call( cgvm, 2, CG_KEY_EVENT, key, qtrue );
-			}
+	} else if ( (Key_GetCatcher() & KEYCATCH_CGAME) && cgvm && !bypassMenu ) {
+		if ( !onlybinds || VM_Call( cgvm, 0, CG_WANTSBINDKEYS ) ) {
+			VM_Call( cgvm, 2, CG_KEY_EVENT, key, qtrue );
 		}
 	} else if ( Key_GetCatcher() & KEYCATCH_MESSAGE ) {
 		if ( !onlybinds ) {
@@ -769,6 +745,9 @@ static void CL_KeyDownEvent( int key, unsigned time )
 		if ( !onlybinds ) {
 			Console_Key( key );
 		}
+	} else {
+		// send the bound action
+		Key_ParseBinding( key, qtrue, time );
 	}
 }
 
@@ -814,8 +793,8 @@ static void CL_KeyUpEvent( int key, unsigned time )
 	// an action started before a mode switch.
 	//
 	if ( cls.state != CA_DISCONNECTED ) {
-		if ( bound ) {
-			Key_ParseBinding( key, qfalse, time, qfalse );
+		if ( bound || (Key_GetCatcher( ) & KEYCATCH_CGAME) ) {
+			Key_ParseBinding( key, qfalse, time );
 		}
 	}
 

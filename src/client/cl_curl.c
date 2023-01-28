@@ -608,9 +608,7 @@ qboolean Com_DL_Begin( download_t *dl, const char *localName, const char *remote
 #else
 	dl->func.easy_setopt( dl->cURL, CURLOPT_PROTOCOLS, ALLOWED_PROTOCOLS );
 #endif
-#if CURL_AT_LEAST_VERSION(7, 53, 0)
 	dl->func.easy_setopt( dl->cURL, CURLOPT_BUFFERSIZE, CURL_MAX_READ_SIZE );
-#endif
 
 	dl->cURLM = dl->func.multi_init();
 
@@ -1057,9 +1055,7 @@ int DL_BeginDownload( const char *localName, const char *remoteName, int debug )
 #else
 	dl_curl_easy_setopt( dl_request, CURLOPT_PROTOCOLS, ALLOWED_PROTOCOLS );
 #endif
-#if CURL_AT_LEAST_VERSION(7, 53, 0)
 	dl_curl_easy_setopt( dl_request, CURLOPT_BUFFERSIZE, CURL_MAX_READ_SIZE );
-#endif
 
 	if ( dl_curl_multi_add_handle( dl_multi, dl_request ) != CURLM_OK ) {
 		Com_Printf( S_COLOR_RED "ERROR: DL_BeginDownload: multi_add_handle() failed\n" );

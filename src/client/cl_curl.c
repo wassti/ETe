@@ -331,7 +331,12 @@ static int Com_DL_CallbackProgress( void *data, curl_off_t dltotal, curl_off_t d
 static int Com_DL_CallbackProgress( void *data, double dltotal, double dlnow, double ultotal, double ulnow )
 #endif
 {
-	double percentage, speed;
+	double percentage;
+#if CURL_AT_LEAST_VERSION(7, 55, 0)
+	curl_off_t speed;
+#else
+	double speed;
+#endif
 	download_t *dl = (download_t *)data;
 
 	dl->Size = (int)dltotal;
@@ -355,7 +360,12 @@ static int Com_DL_CallbackProgress( void *data, double dltotal, double dlnow, do
 		sprintf( dl->progress, " downloading %s: %s", dl->Name, sizeToString( dl->Count ) );
 	}
 
-	if ( dl->func.easy_getinfo( dl->cURL, CURLINFO_SPEED_DOWNLOAD, &speed ) == CURLE_OK ) {
+#if CURL_AT_LEAST_VERSION(7, 55, 0)
+	if ( dl->func.easy_getinfo( dl->cURL, CURLINFO_SPEED_DOWNLOAD_T, &speed ) == CURLE_OK )
+#else
+	if ( dl->func.easy_getinfo( dl->cURL, CURLINFO_SPEED_DOWNLOAD, &speed ) == CURLE_OK )
+#endif
+	{
 		Q_strcat( dl->progress, sizeof( dl->progress ), va( " %s/s", sizeToString( (int)speed ) ) );
 	}
 

@@ -352,6 +352,7 @@ typedef struct {
 	int antilag;         // TTimo
 	int weaprestrict;
 	int balancedteams;
+	int oss;
 	char gameName[MAX_NAME_LENGTH];         // Arnout
 } serverInfo_t;
 

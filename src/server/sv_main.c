@@ -796,8 +796,8 @@ static void SVC_Status( const netadr_t *from ) {
 	char	status[MAX_PACKETLEN];
 	char	*s;
 	int		i;
-	client_t	*cl;
-	playerState_t	*ps;
+	const client_t	*cl;
+	const playerState_t	*ps;
 	int		statusLength;
 	int		playerLength;
 	char	infostring[MAX_INFO_STRING+160]; // add some space for challenge string
@@ -881,8 +881,8 @@ void SVC_GameCompleteStatus( const netadr_t *from ) {
 	char	status[MAX_PACKETLEN];
 	char	*s;
 	int		i;
-	client_t	*cl;
-	playerState_t	*ps;
+	const client_t	*cl;
+	const playerState_t	*ps;
 	int		statusLength;
 	int		playerLength;
 	char	infostring[MAX_INFO_STRING+160]; // add some space for challenge string
@@ -963,11 +963,8 @@ if a user is interested in a server to do a full status
 */
 static void SVC_Info( const netadr_t *from ) {
 	int		i, count, humans;
-	const char	*gamedir;
+	const char	*str;
 	char	infostring[MAX_INFO_STRING];
-	const char    *antilag;
-	const char    *weaprestrict;
-	const char    *balancedteams;
 
 	// ignore if we are in single player
 	if ( SV_GameIsSinglePlayer() ) {
@@ -1026,20 +1023,16 @@ static void SVC_Info( const netadr_t *from ) {
 	Info_SetValueForKey( infostring, "serverload", va( "%i", svs.serverLoad ) );
 	Info_SetValueForKey( infostring, "mapname", sv_mapname->string );
 	Info_SetValueForKey( infostring, "clients", va("%i", count) );
-	Info_SetValueForKey(infostring, "g_humanplayers", va("%i", humans));
+	Info_SetValueForKey( infostring, "humans", va("%i", humans) );
 	Info_SetValueForKey( infostring, "sv_maxclients", va( "%i", sv_maxclients->integer - sv_privateClients->integer ) );
-	//Info_SetValueForKey( infostring, "gametype", va("%i", sv_gametype->integer ) );
+	Info_SetValueForKey( infostring, "sv_privateclients", va( "%i", sv_privateClients->integer ) );
 	Info_SetValueForKey( infostring, "gametype", Cvar_VariableString( "g_gametype" ) );
 	Info_SetValueForKey( infostring, "pure", va( "%i", sv_pure->integer ) );
 
-	gamedir = Cvar_VariableString( "fs_game" );
-	if ( *gamedir ) {
-		Info_SetValueForKey( infostring, "game", gamedir );
+	str = Cvar_VariableString( "fs_game" );
+	if ( *str ) {
+		Info_SetValueForKey( infostring, "game", str );
 	}
-
-	// Rafael gameskill
-//	Info_SetValueForKey (infostring, "gameskill", va ("%i", sv_gameskill->integer));
-	// done
 
 	Info_SetValueForKey( infostring, "friendlyFire", va( "%i", sv_friendlyFire->integer ) );        // NERVE - SMF
 	Info_SetValueForKey( infostring, "maxlives", va( "%i", sv_maxlives->integer ? 1 : 0 ) );        // NERVE - SMF
@@ -1047,19 +1040,24 @@ static void SVC_Info( const netadr_t *from ) {
 	Info_SetValueForKey( infostring, "gamename", GAMENAME_STRING );                               // Arnout: to be able to filter out Quake servers
 
 	// TTimo
-	antilag = Cvar_VariableString( "g_antilag" );
-	if ( antilag ) {
-		Info_SetValueForKey( infostring, "g_antilag", antilag );
+	str = Cvar_VariableString( "g_antilag" );
+	if ( *str ) {
+		Info_SetValueForKey( infostring, "g_antilag", str );
 	}
 
-	weaprestrict = Cvar_VariableString( "g_heavyWeaponRestriction" );
-	if ( weaprestrict ) {
-		Info_SetValueForKey( infostring, "weaprestrict", weaprestrict );
+	str = Cvar_VariableString( "g_heavyWeaponRestriction" );
+	if ( *str ) {
+		Info_SetValueForKey( infostring, "weaprestrict", str );
 	}
 
-	balancedteams = Cvar_VariableString( "g_balancedteams" );
-	if ( balancedteams ) {
-		Info_SetValueForKey( infostring, "balancedteams", balancedteams );
+	str = Cvar_VariableString( "g_balancedteams" );
+	if ( *str ) {
+		Info_SetValueForKey( infostring, "balancedteams", str );
+	}
+
+	str = Cvar_VariableString( "g_oss" );
+	if ( *str ) {
+		Info_SetValueForKey( infostring, "oss", str );
 	}
 
 	NET_OutOfBandPrint( NS_SERVER, from, "infoResponse\n%s", infostring );

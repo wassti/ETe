@@ -464,7 +464,7 @@ void SV_DirectConnect( const netadr_t *from ) {
 	int			clientNum;
 	int			qport;
 	int			challenge;
-	char		*password;
+	const char		*password;
 	int			startIndex;
 	intptr_t	denied;
 	int			count;

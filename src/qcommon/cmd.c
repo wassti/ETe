@@ -412,7 +412,7 @@ static void Cmd_Echo_f( void )
 #ifdef DEDICATED
 	Com_Printf ("%s\n", Cmd_ArgsFrom( 1 ) );
 #else
-	if ( com_dedicated && !com_dedicated->integer ) {
+	if ( !com_dedicated || !com_dedicated->integer ) {
 
 		if ( com_cl_running && com_cl_running->integer && CL_CgameRunning() )
 			Cbuf_AddText( va( "cpm \"%s\"\n", Cmd_ArgsFrom( 1 ) ) );

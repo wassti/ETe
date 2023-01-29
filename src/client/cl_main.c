@@ -2604,6 +2604,7 @@ static void CL_InitServerInfo( serverInfo_t *server, const netadr_t *address ) {
 	server->weaprestrict = 0;
 	server->balancedteams = 0;
 	server->gameName[0] = '\0';
+	server->oss = 0;
 }
 
 #define MAX_SERVERSPERPACKET	256
@@ -4766,6 +4767,7 @@ static void CL_SetServerInfo( serverInfo_t *server, const char *info, int ping )
 			server->antilag = atoi( Info_ValueForKey( info, "g_antilag" ) );
 			server->weaprestrict = atoi( Info_ValueForKey( info, "weaprestrict" ) );
 			server->balancedteams = atoi( Info_ValueForKey( info, "balancedteams" ) );
+			server->oss = atoi( Info_ValueForKey( info, "oss" ) );
 		}
 		server->ping = ping;
 	}

@@ -58,7 +58,7 @@ const int demo_protocols[] = { OLD_PROTOCOL_VERSION, NEW_PROTOCOL_VERSION, 0 };
 #define DEF_COMZONEMEGS		25
 #endif
 
-#define ETLEGACY_VERSION	280020876
+#define ETLEGACY_VERSION	281000007
 
 static jmp_buf abortframe;	// an ERR_DROP occurred, exit the entire frame
 
@@ -1869,7 +1869,7 @@ static const char *tagName[ TAG_COUNT ] = {
 	"SEARCH-PATH",
 	"SEARCH-PACK",
 	"SEARCH-DIR",
-	"BOTLIB",
+	"PARSER/LEXER",
 	"RENDERER",
 	"CLIENTS",
 	"SMALL",
@@ -1999,7 +1999,7 @@ static void Com_Meminfo_f( void ) {
 	Com_Printf( "%9i bytes (%6.2f MB) total main zone\n\n", mainzone->size, mainzone->size / Square( 1024.f ) );
 	Com_Printf( "%9i bytes (%6.2f MB) in %i main zone blocks%s\n", st.zoneBytes, st.zoneBytes / Square( 1024.f ), st.zoneBlocks,
 		st.zoneSegments > 1 ? va( " and %i segments", st.zoneSegments ) : "" );
-	Com_Printf( "        %9i bytes (%6.2f MB) in botlib\n", st.botlibBytes, st.botlibBytes / Square( 1024.f ) );
+	Com_Printf( "        %9i bytes (%6.2f MB) in parser/lexer\n", st.botlibBytes, st.botlibBytes / Square( 1024.f ) );
 	Com_Printf( "        %9i bytes (%6.2f MB) in renderer\n", st.rendererBytes, st.rendererBytes / Square( 1024.f ) );
 	Com_Printf( "        %9i bytes (%6.2f MB) in other\n", st.zoneBytes - ( st.botlibBytes + st.rendererBytes ), ( st.zoneBytes - ( st.botlibBytes + st.rendererBytes ) ) / Square( 1024.f ) );
 	Com_Printf( "        %8i bytes (%6.2f MB) in %i free blocks\n", st.freeBytes, st.freeBytes / Square( 1024.f ), st.freeBlocks );

@@ -181,7 +181,7 @@ cvar_t  *r_cacheGathering;
 
 cvar_t  *r_buildScript;
 
-cvar_t	*r_marksOnTriangleMeshes;
+//cvar_t	*r_marksOnTriangleMeshes;
 
 cvar_t  *r_bonesDebug;
 // done.
@@ -1724,7 +1724,7 @@ static void R_Register( void )
 
 	r_portalsky = ri.Cvar_Get( "cg_skybox", "1", 0 );
 
-	r_marksOnTriangleMeshes = ri.Cvar_Get("r_marksOnTriangleMeshes", "0", CVAR_ARCHIVE_ND );
+	//r_marksOnTriangleMeshes = ri.Cvar_Get("r_marksOnTriangleMeshes", "0", CVAR_ARCHIVE_ND );
 
 	r_aviMotionJpegQuality = ri.Cvar_Get( "r_aviMotionJpegQuality", "90", CVAR_ARCHIVE_ND );
 	r_screenshotJpegQuality = ri.Cvar_Get( "r_screenshotJpegQuality", "90", CVAR_ARCHIVE_ND );

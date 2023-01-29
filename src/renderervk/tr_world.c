@@ -851,6 +851,15 @@ void R_AddBrushModelSurfaces( trRefEntity_t *ent ) {
 				}
 			}
 		}
+		// ydnar: restore old decal projectors
+		tr.refdef.numDecalProjectors = savedNumDecalProjectors;
+		tr.refdef.decalProjectors = savedDecalProjectors;
+
+		// ydnar: add decal surfaces
+		R_AddDecalSurfaces( bmodel );
+
+		// ydnar: clear current brush model
+		tr.currentBModel = NULL;
 		return;
 	}
 #endif // USE_PMLIGHT
@@ -1120,8 +1129,8 @@ static mnode_t *R_PointInLeaf( const vec3_t p ) {
 R_ClusterPVS
 ==============
 */
-static const byte *R_ClusterPVS (int cluster) {
-	if ( !tr.world->vis || cluster < 0 || cluster >= tr.world->numClusters ) {
+static const byte *R_ClusterPVS( int cluster ) {
+	if ( !tr.world || !tr.world->vis || cluster < 0 || cluster >= tr.world->numClusters ) {
 		return tr.world->novis;
 	}
 
@@ -1213,8 +1222,20 @@ static void R_MarkLeaves (void) {
 		}
 
 		// check for door connection
-		if ( (tr.refdef.areamask[leaf->area>>3] & (1<<(leaf->area&7)) ) ) {
+		if ( leaf->area >= 8 * (int)ARRAY_LEN(tr.refdef.areamask) ||
+			 (tr.refdef.areamask[leaf->area>>3] & (1<<(leaf->area&7)) ) ) {
 			continue;		// not visible
+		}
+
+		// ydnar: don't want to walk the entire bsp to add skybox surfaces
+		if ( tr.refdef.rdflags & RDF_SKYBOXPORTAL ) {
+			// this only happens once, as game/cgame know the origin of the skybox
+			// this also means the skybox portal cannot move, as this list is calculated once and never again
+			if ( tr.world->numSkyNodes < WORLD_MAX_SKY_NODES ) {
+				tr.world->skyNodes[ tr.world->numSkyNodes++ ] = leaf;
+			}
+			R_AddLeafSurfaces( leaf, 0, 0 );
+			continue;
 		}
 
 		parent = leaf;
@@ -1250,42 +1271,69 @@ void R_AddWorldSurfaces( void ) {
 	tr.currentEntityNum = REFENTITYNUM_WORLD;
 	tr.shiftedEntityNum = tr.currentEntityNum << QSORT_REFENTITYNUM_SHIFT;
 
-	// determine which leaves are in the PVS / areamask
-	R_MarkLeaves ();
+	// ydnar: set current brush model to world
+	tr.currentBModel = &tr.world->bmodels[ 0 ];
 
 	// clear out the visible min/max
 	ClearBounds( tr.viewParms.visBounds[0], tr.viewParms.visBounds[1] );
 
-	// perform frustum culling and add all the potentially visible surfaces
-	if ( tr.refdef.num_dlights > MAX_DLIGHTS ) {
-		tr.refdef.num_dlights = MAX_DLIGHTS;
-	}
+	// render sky or world?
+	if ( tr.refdef.rdflags & RDF_SKYBOXPORTAL && tr.world->numSkyNodes > 0 ) {
+		//int i;
+		mnode_t **node;
 
-	R_RecursiveWorldNode( tr.world->nodes, 15, ( 1ULL << tr.refdef.num_dlights ) - 1, tr.refdef.decalBits );
+		for ( i = 0, node = tr.world->skyNodes; i < tr.world->numSkyNodes; i++, node++ )
+			R_AddLeafSurfaces( *node, ( 1ULL << tr.refdef.num_dlights ) - 1/*tr.refdef.dlightBits*/, 0 );    // no decals on skybox nodes
+	} else
+	{
+		// determine which leaves are in the PVS / areamask
+		R_MarkLeaves();
+
+		// perform frustum culling and add all the potentially visible surfaces
+		if ( tr.refdef.num_dlights > MAX_DLIGHTS ) {
+			tr.refdef.num_dlights = MAX_DLIGHTS;
+		}
+
+		R_RecursiveWorldNode( tr.world->nodes, 255, ( 1ULL << tr.refdef.num_dlights ) - 1 /*tr.refdef.dlightBits*/, tr.refdef.decalBits );
 
 #ifdef USE_PMLIGHT
 #ifdef USE_LEGACY_DLIGHTS
-	if ( !r_dlightMode->integer )
-		return;
+		if ( !r_dlightMode->integer )
+		{
+			// ydnar: add decal surfaces
+			R_AddDecalSurfaces( tr.world->bmodels );
+
+			// clear brush model
+			tr.currentBModel = NULL;
+
+			return;
+		}
 #endif // USE_LEGACY_DLIGHTS
 
-	// "transform" all the dlights so that dl->transformed is actually populated
-	// (even though HERE it's == dl->origin) so we can always use R_LightCullBounds
-	// instead of having copypasted versions for both world and local cases
+		// "transform" all the dlights so that dl->transformed is actually populated
+		// (even though HERE it's == dl->origin) so we can always use R_LightCullBounds
+		// instead of having copypasted versions for both world and local cases
 
-	R_TransformDlights( tr.viewParms.num_dlights, tr.viewParms.dlights, &tr.viewParms.world );
-	for ( i = 0; i < tr.viewParms.num_dlights; i++ ) 
-	{
-		dl = &tr.viewParms.dlights[i];	
-		dl->head = dl->tail = NULL;
-		if ( R_CullDlight( dl ) == CULL_OUT ) {
-			tr.pc.c_light_cull_out++;
-			continue;
+		R_TransformDlights( tr.viewParms.num_dlights, tr.viewParms.dlights, &tr.viewParms.world );
+		for ( i = 0; i < tr.viewParms.num_dlights; i++ ) 
+		{
+			dl = &tr.viewParms.dlights[i];	
+			dl->head = dl->tail = NULL;
+			if ( R_CullDlight( dl ) == CULL_OUT ) {
+				tr.pc.c_light_cull_out++;
+				continue;
+			}
+			tr.pc.c_light_cull_in++;
+			tr.lightCount++;
+			tr.light = dl;
+			R_RecursiveLightNode( tr.world->nodes );
 		}
-		tr.pc.c_light_cull_in++;
-		tr.lightCount++;
-		tr.light = dl;
-		R_RecursiveLightNode( tr.world->nodes );
+
+		// ydnar: add decal surfaces
+		R_AddDecalSurfaces( tr.world->bmodels );
 	}
+
+	// clear brush model
+	tr.currentBModel = NULL;
 #endif // USE_PMLIGHT
 }

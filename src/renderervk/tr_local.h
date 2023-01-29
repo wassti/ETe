@@ -1663,7 +1663,7 @@ extern cvar_t  *r_cacheModels;
 
 extern cvar_t  *r_cacheGathering;
 
-extern cvar_t	*r_marksOnTriangleMeshes;
+//extern cvar_t	*r_marksOnTriangleMeshes;
 
 extern cvar_t  *r_bonesDebug;
 // done.
@@ -1996,11 +1996,9 @@ SKIES
 ============================================================
 */
 
-void R_BuildCloudData( shaderCommands_t *shader );
 void R_InitSkyTexCoords( float cloudLayerHeight );
 void R_DrawSkyBox( shaderCommands_t *shader );
 void RB_DrawSun( void );
-void RB_ClipSkyPolygons( shaderCommands_t *shader );
 
 /*
 ============================================================

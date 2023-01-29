@@ -907,6 +907,48 @@ void R_ComputeTexCoords( const int b, const textureBundle_t *bundle ) {
 }
 
 
+extern void R_Fog( glfog_t *curfog );
+
+/*
+==============
+SetIteratorFog
+	set the fog parameters for this pass
+==============
+*/
+void SetIteratorFog( void ) {
+	// changed for problem when you start the game with r_fastsky set to '1'
+//	if(r_fastsky->integer || backEnd.refdef.rdflags & RDF_NOWORLDMODEL ) {
+	if ( backEnd.refdef.rdflags & RDF_NOWORLDMODEL ) {
+		R_FogOff();
+		return;
+	}
+
+	if ( backEnd.refdef.rdflags & RDF_DRAWINGSKY ) {
+		if ( glfogsettings[FOG_SKY].registered ) {
+			R_Fog( &glfogsettings[FOG_SKY] );
+		} else {
+			R_FogOff();
+		}
+
+		return;
+	}
+
+	if ( skyboxportal && backEnd.refdef.rdflags & RDF_SKYBOXPORTAL ) {
+		if ( glfogsettings[FOG_PORTALVIEW].registered ) {
+			R_Fog( &glfogsettings[FOG_PORTALVIEW] );
+		} else {
+			R_FogOff();
+		}
+	} else {
+		if ( glfogNum > FOG_NONE ) {
+			R_Fog( &glfogsettings[FOG_CURRENT] );
+		} else {
+			R_FogOff();
+		}
+	}
+}
+
+
 /*
 ** RB_IterateStagesGeneric
 */
@@ -1204,6 +1246,11 @@ void RB_StageIteratorGeneric( void )
 	} else
 #endif
 	RB_DeformTessGeometry();
+
+	//
+	// set "GL" fog
+	//
+	SetIteratorFog();
 
 #ifdef USE_PMLIGHT
 	if ( tess.dlightPass ) {

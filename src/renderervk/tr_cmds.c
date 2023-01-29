@@ -545,7 +545,7 @@ void RE_BeginFrame( stereoFrame_t stereoFrame ) {
 	}
 
 #ifdef USE_VULKAN
-	if ( r_fastsky->integer && vk.fastSky ) {
+	if ( vk.fastSky && (r_fastsky->integer /*|| (tr.world && tr.world->globalFog >= 0 )*/))  {
 #else
 	if ( r_fastsky->integer ) {
 #endif

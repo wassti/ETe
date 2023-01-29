@@ -411,7 +411,9 @@ void RB_SurfaceFoliage( srfFoliage_t *srf ) {
 	float	*texCoords0;
 	float	*texCoords1;
 	uint32_t	*color;
+#ifdef USE_LEGACY_DLIGHTS
 	int dlightBits;
+#endif
 	const foliageInstance_t   *instance;
 
 #ifdef USE_VBO

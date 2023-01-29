@@ -147,6 +147,11 @@ static void AddSkyPolygon (int nump, vec3_t vecs)
 ClipSkyPolygon
 ================
 */
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
+#endif /* __GNUC__ */
+
 static void ClipSkyPolygon (int nump, vec3_t vecs, int stage) 
 {
 	const float *norm;
@@ -238,6 +243,10 @@ static void ClipSkyPolygon (int nump, vec3_t vecs, int stage)
 	ClipSkyPolygon (newc[1], newv[1][0], stage+1);
 }
 
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
+
 /*
 ==============
 ClearSkyBox
@@ -257,7 +266,7 @@ static void ClearSkyBox (void) {
 RB_ClipSkyPolygons
 ================
 */
-void RB_ClipSkyPolygons( shaderCommands_t *input )
+static void RB_ClipSkyPolygons( shaderCommands_t *input )
 {
 	vec3_t		p[5];	// need one extra point for clipping
 	int			i, j;
@@ -308,7 +317,23 @@ static void MakeSkyVec( float s, float t, int axis, vec3_t outXYZ )
 	int			j, k;
 	float	boxSize;
 
-	boxSize = backEnd.viewParms.zFar / 1.75;		// div sqrt(3)
+// JPW NERVE swiped from Sherman SP fix
+//	if(glfogNum > FOG_NONE && glfogsettings[FOG_CURRENT].mode == GL_EXP) {
+	if ( glfogsettings[FOG_SKY].registered ) {     // (SA) trying this...
+///		boxSize = backEnd.viewParms.zFar / 1.75;		// div sqrt(3)
+//		boxSize = glfogsettings[FOG_CURRENT].end / 1.75;
+		boxSize = glfogsettings[FOG_SKY].end;       // (SA) trying this...
+// jpw
+	} else {
+		boxSize = backEnd.viewParms.zFar / 1.75;        // div sqrt(3)
+
+	}
+// JPW NERVE swiped from Sherman
+	// make sure the sky is not near clipped
+	if ( boxSize < r_znear->value * 2.0 ) {
+		boxSize = r_znear->value * 2.0;
+	}
+// jpw
 	b[0] = s*boxSize;
 	b[1] = t*boxSize;
 	b[2] = boxSize;
@@ -344,7 +369,7 @@ static qboolean CullPoints( vec4_t v[], const int count )
 	int i, j;
 	float dist;
 
-	for ( i = 0; i < 5; i++ ) {
+	for ( i = 0; i < 6; i++ ) {
 		frust = &backEnd.viewParms.frustum[i];
 		for ( j = 0; j < count; j++ ) {
 			dist = DotProduct( v[j], frust->normal ) - frust->dist;
@@ -459,7 +484,7 @@ static void DrawSkySide( image_t *image, const int mins[2], const int maxs[2] )
 #ifdef USE_VULKAN
 		tess.svars.texcoordPtr[0] = tess.texCoords[0];
 
-		vk_bind_pipeline( vk.skybox_pipeline );
+		vk_bind_pipeline( vk.skybox_pipelines[0] );
 		vk_bind_index();
 		vk_bind_geometry( TESS_XYZ | TESS_ST0 );
 		vk_draw_geometry( r_showsky->integer ? DEPTH_RANGE_ZERO : DEPTH_RANGE_ONE, qtrue );
@@ -474,6 +499,38 @@ static void DrawSkySide( image_t *image, const int mins[2], const int maxs[2] )
 	}
 }
 
+
+static void DrawSkySideInner( image_t *image, const int mins[2], const int maxs[2] )
+{
+	tess.numVertexes = 0;
+	tess.numIndexes = 0;
+
+	FillSkySide( mins, maxs, s_skyTexCoords );
+
+	if ( tess.numIndexes )
+	{
+		GL_Bind( image );
+#ifdef USE_VULKAN
+		tess.svars.texcoordPtr[0] = tess.texCoords[0];
+
+		vk_bind_pipeline( vk.skybox_pipelines[1] );
+		vk_bind_index();
+		vk_bind_geometry( TESS_XYZ | TESS_ST0 );
+		vk_draw_geometry( r_showsky->integer ? DEPTH_RANGE_ZERO : DEPTH_RANGE_ONE, qtrue );
+#else
+		GL_State( GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA );
+		GL_TexEnv( GL_MODULATE );
+
+		qglVertexPointer( 3, GL_FLOAT, 16, tess.xyz );
+		qglTexCoordPointer( 2, GL_FLOAT, 0, tess.texCoords[0] );
+
+		R_DrawElements( tess.numIndexes, tess.indexes );
+#endif
+
+		tess.numVertexes = 0;
+		tess.numIndexes = 0;
+	}
+}
 
 static void DrawSkyBox( const shader_t *shader )
 {
@@ -534,6 +591,71 @@ static void DrawSkyBox( const shader_t *shader )
 		}
 
 		DrawSkySide( shader->sky.outerbox[sky_texorder[i]], sky_mins_subd, sky_maxs_subd );
+	}
+}
+
+
+static void DrawSkyBoxInner( const shader_t *shader )
+{
+	int i;
+
+	for ( i = 0 ; i < 6 ; i++ )
+	{
+		int sky_mins_subd[2], sky_maxs_subd[2];
+		int s, t;
+
+		sky_mins[0][i] = floor( sky_mins[0][i] * HALF_SKY_SUBDIVISIONS ) / HALF_SKY_SUBDIVISIONS;
+		sky_mins[1][i] = floor( sky_mins[1][i] * HALF_SKY_SUBDIVISIONS ) / HALF_SKY_SUBDIVISIONS;
+		sky_maxs[0][i] = ceil( sky_maxs[0][i] * HALF_SKY_SUBDIVISIONS ) / HALF_SKY_SUBDIVISIONS;
+		sky_maxs[1][i] = ceil( sky_maxs[1][i] * HALF_SKY_SUBDIVISIONS ) / HALF_SKY_SUBDIVISIONS;
+
+		if ( ( sky_mins[0][i] >= sky_maxs[0][i] ) ||
+			 ( sky_mins[1][i] >= sky_maxs[1][i] ) ) {
+			continue;
+		}
+
+		sky_mins_subd[0] = sky_mins[0][i] * HALF_SKY_SUBDIVISIONS;
+		sky_mins_subd[1] = sky_mins[1][i] * HALF_SKY_SUBDIVISIONS;
+		sky_maxs_subd[0] = sky_maxs[0][i] * HALF_SKY_SUBDIVISIONS;
+		sky_maxs_subd[1] = sky_maxs[1][i] * HALF_SKY_SUBDIVISIONS;
+
+		if ( sky_mins_subd[0] < -HALF_SKY_SUBDIVISIONS ) {
+			sky_mins_subd[0] = -HALF_SKY_SUBDIVISIONS;
+		} else if ( sky_mins_subd[0] > HALF_SKY_SUBDIVISIONS ) {
+			sky_mins_subd[0] = HALF_SKY_SUBDIVISIONS;
+		}
+		if ( sky_mins_subd[1] < -HALF_SKY_SUBDIVISIONS ) {
+			sky_mins_subd[1] = -HALF_SKY_SUBDIVISIONS;
+		} else if ( sky_mins_subd[1] > HALF_SKY_SUBDIVISIONS ) {
+			sky_mins_subd[1] = HALF_SKY_SUBDIVISIONS;
+		}
+
+		if ( sky_maxs_subd[0] < -HALF_SKY_SUBDIVISIONS ) {
+			sky_maxs_subd[0] = -HALF_SKY_SUBDIVISIONS;
+		} else if ( sky_maxs_subd[0] > HALF_SKY_SUBDIVISIONS ) {
+			sky_maxs_subd[0] = HALF_SKY_SUBDIVISIONS;
+		}
+		if ( sky_maxs_subd[1] < -HALF_SKY_SUBDIVISIONS ) {
+			sky_maxs_subd[1] = -HALF_SKY_SUBDIVISIONS;
+		} else if ( sky_maxs_subd[1] > HALF_SKY_SUBDIVISIONS ) {
+			sky_maxs_subd[1] = HALF_SKY_SUBDIVISIONS;
+		}
+
+		//
+		// iterate through the subdivisions
+		//
+		for ( t = sky_mins_subd[1] + HALF_SKY_SUBDIVISIONS; t <= sky_maxs_subd[1] + HALF_SKY_SUBDIVISIONS; t++ )
+		{
+			for ( s = sky_mins_subd[0] + HALF_SKY_SUBDIVISIONS; s <= sky_maxs_subd[0] + HALF_SKY_SUBDIVISIONS; s++ )
+			{
+				MakeSkyVec( ( s - HALF_SKY_SUBDIVISIONS ) / ( float ) HALF_SKY_SUBDIVISIONS,
+							( t - HALF_SKY_SUBDIVISIONS ) / ( float ) HALF_SKY_SUBDIVISIONS,
+							i,
+							s_skyPoints[t][s] );
+			}
+		}
+
+		DrawSkySideInner( shader->sky.innerbox[sky_texorder[i]], sky_mins_subd, sky_maxs_subd );
 	}
 }
 
@@ -632,7 +754,7 @@ static void FillCloudBox( void )
 /*
 ** R_BuildCloudData
 */
-void R_BuildCloudData( shaderCommands_t *input )
+static void R_BuildCloudData( shaderCommands_t *input )
 {
 	const shader_t *shader;
 
@@ -781,6 +903,9 @@ void RB_DrawSun( void ) {
 	if ( !backEnd.skyRenderedThisView )
 		return;
 
+	if ( !r_drawSun->integer )
+		return;
+
 	sunColor.u32 = 0xFFFFFFFF;
 
 #ifdef USE_VULKAN
@@ -852,6 +977,9 @@ void RB_DrawSun( void ) {
 }
 
 
+
+extern void R_Fog( glfog_t *curfog );
+
 /*
 ================
 RB_StageIteratorSky
@@ -871,9 +999,27 @@ void RB_StageIteratorSky( void ) {
 		return;
 	}
 
+	// when portal sky exists, only render skybox for the portal sky scene
+	if ( skyboxportal && !( backEnd.refdef.rdflags & RDF_SKYBOXPORTAL ) ) {
+		return;
+	}
+
+	// does the current fog require fastsky?
+	if ( backEnd.viewParms.glFog.registered ) {
+		if ( !backEnd.viewParms.glFog.drawsky ) {
+			return;
+		}
+	} else if ( glfogNum > FOG_NONE )      {
+		if ( !glfogsettings[FOG_CURRENT].drawsky ) {
+			return;
+		}
+	}
+
 #ifdef USE_VBO
 	VBO_UnBind();
 #endif
+
+	backEnd.refdef.rdflags |= RDF_DRAWINGSKY;
 
 	// go through all the polygons and project them onto
 	// the sky box to see which blocks on each side need
@@ -909,7 +1055,7 @@ void RB_StageIteratorSky( void ) {
 		qglColor4f( tr.identityLight, tr.identityLight, tr.identityLight, 1.0 );
 
 		GL_State( 0 );
-		GL_Cull( CT_FRONT_SIDED );
+		GL_Cull( CT_TWO_SIDED );
 
 		DrawSkyBox( tess.shader );
 #endif
@@ -919,10 +1065,28 @@ void RB_StageIteratorSky( void ) {
 	// by the generic shader routine
 	R_BuildCloudData( &tess );
 
-	// draw the inner skybox
 	if ( tess.numVertexes ) {
 		RB_StageIteratorGeneric();
 	}
+
+	// draw the inner skybox
+	// Rafael - drawing inner skybox
+	if ( tess.shader->sky.innerbox[0] && tess.shader->sky.innerbox[0] != tr.defaultImage ) {
+#ifdef USE_VULKAN
+		DrawSkyBoxInner( tess.shader );
+#else
+		GL_ClientState( 1, CLS_NONE );
+		GL_ClientState( 0, CLS_TEXCOORD_ARRAY );
+
+		qglColor4f( tr.identityLight, tr.identityLight, tr.identityLight, 1.0 );
+
+		//GL_State( 0 );
+		GL_Cull( CT_TWO_SIDED );
+
+		DrawSkyBoxInner( tess.shader );
+#endif
+	}
+	// Rafael - end
 
 	// back to normal depth range
 #ifdef USE_VULKAN
@@ -930,6 +1094,8 @@ void RB_StageIteratorSky( void ) {
 #else
 	qglDepthRange( 0.0, 1.0 );
 #endif
+
+	backEnd.refdef.rdflags &= ~RDF_DRAWINGSKY;
 
 	// note that sky was drawn so we will draw a sun later
 	backEnd.skyRenderedThisView = qtrue;

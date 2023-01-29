@@ -450,7 +450,7 @@ typedef struct {
 	//
 	// Standard pipelines.
 	//
-	uint32_t skybox_pipeline;
+	uint32_t skybox_pipelines[2];
 
 	// dim 0: 0 - front side, 1 - back size
 	// dim 1: 0 - normal view, 1 - mirror view

@@ -148,7 +148,7 @@ RE_AddPolyToScene
 */
 void RE_AddPolyToScene( qhandle_t hShader, int numVerts, const polyVert_t *verts ) {
 	srfPoly_t	*poly;
-	int			i, j;
+	int			i;
 	int			fogIndex;
 	fog_t		*fog;
 	vec3_t		bounds[2];
@@ -172,7 +172,7 @@ void RE_AddPolyToScene( qhandle_t hShader, int numVerts, const polyVert_t *verts
 	poly->numVerts = numVerts;
 	poly->verts = &backEndData->polyVerts[r_numpolyverts];
 	
-	Com_Memcpy( poly->verts, &verts[numVerts*j], numVerts * sizeof( *verts ) );
+	Com_Memcpy( poly->verts, &verts[numVerts], numVerts * sizeof( *verts ) );
 #if 0
 	if ( glConfig.hardwareType == GLHW_RAGEPRO ) {
 		poly->verts->modulate[0] = 255;
@@ -637,6 +637,10 @@ void RE_RenderScene( const refdef_t *fd ) {
 
 	tr.refdef.time = fd->time;
 	tr.refdef.rdflags = fd->rdflags;
+
+	if ( fd->rdflags & RDF_SKYBOXPORTAL ) {
+		skyboxportal = 1;
+	}
 
 	// copy the areamask data over and note if it has changed, which
 	// will force a reset of the visible leafs even if the view hasn't moved

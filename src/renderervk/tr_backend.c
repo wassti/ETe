@@ -1881,6 +1881,7 @@ static const void *RB_ClearDepth( const void *data )
 	return (const void *)(cmd + 1);
 }
 
+static const vec4_t colorFastSky = { 0.05f, 0.05f, 0.05f, 1.0f };
 
 /*
 =============
@@ -1893,12 +1894,23 @@ static const void *RB_ClearColor( const void *data )
 
 #ifdef USE_VULKAN
 	backEnd.projection2D = qtrue;
-	vk_clear_color( colorBlack );
+	/*if ( tr.world && tr.world->globalFog >= 0 )
+	{
+		const fogParms_t *fog = &tr.world->fogs[tr.world->globalFog].shader->fogParms;
+		vec4_t fogColor;
+		Vector4Set( fogColor, fog->color[0] * tr.identityLight, fog->color[1] * tr.identityLight, fog->color[2] * tr.identityLight, 1.0f );
+		vk_clear_color( fogColor );
+		//ri.Printf( PRINT_ALL, "World Fog Color\n" );
+	}
+	else*/
+	{
+		vk_clear_color( colorFastSky );
+	}
 	backEnd.projection2D = qfalse;
 #else
 	qglViewport( 0, 0, glConfig.vidWidth, glConfig.vidHeight );
 	qglScissor( 0, 0, glConfig.vidWidth, glConfig.vidHeight );
-	qglClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
+	qglClearColor( 0.05f, 0.05f, 0.05f, 1.0f );
 	qglClear( GL_COLOR_BUFFER_BIT );
 #endif
 

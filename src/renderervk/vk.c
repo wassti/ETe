@@ -2554,10 +2554,22 @@ static void vk_alloc_persistent_pipelines( void )
 	{
 		Com_Memset(&def, 0, sizeof(def));
 		def.shader_type = TYPE_SIGNLE_TEXTURE_IDENTITY;
-		def.face_culling = CT_FRONT_SIDED;
+		def.face_culling = CT_TWO_SIDED;
 		def.polygon_offset = qfalse;
 		def.mirror = qfalse;
-		vk.skybox_pipeline = vk_find_pipeline_ext( 0, &def, qtrue );
+		vk.skybox_pipelines[0] = vk_find_pipeline_ext( 0, &def, qtrue );
+	}
+
+	// skybox inner
+	{
+		Com_Memset(&def, 0, sizeof(def));
+		def.shader_type = TYPE_SIGNLE_TEXTURE_IDENTITY;
+		def.face_culling = CT_TWO_SIDED;
+		def.polygon_offset = qfalse;
+		def.state_bits = GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA;
+		//def.shader_type = TYPE_MULTI_TEXTURE_MUL3;
+		def.mirror = qfalse;
+		vk.skybox_pipelines[1] = vk_find_pipeline_ext( 0, &def, qtrue );
 	}
 
 	// stencil shadows

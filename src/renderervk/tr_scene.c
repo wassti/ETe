@@ -48,7 +48,7 @@ int r_firstSceneDecalProjector;
 int r_numDecalProjectors;
 int r_firstSceneDecal;
 
-int skyboxportal;
+int skyboxportal; // signifies if the loaded map has a skyboxportal
 /*
 ====================
 R_InitNextFrame
@@ -172,7 +172,7 @@ void RE_AddPolyToScene( qhandle_t hShader, int numVerts, const polyVert_t *verts
 	poly->numVerts = numVerts;
 	poly->verts = &backEndData->polyVerts[r_numpolyverts];
 	
-	Com_Memcpy( poly->verts, &verts[numVerts], numVerts * sizeof( *verts ) );
+	Com_Memcpy( poly->verts, verts, numVerts * sizeof( *verts ) );
 #if 0
 	if ( glConfig.hardwareType == GLHW_RAGEPRO ) {
 		poly->verts->modulate[0] = 255;
@@ -235,19 +235,13 @@ void RE_AddPolysToScene( qhandle_t hShader, int numVerts, const polyVert_t *vert
 	}
 #if 0
 	if ( !hShader ) {
-		ri.Printf( PRINT_WARNING, "WARNING: RE_AddPolyToScene: NULL poly shader\n");
+		ri.Printf( PRINT_WARNING, "WARNING: RE_AddPolysToScene: NULL poly shader\n");
 		return;
 	}
 #endif
 	for ( j = 0; j < numPolys; j++ ) {
 		if ( r_numpolyverts + numVerts > max_polyverts || r_numpolys >= max_polys ) {
-      /*
-      NOTE TTimo this was initially a PRINT_WARNING
-      but it happens a lot with high fighting scenes and particles
-      since we don't plan on changing the const and making for room for those effects
-      simply cut this message to developer only
-      */
-			ri.Printf( PRINT_DEVELOPER, "WARNING: RE_AddPolyToScene: r_max_polys or r_max_polyverts reached\n");
+//			ri.Printf( PRINT_WARNING, "WARNING: RE_AddPolysToScene: MAX_POLYS or MAX_POLYVERTS reached\n");
 			return;
 		}
 
@@ -541,9 +535,9 @@ void RE_AddLinearLightToScene( const vec3_t start, const vec3_t end, float inten
 	if ( r_dlightSaturation->value != 1.0 )
 	{
 		float luminance = LUMA( r, g, b );
-		r = LERP( luminance, r, r_mapGreyScale->value );
-		g = LERP( luminance, g, r_mapGreyScale->value );
-		b = LERP( luminance, b, r_mapGreyScale->value );
+		r = LERP( luminance, r, r_dlightSaturation->value );
+		g = LERP( luminance, g, r_dlightSaturation->value );
+		b = LERP( luminance, b, r_dlightSaturation->value );
 	}
 
 	dl = &backEndData->dlights[ r_numdlights++ ];
@@ -556,6 +550,7 @@ void RE_AddLinearLightToScene( const vec3_t start, const vec3_t end, float inten
 	dl->color[0] = r;
 	dl->color[1] = g;
 	dl->color[2] = b;
+	dl->shader = NULL;
 	dl->flags = 0;
 	dl->linear = qtrue;
 }
@@ -681,14 +676,28 @@ void RE_RenderScene( const refdef_t *fd ) {
 	tr.refdef.num_dlights = r_numdlights - r_firstSceneDlight;
 	tr.refdef.dlights = &backEndData->dlights[r_firstSceneDlight];
 
+	tr.refdef.num_coronas = r_numcoronas - r_firstSceneCorona;
+	tr.refdef.coronas = &backEndData->coronas[r_firstSceneCorona];
+
 	tr.refdef.numPolys = r_numpolys - r_firstScenePoly;
 	tr.refdef.polys = &backEndData->polys[r_firstScenePoly];
 
+	tr.refdef.numPolyBuffers = r_numpolybuffers - r_firstScenePolybuffer;
+	tr.refdef.polybuffers = &backEndData->polybuffers[r_firstScenePolybuffer];
+
+	tr.refdef.numDecalProjectors = r_numDecalProjectors - r_firstSceneDecalProjector;
+	tr.refdef.decalProjectors = &backEndData->decalProjectors[ r_firstSceneDecalProjector ];
+
+	tr.refdef.numDecals = 0;
+	tr.refdef.decals = &backEndData->decals[ r_firstSceneDecal ];
+
+#ifndef USE_VULKAN
 	// turn off dynamic lighting globally by clearing all the
 	// dlights if it needs to be disabled
-	if ( r_dynamiclight->integer == 0 || glConfig.hardwareType == GLHW_PERMEDIA2 ) {
+	if ( /*r_dynamiclight->integer == 0 || */glConfig.hardwareType == GLHW_PERMEDIA2 ) {
 		tr.refdef.num_dlights = 0;
 	}
+#endif
 
 	// a single frame may have multiple scenes draw inside it --
 	// a 3D game view, 3D status bar renderings, 3D menus, etc.
@@ -742,6 +751,11 @@ void RE_RenderScene( const refdef_t *fd ) {
 
 	R_RenderView( &parms );
 
+#ifndef USE_VULKAN
+	if ( fd->rdflags & RDF_RENDEROMNIBOT )
+		RE_RenderOmnibot();
+#endif
+
 #ifdef USE_VULKAN
 	if ( tr.needScreenMap )
 	{
@@ -776,10 +790,11 @@ void RE_RenderScene( const refdef_t *fd ) {
 #ifdef USE_PMLIGHT
 	r_firstSceneLitSurf = tr.refdef.numLitSurfs;
 #endif
-
+	r_firstSceneDecal += tr.refdef.numDecals;
 	r_firstSceneEntity = r_numentities;
 	r_firstSceneDlight = r_numdlights;
 	r_firstScenePoly = r_numpolys;
+	r_firstScenePolybuffer = r_numpolybuffers;
 
 	tr.frontEndMsec += ri.Milliseconds() - startTime;
 }

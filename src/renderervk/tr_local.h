@@ -2336,6 +2336,8 @@ void RE_ThrottleBackend( void );
 qboolean RE_CanMinimize( void );
 const glconfig_t *RE_GetConfig( void );
 
+void R_FontList_f(void);
+
 
 void *R_CacheModelAlloc( int size );
 void R_CacheModelFree( void *ptr );

@@ -2750,8 +2750,10 @@ sortedIndex.
 static void FixRenderCommandList( int newShader ) {
 	renderCommandList_t	*cmdList = &backEndData->commands;
 
-	if( cmdList ) {
+	if ( cmdList ) {
 		const void *curCmd = cmdList->cmds;
+
+		*( (int *)( cmdList->cmds + cmdList->used ) ) = RC_END_OF_LIST;
 
 		while ( 1 ) {
 			curCmd = PADP(curCmd, sizeof(void *));
@@ -2788,7 +2790,7 @@ static void FixRenderCommandList( int newShader ) {
 				int			sortedIndex;
 				const drawSurfsCommand_t *ds_cmd =  (const drawSurfsCommand_t *)curCmd;
 
-				for( i = 0, drawSurf = ds_cmd->drawSurfs; i < ds_cmd->numDrawSurfs; i++, drawSurf++ ) {
+				for ( i = 0, drawSurf = ds_cmd->drawSurfs; i < ds_cmd->numDrawSurfs; i++, drawSurf++ ) {
 					R_DecomposeSort( drawSurf->sort, &entityNum, &sh, &fogNum, &dlightMap );
 					sortedIndex = (( drawSurf->sort >> QSORT_SHADERNUM_SHIFT ) & SHADERNUM_MASK);
 					if ( sortedIndex >= newShader ) {

@@ -146,7 +146,7 @@ static qboolean isStaticTCmod( const textureBundle_t *bundle )
 
 	for ( i = 0; i < bundle->numTexMods; i++ ) {
 		type = bundle->texMods[i].type;
-		if ( type != TMOD_NONE && type != TMOD_SCALE && type != TMOD_TRANSFORM ) {
+		if ( type != TMOD_NONE && type != TMOD_SCALE && type != TMOD_TRANSFORM && type != TMOD_SWAP ) {
 			return qfalse;
 		}
 	}

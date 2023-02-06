@@ -4482,6 +4482,15 @@ static int loadShaderBuffers( char **shaderFiles, const int numShaderFiles, char
 			}
 		}
 
+		// Fix bad comment style
+		if ( summand == 949 && Q_stricmp( shaderFiles[i], "dangerarea.shader" ) == 0 ) {
+			if( memcmp( buffers[i] + 0x190, "==", 2 ) == 0 )
+			{
+				memcpy( buffers[i] + 0x190, "/*", 2 );
+				memcpy( buffers[i] + 0x1E3, "*/", 2 );
+			}
+		}
+
 		// comment some buggy shaders from pak0
 		//if ( summand == 35910 && strcmp( shaderFiles[i], "sky.shader" ) == 0) 
 		//{

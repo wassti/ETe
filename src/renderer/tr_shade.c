@@ -150,7 +150,7 @@ DrawTris
 Draws triangle outlines for debugging
 ================
 */
-static void DrawTris( shaderCommands_t *input ) {
+static void DrawTris( const shaderCommands_t *input ) {
 	GLbitfield stateBits = 0;
 	GLboolean didDepth = GL_FALSE, polygonState = GL_FALSE;
 
@@ -158,6 +158,9 @@ static void DrawTris( shaderCommands_t *input ) {
 		return;
 
 	if ( tess.numIndexes == 0 )
+		return;
+
+	if ( r_fastsky->integer && input->shader->isSky )
 		return;
 
 	GL_ProgramDisable();

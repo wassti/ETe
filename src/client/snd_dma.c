@@ -72,7 +72,7 @@ channel_t   s_channels[MAX_CHANNELS];
 channel_t   loop_channels[MAX_CHANNELS];
 int			numLoopChannels;
 
-static int	s_soundStarted;
+static		qboolean	s_soundStarted;
 static		qboolean	s_soundMuted;
 
 // sound fading
@@ -142,7 +142,7 @@ static void S_Base_SoundInfo( void )
 	}
 	else
 	{
-		if (s_soundMuted == 1)
+		if (s_soundMuted)
 		{
 			Com_Printf("sound system is muted\n");
 		}
@@ -371,7 +371,7 @@ static sfx_t *S_FindName( const char *name )
 	}
 
 	// find a free sfx
-	for ( i=0 ; i < s_numSfx ; i++) {
+	for ( i=1 ; i < s_numSfx ; i++) {
 		if (!s_knownSfx[i].soundName[0]) {
 			break;
 		}
@@ -489,15 +489,14 @@ S_BeginRegistration
 static void S_Base_BeginRegistration( void ) {
 	s_soundMuted = qfalse;		// we can play again
 
-	if (s_numSfx == 0) {
-		SND_setup();
+	SND_setup();
 
-		Com_Memset( s_knownSfx, 0, sizeof( s_knownSfx ) );
-		Com_Memset( sfxHash, 0, sizeof( sfxHash ) );
+	Com_Memset( s_knownSfx, 0, sizeof( s_knownSfx ) );
+	Com_Memset( sfxHash, 0, sizeof( sfxHash ) );
 
-		s_numSfx = 1; // No need to waste an actual sound file or bytes in memory
-	}
+	s_numSfx = 1; // No need to waste an actual sound file or bytes in memory
 }
+
 
 static void S_memoryLoad( sfx_t *sfx ) {
 
@@ -1789,9 +1788,9 @@ float S_StartStreamingSoundEx(const char *intro, const char *loop, int entnum, i
 		ss = &streamingSounds[0];
 		if (param < 0)
 		{
-			if (intro && strlen(intro))
+			if (intro && *intro)
 			{
-				Q_strncpyz(ss->queueStream, intro, MAX_QPATH);
+				Q_strncpyz(ss->queueStream, intro, sizeof(ss->queueStream));
 				ss->queueStreamType = param;
 				// Cvar for save game
 				if (param == -2)
@@ -1856,7 +1855,7 @@ float S_StartStreamingSoundEx(const char *intro, const char *loop, int entnum, i
 	// cannot find a free track, bail...
 	if (!ss)
 	{
-		//if (!s_muted->integer)
+		//if (!s_mute->integer)
 		{
 			Com_Printf("S_StartStreamingSoundEx: No free streaming tracks\n");
 		}
@@ -1864,16 +1863,23 @@ float S_StartStreamingSoundEx(const char *intro, const char *loop, int entnum, i
 	}
 
 	// Set the name of the track
-	Q_strncpyz(ss->name, intro, MAX_QPATH);
+	if ( intro && *intro )
+	{
+		Q_strncpyz(ss->name, intro, sizeof(ss->name));
+	}
+	else
+	{
+		ss->name[0] = '\0';
+	}
 
 	// looping track passed to stream
 	if (loop)
 	{
 		// if we don't hit the special case in music, "onetimeonly",
 		// copy the new loop stream over
-		if (!music || Q_stricmp(loop, "onetimeonly"))
+		if (!music || Q_stricmp(loop, "onetimeonly") != 0)
 		{
-			Q_strncpyz(ss->loopStream, loop, MAX_QPATH);
+			Q_strncpyz(ss->loopStream, loop, sizeof(ss->loopStream));
 		}
 	}
 	else
@@ -1913,17 +1919,17 @@ float S_StartStreamingSoundEx(const char *intro, const char *loop, int entnum, i
 		S_CodecCloseStream(ss->stream);
 	}
 	// Open stream
-	ss->stream = S_CodecOpenStream(intro);
+	ss->stream = (intro && *intro) ? S_CodecOpenStream(intro) : NULL;
 
 	if (!ss->stream)
 	{
-		Com_Printf(S_COLOR_YELLOW "WARNING S_StartStreamingSoundEx: couldn't open stream file %s\n", intro);
+		Com_Printf(S_COLOR_YELLOW "WARNING S_StartStreamingSoundEx: couldn't open stream file %s\n", ss->name);
 		return 0.0f;
 	}
 
 	if (ss->stream->info.channels != 2 || ss->stream->info.rate != 22050)
 	{
-		Com_DPrintf(S_COLOR_YELLOW "WARNING S_StartStreamingSoundEx: stream file %s is not 22050k [%i] stereo [%i]\n", intro, ss->stream->info.rate, ss->stream->info.channels);
+		Com_DPrintf(S_COLOR_YELLOW "WARNING S_StartStreamingSoundEx: stream file %s is not 22050k [%i] stereo [%i]\n", ss->name, ss->stream->info.rate, ss->stream->info.channels);
 	}
 
 	// return the length of sound
@@ -2376,9 +2382,7 @@ static void S_Base_Shutdown( void ) {
 	if ( com_dedicated->integer )
 		SND_shutdown();
 
-	s_soundStarted = 0;
-
-	s_numSfx = 0; // clean up sound cache -EC-
+	s_soundStarted = qfalse;
 
 	if ( dma_buffer2 != buffer2 )
 		free( dma_buffer2 );
@@ -2462,9 +2466,9 @@ qboolean S_Base_Init( soundInterface_t *si ) {
 	r = SNDDMA_Init();
 
 	if ( r ) {
-		s_soundStarted = 1;
-		s_soundMuted = 1;
-//		s_numSfx = 0;
+		s_soundStarted = qtrue;
+		s_soundMuted = qtrue;
+		s_numSfx = 0;
 
 		Com_Memset( streamingSounds, 0, sizeof(streamingSounds) );
 		Com_Memset( sfxHash, 0, sizeof( sfxHash ) );

@@ -667,8 +667,8 @@ static void CL_KeyDownEvent( int key, unsigned time )
 			// escape always closes console
 			Key_PreserveModifiers();
 			Con_ToggleConsole_f();
-			Key_RestoreModifiers();
 			Key_ClearStates();
+			Key_RestoreModifiers();
 			return;
 		}
 
@@ -712,7 +712,7 @@ static void CL_KeyDownEvent( int key, unsigned time )
 	}
 
 	// NERVE - SMF - if we just want to pass it along to game
-	if ( cl_bypassMouseInput && cl_bypassMouseInput->integer && !( Key_GetCatcher() & KEYCATCH_CONSOLE ) ) {    //DAJ BUG in dedicated cl_missionStats don't exist
+	if ( cl_bypassMouseInput && cl_bypassMouseInput->integer && !( Key_GetCatcher() & KEYCATCH_CONSOLE ) ) {
 		if ( ( key >= K_MOUSE1 && key <= K_MOUSE5 ) ) {
 			if ( cl_bypassMouseInput->integer == 1 ) {
 				bypassMenu = qtrue;

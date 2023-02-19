@@ -279,15 +279,15 @@ R_AddMDCSurfaces
 */
 void R_AddMDCSurfaces( trRefEntity_t *ent ) {
 	vec3_t			bounds[2];
-	int i;
-	mdcHeader_t     *header = 0;
-	mdcSurface_t    *surface = 0;
-	md3Shader_t     *md3Shader = 0;
-	shader_t        *shader = 0;
-	int cull;
-	int lod;
-	int fogNum;
-	qboolean personalModel;
+	int				i;
+	mdcHeader_t     *header = NULL;
+	mdcSurface_t    *surface = NULL;
+	md3Shader_t     *md3Shader = NULL;
+	shader_t        *shader = NULL;
+	int				cull;
+	int				lod;
+	int				fogNum;
+	qboolean		personalModel;
 #ifdef USE_PMLIGHT
 	dlight_t		*dl;
 	int				n;
@@ -304,6 +304,15 @@ void R_AddMDCSurfaces( trRefEntity_t *ent ) {
 	}
 
 	//
+	// compute LOD
+	//
+	if ( ent->e.renderfx & RF_FORCENOLOD ) {
+		lod = 0;
+	} else {
+		lod = R_ComputeLOD( ent );
+	}
+
+	//
 	// Validate the frames so there is no chance of a crash.
 	// This will write directly into the entity structure, so
 	// when the surfaces are rendered, they don't need to be
@@ -313,20 +322,20 @@ void R_AddMDCSurfaces( trRefEntity_t *ent ) {
 		 || ( ent->e.frame < 0 )
 		 || ( ent->e.oldframe >= tr.currentModel->model.mdc[0]->numFrames )
 		 || ( ent->e.oldframe < 0 ) ) {
-		ri.Printf( PRINT_DEVELOPER, "R_AddMDCSurfaces: no such frame %d to %d for '%s'\n",
-				   ent->e.oldframe, ent->e.frame,
-				   tr.currentModel->name );
+
+		// low level of detail may be restricted to 1 frame (i.e player head)
+		// in this case, we assume the frame number differences is wanted
+		// because we don't want animation at far distance
+		// skipped warning message
+
+		if( lod == 0 || tr.currentModel->model.mdc[lod]->numFrames != 1 ) {
+			ri.Printf( PRINT_DEVELOPER, "R_AddMDCSurfaces: no such frame %d to %d for '%s' (%d)\n",
+					ent->e.oldframe, ent->e.frame,
+					tr.currentModel->name,
+					tr.currentModel->model.mdc[ lod ]->numFrames );
+		}
 		ent->e.frame = 0;
 		ent->e.oldframe = 0;
-	}
-
-	//
-	// compute LOD
-	//
-	if ( ent->e.renderfx & RF_FORCENOLOD ) {
-		lod = 0;
-	} else {
-		lod = R_ComputeLOD( ent );
 	}
 
 	header = tr.currentModel->model.mdc[lod];
@@ -464,4 +473,3 @@ void R_AddMDCSurfaces( trRefEntity_t *ent ) {
 	}
 
 }
-

@@ -231,7 +231,7 @@ void RB_AddDlightFlares( void ) {
 	dlight_t		*l;
 	int				i, j, k;
 	int				id = 0;
-	fog_t			*fog = NULL;
+	const fog_t		*fog = NULL;
 
 	if ( r_flares->integer < 2 ) {
 		return;
@@ -278,7 +278,7 @@ RB_AddCoronaFlares
 void RB_AddCoronaFlares( void ) {
 	corona_t		*cor;
 	int				i, j, k;
-	fog_t			*fog = NULL;
+	const fog_t		*fog = NULL;
 
 	if ( r_flares->integer != 1 && r_flares->integer != 3 ) {
 		return;

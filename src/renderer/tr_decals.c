@@ -946,8 +946,8 @@ void R_AddDecalSurface(decal_t *decal)
 	if (decal->fadeStartTime < tr.refdef.time && decal->fadeStartTime < decal->fadeEndTime)
 	{
 		int   i;
-		float fade = (float) (decal->fadeEndTime - tr.refdef.time) /
-		             (float) (decal->fadeEndTime - decal->fadeStartTime);
+		float fade = Com_ClampFloat( 0.0f, 1.0f, (float) (decal->fadeEndTime - tr.refdef.time) /
+		             (float) (decal->fadeEndTime - decal->fadeStartTime) );
 
 		for (i = 0; i < decal->numVerts; i++)
 		{

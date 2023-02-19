@@ -1189,7 +1189,7 @@ void NET_JoinMulticast6( void )
 		}
 	}
 
-	if (setsockopt(multicast6_socket, IPPROTO_IPV6, IPV6_JOIN_GROUP, (char *) &curgroup, sizeof(curgroup)))
+	if (setsockopt(multicast6_socket, IPPROTO_IPV6, IPV6_JOIN_GROUP, (char *) &curgroup, sizeof(curgroup)) == SOCKET_ERROR)
 	{
 		Com_Printf("NET_JoinMulticast6: Couldn't join multicast group: %s\n", NET_ErrorString());
 
@@ -1210,7 +1210,12 @@ void NET_LeaveMulticast6( void )
 		if(multicast6_socket != ip6_socket)
 			closesocket(multicast6_socket);
 		else
-			setsockopt(multicast6_socket, IPPROTO_IPV6, IPV6_LEAVE_GROUP, (char *) &curgroup, sizeof(curgroup));
+		{
+			if (setsockopt(multicast6_socket, IPPROTO_IPV6, IPV6_LEAVE_GROUP, (char *) &curgroup, sizeof(curgroup)) == SOCKET_ERROR)
+			{
+				Com_Printf("NET_LeaveMulticast6: Couldn't leave multicast group: %s\n", NET_ErrorString());
+			}
+		}
 
 		multicast6_socket = INVALID_SOCKET;
 	}

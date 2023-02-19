@@ -813,7 +813,7 @@ void tc_vis_render(void);
 //
 size_t	CL_SaveJPGToBuffer( byte *buffer, size_t bufSize, int quality, int image_width, int image_height, byte *image_buffer, int padding );
 void	CL_SaveJPG( const char *filename, int quality, int image_width, int image_height, byte *image_buffer, int padding );
-void	CL_LoadJPG( const char *filename, unsigned char **pic, int *width, int *height );
+void	CL_LoadJPG( const char *filename, byte **pic, int *width, int *height );
 
 //
 // cl_wav.c
@@ -827,6 +827,9 @@ void CL_DiscordInitialize(void);
 void CL_DiscordShutdown(void);
 void CL_DiscordUpdatePresence(void);
 #endif
+
+// base backend functions
+void	HandleEvents( void );
 
 // platform-specific
 void	GLimp_InitGamma( glconfig_t *config );

@@ -168,12 +168,6 @@ If you have questions concerning this license or the applicable additional terms
 
  **********************************************************************/
 
-#ifdef Q3_VM
-
-#include "../game/bg_lib.h"
-
-#else
-
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
@@ -187,8 +181,6 @@ If you have questions concerning this license or the applicable additional terms
 #include <sys/stat.h> // rain
 #include <float.h>
 
-#endif
-
 //endianness
 short ShortSwap( short l );
 int LongSwap( int l );
@@ -198,40 +190,36 @@ float FloatSwap( const float *f );
 
 //=============================================================
 
-#ifdef Q3_VM
-	typedef int intptr_t;
-#else
-	#if defined (_MSC_VER) && !defined(__clang__)
-		#if _MSC_VER >= 1600
-			#if !defined(__STDC_LIMIT_MACROS)
-				#define __STDC_LIMIT_MACROS
-			#endif
-			#include <stdint.h>
-		#else
-			#include <io.h>
-			typedef __int64 int64_t;
-			typedef __int32 int32_t;
-			typedef __int16 int16_t;
-			typedef __int8 int8_t;
-			typedef unsigned __int64 uint64_t;
-			typedef unsigned __int32 uint32_t;
-			typedef unsigned __int16 uint16_t;
-			typedef unsigned __int8 uint8_t;
-		#endif
-	#else
+#if defined (_MSC_VER) && !defined(__clang__)
+	#if _MSC_VER >= 1600
 		#if !defined(__STDC_LIMIT_MACROS)
 			#define __STDC_LIMIT_MACROS
 		#endif
 		#include <stdint.h>
-	#endif
-
-	#ifdef _WIN32
-		// vsnprintf is ISO/IEC 9899:1999
-		// abstracting this to make it portable
-		int Q_vsnprintf( char *str, size_t size, const char *format, va_list ap );
 	#else
-		#define Q_vsnprintf vsnprintf
+		#include <io.h>
+		typedef __int64 int64_t;
+		typedef __int32 int32_t;
+		typedef __int16 int16_t;
+		typedef __int8 int8_t;
+		typedef unsigned __int64 uint64_t;
+		typedef unsigned __int32 uint32_t;
+		typedef unsigned __int16 uint16_t;
+		typedef unsigned __int8 uint8_t;
 	#endif
+#else
+	#if !defined(__STDC_LIMIT_MACROS)
+		#define __STDC_LIMIT_MACROS
+	#endif
+	#include <stdint.h>
+#endif
+
+#ifdef _WIN32
+	// vsnprintf is ISO/IEC 9899:1999
+	// abstracting this to make it portable
+	int Q_vsnprintf( char *str, size_t size, const char *format, va_list ap );
+#else
+	#define Q_vsnprintf vsnprintf
 #endif
 
 int64_t Long64Swap(int64_t ll); // needs int64_t from above
@@ -641,12 +629,10 @@ float Q_exp2f( float f );
 
 #define SQRTFAST( x ) ( (x) * Q_rsqrt( x ) )
 
-
 // fast float to int conversion
 #if id386 && defined(_WIN32)
 long Q_ftol( float f );
 #else
-//extern long int lrintf( float x );
 #define Q_ftol( x ) lrintf( x )
 #endif
 
@@ -685,17 +671,6 @@ void ByteToDir( int b, vec3_t dir );
 
 #endif
 
-#ifdef Q3_VM
-#ifdef VectorCopy
-#undef VectorCopy
-// this is a little hack to get more efficient copies in our interpreter
-typedef struct {
-	float	v[3];
-} vec3struct_t;
-#define VectorCopy(a,b)	(*(vec3struct_t *)b=*(vec3struct_t *)a)
-#endif
-#endif
-
 #define VectorClear( a )              ( ( a )[0] = ( a )[1] = ( a )[2] = 0 )
 #define VectorNegate( a,b )           ( ( b )[0] = -( a )[0],( b )[1] = -( a )[1],( b )[2] = -( a )[2] )
 #define VectorSet( v, x, y, z )       ( ( v )[0] = ( x ), ( v )[1] = ( y ), ( v )[2] = ( z ) )
@@ -732,7 +707,6 @@ float RadiusFromBounds( const vec3_t mins, const vec3_t maxs );
 void ClearBounds( vec3_t mins, vec3_t maxs );
 void AddPointToBounds( const vec3_t v, vec3_t mins, vec3_t maxs );
 
-#if !defined( Q3_VM ) || ( defined( Q3_VM ) && defined( __Q3_VM_MATH ) )
 static ID_INLINE int VectorCompare( const vec3_t v1, const vec3_t v2 ) {
 	if (v1[0] != v2[0] || v1[1] != v2[1] || v1[2] != v2[2]) {
 		return 0;
@@ -786,25 +760,6 @@ static ID_INLINE void CrossProduct( const vec3_t v1, const vec3_t v2, vec3_t cro
 	cross[1] = v1[2]*v2[0] - v1[0]*v2[2];
 	cross[2] = v1[0]*v2[1] - v1[1]*v2[0];
 }
-
-#else
-int VectorCompare( const vec3_t v1, const vec3_t v2 );
-
-vec_t VectorLength( const vec3_t v );
-
-vec_t VectorLengthSquared( const vec3_t v );
-
-vec_t Distance( const vec3_t p1, const vec3_t p2 );
-
-vec_t DistanceSquared( const vec3_t p1, const vec3_t p2 );
-
-void VectorNormalizeFast( vec3_t v );
-
-void VectorInverse( vec3_t v );
-
-void CrossProduct( const vec3_t v1, const vec3_t v2, vec3_t cross );
-
-#endif
 
 vec_t VectorNormalize (vec3_t v);		// returns vector length
 vec_t VectorNormalize2( const vec3_t v, vec3_t out );

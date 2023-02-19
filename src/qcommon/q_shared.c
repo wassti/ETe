@@ -1442,10 +1442,6 @@ int Q_isforfilename( int c )
 
 qboolean Q_isanumber( const char *s )
 {
-#ifdef Q3_VM
-    //FIXME: implement
-    return qfalse;
-#else
     char *p;
 
 	if( *s == '\0' )
@@ -1454,7 +1450,6 @@ qboolean Q_isanumber( const char *s )
 	strtod( s, &p );
 
     return *p == '\0';
-#endif
 }
 
 

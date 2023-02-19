@@ -299,6 +299,8 @@ static void SV_BotUsercmd( int clientNum, usercmd_t *cmd ) {
 static void SV_BotClientCommand( int client, const char *command ) {
 	if ( (unsigned) client < sv_maxclients->integer ) {
 		SV_ExecuteClientCommand( &svs.clients[client], command, qfalse );
+	} else {
+		Com_Error( ERR_DROP, "%s(): bad clientNum: %i", __func__, client );
 	}
 }
 
@@ -867,7 +869,9 @@ SV_GetTag
   return qfalse if unable to retrieve tag information for this client
 ====================
 */
-extern qboolean CL_GetTag( int clientNum, char *tagname, orientation_t *or );
+#ifndef DEDICATED
+qboolean CL_GetTag( int clientNum, char *tagname, orientation_t *or );
+#endif
 
 qboolean SV_GetTag( int clientNum, int tagFileNumber, char *tagname, orientation_t *or ) {
 	int i;

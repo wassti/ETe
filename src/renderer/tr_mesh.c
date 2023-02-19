@@ -479,4 +479,3 @@ void R_AddMD3Surfaces( trRefEntity_t *ent ) {
 		surface = ( md3Surface_t * )( (byte *)surface + surface->ofsEnd );
 	}
 }
-

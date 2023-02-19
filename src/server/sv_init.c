@@ -993,7 +993,6 @@ void SV_Init( void )
 	Cvar_Get( "g_userTimeLimit", "0", 0 );
 	Cvar_Get( "g_userAlliedRespawnTime", "0", 0 );
 	Cvar_Get( "g_userAxisRespawnTime", "0", 0 );
-	Cvar_Get( "g_maxlives", "0", 0 );
 	Cvar_Get( "g_altStopwatchMode", "0", CVAR_ARCHIVE );
 	Cvar_Get( "g_minGameClients", "8", CVAR_SERVERINFO );
 	Cvar_Get( "g_complaintlimit", "6", CVAR_ARCHIVE );
@@ -1014,8 +1013,6 @@ void SV_Init( void )
 
 	// ATVI Tracker Wolfenstein Misc #263
 	Cvar_Get( "g_antilag", "1", CVAR_ARCHIVE | CVAR_SERVERINFO );
-
-	Cvar_Get( "g_needpass", "0", CVAR_SERVERINFO );
 
 	sv_gameType = Cvar_Get( "g_gametype", va( "%i", com_gameInfo.defaultGameType ), CVAR_SERVERINFO | CVAR_LATCH );
 

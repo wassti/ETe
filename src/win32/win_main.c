@@ -31,7 +31,6 @@ If you have questions concerning this license or the applicable additional terms
 #include "../qcommon/qcommon.h"
 #ifndef DEDICATED
 #include "../client/client.h"
-#include "glw_win.h"
 #endif
 #include "win_local.h"
 #include "resource.h"
@@ -976,9 +975,7 @@ static LONG WINAPI ExceptionFilter( struct _EXCEPTION_POINTERS *ExceptionInfo )
 			// assume we can restart client module
 		} else {
 			GLW_RestoreGamma();
-
-			if ( g_wv.hWnd && glw_state.cdsFullscreen )
-				ShowWindow( g_wv.hWnd, SW_HIDE );
+			GLW_HideFullscreenWindow();
 		}
 	}
 #endif

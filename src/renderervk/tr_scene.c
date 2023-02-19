@@ -109,6 +109,7 @@ void RE_ClearScene( void ) {
 	r_firstSceneCorona = r_numcoronas;
 	r_firstSceneEntity = r_numentities;
 	r_firstScenePoly = r_numpolys;
+	r_firstScenePolybuffer = r_numpolybuffers;
 }
 
 /*
@@ -768,8 +769,15 @@ void RE_RenderScene( const refdef_t *fd ) {
 			for ( i = 0; i < tr.numDrawSurfCmds; i++ )
 			{
 				cmd = R_GetCommandBuffer( sizeof( *cmd ) );
-				src = tr.drawSurfCmd + i;
-				*cmd = *src;
+				if ( cmd )
+				{
+					src = tr.drawSurfCmd + i;
+					*cmd = *src;
+				}
+				else
+				{
+					break;
+				}
 			}
 
 			if ( src )

@@ -195,7 +195,6 @@ void CL_Netchan_Transmit( netchan_t *chan, msg_t* msg ) {
 
 	CL_WriteBinaryMessage( msg );
 
-
 	if( chan->compat && !SV_GameIsSinglePlayer() )
 		CL_Netchan_Encode( msg );
 

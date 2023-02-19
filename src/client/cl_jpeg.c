@@ -79,7 +79,7 @@ static void CL_JPGOutputMessage(j_common_ptr cinfo)
 }
 
 
-void CL_LoadJPG( const char *filename, unsigned char **pic, int *width, int *height )
+void CL_LoadJPG( const char *filename, byte **pic, int *width, int *height )
 {
 	/* This struct contains the JPEG decompression parameters and pointers to
 	* working space (which is allocated as needed by the JPEG library).

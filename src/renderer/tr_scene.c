@@ -119,6 +119,7 @@ void RE_ClearScene( void ) {
 	r_firstSceneCorona = r_numcoronas;
 	r_firstSceneEntity = r_numentities;
 	r_firstScenePoly = r_numpolys;
+	r_firstScenePolybuffer = r_numpolybuffers;
 }
 
 /*
@@ -554,7 +555,6 @@ void RE_AddLinearLightToScene( const vec3_t start, const vec3_t end, float inten
 	dl->flags = 0;
 	dl->linear = qtrue;
 }
-
 
 
 /*

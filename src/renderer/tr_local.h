@@ -1071,8 +1071,8 @@ typedef struct bmodel_s {
 #define WORLD_MAX_SKY_NODES 32
 
 typedef struct {
-	char name[MAX_QPATH];               // ie: maps/tim_dm2.bsp
-	char baseName[MAX_QPATH];           // ie: tim_dm2
+	char name[MAX_QPATH];               // ie: maps/battery.bsp
+	char baseName[MAX_QPATH];           // ie: battery
 
 	int dataSize;
 

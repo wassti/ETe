@@ -20,6 +20,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
 
+#ifndef __SND_PUBLIC_H__
+#define __SND_PUBLIC_H__
 
 // background track queuing
 #define QUEUED_PLAY_ONCE    -1
@@ -101,3 +103,4 @@ void S_StopCapture( void );
 void S_MasterGain( float gain );
 #endif
 
+#endif

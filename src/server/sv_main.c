@@ -1592,7 +1592,7 @@ void SV_Frame( int msec ) {
 	if(frameMsec < 1)
 	{
 		Cvar_Set( "timescale", va( "%f", sv_fps->value / 1000.0f ) );
-		Com_DPrintf( "timescale adjusted to %f\n", com_timescale->value );
+		Com_DPrintf( "timescale adjusted to %s\n", com_timescale->string );
 		frameMsec = 1;
 	}
 

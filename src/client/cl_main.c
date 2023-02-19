@@ -29,11 +29,7 @@ If you have questions concerning this license or the applicable additional terms
 // cl_main.c  -- client main loop
 
 #include "client.h"
-#include <limits.h>
 
-#include "snd_local.h" // fretn
-
-//cvar_t  *cl_wavefilerecord;
 cvar_t  *cl_noprint;
 cvar_t  *cl_debugMove;
 cvar_t  *cl_motd;
@@ -180,7 +176,9 @@ static void CL_ServerStatus_f( void );
 static void CL_ServerStatusResponse( const netadr_t *from, msg_t *msg );
 static void CL_ServerInfoPacket( const netadr_t *from, msg_t *msg );
 
+#ifdef USE_CURL
 static void CL_Download_f( void );
+#endif
 static void CL_LocalServers_f( void );
 static void CL_GlobalServers_f( void );
 static void CL_Ping_f( void );
@@ -192,8 +190,8 @@ static void CL_InitGLimp_Cvars( void );
 static void CL_NextDemo( void );
 
 // fretn
-void CL_WriteWaveClose( void );
-void CL_WavStopRecord_f( void );
+//void CL_WriteWaveClose( void );
+//void CL_WavStopRecord_f( void );
 
 /*
 ===============
@@ -210,7 +208,7 @@ void CL_PurgeCache( void ) {
 	cls.doCachePurge = qtrue;
 }
 
-void CL_DoPurgeCache( void ) {
+static void CL_DoPurgeCache( void ) {
 	if ( !cls.doCachePurge ) {
 		return;
 	}
@@ -950,7 +948,7 @@ static void CL_PlayDemo_f( void ) {
 				break;
 		}
 
-		if ( demo_protocols[ i ] || protocol == com_protocol->integer  )
+		if ( demo_protocols[ i ] || protocol == com_protocol->integer )
 		{
 			Com_sprintf(name, sizeof(name), "demos/%s", arg);
 			FS_BypassPure();
@@ -4463,7 +4461,6 @@ void CL_Init( void ) {
 	cl_timeout = Cvar_Get( "cl_timeout", "200", 0 );
 	Cvar_CheckRange( cl_timeout, "5", NULL, CV_INTEGER );
 	Cvar_SetDescription( cl_timeout, "Duration of receiving nothing from server for client to decide it must be disconnected (in seconds)" );
-	//cl_wavefilerecord = Cvar_Get( "cl_wavefilerecord", "0", CVAR_TEMP );
 
 	cl_autoNudge = Cvar_Get( "cl_autoNudge", "0", CVAR_TEMP );
 	Cvar_CheckRange( cl_autoNudge, "0", "1", CV_FLOAT );

@@ -61,7 +61,7 @@ static qboolean	setArraysOnce;
 R_BindAnimatedImage
 =================
 */
-void R_BindAnimatedImage( const textureBundle_t *bundle ) {
+static void R_BindAnimatedImage( const textureBundle_t *bundle ) {
 	int64_t index;
 	double	v;
 
@@ -109,7 +109,7 @@ DrawTris
 Draws triangle outlines for debugging
 ================
 */
-static void DrawTris( shaderCommands_t *input ) {
+static void DrawTris( const shaderCommands_t *input ) {
 #ifdef USE_VULKAN
 	uint32_t pipeline;
 

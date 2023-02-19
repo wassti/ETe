@@ -21,6 +21,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 // snd_local.h -- private sound definitions
 
+#ifndef __SND_LOCAL_H__
+#define __SND_LOCAL_H__
 
 #include "../qcommon/q_shared.h"
 #include "../qcommon/qcommon.h"
@@ -299,16 +301,4 @@ extern int	   sfxScratchIndex;
 
 qboolean S_Base_Init( soundInterface_t *si );
 
-// OpenAL stuff
-typedef enum
-{
-	SRCPRI_AMBIENT = 0,	// Ambient sound effects
-	SRCPRI_ENTITY,			// Entity sound effects
-	SRCPRI_ONESHOT,			// One-shot sounds
-	SRCPRI_LOCAL,				// Local sounds
-	SRCPRI_STREAM				// Streams (music, cutscenes)
-} alSrcPriority_t;
-
-typedef int srcHandle_t;
-
-qboolean S_AL_Init( soundInterface_t *si );
+#endif

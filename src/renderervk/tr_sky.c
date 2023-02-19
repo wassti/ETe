@@ -266,7 +266,7 @@ static void ClearSkyBox (void) {
 RB_ClipSkyPolygons
 ================
 */
-static void RB_ClipSkyPolygons( shaderCommands_t *input )
+static void RB_ClipSkyPolygons( const shaderCommands_t *input )
 {
 	vec3_t		p[5];	// need one extra point for clipping
 	int			i, j;

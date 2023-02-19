@@ -153,7 +153,7 @@ static void add_triggers(void) {
 		if (token[0] != '{')
 			Com_Error(ERR_DROP, "map is borked\n");
 
-		for (;; ) {
+		for (;;) {
 			token = COM_Parse(&entities);
 
 			if (token[0] == '}')
@@ -191,7 +191,7 @@ static void add_clips(void) {
 	for (i = 0; i < cm.numBrushes; i++) {
 		const cbrush_t *brush = &cm.brushes[i];
         // need to exclude ladders here explicitly since common/ladder is also CONTENTS_PLAYERCLIP
-		if (brush->contents & CONTENTS_PLAYERCLIP && !(brush->sides->surfaceFlags & SURF_LADDER)) {
+		if ((brush->contents & CONTENTS_PLAYERCLIP) && !(brush->sides->surfaceFlags & SURF_LADDER)) {
 			gen_visible_brush(i, vec3_origin, CLIP_BRUSH, clip_color);
 		}
 		// this should match weaponclips, although it might also match other shaders.
@@ -204,7 +204,7 @@ static void add_clips(void) {
 			{
 				continue;
 			}
-			if (side->surfaceFlags & SURF_NODRAW && side->surfaceFlags & SURF_NOMARKS && brush->contents & CONTENTS_TRANSLUCENT)
+			if ((side->surfaceFlags & SURF_NODRAW) && (side->surfaceFlags & SURF_NOMARKS) && (brush->contents & CONTENTS_TRANSLUCENT))
 			{
 				// weaponclip found, see if its metal, wood or other
 				if (side->surfaceFlags & SURF_METAL)
@@ -240,7 +240,7 @@ static void add_slicks(void) {
 		}
 		for (s = 0; s < brush->numsides; s++) {
 			const cbrushside_t* side = &brush->sides[s];
-			if (side->surfaceFlags & SURF_SLICK ||
+			if ((side->surfaceFlags & SURF_SLICK) ||
 			    (!(side->surfaceFlags & SURF_NODRAW) && !(side->surfaceFlags & SURF_SKY) && angleSlick(side->plane))) {
 				gen_visible_brush(i, vec3_origin, SLICK_BRUSH, slick_color);
 				break;
@@ -270,7 +270,7 @@ static void gen_visible_brush(int brushnum, const vec3_t origin, visBrushType_t 
 	visBrushNode_t **head = NULL;
 	if ( !brush->numsides )
 		return;
-	
+
 	node = malloc(sizeof(visBrushNode_t));
 	node->numFaces = brush->numsides;
 	node->faces = malloc(node->numFaces * sizeof(visFace_t));
@@ -307,11 +307,11 @@ static void gen_visible_brush(int brushnum, const vec3_t origin, visBrushType_t 
 				VectorAdd(p, v2, v2);
 				VectorAdd(p, v3, v3);
 
-				if (type != SLICK_BRUSH || brush->sides->surfaceFlags & SURF_SLICK || angleSlick(p1))
+				if (type != SLICK_BRUSH || (brush->sides->surfaceFlags & SURF_SLICK) || angleSlick(p1))
 					add_vert_to_face(&node->faces[i], v1, color, get_uv_coords(uv, p, p1->normal));
-				if (type != SLICK_BRUSH || brush->sides->surfaceFlags & SURF_SLICK || angleSlick(p2))
+				if (type != SLICK_BRUSH || (brush->sides->surfaceFlags & SURF_SLICK) || angleSlick(p2))
 					add_vert_to_face(&node->faces[j], v2, color, get_uv_coords(uv, p, p2->normal));
-				if (type != SLICK_BRUSH || brush->sides->surfaceFlags & SURF_SLICK || angleSlick(p3))
+				if (type != SLICK_BRUSH || (brush->sides->surfaceFlags & SURF_SLICK) || angleSlick(p3))
 					add_vert_to_face(&node->faces[k], v3, color, get_uv_coords(uv, p, p3->normal));
 			}
 		}

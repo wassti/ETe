@@ -1179,7 +1179,7 @@ typedef union {
 	mdcHeader_t *mdc[MD3_MAX_LODS]; // only if type == MOD_MDC
 	mdmHeader_t *mdm;               // only if type == MOD_MDM
 	mdxHeader_t *mdx;               // only if type == MOD_MDX
-	  iqmData_t *iqm;				// only if type == MOD_IQM
+	iqmData_t *iqm;				// only if type == MOD_IQM
 } model_u;
 
 typedef struct model_s {
@@ -1431,12 +1431,12 @@ typedef struct {
 	shader_t				*cinematicShader;
 	shader_t				*shadowShader;
 	shader_t				*projectionShadowShader;
-	shader_t                *dlightShader;      //----(SA) added
+	shader_t			*dlightShader;      //----(SA) added
 
 	shader_t				*flareShader;
-	char                    sunShaderName[MAX_QPATH];
+	char				sunShaderName[MAX_QPATH];
 	shader_t				*sunShader;
-	shader_t                *sunflareShader[6];  //----(SA) for the camera lens flare effect for sun
+	shader_t			*sunflareShader[6];  //----(SA) for the camera lens flare effect for sun
 
 	int						numLightmaps;
 	image_t                 *lightmaps[MAX_LIGHTMAPS];
@@ -1546,7 +1546,7 @@ extern cvar_t	*r_railCoreWidth;
 extern cvar_t	*r_railSegmentLength;
 
 extern cvar_t	*r_znear;				// near Z clip plane
-extern cvar_t   *r_zfar;                // far Z clip plane
+extern cvar_t	*r_zfar;                // far Z clip plane
 extern cvar_t	*r_zproj;				// z distance of projection plane
 extern cvar_t	*r_stereoSeparation;			// separation of cameras for stereo rendering
 
@@ -1590,7 +1590,7 @@ extern cvar_t	*r_renderScale;
 extern	cvar_t	*r_norefresh;			// bypasses the ref rendering
 extern	cvar_t	*r_drawentities;		// disable/enable entity rendering
 extern	cvar_t	*r_drawworld;			// disable/enable world rendering
-extern cvar_t  *r_drawfoliage;          // ydnar: disable/enable foliage rendering
+extern	cvar_t	*r_drawfoliage;          // ydnar: disable/enable foliage rendering
 extern	cvar_t	*r_speeds;				// various levels of information display
 extern  cvar_t	*r_detailTextures;		// enables/disables detail texturing stages
 extern	cvar_t	*r_novis;				// disable/enable usage of PVS
@@ -1604,7 +1604,7 @@ extern cvar_t	*r_gamma;
 extern	cvar_t	*r_nobind;						// turns off binding to appropriate textures
 extern	cvar_t	*r_singleShader;				// make most world faces use default shader
 extern	cvar_t	*r_roundImagesDown;
-extern cvar_t  *r_allowNonPo2;
+extern	cvar_t	*r_allowNonPo2;
 extern	cvar_t	*r_colorMipLevels;				// development aid to see texture mip usage
 extern	cvar_t	*r_picmip;						// controls picmip values
 extern	cvar_t	*r_nomip;						// apply picmip only on worldspawn textures
@@ -1616,17 +1616,17 @@ extern	cvar_t	*r_offsetUnits;
 extern	cvar_t	*r_lightmap;					// render lightmaps only
 
 extern	cvar_t	*r_showtris;					// enables wireframe rendering of the world
-extern	cvar_t  *r_trisColor;                    // enables modifying of the wireframe colour (in 0xRRGGBB[AA] format, alpha defaults to FF)
+extern	cvar_t	*r_trisColor;                    // enables modifying of the wireframe colour (in 0xRRGGBB[AA] format, alpha defaults to FF)
 extern	cvar_t	*r_showsky;						// forces sky in front of all surfaces
 extern	cvar_t	*r_shownormals;					// draws wireframe normals
-extern	cvar_t  *r_normallength;                 // length of the normals
-extern	cvar_t  *r_showmodelbounds;
+extern	cvar_t	*r_normallength;                 // length of the normals
+extern	cvar_t	*r_showmodelbounds;
 extern	cvar_t	*r_clear;						// force screen clear every frame
 
 extern	cvar_t	*r_shadows;						// controls shadows: 0 = none, 1 = blur, 2 = stencil, 3 = black planar projection
 extern	cvar_t	*r_flares;						// light flares
 
-extern	cvar_t  *r_portalsky;    // (SA) added
+extern	cvar_t	*r_portalsky;    // (SA) added
 extern	cvar_t	*r_intensity;
 
 extern	cvar_t	*r_lockpvs;
@@ -1860,9 +1860,6 @@ typedef struct shaderCommands_s
 	vec2_t		texCoords[2][SHADER_MAX_VERTEXES] QALIGN(16);
 	vec2_t		texCoords00[SHADER_MAX_VERTEXES] QALIGN(16);
 	color4ub_t	vertexColors[SHADER_MAX_VERTEXES] QALIGN(16);
-//#ifdef USE_LEGACY_DLIGHTS
-//	int			vertexDlightBits[SHADER_MAX_VERTEXES] QALIGN(16);
-//#endif
 	stageVars_t	svars QALIGN(16);
 
 	color4ub_t	constantColor255[SHADER_MAX_VERTEXES] QALIGN(16);
@@ -1971,7 +1968,6 @@ void VK_LightingPass( void );
 qboolean R_LightCullBounds( const dlight_t* dl, const vec3_t mins, const vec3_t maxs );
 #endif // USE_PMLIGHT
 
-void R_BindAnimatedImage( const textureBundle_t *bundle );
 void R_DrawElements( int numIndexes, const glIndex_t *indexes );
 void R_ComputeColors( const int bundle, color4ub_t *dest, const shaderStage_t *pStage );
 void R_ComputeTexCoords( const int b, const textureBundle_t *bundle );

@@ -417,6 +417,7 @@ LOOPBACK BUFFERS FOR LOCAL PLAYER
 
 // there needs to be enough loopback messages to hold a complete
 // gamestate of maximum size
+// Was 16, but not enough for 32k MAX_MSGLEN in ET
 #define	MAX_LOOPBACK	32
 
 typedef struct {

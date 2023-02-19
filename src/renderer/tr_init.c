@@ -810,6 +810,7 @@ static void InitOpenGL( void )
 GL_CheckErrors
 ==================
 */
+#define CASE_STR(x) case (x): s = #x; break
 void GL_CheckErrors( void ) {
     GLenum err;
     const char *s;
@@ -823,24 +824,12 @@ void GL_CheckErrors( void ) {
         return;
     }
     switch( err ) {
-        case GL_INVALID_ENUM:
-            s = "GL_INVALID_ENUM";
-            break;
-        case GL_INVALID_VALUE:
-            s = "GL_INVALID_VALUE";
-            break;
-        case GL_INVALID_OPERATION:
-            s = "GL_INVALID_OPERATION";
-            break;
-        case GL_STACK_OVERFLOW:
-            s = "GL_STACK_OVERFLOW";
-            break;
-        case GL_STACK_UNDERFLOW:
-            s = "GL_STACK_UNDERFLOW";
-            break;
-        case GL_OUT_OF_MEMORY:
-            s = "GL_OUT_OF_MEMORY";
-            break;
+		CASE_STR(GL_INVALID_ENUM);
+        CASE_STR(GL_INVALID_VALUE);
+        CASE_STR(GL_INVALID_OPERATION);
+        CASE_STR(GL_STACK_OVERFLOW);
+        CASE_STR(GL_STACK_UNDERFLOW);
+        CASE_STR(GL_OUT_OF_MEMORY);
         default:
             Com_sprintf( buf, sizeof(buf), "0x%x", err );
             s = buf;
@@ -849,6 +838,8 @@ void GL_CheckErrors( void ) {
 
 	ri.Error( ERR_VID_FATAL, "GL_CheckErrors: %s", s );
 }
+
+#undef CASE_STR
 
 
 /*

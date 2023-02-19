@@ -1952,6 +1952,7 @@ static void R_Register( void )
 	ri.Cvar_SetDescription( r_trisMode, "Rendering mode for \\r_showtris:\n"
 		" 0 - Classic ET \\r_showtris 1\n"
 		" 1 - Q3A / ET \\r_showtris 2 style (default)\n" );
+	ri.Cvar_CheckRange( r_trisMode, "0", "1", CV_INTEGER );
 	r_trisColor = ri.Cvar_Get( "r_trisColor", "1.0 1.0 1.0 1.0", CVAR_ARCHIVE_ND );
 	r_showsky = ri.Cvar_Get( "r_showsky", "0", 0 );
 	ri.Cvar_SetDescription( r_showsky, "Forces sky in front of all surfaces" );

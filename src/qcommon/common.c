@@ -3508,7 +3508,7 @@ static void Sys_GetProcessorId( char *vendor )
 	//	CPU_Flags |= CPU_SSE3;
 
 	// bit 19 of ECX denotes SSE41 existence
-	if ( regs[2] & ( 1 << 19 ) )
+	if ( regs[ 2 ] & ( 1 << 19 ) )
 		CPU_Flags |= CPU_SSE41;
 
 	// bit 20 of ECX denotes SSE42 existence
@@ -3555,17 +3555,18 @@ static void Sys_GetProcessorId( char *vendor )
 
 #else // non-x86
 
-#ifdef _WIN32
+#ifndef __linux__
 
 static void Sys_GetProcessorId( char *vendor )
 {
 	Com_sprintf( vendor, 100, "%s", ARCH_STRING );
 }
 
-#else // not _WIN32
+#else // __linux__
+
+#include <sys/auxv.h>
 
 #if arm32
-#include <sys/auxv.h>
 #include <asm/hwcap.h>
 #endif
 
@@ -3607,14 +3608,14 @@ static void Sys_GetProcessorId( char *vendor )
 			strcat( vendor, " QVM-bytecode" );
 		}
 	}
-#else
+#else // !arm32
 	CPU_Flags = 0;
 #if arm64
-	Com_sprintf( vendor, 100, "ARM %s", ARCH_STRING );
+	Com_sprintf( vendor, 100, "%s", ARCH_STRING );
 #else
 	Com_sprintf( vendor, 128, "%s %s", ARCH_STRING, (const char*)getauxval( AT_PLATFORM ) );
 #endif
-#endif
+#endif // !arm32
 }
 
 #if idppc || idppc64
@@ -3624,11 +3625,7 @@ static void Sys_GetProcessorId( char *vendor )
 }
 #endif
 
-//#if idppc
-//#error "PPC support not available for CPUID/Sys_GetProcessorId"
-//#endif
-
-#endif // !_WIN32
+#endif // __linux__
 
 #endif // non-x86
 

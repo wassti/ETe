@@ -965,7 +965,8 @@ int Q_isforfilename( int c );
 
 qboolean Q_streq( const char *s1, const char *s2 );
 
-// portable case insensitive compare
+// portable case (in)sensitive compare
+int     Q_strcmp( const char *s1, const char *s2 );
 int     Q_stricmp( const char *s1, const char *s2 );
 int     Q_strncmp( const char *s1, const char *s2, int n );
 int     Q_stricmpn( const char *s1, const char *s2, int n );

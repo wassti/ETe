@@ -592,7 +592,8 @@ int Q_islower( int c );
 int Q_isupper( int c );
 int Q_isalpha( int c );
 
-// portable case insensitive compare
+// portable case (in)sensitive compare
+int     Q_strcmp( const char *s1, const char *s2 );
 int     Q_stricmp( const char *s1, const char *s2 );
 int     Q_strncmp( const char *s1, const char *s2, int n );
 int     Q_stricmpn( const char *s1, const char *s2, int n );

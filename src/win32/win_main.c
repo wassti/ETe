@@ -159,7 +159,8 @@ void NORETURN QDECL Sys_Error( const char *error, ... ) {
 	va_end( argptr );
 
 #ifndef DEDICATED
-	CL_Shutdown( text, qtrue );
+	if ( !com_errorEntered && com_cl_running && com_cl_running->integer )
+		CL_Shutdown( text, qtrue );
 #endif
 
 	Conbuf_AppendText( text );

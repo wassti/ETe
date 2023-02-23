@@ -304,10 +304,6 @@ void NORETURN Sys_Exit(int code)
 
 void NORETURN Sys_Quit(void)
 {
-#ifndef DEDICATED
-	CL_Shutdown("", qtrue);
-#endif
-
 	Sys_Exit(0);
 }
 
@@ -341,7 +337,8 @@ void NORETURN FORMAT_PRINTF(1, 2) Sys_Error(const char *format, ...)
 	va_end(argptr);
 
 #ifndef DEDICATED
-	CL_Shutdown(text, qtrue);
+	if ( !com_errorEntered && com_cl_running && com_cl_running->integer )
+		CL_Shutdown(text, qtrue);
 #endif
 
 	fprintf(stderr, "Sys_Error: %s\n", text);

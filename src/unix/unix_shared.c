@@ -460,7 +460,7 @@ const char *Sys_DefaultHomePath( void )
 		if ( mkdir( homePath, 0750 ) ) 
 		{
 			if ( errno != EEXIST ) 
-				Sys_Error( "Unable to create directory \"%s\", error is %s(%d)\n", 
+				Com_Error( ERR_FATAL, "Unable to create directory \"%s\", error is %s(%d)\n", 
 					homePath, strerror( errno ), errno );
 		}
 		return homePath;

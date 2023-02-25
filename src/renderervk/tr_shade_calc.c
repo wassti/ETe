@@ -126,7 +126,61 @@ void RB_CalcDeformVertexes( deformStage_t *ds )
 	float	*normal = ( float * ) tess.normal;
 	float	*table;
 
-	if ( ds->deformationWave.frequency == 0 )
+	// Ridah
+	if ( ds->deformationWave.frequency < 0 )
+	{
+		qboolean inverse = qfalse;
+		vec3_t worldUp;
+		//static vec3_t up = {0,0,1};
+
+		if ( VectorCompare( backEnd.currentEntity->e.fireRiseDir, vec3_origin ) ) {
+			VectorSet( backEnd.currentEntity->e.fireRiseDir, 0, 0, 1 );
+		}
+
+		// get the world up vector in local coordinates
+		if ( backEnd.currentEntity->e.hModel ) {  // world surfaces dont have an axis
+			VectorRotate( backEnd.currentEntity->e.fireRiseDir, backEnd.currentEntity->e.axis, worldUp );
+		} else {
+			VectorCopy( backEnd.currentEntity->e.fireRiseDir, worldUp );
+		}
+		// don't go so far if sideways, since they must be moving
+		VectorScale( worldUp, 0.4 + 0.6 * fabs( backEnd.currentEntity->e.fireRiseDir[2] ), worldUp );
+
+		ds->deformationWave.frequency *= -1;
+		if ( ds->deformationWave.frequency > 999 ) {  // hack for negative Z deformation (ack)
+			inverse = qtrue;
+			ds->deformationWave.frequency -= 999;
+		}
+
+		table = TableForFunc( ds->deformationWave.func );
+
+		for ( i = 0; i < tess.numVertexes; i++, xyz += 4, normal += 4 )
+		{
+			float off = ( xyz[0] + xyz[1] + xyz[2] ) * ds->deformationSpread;
+			float dot;
+
+			scale = WAVEVALUE( table, ds->deformationWave.base,
+							   ds->deformationWave.amplitude,
+							   ds->deformationWave.phase + off,
+							   ds->deformationWave.frequency );
+
+			dot = DotProduct( worldUp, normal );
+
+			if ( dot * scale > 0 ) {
+				if ( inverse ) {
+					scale *= -1;
+				}
+				VectorMA( xyz, dot * scale, worldUp, xyz );
+			}
+		}
+
+		if ( inverse ) {
+			ds->deformationWave.frequency += 999;
+		}
+		ds->deformationWave.frequency *= -1;
+	}
+	// done.
+	else if ( ds->deformationWave.frequency == 0 )
 	{
 		scale = EvalWaveForm( &ds->deformationWave );
 
@@ -947,12 +1001,14 @@ void RB_CalcFogTexCoords( float *st ) {
 	float		*v;
 	float		s, t;
 	float		eyeT;
-	qboolean	eyeOutside;
-	fog_t		*fog;
-	vec3_t		local;
-	vec4_t		fogDistanceVector, fogDepthVector = {0, 0, 0, 0};
+	qboolean	eyeInside;
+	const fog_t	*fog;
+	vec3_t		local, viewOrigin;
+	vec4_t		fogSurface, fogDistanceVector, fogDepthVector = {0, 0, 0, 0};
+	const bmodel_t    *bmodel;
 
 	fog = tr.world->fogs + tess.fogNum;
+	bmodel = tr.world->bmodels + fog->modelNum;
 
 	// all fogging distance is based on world Z units
 	VectorSubtract( backEnd.orientation.origin, backEnd.viewParms.orientation.origin, local );
@@ -967,56 +1023,69 @@ void RB_CalcFogTexCoords( float *st ) {
 	fogDistanceVector[2] *= fog->shader->fogParms.tcScale * 1.0;
 	fogDistanceVector[3] *= fog->shader->fogParms.tcScale * 1.0;
 
-	// rotate the gradient vector for this orientation
-	if ( fog->hasSurface ) {
-		fogDepthVector[0] = fog->surface[0] * backEnd.orientation.axis[0][0] + 
-			fog->surface[1] * backEnd.orientation.axis[0][1] + fog->surface[2] * backEnd.orientation.axis[0][2];
-		fogDepthVector[1] = fog->surface[0] * backEnd.orientation.axis[1][0] + 
-			fog->surface[1] * backEnd.orientation.axis[1][1] + fog->surface[2] * backEnd.orientation.axis[1][2];
-		fogDepthVector[2] = fog->surface[0] * backEnd.orientation.axis[2][0] + 
-			fog->surface[1] * backEnd.orientation.axis[2][1] + fog->surface[2] * backEnd.orientation.axis[2][2];
-		fogDepthVector[3] = -fog->surface[3] + DotProduct( backEnd.orientation.origin, fog->surface );
+	// offset view origin by fog brush origin (fixme: really necessary?)
+	//%	VectorSubtract( backEnd.orientation.viewOrigin, bmodel->origin[ backEnd.smpFrame ], viewOrigin );
+	VectorCopy( backEnd.orientation.viewOrigin, viewOrigin );
 
-		eyeT = DotProduct( backEnd.orientation.viewOrigin, fogDepthVector ) + fogDepthVector[3];
-	} else {
-		eyeT = 1;	// non-surface fog always has eye inside
-	}
+	// offset fog surface
+	VectorCopy( fog->surface, fogSurface );
+	fogSurface[ 3 ] = fog->surface[ 3 ] + DotProduct( fogSurface, bmodel->orientation.origin );
 
-	// see if the viewpoint is outside
-	// this is needed for clipping distance even for constant fog
+	// ydnar: general fog case
+	if ( fog->originalBrushNumber >= 0 ) {
+		// rotate the gradient vector for this orientation
+		if ( fog->hasSurface ) {
+			fogDepthVector[ 0 ] = fogSurface[ 0 ] * backEnd.orientation.axis[ 0 ][ 0 ] +
+								  fogSurface[ 1 ] * backEnd.orientation.axis[ 0 ][ 1 ] + fogSurface[ 2 ] * backEnd.orientation.axis[ 0 ][ 2 ];
+			fogDepthVector[ 1 ] = fogSurface[ 0 ] * backEnd.orientation.axis[ 1 ][ 0 ] +
+								  fogSurface[ 1 ] * backEnd.orientation.axis[ 1 ][ 1 ] + fogSurface[ 2 ] * backEnd.orientation.axis[ 1 ][ 2 ];
+			fogDepthVector[ 2 ] = fogSurface[ 0 ] * backEnd.orientation.axis[ 2 ][ 0 ] +
+								  fogSurface[ 1 ] * backEnd.orientation.axis[ 2 ][ 1 ] + fogSurface[ 2 ] * backEnd.orientation.axis[ 2 ][ 2 ];
+			fogDepthVector[ 3 ] = -fogSurface[ 3 ] + DotProduct( backEnd.orientation.origin, fogSurface );
 
-	if ( eyeT < 0 ) {
-		eyeOutside = qtrue;
-	} else {
-		eyeOutside = qfalse;
-	}
+			// scale the fog vectors based on the fog's thickness
+			fogDepthVector[ 0 ] *= fog->shader->fogParms.tcScale * 1.0;
+			fogDepthVector[ 1 ] *= fog->shader->fogParms.tcScale * 1.0;
+			fogDepthVector[ 2 ] *= fog->shader->fogParms.tcScale * 1.0;
+			fogDepthVector[ 3 ] *= fog->shader->fogParms.tcScale * 1.0;
 
-	fogDistanceVector[3] += 1.0/512;
-
-	// calculate density for each point
-	for (i = 0, v = tess.xyz[0] ; i < tess.numVertexes ; i++, v += 4) {
-		// calculate the length in fog
-		s = DotProduct( v, fogDistanceVector ) + fogDistanceVector[3];
-		t = DotProduct( v, fogDepthVector ) + fogDepthVector[3];
-
-		// partially clipped fogs use the T axis		
-		if ( eyeOutside ) {
-			if ( t < 1.0 ) {
-				t = 1.0/32;	// point is outside, so no fogging
-			} else {
-				t = 1.0/32 + 30.0/32 * t / ( t - eyeT );	// cut the distance at the fog plane
-			}
+			eyeT = DotProduct( viewOrigin, fogDepthVector ) + fogDepthVector[ 3 ];
 		} else {
-			if ( t < 0 ) {
-				t = 1.0/32;	// point is outside, so no fogging
-			} else {
-				t = 31.0/32;
-			}
-		}
+			eyeT = 1;   // non-surface fog always has eye inside
 
-		st[0] = s;
-		st[1] = t;
-		st += 2;
+		}
+		// see if the viewpoint is outside
+		eyeInside = eyeT < 0 ? qfalse : qtrue;
+
+		// calculate density for each point
+		for ( i = 0, v = tess.xyz[ 0 ] ; i < tess.numVertexes; i++, v += 4 )
+		{
+			// calculate the length in fog
+			s = DotProduct( v, fogDistanceVector ) + fogDistanceVector[ 3 ];
+			t = DotProduct( v, fogDepthVector ) + fogDepthVector[ 3 ];
+
+			if ( eyeInside ) {
+				t += eyeT;
+			}
+
+			//%	t *= fog->shader->fogParms.tcScale;
+
+			st[0] = s;
+			st[1] = t;
+			st += 2;
+		}
+	}
+	// ydnar: optimized for level-wide fogging
+	else
+	{
+		// calculate density for each point
+		for ( i = 0, v = tess.xyz[ 0 ]; i < tess.numVertexes; i++, v += 4 )
+		{
+			// calculate the length in fog (t is always 0 if eye is in fog)
+			st[ 0 ] = DotProduct( v, fogDistanceVector ) + fogDistanceVector[ 3 ];
+			st[ 1 ] = 1.0;
+			st += 2;
+		}
 	}
 }
 
@@ -1139,7 +1208,7 @@ void RB_CalcEnvironmentTexCoordsFP( float *st, int screenMap ) {
 	vec3_t		viewer, reflected, where, why, who; // what
 	float		d; 
 
-	if ( !backEnd.currentEntity || ( backEnd.currentEntity->e.renderfx & RF_FIRST_PERSON ) == 0 )
+	if ( !backEnd.currentEntity || ( backEnd.currentEntity->e.renderfx & RF_FIRST_PERSON ) == 0 || r_useFirstPersonEnvMaps->integer == 0 )
 	{
 		RB_CalcEnvironmentTexCoords( st );
 		return;
@@ -1185,27 +1254,51 @@ void RB_CalcEnvironmentTexCoordsFP( float *st, int screenMap ) {
 */
 void RB_CalcEnvironmentTexCoords( float *st )
 {
-	int			i;
+	int i;
 	const float *v, *normal;
-	vec3_t		viewer, reflected;
-	float		d;
+	float d2, sAdjust, tAdjust;
+	vec3_t ia1, ia2, viewer, reflected;
 
-	v = tess.xyz[0];
-	normal = tess.normal[0];
+	// setup
+	v = tess.xyz[ 0 ];
+	normal = tess.normal[ 0 ];
 
-	for (i = 0 ; i < tess.numVertexes ; i++, v += 4, normal += 4, st += 2 ) 
+	// ydnar: origin of entity affects its environment map (every 256 units)
+	// this is similar to racing game hacks where the env map seems to move
+	// as the car passes through the world
+	sAdjust = VectorLength( backEnd.orientation.origin ) * 0.00390625;
+	//%	 sAdjust = backEnd.orientation.origin[ 0 ] * 0.00390625;
+	sAdjust = 0.5 -  ( sAdjust - floor( sAdjust ) );
+
+	tAdjust = backEnd.orientation.origin[ 2 ] * 0.00390625;
+	tAdjust = 0.5 - ( tAdjust - floor( tAdjust ) );
+
+	// ydnar: the final reflection vector must be converted into world-space again
+	// we just assume here that all transformations are rotations, so the inverse
+	// of the transform matrix (the 3x3 part) is just the transpose
+	// additionally, we don't need all 3 rows, so we just calculate 2
+	// and we also scale by 0.5 to eliminate two per-vertex multiplies
+	ia1[ 0 ] = backEnd.orientation.axis[ 0 ][ 1 ] * 0.5;
+	ia1[ 1 ] = backEnd.orientation.axis[ 1 ][ 1 ] * 0.5;
+	ia1[ 2 ] = backEnd.orientation.axis[ 2 ][ 1 ] * 0.5;
+	ia2[ 0 ] = backEnd.orientation.axis[ 0 ][ 2 ] * 0.5;
+	ia2[ 1 ] = backEnd.orientation.axis[ 1 ][ 2 ] * 0.5;
+	ia2[ 2 ] = backEnd.orientation.axis[ 2 ][ 2 ] * 0.5;
+
+	// walk verts
+	for ( i = 0; i < tess.numVertexes; i++, v += 4, normal += 4, st += 2 )
 	{
-		VectorSubtract (backEnd.orientation.viewOrigin, v, viewer);
-		VectorNormalizeFast (viewer);
+		VectorSubtract( backEnd.orientation.viewOrigin, v, viewer );
+		VectorNormalizeFast( viewer );
 
-		d = DotProduct (normal, viewer);
+		d2 = 2.0 * DotProduct( normal, viewer );
 
-		//reflected[0] = normal[0]*2*d - viewer[0];
-		reflected[1] = normal[1]*2*d - viewer[1];
-		reflected[2] = normal[2]*2*d - viewer[2];
+		reflected[ 0 ] = normal[ 0 ] * d2 - viewer[ 0 ];
+		reflected[ 1 ] = normal[ 1 ] * d2 - viewer[ 1 ];
+		reflected[ 2 ] = normal[ 2 ] * d2 - viewer[ 2 ];
 
-		st[0] = 0.5 + reflected[1] * 0.5;
-		st[1] = 0.5 - reflected[2] * 0.5;
+		st[ 0 ] = sAdjust + DotProduct( reflected, ia1 );
+		st[ 1 ] = tAdjust - DotProduct( reflected, ia2 );
 	}
 }
 
@@ -1426,57 +1519,35 @@ void RB_CalcSpecularAlpha( unsigned char *alphas ) {
 **
 ** The basic vertex lighting calc
 */
-static void RB_CalcDiffuseColor_scalar( unsigned char *colors )
-{
-	int				i, j;
-	float			*v, *normal;
-	float			incoming;
-	const trRefEntity_t *ent;
-	int				ambientLightInt;
-	vec3_t			ambientLight;
-	vec3_t			lightDir;
-	vec3_t			directedLight;
-	int				numVertexes;
-	ent = backEnd.currentEntity;
-	ambientLightInt = ent->ambientLightInt;
-	VectorCopy( ent->ambientLight, ambientLight );
-	VectorCopy( ent->directedLight, directedLight );
-	VectorCopy( ent->lightDir, lightDir );
-
-	v = tess.xyz[0];
-	normal = tess.normal[0];
-
-	numVertexes = tess.numVertexes;
-	for (i = 0 ; i < numVertexes ; i++, v += 4, normal += 4) {
-		incoming = DotProduct (normal, lightDir);
-		if ( incoming <= 0 ) {
-			*(int *)&colors[i*4] = ambientLightInt;
-			continue;
-		} 
-		j = Q_ftol( ambientLight[0] + incoming * directedLight[0] );
-		if ( j > 255 ) {
-			j = 255;
-		}
-		colors[i*4+0] = j;
-
-		j = Q_ftol( ambientLight[1] + incoming * directedLight[1] );
-		if ( j > 255 ) {
-			j = 255;
-		}
-		colors[i*4+1] = j;
-
-		j = Q_ftol( ambientLight[2] + incoming * directedLight[2] );
-		if ( j > 255 ) {
-			j = 255;
-		}
-		colors[i*4+2] = j;
-
-		colors[i*4+3] = 255;
-	}
-}
-
-
 void RB_CalcDiffuseColor( unsigned char *colors )
 {
-	RB_CalcDiffuseColor_scalar( colors );
+	int			i, dp, *colorsInt;
+	float		*normal;
+	const trRefEntity_t	*ent;
+	vec3_t		lightDir;
+	int			numVertexes;
+
+	ent = backEnd.currentEntity;
+	VectorCopy( ent->lightDir, lightDir );
+
+	normal = tess.normal[ 0 ];
+	colorsInt = (int*) colors;
+
+	numVertexes = tess.numVertexes;
+	for ( i = 0; i < numVertexes; i++, normal += 4, colorsInt++ )
+	{
+		dp = Q_ftol( ENTITY_LIGHT_STEPS * DotProduct( normal, lightDir ) );
+
+		// ydnar: enable this for twosided lighting
+		//%	if( tess.shader->cullType == CT_TWO_SIDED )
+		//%		dp = fabs( dp );
+
+		if ( dp <= 0 ) {
+			*colorsInt = ent->entityLightInt[ 0 ];
+		} else if ( dp >= ENTITY_LIGHT_STEPS ) {
+			*colorsInt = ent->entityLightInt[ ENTITY_LIGHT_STEPS - 1 ];
+		} else {
+			*colorsInt = ent->entityLightInt[ dp ];
+		}
+	}
 }

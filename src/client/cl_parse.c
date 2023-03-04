@@ -731,6 +731,11 @@ void CL_ParsePlayerInfo(void)
 	cl.discord.playerCount = clientCount;
 	cl.discord.redTeam = redTeam;
 	cl.discord.blueTeam = blueTeam;
+	if (cl.discord.isETF)
+	{
+		cl.discord.greenTeam = greenTeam;
+		cl.discord.yellowTeam = yellowTeam;
+	}
 	cl.discord.specCount = specTeam;
 	//cl.discord.botCount = 0;//botCount;
 }

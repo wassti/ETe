@@ -102,7 +102,7 @@ static void CMod_LoadShaders( const lump_t *l ) {
 	dshader_t		*out;
 	int				i, count;
 
-	in = (void *)(cmod_base + l->fileofs);
+	in = (const dshader_t *)(cmod_base + l->fileofs);
 	if (l->filelen % sizeof(*in)) {
 		Com_Error (ERR_DROP, "%s: funny lump size", __func__ );
 	}
@@ -137,7 +137,7 @@ static void CMod_LoadSubmodels( const lump_t *l ) {
 	int			i, j, count;
 	int			*indexes;
 
-	in = (void *)(cmod_base + l->fileofs);
+	in = (const dmodel_t *)(cmod_base + l->fileofs);
 	if (l->filelen % sizeof(*in))
 		Com_Error( ERR_DROP, "%s: funny lump size", __func__ );
 
@@ -195,7 +195,7 @@ static void CMod_LoadNodes( const lump_t *l ) {
 	cNode_t	*out;
 	int		i, j, count;
 
-	in = (dnode_t *)(cmod_base + l->fileofs);
+	in = (const dnode_t *)(cmod_base + l->fileofs);
 	if (l->filelen % sizeof(*in))
 		Com_Error( ERR_DROP, "%s: funny lump size", __func__ );
 
@@ -249,7 +249,7 @@ static void CMod_LoadBrushes( const lump_t *l ) {
 	cbrush_t	*out;
 	int			i, count;
 
-	in = (void *)(cmod_base + l->fileofs);
+	in = (const dbrush_t *)(cmod_base + l->fileofs);
 	if ( l->filelen % sizeof(*in) )
 		Com_Error( ERR_DROP, "%s: funny lump size", __func__ );
 
@@ -288,7 +288,7 @@ static void CMod_LoadLeafs( const lump_t *l )
 	const dleaf_t 	*in;
 	int			count;
 
-	in = (void *)(cmod_base + l->fileofs);
+	in = (const dleaf_t *)(cmod_base + l->fileofs);
 	if ( l->filelen % sizeof(*in) )
 		Com_Error( ERR_DROP, "%s: funny lump size", __func__ );
 
@@ -304,9 +304,9 @@ static void CMod_LoadLeafs( const lump_t *l )
 	{
 		out->cluster = LittleLong( in->cluster );
 		out->area = LittleLong( in->area );
-		out->firstLeafBrush = LittleLong( in->firstLeafBrush );
+		out->firstLeafBrush = LittleLong( in->firstLeafBrush ); // FIXME on big endian
 		out->numLeafBrushes = LittleLong( in->numLeafBrushes );
-		out->firstLeafSurface = LittleLong( in->firstLeafSurface );
+		out->firstLeafSurface = LittleLong( in->firstLeafSurface ); // FIXME on big endian
 		out->numLeafSurfaces = LittleLong( in->numLeafSurfaces );
 
 		if ( out->cluster >= cm.numClusters )
@@ -336,7 +336,7 @@ static void CMod_LoadPlanes( const lump_t *l )
 	int			count;
 	int			bits;
 
-	in = (void *)(cmod_base + l->fileofs);
+	in = (const dplane_t *)(cmod_base + l->fileofs);
 	if ( l->filelen % sizeof(*in) )
 		Com_Error( ERR_DROP, "%s: funny lump size", __func__ );
 
@@ -378,7 +378,7 @@ static void CMod_LoadLeafBrushes( const lump_t *l )
 	const int *in;
 	int count;
 
-	in = (void *)(cmod_base + l->fileofs);
+	in = (const int *)(cmod_base + l->fileofs);
 	if ( l->filelen % sizeof(*in) )
 		Com_Error( ERR_DROP, "%s: funny lump size", __func__ );
 
@@ -408,7 +408,7 @@ static void CMod_LoadLeafSurfaces( const lump_t *l )
 	const int *in;
 	int count;
 
-	in = (void *)(cmod_base + l->fileofs);
+	in = (const int *)(cmod_base + l->fileofs);
 	if ( l->filelen % sizeof(*in) )
 		Com_Error( ERR_DROP, "%s: funny lump size", __func__ );
 
@@ -456,7 +456,7 @@ static void CMod_LoadBrushSides( const lump_t *l )
 	int				count;
 	int				num;
 
-	in = (dbrushside_t *)(cmod_base + l->fileofs);
+	in = (const dbrushside_t *)(cmod_base + l->fileofs);
 	if ( l->filelen % sizeof(*in) ) {
 		Com_Error( ERR_DROP, "%s: funny lump size", __func__ );
 	}
@@ -560,14 +560,14 @@ static void CMod_LoadPatches( const lump_t *surfs, const lump_t *verts ) {
 	int			width, height;
 	int			shaderNum;
 
-	in = (void *)(cmod_base + surfs->fileofs);
+	in = (const dsurface_t *)(cmod_base + surfs->fileofs);
 	if (surfs->filelen % sizeof(*in))
 		Com_Error( ERR_DROP, "%s: funny surf lump size", __func__ );
 
 	cm.numSurfaces = count = surfs->filelen / sizeof(*in);
 	cm.surfaces = Hunk_Alloc( cm.numSurfaces * sizeof( cm.surfaces[0] ), h_high );
 
-	dv = (void *)(cmod_base + verts->fileofs);
+	dv = (drawVert_t *)(cmod_base + verts->fileofs);
 	if (verts->filelen % sizeof(*dv))
 		Com_Error( ERR_DROP, "%s: funny vert lump size", __func__ );
 
@@ -946,9 +946,7 @@ CM_ModelBounds
 ===================
 */
 void CM_ModelBounds( clipHandle_t model, vec3_t mins, vec3_t maxs ) {
-	cmodel_t *cmod;
-
-	cmod = CM_ClipHandleToModel( model );
+	const cmodel_t *cmod = CM_ClipHandleToModel( model );
 	VectorCopy( cmod->mins, mins );
 	VectorCopy( cmod->maxs, maxs );
 }

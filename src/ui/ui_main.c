@@ -126,6 +126,7 @@ qboolean UI_IsFullscreen( void );
 qboolean intShaderTime = qfalse;
 qboolean linearLight = qfalse;
 qboolean removeCommand = qfalse;
+qboolean engine_is_ete = qfalse;
 
 int dll_com_trapGetValue;
 int dll_trap_R_AddRefEntityToScene2;

@@ -2134,6 +2134,13 @@ qboolean G_CanPickupWeapon( weapon_t weapon, gentity_t* ent );
 qboolean G_LandmineSnapshotCallback( int entityNum, int clientNum );
 
 // extension interface
+extern	qboolean addCommand;
+extern	qboolean removeCommand;
+extern	qboolean engine_is_ete;
 
 qboolean trap_GetValue( char *value, int valueSize, const char *key );
+void trap_SV_AddCommand( const char *cmdName );
+void trap_SV_RemoveCommand( const char *cmdName );
 extern int dll_com_trapGetValue;
+extern int dll_trap_SV_AddCommand;
+extern int dll_trap_SV_RemoveCommand;

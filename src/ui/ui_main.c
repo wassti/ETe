@@ -5869,6 +5869,9 @@ void UI_Init( qboolean inGameLoad ) {
 	trap_Cvar_VariableStringBuffer( "//trap_GetValue", value, sizeof( value ) );
 	if ( value[0] ) {
 		dll_com_trapGetValue = atoi( value );
+		if ( trap_GetValue( value, sizeof( value ), "engine_is_ete" ) ) {
+			engine_is_ete = qtrue;
+		}
 		if ( trap_GetValue( value, sizeof( value ), "trap_R_AddRefEntityToScene2" ) ) {
 			dll_trap_R_AddRefEntityToScene2 = atoi( value );
 			intShaderTime = qtrue;

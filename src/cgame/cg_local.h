@@ -3451,6 +3451,7 @@ extern  qboolean intShaderTime;
 extern  qboolean linearLight;
 extern	qboolean removeAllDefines;
 extern	qboolean getClipboardData;
+extern	qboolean engine_is_ete;
 
 qboolean trap_GetValue( char *value, int valueSize, const char *key );
 void trap_R_AddRefEntityToScene2( const refEntity_t *re );

@@ -628,6 +628,10 @@ void G_RunFrame( int levelTime );
 void G_ShutdownGame( int restart );
 void CheckExitRules( void );
 
+qboolean addCommand;
+qboolean removeCommand;
+qboolean engine_is_ete = qfalse;
+
 qboolean G_SnapshotCallback( int entityNum, int clientNum ) {
 	gentity_t* ent = &g_entities[ entityNum ];
 
@@ -1602,10 +1606,20 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
 	G_Printf( "gamename: %s (ETe)\n", GAMEVERSION );
 	G_Printf( "gamedate: %s\n", __DATE__ );
 
-		// extension interface
 	trap_Cvar_VariableStringBuffer( "//trap_GetValue", value, sizeof( value ) );
 	if ( value[0] ) {
 		dll_com_trapGetValue = atoi( value );
+		if ( trap_GetValue( value, sizeof( value ), "engine_is_ete" ) ) {
+			engine_is_ete = qtrue;
+		}
+		if ( trap_GetValue( value, sizeof( value ), "trap_SV_AddCommand" ) ) {
+			dll_trap_SV_AddCommand = atoi( value );
+			addCommand = qtrue;
+		}
+		if ( trap_GetValue( value, sizeof( value ), "trap_SV_RemoveCommand" ) ) {
+			dll_trap_SV_RemoveCommand = atoi( value );
+			removeCommand = qtrue;
+		}
 	}
 
 	srand( randomSeed );

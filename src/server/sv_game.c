@@ -405,9 +405,24 @@ void *GVM_ArgPtr( intptr_t intValue )
 
 static qboolean SV_G_GetValue( char* value, int valueSize, const char* key )
 {
+	if ( !Q_stricmp( key, "trap_SV_AddCommand") ) {
+		Com_sprintf( value, valueSize, "%i", G_ADDCOMMAND );
+		return qtrue;
+	}
+
+	if ( !Q_stricmp( key, "trap_SV_RemoveCommand") ) {
+		Com_sprintf( value, valueSize, "%i", G_REMOVECOMMAND );
+		return qtrue;
+	}
+
 	// UTF-8 not yet supported
 	if ( !Q_stricmp( key, "cap_UTF8" ) ) {
 		Com_sprintf( value, valueSize, "%i", 0 );
+		return qtrue;
+	}
+
+	if ( !Q_stricmp( key, "engine_is_ete" ) ) {
+		Com_sprintf( value, valueSize, "%i", 1 );
 		return qtrue;
 	}
 
@@ -667,6 +682,15 @@ static intptr_t SV_GameSystemCalls( intptr_t *args ) {
 		return 0;
 	case G_MESSAGESTATUS:
 		return SV_BinaryMessageStatus( args[1] );
+
+	// engine extensions
+	case G_ADDCOMMAND:
+		Cmd_AddCommand( VMA(1), NULL );
+		Cmd_SetModule( VMA(1), MODULE_SGAME );
+		return 0;
+	case G_REMOVECOMMAND:
+		Cmd_RemoveCommandSafe( VMA(1) );
+		return 0;
 
 	case G_TRAP_GETVALUE:
 		return SV_G_GetValue( VMA(1), args[2], VMA(3) );

@@ -474,6 +474,8 @@ typedef enum {
 
 #ifndef GAMEDLL
 	// engine extensions
+	G_ADDCOMMAND,
+	G_REMOVECOMMAND,
 	G_TRAP_GETVALUE = COM_TRAP_GETVALUE
 #endif
 

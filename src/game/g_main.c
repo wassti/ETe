@@ -646,6 +646,8 @@ qboolean G_SnapshotCallback( int entityNum, int clientNum ) {
 
 // extension interface
 int dll_com_trapGetValue;
+int dll_trap_SV_AddCommand;
+int dll_trap_SV_RemoveCommand;
 
 /*
 ================

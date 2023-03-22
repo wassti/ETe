@@ -377,3 +377,11 @@ messageStatus_t trap_MessageStatus( int clientNum ) {
 qboolean trap_GetValue( char *value, int valueSize, const char *key ) {
 	return syscall( dll_com_trapGetValue, value, valueSize, key );
 }
+
+void trap_SV_AddCommand( const char *cmdName ) {
+	syscall( dll_trap_SV_AddCommand, cmdName );
+}
+
+void trap_SV_RemoveCommand( const char *cmdName ) {
+	syscall( dll_trap_SV_RemoveCommand, cmdName );
+}

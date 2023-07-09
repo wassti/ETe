@@ -1582,7 +1582,7 @@ void GLimp_Shutdown( qboolean unloadDLL )
 #endif // USE_OPENGL_API
 
 
-#ifdef USE_VULKAN_API
+
 static qboolean GLW_LoadVulkan( void )
 {
 	//
@@ -1688,4 +1688,4 @@ void VKimp_Shutdown( qboolean unloadDLL )
 	// shutdown QVK subsystem
 	QVK_Shutdown( unloadDLL );
 }
-#endif // USE_VULKAN_API
+

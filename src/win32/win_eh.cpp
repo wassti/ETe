@@ -136,21 +136,21 @@ void BuildRegisters( char* buffer, int size ) {
 				 "               : EBX=%.8x SS=%.4x ESP=%.8x EBP=%.8x\r\n"
 				 "               : ECX=%.8x DS=%.4x ESI=%.8x FS=%.4x\r\n"
 				 "               : EDX=%.8x ES=%.4x EDI=%.8x GS=%.4x\r\n",
-				 m_exPointers->ContextRecord->Eax,
+				 m_exPointers->ContextRecord->Rax,
 				 m_exPointers->ContextRecord->SegCs,
-				 m_exPointers->ContextRecord->Eip,
+				 m_exPointers->ContextRecord->Rip,
 				 m_exPointers->ContextRecord->EFlags,
-				 m_exPointers->ContextRecord->Ebx,
+				 m_exPointers->ContextRecord->Rbx,
 				 m_exPointers->ContextRecord->SegSs,
-				 m_exPointers->ContextRecord->Esp,
-				 m_exPointers->ContextRecord->Ebp,
-				 m_exPointers->ContextRecord->Ecx,
+				 m_exPointers->ContextRecord->Rsp,
+				 m_exPointers->ContextRecord->Rbp,
+				 m_exPointers->ContextRecord->Rcx,
 				 m_exPointers->ContextRecord->SegDs,
-				 m_exPointers->ContextRecord->Esi,
+				 m_exPointers->ContextRecord->Rsi,
 				 m_exPointers->ContextRecord->SegFs,
-				 m_exPointers->ContextRecord->Edx,
+				 m_exPointers->ContextRecord->Rdx,
 				 m_exPointers->ContextRecord->SegEs,
-				 m_exPointers->ContextRecord->Edi,
+				 m_exPointers->ContextRecord->Rdi,
 				 m_exPointers->ContextRecord->SegGs
 				 );
 
@@ -162,7 +162,7 @@ void BuildStackTrace( char* buffer, int size ) {
 	DWORD* sp;
 	DWORD stackTrace[MAX_STACK_TRACE_LINES];
 
-	sp = ( DWORD * )( m_exPointers->ContextRecord->Ebp );
+	sp = ( DWORD * )( m_exPointers->ContextRecord->Rbp );
 	for ( i = 0; i < MAX_STACK_TRACE_LINES; i++ ) {
 		if ( !IsBadReadPtr( sp, sizeof( DWORD ) ) && *sp ) {
 			DWORD* np = (DWORD*)*sp;

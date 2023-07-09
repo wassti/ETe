@@ -53,6 +53,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #ifdef USE_VULKAN
 #include "vk.h"
+
+
 // GL constants substitutions
 typedef enum {
 	GL_NEAREST,

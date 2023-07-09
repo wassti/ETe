@@ -3981,12 +3981,12 @@ static void CL_InitRef( void ) {
 #endif
 
 	// Vulkan API
-#ifdef USE_VULKAN_API
+
 	rimp.VKimp_Init = VKimp_Init;
 	rimp.VKimp_Shutdown = VKimp_Shutdown;
 	rimp.VK_GetInstanceProcAddr = VK_GetInstanceProcAddr;
 	rimp.VK_CreateSurface = VK_CreateSurface;
-#endif
+
 
 	ret = GetRefAPI( REF_API_VERSION, &rimp );
 

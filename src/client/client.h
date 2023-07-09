@@ -46,6 +46,7 @@ If you have questions concerning this license or the applicable additional terms
 #define USE_CURL
 #endif
 #endif
+#define USE_VULKAN_API
 
 #ifdef USE_CURL
 #include "cl_curl.h"

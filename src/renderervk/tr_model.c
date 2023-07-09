@@ -20,6 +20,16 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
 // tr_models.c -- model loading and caching
+//#define MEM_RESERVE 0x00002000
+//#define MEM_COMMIT 0x00001000
+//#define PAGE_NOACCESS 0x01000000
+//#define PAGE_READWRITE 0x04000000
+//#define MEM_DECOMMIT 0x00004000
+//#define MEM_RELEASE 0x00008000
+//#define LANG_NEUTRAL 0x00090000
+//#define SUBLANG_DEFAULT 0x00000409
+
+
 
 #include "tr_local.h"
 
@@ -2122,7 +2132,8 @@ void *R_Hunk_Begin( void ) {
 		// this will "reserve" a chunk of memory for use by this application
 		// it will not be "committed" just yet, but the swap file will grow
 		// now if needed
-		membase = VirtualAlloc( NULL, R_HUNK_SIZE, MEM_RESERVE, PAGE_NOACCESS );
+		//membase = VirtualAlloc( NULL, R_HUNK_SIZE, MEM_RESERVE, PAGE_NOACCESS );
+		membase = malloc( R_HUNK_SIZE );
 #else
 		// show_bug.cgi?id=440
 		// if not win32, then just allocate it now
@@ -2159,11 +2170,11 @@ void *R_Hunk_Alloc( size_t size ) {
 
 #ifdef _WIN32
 	// commit pages as needed
-	buf = VirtualAlloc( membase, cursize + size, MEM_COMMIT, PAGE_READWRITE );
+	//buf = VirtualAlloc( membase, cursize + size, MEM_COMMIT, PAGE_READWRITE );
 
 	if ( !buf ) {
 		char msg[512];
-		FormatMessageA( FORMAT_MESSAGE_FROM_SYSTEM, NULL, GetLastError(), MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT ), msg, sizeof(msg)/sizeof(msg[0]), NULL );
+		//FormatMessageA( FORMAT_MESSAGE_FROM_SYSTEM, NULL, GetLastError(), MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT ), msg, sizeof(msg)/sizeof(msg[0]), NULL );
 		ri.Error( ERR_DROP, "VirtualAlloc commit failed.\n%s", msg );
 	}
 #endif
@@ -2177,7 +2188,7 @@ void *R_Hunk_Alloc( size_t size ) {
 void R_Hunk_End( void ) {
 	if ( membase ) {
 #ifdef _WIN32
-		VirtualFree( membase, 0, MEM_RELEASE );
+		//VirtualFree( membase, 0, MEM_RELEASE );
 #else
 		free( membase );
 #endif
@@ -2193,7 +2204,7 @@ void R_Hunk_Reset( void ) {
 
 #ifdef _WIN32
 	// mark the existing committed pages as reserved, but not committed
-	VirtualFree( membase, cursize, MEM_DECOMMIT );
+	//VirtualFree( membase, cursize, MEM_DECOMMIT );
 #endif
 	// on non win32 OS, we keep the allocated chunk as is, just start again to curzise = 0
 

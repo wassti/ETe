@@ -151,31 +151,31 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="jconfig.h">
+    <ClInclude Include=".\..\libjpeg\jconfig.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="jdct.h">
+    <ClInclude Include=".\..\libjpeg\jdct.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="jerror.h">
+    <ClInclude Include=".\..\libjpeg\jerror.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="jinclude.h">
+    <ClInclude Include=".\..\libjpeg\jinclude.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="jmemsys.h">
+    <ClInclude Include=".\..\libjpeg\jmemsys.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="jmorecfg.h">
+    <ClInclude Include=".\..\libjpeg\jmorecfg.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="jpegint.h">
+    <ClInclude Include=".\..\libjpeg\jpegint.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="jpeglib.h">
+    <ClInclude Include=".\..\libjpeg\jpeglib.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="jversion.h">
+    <ClInclude Include=".\..\libjpeg\jversion.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

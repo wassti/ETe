@@ -96,6 +96,7 @@ option(DYNAMIC_RENDERER "Whether to use modular rendering features (builds as sh
 option(BUILD_ETMAIN_MOD "Build cgame/qagame/ui modules for etmain" OFF)
 option(USE_STEAMAPI "Build steamshim process to communicate to steamapi for basic support" OFF)
 option(ENABLE_SPLINES "Splines code" ON)
+option(USE_VULKAN_API "Vulkan Renderer" ON)
 
 set(USE_DISCORD OFF)
 
@@ -292,52 +293,54 @@ if(NOT USE_SYSTEM_JPEG)
 endif(NOT USE_SYSTEM_JPEG)
 
 #note renderer needs extra files in modular mode
+
 set(renderer_files
-    "renderer/tr_animation_mdm.c"
-    "renderer/tr_animation_mds.c"
-    "renderer/tr_arb.c"
-    "renderer/tr_backend.c"
-    "renderer/tr_bsp.c"
-    "renderer/tr_cmds.c"
-    "renderer/tr_cmesh.c"
-    "renderer/tr_curve.c"
-    "renderer/tr_decals.c"
-    "renderer/tr_flares.c"
-    "renderercommon/tr_font.c"
-    "renderer/tr_image.c"
-    "renderercommon/tr_image_bmp.c"
-    "renderercommon/tr_image_jpg.c"
-    "renderercommon/tr_image_pcx.c"
-    "renderercommon/tr_image_png.c"
-    "renderercommon/tr_image_svg.c"
-    "renderercommon/tr_image_tga.c"
-    "renderer/tr_init.c"
-    "renderer/tr_light.c"
-    "renderer/tr_main.c"
-    "renderer/tr_marks.c"
-    "renderer/tr_mesh.c"
-    "renderer/tr_model_iqm.c"
-    "renderer/tr_model.c"
-    "renderercommon/tr_noise.c"
-    "renderer/tr_scene.c"
-    "renderer/tr_shade_calc.c"
-    "renderer/tr_shade.c"
-    "renderer/tr_shader.c"
-    "renderer/tr_shadows.c"
-    "renderer/tr_sky.c"
-    "renderer/tr_surface.c"
-    "renderer/tr_vbo.c"
-    "renderer/tr_world.c"
+	"renderervk/tr_animation_mdm.c"
+	"renderervk/tr_animation_mds.c"
+	"renderervk/tr_backend.c"
+	"renderervk/tr_bsp.c"
+	"renderervk/tr_cmds.c"
+	"renderervk/tr_cmesh.c"
+	"renderervk/tr_curve.c"
+	"renderervk/tr_decals.c"
+	"renderervk/vk_flares.c"
+	"renderercommon/tr_font.c"
+	"renderervk/tr_image.c"
+	"renderercommon/tr_image_bmp.c"
+	"renderercommon/tr_image_jpg.c"
+	"renderercommon/tr_image_pcx.c"
+	"renderercommon/tr_image_png.c"
+	"renderercommon/tr_image_svg.c"
+	"renderercommon/tr_image_tga.c"
+	"renderervk/tr_init.c"
+	"renderervk/tr_light.c"
+	"renderervk/tr_main.c"
+	"renderervk/tr_marks.c"
+	"renderervk/tr_mesh.c"
+	"renderervk/tr_model_iqm.c"
+	"renderervk/tr_model.c"
+	"renderercommon/tr_noise.c"
+	"renderervk/tr_scene.c"
+	"renderervk/tr_shade_calc.c"
+	"renderervk/tr_shade.c"
+	"renderervk/tr_shader.c"
+	"renderervk/tr_shadows.c"
+	"renderervk/tr_sky.c"
+	"renderervk/tr_surface.c"
+	"renderervk/vk.c"
+	"renderervk/vk_vbo.c"
+	"renderervk/tr_world.c"
 )
 
 if(DYNAMIC_RENDERER)
-    set(renderer_files
-        ${renderer_files}
-        "qcommon/q_shared.c"
-        "qcommon/puff.c"
-        "qcommon/q_math.c"
-    )
+	set(renderer_files
+		${renderer_files}
+		"qcommon/q_shared.c"
+		"qcommon/puff.c"
+		"qcommon/q_math.c"
+	)
 endif(DYNAMIC_RENDERER)
+
 
 if(BUILD_ETMAIN_MOD)
     set(cgame_files
@@ -459,6 +462,7 @@ if(BUILD_ETMAIN_MOD)
         "game/bg_misc.c"
         "qcommon/q_math.c"
         "qcommon/q_shared.c"
+		"renderervk/vk.c"
     )
 endif(BUILD_ETMAIN_MOD)
 
@@ -476,25 +480,59 @@ target_include_directories(splines PUBLIC "${SRCDIR}/splines")
 #target_link_libraries(splines PRIVATE "libstdc++")
 endif(ENABLE_SPLINES)
 
+find_package(Vulkan REQUIRED)
+find_path(VULKAN_INCLUDE_DIR NAMES vulkan/vulkan.h HINTS
+	"$ENV{VULKAN_SDK}/Include"
+	"$ENV{VK_SDK_PATH}/Include")
+
+if (VULKAN_FOUND)
+	message(STATUS "Found Vulkan")
+	TARGET_COMPILE_DEFINITIONS(q3ui PRIVATE USE_VULKAN_API)
+	TARGET_COMPILE_DEFINITIONS(client PRIVATE USE_VULKAN_API)
+else(VULKAN_FOUND)
+	message(STATUS "Vulkan not found")
+endif (VULKAN_FOUND)
+
 set(RENDERER_PREFIX "ete")
 if(BUILD_CLIENT)
     if(DYNAMIC_RENDERER)
         add_library(${RENDERER_PREFIX}_opengl SHARED "${renderer_files}")
     else()
-        add_library(${RENDERER_PREFIX}_opengl STATIC "${renderer_files}")
+		#if(USE_VULKAN_API)
+			add_library(${RENDERER_PREFIX}_vulkan STATIC "${renderer_files}")
+			target_link_libraries(${RENDERER_PREFIX}_vulkan ${Vulkan_LIBRARIES})
+		#else()
+			#add_library(${RENDERER_PREFIX}_opengl STATIC "${renderer_files}")
+		#endif(USE_VULKAN_API)
     endif(DYNAMIC_RENDERER)
 
-    target_compile_options(${RENDERER_PREFIX}_opengl
-        PRIVATE $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:DEBUG>>:${compiler_flags_debug}>
-                $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:RELEASE>>:${compiler_flags_release}>
-                $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:RELWITHDEBINFO>>:${compiler_flags_relwithdebinfo}>
-                $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:DEBUG>>:${compiler_flags_debug}>
-                $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:RELEASE>>:${compiler_flags_release}>
-                $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:RELWITHDEBINFO>>:${compiler_flags_relwithdebinfo}>
-    )
+	if(USE_VULKAN_API)
+		target_compile_options(${RENDERER_PREFIX}_vulkan
+			PRIVATE $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:DEBUG>>:${compiler_flags_debug}>
+					$<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:RELEASE>>:${compiler_flags_release}>
+					$<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:RELWITHDEBINFO>>:${compiler_flags_relwithdebinfo}>
+					$<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:DEBUG>>:${compiler_flags_debug}>
+					$<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:RELEASE>>:${compiler_flags_release}>
+					$<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:RELWITHDEBINFO>>:${compiler_flags_relwithdebinfo}>
+		)
 
-    set_target_properties(${RENDERER_PREFIX}_opengl PROPERTIES PREFIX "")
+		set_target_properties(${RENDERER_PREFIX}_vulkan PROPERTIES PREFIX "")
+		target_include_directories(${RENDERER_PREFIX}_vulkan PUBLIC "${SRCDIR}/renderervk ${SRCDIR}/renderercommon ${SRCDIR}/qcommon")
+	
+	
+	else()
+		target_compile_options(${RENDERER_PREFIX}_opengl
+			PRIVATE $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:DEBUG>>:${compiler_flags_debug}>
+					$<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:RELEASE>>:${compiler_flags_release}>
+					$<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:RELWITHDEBINFO>>:${compiler_flags_relwithdebinfo}>
+					$<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:DEBUG>>:${compiler_flags_debug}>
+					$<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:RELEASE>>:${compiler_flags_release}>
+					$<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:RELWITHDEBINFO>>:${compiler_flags_relwithdebinfo}>
+		)
 
+		set_target_properties(${RENDERER_PREFIX}_opengl PROPERTIES PREFIX "")
+	
+	
     if(DYNAMIC_RENDERER)
         target_compile_definitions(${RENDERER_PREFIX}_opengl PUBLIC "USE_RENDERER_DLOPEN" "RENDERER_PREFIX=\"${RENDERER_PREFIX}\"")
         set_target_properties(${RENDERER_PREFIX}_opengl PROPERTIES SUFFIX "_${Architecture}${DLL_EXT}")
@@ -502,6 +540,8 @@ if(BUILD_CLIENT)
     endif(DYNAMIC_RENDERER)
 
     target_include_directories(${RENDERER_PREFIX}_opengl PUBLIC "${SRCDIR}/renderer ${SRCDIR}/renderercommon ${SRCDIR}/qcommon")
+	
+	endif(USE_VULKAN_API)
 endif(BUILD_CLIENT)
 
 set(core_client_files
@@ -585,7 +625,8 @@ if(BUILD_CLIENT)
         set_target_properties(ete PROPERTIES SUFFIX ".${Architecture}") #NOTE changeme when multi-platform and multi-arch support is added
     endif(X86)
     target_include_directories(ete PUBLIC "${SRCDIR}/server ${SRCDIR}/client ${SRCDIR}/qcommon")
-    target_compile_definitions(ete PUBLIC "USE_CURL" "USE_CURL_DLOPEN" "USE_OPENGL_API")
+    target_compile_definitions(ete PUBLIC "USE_CURL" "USE_CURL_DLOPEN" "USE_VULKAN_API")
+	#target_compile_definitions(ete PUBLIC "USE_CURL" "USE_CURL_DLOPEN" "USE_OPENGL_API")
     target_include_directories(ete PRIVATE ${CURL_INCLUDE_DIRS})
     if(USE_STEAMAPI)
         target_compile_definitions(ete PUBLIC "USE_STEAMAPI")
@@ -617,7 +658,8 @@ if(BUILD_CLIENT)
         target_link_libraries(ete PUBLIC splines)
     endif()
     if(NOT DYNAMIC_RENDERER)
-        target_link_libraries(ete PUBLIC ${RENDERER_PREFIX}_opengl)
+        #target_link_libraries(ete PUBLIC ${RENDERER_PREFIX}_opengl)
+		target_link_libraries(ete PUBLIC ${RENDERER_PREFIX}_vulkan)
     endif(NOT DYNAMIC_RENDERER)
 endif(BUILD_CLIENT)
 
